@@ -1,0 +1,27 @@
+{
+  "name": "pai-console",
+  "displayName": "Pai Console",
+  "version": "0.1.0",
+  "description": "Trabaja con Pai Console por el MCP corp: Recursos (pages y vistas pai-view@1), Conocimiento (ERD, C4, pantallas), Cronograma, Propuestas, Pagos/CFDI y Productos, con skills opinados y una guarda de escrituras en producción.",
+  "author": {
+    "name": "Pai",
+    "email": "alex.sanchez@pai.lat",
+    "url": "https://pai.lat"
+  },
+  "homepage": "https://pai.lat",
+  "license": "UNLICENSED",
+  "keywords": ["pai", "mcp", "console", "knowledge", "erd", "c4"],
+  "userConfig": {
+    "mcp_url": {
+      "type": "string",
+      "title": "Entorno del MCP de Pai",
+      "description": "URL del edge corp. Staging: https://mcp-edge-corp-staging.up.railway.app/mcp (por defecto). Producción: https://mcp-corp.pai.lat/mcp. Al cambiarla, vuelve a iniciar sesión en /mcp.",
+      "required": true,
+      "default": "https://mcp-edge-corp-staging.up.railway.app/mcp",
+      "options": [
+        "https://mcp-edge-corp-staging.up.railway.app/mcp",
+        "https://mcp-corp.pai.lat/mcp"
+      ]
+    }
+  }
+}
