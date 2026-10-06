@@ -10,7 +10,14 @@
   },
   "homepage": "https://pai.lat",
   "license": "UNLICENSED",
-  "keywords": ["pai", "mcp", "console", "knowledge", "erd", "c4"],
+  "keywords": [
+    "pai",
+    "mcp",
+    "console",
+    "knowledge",
+    "erd",
+    "c4"
+  ],
   "userConfig": {
     "mcp_url": {
       "type": "string",
@@ -22,6 +29,12 @@
         "https://mcp-edge-corp-staging.up.railway.app/mcp",
         "https://mcp-corp.pai.lat/mcp"
       ]
+    }
+  },
+  "mcpServers": {
+    "pai": {
+      "type": "http",
+      "url": "${user_config.mcp_url}"
     }
   }
 }
