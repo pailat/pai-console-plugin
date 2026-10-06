@@ -1,0 +1,61 @@
+{
+  "tool": "page_create",
+  "input": {
+    "organizationId": "ORG_ID",
+    "projectId": "PROJECT_ID",
+    "path": "dashboards/project-status",
+    "title": "Estado del proyecto",
+    "description": "Tablero con avance, hitos y horas del proyecto al corte.",
+    "audience": "equipo",
+    "summary": "Tablero de estado del proyecto al 2026-10-06",
+    "idempotencyKey": "page-shop-dashboards-project-status",
+    "content": {
+      "schemaVersion": 1,
+      "componentSetVersion": "pai-core-v1",
+      "layout": "canvas",
+      "sections": [
+        {
+          "id": "dashboard",
+          "title": "Tablero",
+          "blocks": [
+            {
+              "id": "statusView",
+              "type": "view",
+              "title": "Estado del proyecto",
+              "spec": {
+                "root": "root",
+                "elements": {
+                  "root": { "type": "Stack", "props": { "direction": "vertical", "gap": "lg" }, "children": ["header", "kpis", "detailTabs"] },
+                  "header": { "type": "Section", "props": { "title": "Tienda en línea", "description": "Corte al 2026-10-06. Datos de timeline_get y del registro de horas." }, "children": ["riskAlert"] },
+                  "riskAlert": { "type": "Alert", "props": { "title": "Hito 3 en riesgo", "message": "La integración de pagos depende de las credenciales del cliente; sin ellas el 2026-10-15, el hito se mueve una semana.", "type": "warning" } },
+                  "kpis": { "type": "Grid", "props": { "columns": 3, "gap": "md" }, "children": ["kpiProgress", "kpiMilestones", "kpiHours"] },
+                  "kpiProgress": { "type": "Metric", "props": { "label": "Avance", "value": "68 %", "detail": "vs. 55 % al 2026-09-29", "trend": "up" } },
+                  "kpiMilestones": { "type": "Metric", "props": { "label": "Hitos cerrados", "value": "2 de 4" } },
+                  "kpiHours": { "type": "Metric", "props": { "label": "Horas de octubre", "value": "98 h", "detail": "Corte 2026-10-06" } },
+                  "detailTabs": { "type": "Tabs", "props": { "tabs": [ { "label": "Hitos", "value": "milestones" }, { "label": "Horas", "value": "hours" } ], "defaultValue": "milestones" }, "children": ["milestonesTable", "hoursChart"] },
+                  "milestonesTable": {
+                    "type": "Table",
+                    "props": {
+                      "columns": ["Hito", "Fin", "Estado"],
+                      "rows": [
+                        ["Descubrimiento", "2026-08-30", "Completado"],
+                        ["Catálogo y carrito", "2026-09-27", "Completado"],
+                        ["Pagos", "2026-10-25", "En curso"],
+                        ["Lanzamiento", "2026-11-15", "Pendiente"]
+                      ],
+                      "caption": "Fechas de la línea base"
+                    }
+                  },
+                  "hoursChart": {
+                    "type": "Chart",
+                    "props": { "title": "Horas por mes", "kind": "bar", "categories": ["Ago", "Sep", "Oct"], "series": [ { "name": "Horas", "values": [120, 140, 98] } ], "unit": "h", "description": "Octubre al día 6." }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

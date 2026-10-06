@@ -58,7 +58,8 @@ Las lecturas se listan una por una en `hooks/guard.py` porque el servidor no ano
 | Skill | Para |
 |---|---|
 | `pai-console` | El método base: entorno, descubrimiento, buscar antes de crear, CAS, idempotencia, nombres en inglés, errores, citas. Con el inventario de tools |
-| `resources` | Pages con tipo, vistas `pai-view@1` (canvas + bloque `view`), imágenes, archivos |
+| `resources` | Pages con tipo, imágenes, archivos, mover, restaurar y borrar |
+| `views` | Vistas `pai-view@1` en una page canvas: tableros de KPIs, mockups de pantallas con AppShell, reportes visuales, comparativos. Recetas validadas y catálogo generado |
 | `knowledge` | Kinds, fuentes, propuestas que confirma una persona, enlaces por ontología, ciclo de vida |
 | `erd` | `data_model` + `entity`: columnas tipadas; las relaciones salen de las FK |
 | `c4` | `component` por nivel y `actor`; relaciones con descripción y tecnología |
@@ -68,7 +69,7 @@ Las lecturas se listan una por una en `hooks/guard.py` porque el servidor no ano
 | `products` | Alta, estados, aprovisionamiento, deploys, variables, dominios, acceso |
 | `pai-env` | `/pai-console:pai-env [staging\|production]`: ver o cambiar el entorno (solo manual) |
 
-Todos los skills de área se pueden invocar como comando (`/pai-console:erd`, `/pai-console:c4`, `/pai-console:resources`…) o los carga el modelo cuando la tarea encaja.
+Todos los skills de área se pueden invocar como comando (`/pai-console:erd`, `/pai-console:c4`, `/pai-console:resources`, `/pai-console:views`…) o los carga el modelo cuando la tarea encaja.
 
 ### Agente
 
@@ -79,7 +80,7 @@ Todos los skills de área se pueden invocar como comando (`/pai-console:erd`, `/
 Requiere un checkout de pai-portal con dependencias, por ejemplo un worktree detached de `release/0.2.5`.
 
 ```bash
-# Regenerar las referencias desde los contratos (kinds, ontología, vistas, tipos de page)
+# Regenerar las referencias desde los contratos (kinds, ontología, catálogo de vistas, tipos de page)
 PAI_PORTAL=~/worktrees/pai-console-plugin-ref bun tools/gen-references.ts
 
 # Validar cada ejemplo de los skills contra los esquemas reales

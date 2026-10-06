@@ -1,6 +1,6 @@
 # Catálogo de vistas `pai-view@1`
 
-> Generado por `tools/gen-references.ts` desde pai-portal `e4fef942` (2026-10-06 Merge pull request #137 from pailat/fix/0.2.5/erd-c4-ui-rules), `packages/views/src/catalog.ts`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `90128af4` (2026-10-06 Merge pull request #143 from pailat/fix/0.2.5/url-params-allowlist), `packages/views/src/catalog.ts`. No editar a mano: regenerar.
 
 Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props, children? } } }. Los hijos se referencian por id.
 

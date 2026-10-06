@@ -41,7 +41,7 @@ Ejemplo validado: `${CLAUDE_PLUGIN_ROOT}/skills/screens/examples/checkout.json`.
 - **`states`** enumera lo que la persona ve, no los estados del código: «Cargando», «Vacío», «Error», «Listo». Si una pantalla solo tiene un estado, probablemente es un bloque de otra pantalla.
 - **`content`** son bloques de la pantalla. En `source` va de dónde salen sus datos (`entity/<slug>` o el nombre de la API).
 - **`actions`** son lo que la persona puede hacer y su efecto. Si una regla de negocio limita la acción, ponla en `rule` (`business_rule/<slug>`).
-- **`wireframe`** (opcional): `{description, url?}` (Figma) o `{description, pageId?}` (una page de Recursos con la imagen).
+- **`wireframe`** (opcional): `{description, url?}` (Figma) o `{description, pageId?}` (una page de Recursos). Si no hay diseño, el wireframe puede ser un **mockup con AppShell** (skill `views`, receta «Pantalla de aplicación»): créalo y pon su `pageId` aquí.
 - Un **flujo** cuenta un recorrido completo con resultado observable. No es un paso suelto ni una lista de pantallas. Los caminos de error van en `alternatives`.
 
 ## Nombres

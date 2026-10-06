@@ -10,7 +10,7 @@ Lee antes el skill `pai-console`.
 
 **Referencias, generadas desde los contratos:**
 - `${CLAUDE_PLUGIN_ROOT}/skills/resources/references/page-types.md`: tipos built-in con sus secciones y bloques permitidos, límites y reglas;
-- `${CLAUDE_PLUGIN_ROOT}/skills/resources/references/view-catalog.md`: componentes `pai-view@1` con sus props.
+- para componer vistas (`pai-view@1`), el skill **`views`**, con su catálogo y sus recetas.
 
 Úsalas en lugar de `page_catalog`, que pesa unos 35 KB. Llama a `page_catalog` o a `page_types` solo si sospechas que el entorno tiene otra versión, o para ver los tipos propios de la organización o del proyecto.
 
@@ -52,25 +52,14 @@ Si dudas entre page y nodo, piensa en el uso. **Una page se lee de corrido; un n
 
 Ejemplos validados:
 - `${CLAUDE_PLUGIN_ROOT}/skills/resources/examples/report-page.json`: tipo `report`, con sus cinco secciones obligatorias;
-- `${CLAUDE_PLUGIN_ROOT}/skills/resources/examples/view-dashboard.json`: canvas con una vista de métricas, alerta, pestañas, tabla y gráfica.
+- vistas en canvas: ejemplos en `${CLAUDE_PLUGIN_ROOT}/skills/views/examples/`.
 
 ## 3. Vistas (`view`, catálogo `pai-view@1`)
 
-Bloque: `{ "id", "type": "view", "title", "spec": { "root": "<id>", "elements": { "<id>": { "type", "props", "children"? } } } }`.
-
-- **Solo** componentes del catálogo. **Sin** `className`, `style`, colores, HTML, estado, expresiones (`$state`, `$cond`) ni eventos.
-- Solo admiten `children` AppShell, Stack, Grid, Card, Collapsible, Tabs y Section.
-- **Tabs** lleva un hijo por pestaña, en el mismo orden que `props.tabs`.
-- Cada elemento tiene **un solo padre**, todos cuelgan de `root` y no hay ciclos.
-- En **Table**, cada fila tiene tantas celdas como columnas.
-- En **Chart**, cada serie tiene tantos valores como categorías; un `pie` lleva una sola serie.
-- **Grid** tiene 1–4 columnas. **Metric.value** es un texto ya formateado, de 1 a 40 caracteres («68 %», «$1.2 M»).
-- **Datos estáticos con fecha de corte:** la vista no consulta nada en vivo. Pon la fecha en `detail`, `description` o `caption`.
-- Una **pantalla de aplicación** (mockup de un módulo o dashboard de producto) usa `AppShell` como raíz, con `nav` (≤12 ítems, iconos del catálogo). Así se abre a pantalla completa con su barra lateral.
-- Los enlaces apuntan solo a rutas del Portal (`/…`), a anclas `#`, a `https:` o a `mailto:`.
-- Ids estables: al editar una vista, **reutiliza los ids** de los elementos que no cambian.
-
-Valida siempre con `page_validate`: revisa la page completa, incluido el `spec`.
+Tableros, mockups de pantallas, reportes visuales y comparativos se componen con el skill **`views`**: catálogo, recetas validadas, reglas de datos y diseño, y errores frecuentes. Aquí solo lo esencial de la page que la contiene:
+- `layout: "canvas"` y un bloque `{id, type: "view", title, spec}`;
+- **sin `typeSlug`**;
+- valida con `page_validate` antes de guardar.
 
 ## 4. Actualizar una page
 

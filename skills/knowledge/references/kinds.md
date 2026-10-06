@@ -1,6 +1,6 @@
 # Kinds de Conocimiento
 
-> Generado por `tools/gen-references.ts` desde pai-portal `e4fef942` (2026-10-06 Merge pull request #137 from pailat/fix/0.2.5/erd-c4-ui-rules), `packages/contracts/src/knowledge`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `90128af4` (2026-10-06 Merge pull request #143 from pailat/fix/0.2.5/url-params-allowlist), `packages/contracts/src/knowledge`. No editar a mano: regenerar.
 
 Cada kind tiene una plantilla estricta: una clave que no aparece aquí se rechaza. `properties` lleva exactamente estas claves. Las secciones `refs` materializan aristas al guardar.
 
@@ -875,7 +875,7 @@ Ejemplo de `properties`:
 
 ## `component` — Componente (C4) (plantilla v3)
 
-Elemento del modelo C4 en cualquiera de los tres niveles (context, container, component): sistema, sistema externo, contenedor (app, base de datos, cola) o componente, con tecnología, padre (parent, nivel inmediatamente superior), relaciones descritas con su tecnología y los modelos de datos que guarda o usa. Las personas son nodos actor. Las vistas C4 se derivan.
+Elemento del modelo C4 en cualquiera de los cuatro niveles (context, container, component, code): sistema, sistema externo, contenedor (app, base de datos, cola), componente o elemento de código, con tecnología, padre (parent, nivel inmediatamente superior), relaciones descritas con su tecnología y los modelos de datos que guarda o usa. Las personas son nodos actor. Las vistas C4 se derivan.
 
 Estados: `draft`, `active`, `superseded`, `archived`.
 

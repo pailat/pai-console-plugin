@@ -1,0 +1,75 @@
+{
+  "tool": "page_create",
+  "input": {
+    "organizationId": "ORG_ID",
+    "projectId": "PROJECT_ID",
+    "path": "mockups/loans",
+    "title": "Mockup — Préstamos",
+    "description": "Pantalla de préstamos de la Biblioteca en línea, para validar con el cliente antes de construirla.",
+    "audience": "cliente",
+    "summary": "Mockup de la pantalla de préstamos",
+    "idempotencyKey": "page-library-mockups-loans",
+    "content": {
+      "schemaVersion": 1,
+      "componentSetVersion": "pai-core-v1",
+      "layout": "canvas",
+      "sections": [
+        {
+          "id": "screen",
+          "title": "Préstamos",
+          "blocks": [
+            {
+              "id": "loansMockup",
+              "type": "view",
+              "title": "Mockup — Préstamos",
+              "spec": {
+                "root": "shell",
+                "elements": {
+                  "shell": {
+                    "type": "AppShell",
+                    "props": {
+                      "brand": { "name": "Biblioteca en línea", "detail": "Sucursal Centro" },
+                      "nav": [
+                        { "label": "Inicio", "icon": "home" },
+                        { "label": "Catálogo", "icon": "layers" },
+                        { "label": "Préstamos", "icon": "calendar", "active": true },
+                        { "label": "Socios", "icon": "users" },
+                        { "label": "Reportes", "icon": "reports" }
+                      ],
+                      "secondaryTitle": "Cuenta",
+                      "secondaryNav": [ { "label": "Configuración", "icon": "settings" }, { "label": "Ayuda", "icon": "help" } ],
+                      "title": "Préstamos",
+                      "user": { "name": "Laura Méndez", "detail": "Bibliotecaria" }
+                    },
+                    "children": ["content"]
+                  },
+                  "content": { "type": "Stack", "props": { "direction": "vertical", "gap": "lg" }, "children": ["kpis", "overdueAlert", "loansCard"] },
+                  "kpis": { "type": "Grid", "props": { "columns": 3, "gap": "md" }, "children": ["kpiActive", "kpiOverdue", "kpiToday"] },
+                  "kpiActive": { "type": "Metric", "props": { "label": "Préstamos activos", "value": "87" } },
+                  "kpiOverdue": { "type": "Metric", "props": { "label": "Vencidos", "value": "9", "detail": "vs. 14 la semana pasada", "trend": "down" } },
+                  "kpiToday": { "type": "Metric", "props": { "label": "Devoluciones hoy", "value": "12" } },
+                  "overdueAlert": { "type": "Alert", "props": { "title": "9 préstamos vencidos", "message": "Se envió el aviso por correo a cada socio el 2026-10-05.", "type": "warning" } },
+                  "loansCard": { "type": "Card", "props": { "title": "Préstamos recientes", "description": "Los 5 más recientes; el resto en Ver todos." }, "children": ["loansTable", "seeAll"] },
+                  "loansTable": {
+                    "type": "Table",
+                    "props": {
+                      "columns": ["Libro", "Socio", "Prestado", "Vence", "Estado"],
+                      "rows": [
+                        ["Rayuela", "Mario Ruiz", "2026-09-22", "2026-10-06", "Vence hoy"],
+                        ["Pedro Páramo", "Ana Torres", "2026-09-20", "2026-10-04", "Vencido"],
+                        ["Ficciones", "Luis Vega", "2026-09-28", "2026-10-12", "Activo"],
+                        ["Aura", "Sofía Ríos", "2026-09-29", "2026-10-13", "Activo"],
+                        ["Santa Evita", "Diego Paz", "2026-09-30", "2026-10-14", "Activo"]
+                      ]
+                    }
+                  },
+                  "seeAll": { "type": "Link", "props": { "label": "Ver todos los préstamos", "href": "#loans" } }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

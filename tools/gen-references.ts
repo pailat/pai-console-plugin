@@ -4,7 +4,7 @@
  *
  * - skills/knowledge/references/kinds.md      kinds, sections, statuses, examples
  * - skills/knowledge/references/ontology.md   rels and their allowed kind pairs
- * - skills/resources/references/view-catalog.md   pai-view@1 components and props
+ * - skills/views/references/view-catalog.md   pai-view@1 components and props
  * - skills/resources/references/page-types.md built-in page types and blocks
  *
  * Usage (pai-portal checkout with dependencies installed):
@@ -287,7 +287,7 @@ viewLines.push(
 	JSON.stringify(views.example, null, 1),
 	"```",
 );
-write("skills/resources/references/view-catalog.md", viewLines.join("\n"));
+write("skills/views/references/view-catalog.md", viewLines.join("\n"));
 
 // ----------------------------------------------------------- page types ----
 

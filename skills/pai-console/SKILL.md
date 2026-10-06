@@ -103,7 +103,8 @@ Distingue hechos respaldados, inferencias y preguntas abiertas.
 
 | Tarea | Skill |
 |---|---|
-| Pages, tipos de page, vistas `pai-view@1`, canvas, imágenes, archivos | `resources` |
+| Pages, tipos de page, imágenes, archivos | `resources` |
+| Vistas `pai-view@1`: tableros, mockups con AppShell, reportes visuales, comparativos | `views` |
 | Nodos de Knowledge: kinds, fuentes, propuestas, ciclo de vida, enlaces | `knowledge` |
 | Modelo de datos: `data_model` + `entity`, columnas y FK | `erd` |
 | Arquitectura C4: `component` por nivel, relaciones y actores | `c4` |

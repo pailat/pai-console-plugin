@@ -1,6 +1,6 @@
 # Tipos de page y bloques
 
-> Generado por `tools/gen-references.ts` desde pai-portal `e4fef942` (2026-10-06 Merge pull request #137 from pailat/fix/0.2.5/erd-c4-ui-rules), `packages/contracts/src/pages`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `90128af4` (2026-10-06 Merge pull request #143 from pailat/fix/0.2.5/url-params-allowlist), `packages/contracts/src/pages`. No editar a mano: regenerar.
 
 ## Límites del contenido
 
@@ -31,7 +31,7 @@
 - Fuentes: declara cada fuente una vez en un bloque sources con enlace y fecha ISO; facts, data-table, quote y figure la citan por sourceRef.
 - Datos: una cifra vive en facts o data-table con su fecha de corte; no repitas la misma cifra en prosa sin su fuente.
 - Requisitos y entregables: el entregable referencia requisitos por id; un requisito sin criterio de aceptación no es un requisito.
-- Vistas: para un tablero, reporte visual o página libre usa layout canvas y un bloque view; compón su spec sólo con views.components (layout, métricas, gráficas, tablas) y valídalo con page_validate antes de guardar.
+- Vistas: para un tablero, reporte visual o página libre usa layout canvas y un bloque view; compón su spec sólo con views.components (layout, métricas, gráficas, tablas) y valídalo con page_validate antes de guardar. Ningún tipo built-in admite el bloque view: una page con vista va sin typeSlug, o con un tipo propio de la organización o del proyecto cuyas secciones lo permitan.
 
 ## Bloques
 

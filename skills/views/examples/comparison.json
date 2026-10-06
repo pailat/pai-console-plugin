@@ -1,0 +1,51 @@
+{
+  "tool": "page_create",
+  "input": {
+    "organizationId": "ORG_ID",
+    "projectId": "PROJECT_ID",
+    "path": "reports/payment-provider-comparison",
+    "title": "Comparativo de pasarelas de pago",
+    "description": "Tres opciones de pasarela para la tienda y la recomendada.",
+    "audience": "equipo",
+    "summary": "Comparativo de pasarelas de pago",
+    "idempotencyKey": "page-shop-reports-payment-provider-comparison",
+    "content": {
+      "schemaVersion": 1,
+      "componentSetVersion": "pai-core-v1",
+      "layout": "canvas",
+      "sections": [
+        {
+          "id": "comparison",
+          "title": "Comparativo",
+          "blocks": [
+            {
+              "id": "providersView",
+              "type": "view",
+              "title": "Pasarelas de pago",
+              "spec": {
+                "root": "root",
+                "elements": {
+                  "root": { "type": "Section", "props": { "title": "Pasarelas de pago para la tienda", "description": "Comisiones públicas consultadas el 2026-10-06; montos en MXN por cobro con tarjeta nacional." }, "children": ["options", "conclusion"] },
+                  "options": { "type": "Grid", "props": { "columns": 3, "gap": "md" }, "children": ["optionA", "optionB", "optionC"] },
+                  "optionA": { "type": "Card", "props": { "title": "Stripe", "description": "Tarjetas, OXXO y SPEI" }, "children": ["badgeA", "kvA", "listA"] },
+                  "badgeA": { "type": "Badge", "props": { "text": "Recomendada", "variant": "default" } },
+                  "kvA": { "type": "KeyValue", "props": { "columns": 1, "items": [ { "label": "Comisión", "value": "3.6 % + $3" }, { "label": "Alta", "value": "1 día" } ] } },
+                  "listA": { "type": "List", "props": { "items": ["Pro: API y webhooks maduros", "Pro: el equipo ya lo opera", "Contra: comisión algo mayor"] } },
+                  "optionB": { "type": "Card", "props": { "title": "Mercado Pago", "description": "Tarjetas y meses sin intereses" }, "children": ["badgeB", "kvB", "listB"] },
+                  "badgeB": { "type": "Badge", "props": { "text": "Alternativa", "variant": "secondary" } },
+                  "kvB": { "type": "KeyValue", "props": { "columns": 1, "items": [ { "label": "Comisión", "value": "3.49 % + IVA" }, { "label": "Alta", "value": "2–3 días" } ] } },
+                  "listB": { "type": "List", "props": { "items": ["Pro: meses sin intereses", "Contra: webhooks menos confiables"] } },
+                  "optionC": { "type": "Card", "props": { "title": "Conekta", "description": "Tarjetas, OXXO y SPEI" }, "children": ["badgeC", "kvC", "listC"] },
+                  "badgeC": { "type": "Badge", "props": { "text": "Descartada", "variant": "outline" } },
+                  "kvC": { "type": "KeyValue", "props": { "columns": 1, "items": [ { "label": "Comisión", "value": "2.9 % + $2.5 + IVA" }, { "label": "Alta", "value": "5 días" } ] } },
+                  "listC": { "type": "List", "props": { "items": ["Pro: comisión menor", "Contra: alta lenta y SDK sin mantenimiento activo"] } },
+                  "conclusion": { "type": "Alert", "props": { "title": "Recomendación: Stripe", "message": "Por la madurez de su API y porque el equipo ya lo opera; la diferencia de comisión no compensa el riesgo de integración.", "type": "info" } }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
