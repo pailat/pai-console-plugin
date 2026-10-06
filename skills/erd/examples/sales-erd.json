@@ -1,0 +1,103 @@
+[
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "data_model",
+      "slug": "sales-model",
+      "title": "Modelo de ventas",
+      "summary": "Clientes, pedidos y sus líneas en la base de datos de la tienda.",
+      "properties": {
+        "purpose": "Registra a los clientes de la tienda en línea, sus pedidos y lo que contiene cada pedido.",
+        "engine": "PostgreSQL 16",
+        "namespace": "public",
+        "conventions": [
+          "Tablas en singular y snake_case, en inglés.",
+          "Toda tabla tiene id uuid y created_at timestamptz."
+        ]
+      },
+      "sources": [{ "type": "repo", "path": "db/schema.sql", "ref": "main" }],
+      "changeSummary": "Alta del modelo de ventas",
+      "idempotencyKey": "kn-shop-data-model-sales"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "entity",
+      "slug": "customer",
+      "title": "Cliente",
+      "summary": "Persona registrada que compra en la tienda.",
+      "properties": {
+        "physicalName": "customer",
+        "dataModel": ["data_model/sales-model"],
+        "purpose": "Persona registrada que compra en la tienda; su correo es único.",
+        "columns": [
+          { "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false, "default": "gen_random_uuid()" },
+          { "name": "email", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+          { "name": "full_name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+          { "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+        ]
+      },
+      "sources": [{ "type": "repo", "path": "db/schema.sql", "ref": "main" }],
+      "changeSummary": "Alta de la entidad customer",
+      "idempotencyKey": "kn-shop-entity-customer"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "entity",
+      "slug": "order",
+      "title": "Pedido",
+      "summary": "Compra confirmada de un cliente.",
+      "properties": {
+        "physicalName": "order",
+        "dataModel": ["data_model/sales-model"],
+        "purpose": "Compra confirmada de un cliente, con su estado de pago.",
+        "columns": [
+          { "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
+          { "name": "customer_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false, "referencesEntity": "entity/customer", "referencesColumn": "id", "onDelete": "restrict", "description": "Quién compra." },
+          { "name": "status", "type": "enum", "nullable": false, "primaryKey": false, "unique": false, "enumValues": ["open", "paid", "cancelled"] },
+          { "name": "total_cents", "type": "bigint", "nullable": false, "primaryKey": false, "unique": false },
+          { "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+        ],
+        "invariants": ["total_cents es la suma de las líneas del pedido."]
+      },
+      "sources": [{ "type": "repo", "path": "db/schema.sql", "ref": "main" }],
+      "changeSummary": "Alta de la entidad order",
+      "idempotencyKey": "kn-shop-entity-order"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "entity",
+      "slug": "order-line",
+      "title": "Línea de pedido",
+      "summary": "Producto y cantidad dentro de un pedido.",
+      "properties": {
+        "physicalName": "order_line",
+        "dataModel": ["data_model/sales-model"],
+        "purpose": "Cada producto de un pedido, con su cantidad y precio al momento de comprar.",
+        "columns": [
+          { "name": "order_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false, "referencesEntity": "entity/order", "referencesColumn": "id", "onDelete": "cascade" },
+          { "name": "line_no", "type": "integer", "nullable": false, "primaryKey": true, "unique": false },
+          { "name": "sku", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+          { "name": "quantity", "type": "integer", "nullable": false, "primaryKey": false, "unique": false },
+          { "name": "unit_price_cents", "type": "bigint", "nullable": false, "primaryKey": false, "unique": false }
+        ]
+      },
+      "sources": [{ "type": "repo", "path": "db/schema.sql", "ref": "main" }],
+      "changeSummary": "Alta de la entidad order_line",
+      "idempotencyKey": "kn-shop-entity-order-line"
+    }
+  }
+]

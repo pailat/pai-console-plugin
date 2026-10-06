@@ -1,0 +1,189 @@
+[
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "actor",
+      "slug": "shopper",
+      "title": "Comprador",
+      "summary": "Persona que compra en la tienda en línea.",
+      "properties": {
+        "actorType": "person",
+        "description": "Cliente final que navega el catálogo, arma su carrito y paga en línea.",
+        "goals": ["Encontrar productos", "Pagar sin fricción", "Saber el estado de su pedido"]
+      },
+      "sources": [{ "type": "repo", "path": "docs/architecture.md", "ref": "main" }],
+      "changeSummary": "Alta del actor comprador",
+      "idempotencyKey": "kn-shop-actor-shopper"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "component",
+      "slug": "payment-gateway",
+      "title": "Pasarela de pagos",
+      "summary": "Proveedor externo que cobra con tarjeta.",
+      "properties": {
+        "c4Level": "context",
+        "c4Type": "System_Ext",
+        "technology": "Stripe",
+        "responsibility": "Cobra los pedidos con tarjeta y notifica el resultado por webhook."
+      },
+      "sources": [{ "type": "repo", "path": "docs/architecture.md", "ref": "main" }],
+      "changeSummary": "Alta del sistema externo de pagos",
+      "idempotencyKey": "kn-shop-c4-payment-gateway"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "component",
+      "slug": "shop-system",
+      "title": "Tienda en línea",
+      "summary": "Sistema de ventas en línea del cliente.",
+      "properties": {
+        "c4Level": "context",
+        "c4Type": "System",
+        "responsibility": "Vende productos en línea: catálogo, carrito, checkout y seguimiento de pedidos.",
+        "relationships": [
+          { "to": "actor/shopper", "direction": "in", "description": "Compra productos", "technology": "HTTPS" },
+          { "to": "component/payment-gateway", "direction": "out", "description": "Cobra los pedidos", "technology": "HTTPS/JSON" }
+        ]
+      },
+      "sources": [{ "type": "repo", "path": "docs/architecture.md", "ref": "main" }],
+      "changeSummary": "Alta del sistema tienda (contexto)",
+      "idempotencyKey": "kn-shop-c4-shop-system"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "component",
+      "slug": "shop-db",
+      "title": "Base de datos de la tienda",
+      "summary": "PostgreSQL con clientes, pedidos y líneas.",
+      "properties": {
+        "c4Level": "container",
+        "c4Type": "ContainerDb",
+        "technology": "PostgreSQL 16",
+        "responsibility": "Guarda clientes, pedidos y líneas de pedido de la tienda.",
+        "parent": ["component/shop-system"],
+        "dataModels": ["data_model/sales-model"]
+      },
+      "sources": [{ "type": "repo", "path": "docs/architecture.md", "ref": "main" }],
+      "changeSummary": "Alta del contenedor de base de datos",
+      "idempotencyKey": "kn-shop-c4-shop-db"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "component",
+      "slug": "shop-api",
+      "title": "API de la tienda",
+      "summary": "API HTTP de pedidos y pagos.",
+      "properties": {
+        "c4Level": "container",
+        "c4Type": "Container",
+        "technology": "Hono sobre Bun",
+        "responsibility": "Expone pedidos y pagos; es la única que escribe en la base de datos.",
+        "parent": ["component/shop-system"],
+        "relationships": [
+          { "to": "component/shop-db", "direction": "out", "description": "Lee y escribe pedidos", "technology": "SQL/TLS" },
+          { "to": "component/payment-gateway", "direction": "out", "description": "Crea cobros", "technology": "HTTPS/JSON" }
+        ]
+      },
+      "sources": [{ "type": "repo", "path": "docs/architecture.md", "ref": "main" }],
+      "changeSummary": "Alta del contenedor API",
+      "idempotencyKey": "kn-shop-c4-shop-api"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "component",
+      "slug": "shop-web",
+      "title": "Web de la tienda",
+      "summary": "Frontend del catálogo y el checkout.",
+      "properties": {
+        "c4Level": "container",
+        "c4Type": "Container",
+        "technology": "Next.js 16",
+        "responsibility": "Muestra el catálogo, el carrito y el checkout; llama a la API.",
+        "parent": ["component/shop-system"],
+        "relationships": [
+          { "to": "actor/shopper", "direction": "in", "description": "Navega y compra", "technology": "HTTPS" },
+          { "to": "component/shop-api", "direction": "out", "description": "Consulta y crea pedidos", "technology": "HTTPS/JSON" }
+        ]
+      },
+      "sources": [{ "type": "repo", "path": "docs/architecture.md", "ref": "main" }],
+      "changeSummary": "Alta del contenedor web",
+      "idempotencyKey": "kn-shop-c4-shop-web"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "component",
+      "slug": "order-repository",
+      "title": "Repositorio de pedidos",
+      "summary": "Acceso a datos de pedidos.",
+      "properties": {
+        "c4Level": "component",
+        "c4Type": "Component",
+        "stereotype": "repository",
+        "technology": "Drizzle ORM",
+        "responsibility": "Lee y escribe pedidos y sus líneas en PostgreSQL.",
+        "parent": ["component/shop-api"],
+        "entity": ["entity/order"],
+        "dataOperations": ["create", "read", "update", "list"]
+      },
+      "sources": [{ "type": "repo", "path": "apps/api/src/orders/repository.ts", "ref": "main" }],
+      "changeSummary": "Alta del repositorio de pedidos",
+      "idempotencyKey": "kn-shop-c4-order-repository"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "component",
+      "slug": "orders-controller",
+      "title": "Controlador de pedidos",
+      "summary": "Rutas HTTP de pedidos.",
+      "properties": {
+        "c4Level": "component",
+        "c4Type": "Component",
+        "stereotype": "controller",
+        "technology": "Hono",
+        "responsibility": "Valida las peticiones de pedidos y delega en el repositorio.",
+        "parent": ["component/shop-api"],
+        "httpRoutes": [
+          { "method": "GET", "path": "/v1/orders", "description": "Lista los pedidos del cliente" },
+          { "method": "POST", "path": "/v1/orders", "description": "Crea un pedido" }
+        ],
+        "relationships": [
+          { "to": "component/order-repository", "direction": "out", "description": "Persiste pedidos", "technology": "Llamada interna" }
+        ]
+      },
+      "sources": [{ "type": "repo", "path": "apps/api/src/orders/routes.ts", "ref": "main" }],
+      "changeSummary": "Alta del controlador de pedidos",
+      "idempotencyKey": "kn-shop-c4-orders-controller"
+    }
+  }
+]

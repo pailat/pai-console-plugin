@@ -1,0 +1,83 @@
+[
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "screen",
+      "slug": "order-detail",
+      "title": "Detalle del pedido",
+      "summary": "Estado y contenido de un pedido del comprador.",
+      "properties": {
+        "route": "/orders/[orderId]",
+        "purpose": "Muestra al comprador el estado de su pedido, lo que compró y el total pagado.",
+        "actors": ["actor/shopper"],
+        "states": ["Cargando", "Pedido pagado", "Pedido cancelado", "No encontrado"],
+        "content": [
+          { "block": "Encabezado", "data": "Número de pedido, fecha y estado", "source": "entity/order" },
+          { "block": "Líneas", "data": "Producto, cantidad y precio", "source": "entity/order-line" }
+        ],
+        "actions": [{ "action": "Volver a la tienda", "effect": "Navega al catálogo" }],
+        "uses": ["entity/order", "entity/order-line"]
+      },
+      "sources": [{ "type": "repo", "path": "apps/web/app/orders/[orderId]/page.tsx", "ref": "main" }],
+      "changeSummary": "Alta de la pantalla detalle de pedido",
+      "idempotencyKey": "kn-shop-screen-order-detail"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "screen",
+      "slug": "checkout",
+      "title": "Checkout",
+      "summary": "Confirmación y pago del carrito.",
+      "properties": {
+        "route": "/checkout",
+        "purpose": "El comprador revisa su carrito, confirma la dirección y paga con tarjeta.",
+        "actors": ["actor/shopper"],
+        "states": ["Carrito vacío", "Listo para pagar", "Procesando pago", "Pago rechazado"],
+        "content": [
+          { "block": "Resumen del carrito", "data": "Productos, cantidades y total", "source": "entity/order-line" },
+          { "block": "Formulario de pago", "data": "Tarjeta (Stripe Elements)" }
+        ],
+        "actions": [
+          { "action": "Pagar", "effect": "Crea el pedido y el cobro; al aprobarse navega al detalle" },
+          { "action": "Editar carrito", "effect": "Vuelve al carrito" }
+        ],
+        "uses": ["entity/order", "component/shop-web"],
+        "navigatesTo": ["screen/order-detail"]
+      },
+      "sources": [{ "type": "repo", "path": "apps/web/app/checkout/page.tsx", "ref": "main" }],
+      "changeSummary": "Alta de la pantalla checkout",
+      "idempotencyKey": "kn-shop-screen-checkout"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "flow",
+      "slug": "place-order",
+      "title": "Hacer un pedido",
+      "summary": "Del carrito al pedido pagado.",
+      "properties": {
+        "trigger": "El comprador pulsa «Pagar» en el checkout.",
+        "outcome": "Existe un pedido pagado y el comprador ve su detalle.",
+        "summary": "La web crea el pedido en la API, la API cobra con la pasarela y, al aprobarse, la web muestra el detalle.",
+        "steps": [
+          { "n": 1, "actor": "actor/shopper", "action": "Pulsa «Pagar»", "screen": "screen/checkout", "result": "La web envía el pedido a la API" },
+          { "n": 2, "actor": "actor/shopper", "action": "Confirma el pago con su tarjeta", "screen": "screen/checkout", "result": "La pasarela aprueba el cobro" },
+          { "n": 3, "actor": "actor/shopper", "action": "Ve su pedido", "screen": "screen/order-detail", "result": "Pedido en estado pagado" }
+        ],
+        "alternatives": [{ "when": "La pasarela rechaza el cobro", "then": "El checkout muestra «Pago rechazado» y el pedido queda abierto." }]
+      },
+      "sources": [{ "type": "repo", "path": "docs/flows/place-order.md", "ref": "main" }],
+      "changeSummary": "Alta del flujo hacer un pedido",
+      "idempotencyKey": "kn-shop-flow-place-order"
+    }
+  }
+]
