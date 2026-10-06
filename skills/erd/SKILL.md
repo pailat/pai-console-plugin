@@ -35,9 +35,9 @@ Un **`data_model`** agrupa **`entity`** (tablas). **Una entidad son sus columnas
    - `relates_to` por cada FK;
    - `contains` desde el `data_model`.
 
-   El diagrama se ve en el **Portal**, en el detalle del nodo `data_model`: `/organization/projects/<projectId>/knowledge/<nodeId>`. En producción el host es `portal.pai.lat`; en staging, el Portal de staging. Da ese enlace a la persona. No uses `knowledge_view` hasta que esté unificada.
+   El diagrama se ve en el **Portal**, en el detalle del nodo `data_model`: `https://app.pai.lat/organization/projects/<projectId>/knowledge/<nodeId>` en producción; en staging, la misma ruta en el Portal de staging. Da ese enlace a la persona. El campo `url` de los nodos trae la ruta legacy `/portal/organization/…`: quítale `/portal`. No uses `knowledge_view` hasta que esté unificada.
 
-Ejemplo completo y validado (modelo, 3 entidades, FK simple, FK identificante y enum): `examples/sales-erd.json`.
+Ejemplo completo y validado (modelo, 3 entidades, FK simple, FK identificante y enum): `${CLAUDE_PLUGIN_ROOT}/skills/erd/examples/sales-erd.json`.
 
 ## Columnas: el contrato exacto
 

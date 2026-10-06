@@ -80,7 +80,7 @@ El error llega como `CÓDIGO: mensaje`, en español.
 | `FORBIDDEN` «no eres miembro» | Sin membresía en la organización | Pide acceso; no lo rodees |
 | `FORBIDDEN` `HUMAN_CONFIRMS` | Intentaste activar o editar un objective, decision, adr, business_rule o constraint | Créalo como `proposed`; para cambiar uno activo, crea el nuevo y usa `knowledge_supersede` |
 | `SOURCE_REQUIRED` | Escritura de un agente sin `sources` | Agrega al menos una fuente real (page, url con fecha, repo…) |
-| `ONTOLOGY` | Ese par de kinds no admite esa `rel` | Revisa `skills/knowledge/references/ontology.md` |
+| `ONTOLOGY` | Ese par de kinds no admite esa `rel` | Revisa `${CLAUDE_PLUGIN_ROOT}/skills/knowledge/references/ontology.md` |
 | `CONFLICT` | Revisión vieja, duplicado o transición inválida | Relee y decide; no fuerces |
 | `NOT_FOUND` | Referencia o id que no existe en ese proyecto | Busca de nuevo; no adivines ids |
 | `INTERNAL_SERVER_ERROR` «No se pudo completar la operación» | También puede ser un timeout (`knowledge_impact`) | Reduce el alcance (`maxDepth`, `fanout`, `limit`) y reintenta una vez |
@@ -112,7 +112,7 @@ Distingue hechos respaldados, inferencias y preguntas abiertas.
 | Propuestas (SOW), CFDI y pagos | `proposals-payments` |
 | Productos: alta, aprovisionamiento, deploy, dominios, acceso | `products` |
 
-El inventario de tools, con lo que es lectura, escritura e irreversible, está en `references/tools.md`.
+El inventario de tools, con lo que es lectura, escritura e irreversible, está en `${CLAUDE_PLUGIN_ROOT}/skills/pai-console/references/tools.md`.
 
 ## 9. Tools de 0.2.5 que pueden no existir todavía
 

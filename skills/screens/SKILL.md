@@ -33,7 +33,7 @@ En un `flow`, `actor`, `screen` y `rule` de cada paso son referencias de lectura
 5. **Flujos,** referenciando actores y pantallas que ya existen.
 6. **Verifica** con `knowledge_get` las aristas `performs`, `navigates_to` y `uses`, y revisa los `warnings` de cada respuesta.
 
-Ejemplo validado: `examples/checkout.json`. Son dos pantallas con navegación entre ellas y un flujo de tres pasos con una alternativa. Reutiliza `actor/shopper` y las entidades del ejemplo de ERD.
+Ejemplo validado: `${CLAUDE_PLUGIN_ROOT}/skills/screens/examples/checkout.json`. Son dos pantallas con navegación entre ellas y un flujo de tres pasos con una alternativa. Reutiliza `actor/shopper` y las entidades del ejemplo de ERD.
 
 ## Criterio
 

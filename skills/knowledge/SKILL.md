@@ -9,7 +9,7 @@ Lee antes el skill `pai-console`. El grafo es la memoria del proyecto: cada nodo
 
 ## Elegir el kind
 
-Referencia completa, generada desde los contratos: `references/kinds.md` (plantillas y ejemplos) y `references/ontology.md` (relaciones permitidas). `knowledge_kinds` devuelve lo mismo desde el servidor; úsalo si dudas de la versión.
+Referencia completa, generada desde los contratos: `${CLAUDE_PLUGIN_ROOT}/skills/knowledge/references/kinds.md` (plantillas y ejemplos) y `${CLAUDE_PLUGIN_ROOT}/skills/knowledge/references/ontology.md` (relaciones permitidas). `knowledge_kinds` devuelve lo mismo desde el servidor; úsalo si dudas de la versión.
 
 | Si es… | kind |
 |---|---|
@@ -78,7 +78,7 @@ Referencia completa, generada desde los contratos: `references/kinds.md` (planti
 | `contains` | Jerarquía estructural (módulo → pantalla, data_model → entidad, component → component) |
 | `relates_to` | Solo entre entidades del ERD, y se deriva de sus FK: no la crees a mano |
 
-Si da `ONTOLOGY`, ese par no admite esa relación. Busca en `references/ontology.md` una que sí lo admita; no fuerces otra parecida solo para que pase.
+Si da `ONTOLOGY`, ese par no admite esa relación. Busca en `${CLAUDE_PLUGIN_ROOT}/skills/knowledge/references/ontology.md` una que sí lo admita; no fuerces otra parecida solo para que pase.
 
 ## Actualizar (CAS)
 

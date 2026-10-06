@@ -9,8 +9,8 @@ argument-hint: "[proyecto] [tema o tipo de recurso]"
 Lee antes el skill `pai-console`.
 
 **Referencias, generadas desde los contratos:**
-- `references/page-types.md`: tipos built-in con sus secciones y bloques permitidos, límites y reglas;
-- `references/view-catalog.md`: componentes `pai-view@1` con sus props.
+- `${CLAUDE_PLUGIN_ROOT}/skills/resources/references/page-types.md`: tipos built-in con sus secciones y bloques permitidos, límites y reglas;
+- `${CLAUDE_PLUGIN_ROOT}/skills/resources/references/view-catalog.md`: componentes `pai-view@1` con sus props.
 
 Úsalas en lugar de `page_catalog`, que pesa unos 35 KB. Llama a `page_catalog` o a `page_types` solo si sospechas que el entorno tiene otra versión, o para ver los tipos propios de la organización o del proyecto.
 
@@ -28,7 +28,7 @@ Si dudas entre page y nodo, piensa en el uso. **Una page se lee de corrido; un n
 ## 2. Crear una page
 
 1. **Busca:** `page_search` con el tema y `page_list` (sigue `nextCursor`) para ver la estructura de rutas. Si existe una page para lo mismo, actualízala (§4).
-2. **Elige el tipo:** `references/page-types.md`, o `page_types {slug}` para el `authoringGuide` completo y su ejemplo.
+2. **Elige el tipo:** `${CLAUDE_PLUGIN_ROOT}/skills/resources/references/page-types.md`, o `page_types {slug}` para el `authoringGuide` completo y su ejemplo.
 3. **Elige la ruta**, en inglés, kebab-case y por carpetas: `architecture/payments`, `reports/checkout-performance`, `dashboards/project-status`, `guides/deploy-staging`. Sin extensión y sin fechas en la ruta, salvo en las series (`reports/2026-10-weekly`).
 4. **Compón el contenido:**
    ```json
@@ -47,8 +47,8 @@ Si dudas entre page y nodo, piensa en el uso. **Una page se lee de corrido; un n
 7. **Lee la respuesta** (`warnings`, `document.revision`) y da a la persona la ruta y la revisión.
 
 Ejemplos validados:
-- `examples/report-page.json`: tipo `report`, con sus cinco secciones obligatorias;
-- `examples/view-dashboard.json`: canvas con una vista de métricas, alerta, pestañas, tabla y gráfica.
+- `${CLAUDE_PLUGIN_ROOT}/skills/resources/examples/report-page.json`: tipo `report`, con sus cinco secciones obligatorias;
+- `${CLAUDE_PLUGIN_ROOT}/skills/resources/examples/view-dashboard.json`: canvas con una vista de métricas, alerta, pestañas, tabla y gráfica.
 
 ## 3. Vistas (`view`, catálogo `pai-view@1`)
 

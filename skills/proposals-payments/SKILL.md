@@ -24,7 +24,7 @@ Una propuesta es un SOW: su `pageContent` sigue el contrato de pages con el tipo
 | `supuestos` | text, callout, risks |
 | `fuentes` | sources |
 
-Bloques obligatorios en algún lugar del documento: `deliverables`, `data-table` y `sources`. Detalle en `skills/resources/references/page-types.md`.
+Bloques obligatorios en algún lugar del documento: `deliverables`, `data-table` y `sources`. Detalle en `${CLAUDE_PLUGIN_ROOT}/skills/resources/references/page-types.md`.
 
 1. **Lee** `proposal_list` y, si hay propuesta, `proposal_get`. Un proyecto tiene historial de propuestas; un borrador vivo se edita, no se duplica.
 2. **Compón el SOW:**

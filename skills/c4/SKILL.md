@@ -36,9 +36,9 @@ Lee antes el skill `pai-console`.
 5. **Nivel component** (solo donde aporte), con `parent: ["component/<contenedor>"]` y `stereotype` cuando aplique.
 6. **Nivel code:** casi nunca. Solo si la persona lo pide o el elemento es central.
 7. **Siempre crea primero el destino de una relación o de un `parent`.** Si el destino no existe, la escritura no falla: devuelve un warning y no crea la arista. Si pasó, vuelve a guardar el nodo cuando el destino exista.
-8. **Verifica** con `knowledge_get` de cada nodo: `contains` desde el padre, y `uses` o `performs` según sus relaciones. El diagrama se ve en el **Portal**, en el detalle del nodo del sistema: `/organization/projects/<projectId>/knowledge/<nodeId>`. La vista trae los botones de los cuatro niveles; en producción el host es `portal.pai.lat`. No uses `knowledge_view` hasta que esté unificada.
+8. **Verifica** con `knowledge_get` de cada nodo: `contains` desde el padre, y `uses` o `performs` según sus relaciones. El diagrama se ve en el **Portal**, en el detalle del nodo del sistema: `https://app.pai.lat/organization/projects/<projectId>/knowledge/<nodeId>` en producción (en staging, la misma ruta en el Portal de staging). La vista trae los botones de los cuatro niveles. El campo `url` de los nodos trae la ruta legacy `/portal/organization/…`: quítale `/portal`. No uses `knowledge_view` hasta que esté unificada.
 
-Ejemplo completo y validado: `examples/shop-c4.json`. Incluye un actor, un sistema, un sistema externo, tres contenedores (uno de ellos BD ligada al ERD), un repository y un controller.
+Ejemplo completo y validado: `${CLAUDE_PLUGIN_ROOT}/skills/c4/examples/shop-c4.json`. Incluye un actor, un sistema, un sistema externo, tres contenedores (uno de ellos BD ligada al ERD), un repository y un controller.
 
 ## Relaciones (`relationships`, ≤30 por nodo)
 
