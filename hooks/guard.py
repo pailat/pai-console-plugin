@@ -1,0 +1,291 @@
+#!/usr/bin/env python3
+"""PreToolUse guard for the Pai MCP tools.
+
+Two checks, in this order:
+
+1. Search before create (every environment): a create tool is denied until the
+   session has looked for what already exists with a search/list tool of the
+   same area. The model reads the reason, searches and tries again.
+2. Production (only there): every write asks for confirmation; reads pass. The
+   irreversible ones say so and name what they drag along. Nothing is blocked:
+   the person decides.
+
+It covers the plugin's server (`mcp__plugin_pai-console_pai__*`, environment from
+the plugin's `mcp_url` option) and a user-level `pai-console` server
+(`mcp__pai-console__*`, environment from its URL in ~/.claude.json). An unknown
+environment counts as production: failing safe means asking once too often.
+
+Reads are listed explicitly because the server does not annotate every tool
+(MCP request M2): an unknown tool counts as a write.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import sys
+from pathlib import Path
+
+PLUGIN_PREFIX = "mcp__plugin_pai-console_pai__"
+USER_PREFIX = "mcp__pai-console__"
+
+STAGING_HOSTS = ("mcp-edge-corp-staging.up.railway.app",)
+
+READ_TOOLS = frozenset(
+    {
+        "whoami",
+        "organization_list",
+        "organization_get",
+        "project_list",
+        "project_summary",
+        "project_status",
+        "project_activity",
+        "status_update_list",
+        "brief_list",
+        "brief_get",
+        "brief_agenda",
+        "timeline_get",
+        "task_board",
+        "milestone_list",
+        "milestone_get",
+        "milestone_owner_options",
+        "page_catalog",
+        "page_types",
+        "page_validate",
+        "page_list",
+        "page_search",
+        "page_read",
+        "page_versions",
+        "page_version",
+        "page_comprehension",
+        "file_list",
+        "file_get",
+        "file_download_url",
+        "knowledge_kinds",
+        "knowledge_search",
+        "knowledge_get",
+        "knowledge_context",
+        "knowledge_impact",
+        "knowledge_audit",
+        "knowledge_list",
+        "knowledge_view",
+        "knowledge_library",
+        "knowledge_graph",
+        "proposal_list",
+        "proposal_get",
+        "payment_list",
+        "product_list",
+        "product_get",
+        "product_provisioning_get",
+        "product_logs",
+        "product_member_list",
+        "comment_list",
+        "comment_history",
+        "comment_recipients",
+        "agent_list",
+        "agent_get",
+        "credit_balance",
+        "credit_transactions",
+    }
+)
+
+# Create tool -> tools that count as "looked for what exists first".
+SEARCH_BEFORE_CREATE = {
+    "page_create": ("page_search", "page_list", "page_read"),
+    "knowledge_create": (
+        "knowledge_search",
+        "knowledge_context",
+        "knowledge_list",
+        "knowledge_library",
+        "task_board",
+    ),
+    "milestone_create": ("timeline_get", "milestone_list"),
+    "project_create": ("project_list",),
+    "organization_create": ("organization_list",),
+    "product_create": ("product_list",),
+    "agent_create": ("agent_list",),
+}
+
+# Irreversible writes: what the confirmation must say they drag along.
+IRREVERSIBLE = {
+    "project_delete": "Borra el proyecto con todo lo que depende de él, incluidos pagos y CFDI (borrado en cascada). No hay papelera.",
+    "milestone_delete": "Borra el hito; sus CFDI quedan sin hito y su cobro deja de contar. No hay papelera.",
+    "page_delete": "Borrado duro: la page, sus versiones, comentarios e índice. page_restore no la recupera; deja backlinks rotos.",
+    "payment_void": "Anula el pago para siempre y recalcula el estado de pago de los hitos.",
+    "payment_record": "Registra dinero cobrado desde un complemento CFDI P y recalcula el estado de pago de los hitos; solo se corrige anulándolo.",
+    "payment_cfdi_import": "Importa un CFDI timbrado al registro fiscal del proyecto; no hay herramienta para editarlo ni borrarlo.",
+    "product_deploy": "Despliega en Railway; en production publica ese commit a los usuarios del cliente.",
+    "product_variables_set": "Cambia variables de entorno en Railway; con redeploy vuelve a desplegar.",
+    "product_production_access_set": "Cambia quién puede entrar a la app en producción y la redespliega si estaba en línea.",
+    "product_provision": "Crea el repositorio en GitHub y el proyecto en Railway (Postgres, entornos, despliegue): tiene costo y no se deshace desde el MCP.",
+    "product_domain_attach": "Conecta un dominio propio en Railway; no hay herramienta para desconectarlo.",
+    "product_member_remove": "Quita a la persona del equipo del producto y de sus roles en la app.",
+    "proposal_set_status": "Transición de la propuesta (sent/accepted/rejected) que no se puede revertir.",
+    "proposal_accept": "Acepta la propuesta en nombre de la persona conectada; no se puede revertir.",
+    "proposal_reject": "Rechaza la propuesta en nombre de la persona conectada; no se puede revertir.",
+    "milestone_baseline_capture": "Congela la línea base del hito; solo se puede capturar una vez.",
+    "agent_delete": "Borra el agente del proyecto para siempre (para retirarlo usa status archived).",
+    "knowledge_unlink": "Borra la arista entre los nodos.",
+    "file_delete": "Borra el archivo de Recursos.",
+}
+
+# High-impact but reversible (or outward-facing) writes.
+ATTENTION = {
+    "product_request_status": "Pide una transición de estado del producto; desde retired solo se vuelve a draft.",
+    "product_decide_status": "Aprueba o rechaza la transición de estado del producto.",
+    "status_update_publish": "Publica el estado del proyecto; el cliente lo ve al momento.",
+    "knowledge_archive": "Archiva el nodo (reversible con knowledge_revive).",
+    "organization_create": "Crea una organización nueva (con ownerEmail envía una invitación).",
+    "project_invite_client": "Envía una invitación por correo a la persona del cliente.",
+}
+
+
+def emit(decision: str, reason: str) -> None:
+    print(
+        json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": decision,
+                    "permissionDecisionReason": reason,
+                }
+            },
+            ensure_ascii=False,
+        )
+    )
+
+
+def environment_of_url(url: str | None) -> str:
+    if not url:
+        return "production"
+    return "staging" if any(host in url for host in STAGING_HOSTS) else "production"
+
+
+def user_server_url() -> str | None:
+    """URL of the user-level `pai-console` server, if it is configured there."""
+    try:
+        config = json.loads((Path.home() / ".claude.json").read_text())
+    except (OSError, ValueError):
+        return None
+    server = (config.get("mcpServers") or {}).get("pai-console") or {}
+    return server.get("url")
+
+
+def tool_environment(tool_name: str) -> tuple[str, str, str] | None:
+    """(tool, environment, url) of a Pai tool, or None when it is not one."""
+    if tool_name.startswith(PLUGIN_PREFIX):
+        url = os.environ.get("CLAUDE_PLUGIN_OPTION_MCP_URL")
+        return tool_name[len(PLUGIN_PREFIX) :], environment_of_url(url), url or "?"
+    if tool_name.startswith(USER_PREFIX):
+        url = user_server_url()
+        return tool_name[len(USER_PREFIX) :], environment_of_url(url), url or "?"
+    return None
+
+
+def searched_before(transcript_path: str | None, tools: tuple[str, ...]) -> bool:
+    """Whether this session already called one of `tools` on a Pai server."""
+    if not transcript_path:
+        return True  # nothing to read: never block on a missing transcript
+    suffixes = tuple(f"__{tool}" for tool in tools)
+    try:
+        with open(transcript_path, encoding="utf-8") as transcript:
+            for line in transcript:
+                if '"tool_use"' not in line:
+                    continue
+                try:
+                    entry = json.loads(line)
+                except ValueError:
+                    continue
+                content = (entry.get("message") or {}).get("content")
+                if not isinstance(content, list):
+                    continue
+                for item in content:
+                    if (
+                        isinstance(item, dict)
+                        and item.get("type") == "tool_use"
+                        and str(item.get("name", "")).startswith(
+                            (PLUGIN_PREFIX, USER_PREFIX)
+                        )
+                        and str(item.get("name", "")).endswith(suffixes)
+                    ):
+                        return True
+    except OSError:
+        return True
+    return False
+
+
+def summarize(tool_input: dict) -> str:
+    keys = (
+        "environment",
+        "path",
+        "newPath",
+        "kind",
+        "title",
+        "name",
+        "status",
+        "ref",
+        "projectId",
+        "productId",
+        "milestoneId",
+        "proposalId",
+        "paymentId",
+        "id",
+    )
+    parts = [
+        f"{key}={json.dumps(tool_input[key], ensure_ascii=False)}"
+        for key in keys
+        if key in tool_input and tool_input[key] not in (None, "")
+    ]
+    return ", ".join(parts)[:300]
+
+
+def main() -> None:
+    try:
+        event = json.load(sys.stdin)
+    except ValueError:
+        return
+    resolved = tool_environment(str(event.get("tool_name", "")))
+    if resolved is None:
+        return
+    tool, environment, url = resolved
+    tool_input = event.get("tool_input") or {}
+
+    if tool in SEARCH_BEFORE_CREATE:
+        searches = SEARCH_BEFORE_CREATE[tool]
+        if not searched_before(event.get("transcript_path"), searches):
+            emit(
+                "deny",
+                f"Busca antes de crear: en esta sesión no has llamado a {' / '.join(searches)}. "
+                "Busca si ya existe (por título, ruta o palabras del tema), reutiliza o actualiza lo que haya "
+                f"y solo entonces vuelve a llamar a {tool}.",
+            )
+            return
+
+    if environment != "production" or tool in READ_TOOLS:
+        return
+
+    detail = summarize(tool_input)
+    where = f"PRODUCCIÓN ({url})"
+    if tool in IRREVERSIBLE or tool in ATTENTION:
+        irreversible = tool in IRREVERSIBLE and not (
+            tool == "product_deploy" and tool_input.get("environment") != "production"
+        )
+        severity = "IRREVERSIBLE" if irreversible else "ATENCIÓN"
+        consequence = IRREVERSIBLE.get(tool) or ATTENTION[tool]
+        emit(
+            "ask",
+            f"{severity} — {tool} en {where}. {consequence}"
+            + (f" Datos: {detail}." if detail else "")
+            + " ¿Confirmas?",
+        )
+        return
+    emit(
+        "ask",
+        f"Escritura en {where}: {tool}"
+        + (f" ({detail})" if detail else "")
+        + ". ¿Confirmas?",
+    )
+
+
+if __name__ == "__main__":
+    main()
