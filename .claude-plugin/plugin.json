@@ -23,7 +23,7 @@
       "type": "string",
       "title": "Entorno del MCP de Pai",
       "description": "URL del edge corp. Staging: https://mcp-edge-corp-staging.up.railway.app/mcp (por defecto). Producción: https://mcp-corp.pai.lat/mcp. Al cambiarla, vuelve a iniciar sesión en /mcp.",
-      "required": true,
+      "required": false,
       "default": "https://mcp-edge-corp-staging.up.railway.app/mcp",
       "options": [
         "https://mcp-edge-corp-staging.up.railway.app/mcp",
