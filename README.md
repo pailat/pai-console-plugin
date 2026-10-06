@@ -8,12 +8,13 @@ Plugin de Claude Code para que el staff de Pai opere proyectos de clientes en **
 
 ## Instalación
 
-Desde el marketplace de Pai:
+Desde el marketplace de Pai (`pai-marketplace`, el del kit de marca):
 
 ```
-/plugin marketplace add <ruta o repo del marketplace>
-/plugin install pai-console@<marketplace>
+/plugin install pai-console@pai-marketplace
 ```
+
+Mientras el repo no tenga remoto, la entrada del marketplace apunta al repo local (`file://…/pai-console-plugin`, rama `main`), así que solo instala en esta máquina y toma lo que esté commiteado en `main`. Cuando exista el remoto, cambia la fuente a `{"source": "github", "repo": "<org>/pai-console-plugin"}`.
 
 Para probarlo en una sola sesión sin instalarlo:
 
