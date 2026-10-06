@@ -90,8 +90,8 @@ python3 -m unittest discover -s tests
 # Manifiesto y estructura del plugin
 claude plugin validate --strict .
 
-# Evals del comportamiento (MCP simulado)
-claude plugin eval .
+# Evals del comportamiento contra el MCP simulado (evals/mocks/pai, con el tools/list real de 0.2.5)
+claude plugin eval . --allow-tools 'mcp__plugin_pai-console_pai__*' --trust-plugin --no-publish -j 4
 ```
 
 Las referencias en `skills/*/references/` marcadas «Generado por» no se editan a mano.
