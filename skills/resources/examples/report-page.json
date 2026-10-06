@@ -1,0 +1,85 @@
+{
+  "tool": "page_create",
+  "input": {
+    "organizationId": "ORG_ID",
+    "projectId": "PROJECT_ID",
+    "path": "reports/checkout-performance",
+    "title": "Rendimiento del checkout",
+    "description": "Por qué el checkout tarda más de 3 s en móvil y qué hacer.",
+    "typeSlug": "report",
+    "audience": "equipo",
+    "summary": "Reporte de rendimiento del checkout",
+    "idempotencyKey": "page-shop-reports-checkout-performance",
+    "content": {
+      "schemaVersion": 1,
+      "componentSetVersion": "pai-core-v1",
+      "sections": [
+        {
+          "id": "resumen",
+          "title": "Resumen ejecutivo",
+          "blocks": [
+            {
+              "id": "summaryCallout",
+              "type": "callout",
+              "title": "El checkout tarda 3.4 s en móvil",
+              "tone": "warning",
+              "markdown": "El 70 % del tiempo se va en cargar el SDK de pagos antes de mostrar el formulario. Cargarlo en diferido y precargar la sesión de pago bajaría el tiempo a menos de 1.5 s."
+            }
+          ]
+        },
+        {
+          "id": "hallazgos",
+          "title": "Hallazgos",
+          "blocks": [
+            {
+              "id": "findings",
+              "type": "cards",
+              "columns": 2,
+              "items": [
+                { "title": "SDK bloqueante", "markdown": "El script de pagos se carga de forma síncrona en el layout y bloquea el primer render del checkout." },
+                { "title": "Sesión tardía", "markdown": "La sesión de pago se crea al pulsar «Pagar», no al entrar al checkout, y suma un viaje extra a la API." }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "evidencia",
+          "title": "Evidencia",
+          "blocks": [
+            {
+              "id": "evidenceText",
+              "type": "text",
+              "markdown": "Medición con Lighthouse en un Moto G Power con red 4G lenta, cinco corridas, mediana: LCP de 3.4 s y TBT de 610 ms. El perfil de rendimiento muestra 2.3 s en la descarga y evaluación del SDK de pagos antes del primer render del formulario."
+            }
+          ]
+        },
+        {
+          "id": "recomendaciones",
+          "title": "Recomendaciones",
+          "blocks": [
+            {
+              "id": "steps",
+              "type": "steps",
+              "items": [
+                { "title": "Cargar el SDK en diferido", "description": "Mover el script de pagos al componente del formulario con carga diferida, de modo que el resumen del carrito se muestre de inmediato." },
+                { "title": "Crear la sesión al entrar", "description": "Crear la sesión de pago al montar el checkout para que «Pagar» no espere un viaje extra a la API." },
+                { "title": "Medir de nuevo", "description": "Repetir la medición con el mismo dispositivo y red, y registrar el resultado como un fact en Conocimiento." }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "fuentes",
+          "title": "Fuentes",
+          "blocks": [
+            {
+              "id": "sourcesText",
+              "type": "text",
+              "markdown": "- [Informe de Lighthouse del checkout](https://example.com/lighthouse/checkout-2026-10-06) — consultado el 2026-10-06.\n- [Guía de carga diferida de scripts de terceros](https://web.dev/articles/optimizing-content-efficiency-loading-third-party-javascript) — consultado el 2026-10-06."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
