@@ -2,6 +2,7 @@
 name: erd
 description: Modela un ERD (modelo de datos) en el Conocimiento de un proyecto de Pai Console con nodos data_model y entity. Las columnas son tipadas y las relaciones se derivan de las claves foráneas. Úsalo cuando pidan un modelo de datos, un ERD, tablas, entidades o un esquema de base de datos, o pasar un schema.sql o migraciones a Pai.
 argument-hint: "[proyecto] [descripción del dominio | ruta a schema.sql o migraciones]"
+compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
 # ERD en Pai: `data_model` + `entity`
@@ -16,8 +17,8 @@ Un **`data_model`** agrupa **`entity`** (tablas). **Una entidad son sus columnas
 
 1. **Descubre** organización y proyecto (`pai-console` §1).
 2. **Busca lo que ya existe:**
-   - `knowledge_search` con `kinds:["data_model","entity"]` y las palabras del dominio;
-   - si existe, `knowledge_library` con los mismos kinds.
+   - **inventario:** `knowledge_library {projectId, kinds:["data_model","entity"]}`, recorriendo `offset` hasta `total`;
+   - **por tema:** `knowledge_search` con esos kinds y las palabras del dominio, en español y en inglés.
 
    Si ya hay un modelo, **extiéndelo**: agrega entidades con `dataModel` apuntando a él. No crees otro.
 3. **Fija la fuente.** Un agente debe citar de dónde salió el modelo (`SOURCE_REQUIRED`):
@@ -31,11 +32,14 @@ Un **`data_model`** agrupa **`entity`** (tablas). **Una entidad son sus columnas
 6. **Revisa la respuesta de cada `knowledge_create`:**
    - `warnings`: FK sin resolver, `visibility` degradada;
    - `similar`: posible duplicado. Si es el mismo, para y fusiona.
-7. **Verifica.** Cada entidad debe tener, con `knowledge_get`, sus aristas:
-   - `relates_to` por cada FK;
-   - `contains` desde el `data_model`.
-
-   El diagrama se ve en el **Portal**, en el detalle del nodo `data_model`: `https://app.pai.lat/organization/projects/<projectId>/knowledge/<nodeId>` en producción; en staging, la misma ruta en el Portal de staging. Da ese enlace a la persona. El campo `url` de los nodos trae la ruta legacy `/portal/organization/…`: quítale `/portal`. No uses `knowledge_view` hasta que esté unificada.
+7. **Verifica con `knowledge_view {view:"erd", scope:"data_model/<slug>", format:"json"}`**: es la misma vista que dibuja el Portal.
+   - `tables`: todas tus entidades, con sus columnas.
+   - `relations`: una por FK, con la `cardinality` (`n-1` o `1-1`), `identifying`, `optional` y `onDelete` que esperabas.
+   - **`unresolved` vacío.** Si trae FKs, su destino no existe o no es una `entity`. Corrige y vuelve a guardar la entidad.
+8. **Entrega** a la persona:
+   - las citas `kb:` de cada nodo;
+   - el Mermaid de la vista (`format:"mermaid"`) si lo pide;
+   - el enlace del Portal: el `url` de la vista con el host del Portal (`https://app.pai.lat` en producción, el Portal de staging en staging), **quitándole el prefijo legacy `/portal`** que aún trae.
 
 Ejemplo completo y validado (modelo, 3 entidades, FK simple, FK identificante y enum): `${CLAUDE_PLUGIN_ROOT}/skills/erd/examples/sales-erd.json`.
 

@@ -2,6 +2,7 @@
 name: screens
 description: Documenta las pantallas, flujos y actores de un producto en el Conocimiento de un proyecto de Pai Console (nodos screen, flow y actor). Úsalo cuando pidan inventario de pantallas, mapa de navegación, flujos de usuario, journeys o qué hace cada pantalla y quién la usa.
 argument-hint: "[proyecto] [producto, ruta o flujo a documentar]"
+compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
 # Pantallas y flujos en Pai: `screen`, `flow` y `actor`
@@ -26,7 +27,7 @@ En un `flow`, `actor`, `screen` y `rule` de cada paso son referencias de lectura
 
 ## Orden
 
-1. **Busca:** `knowledge_search` con `kinds:["actor","screen","flow"]`, por ruta y por nombre. Reutiliza los actores que ya existan (los comparten C4 y las pantallas).
+1. **Busca:** `knowledge_library {projectId, kinds:["actor","screen","flow"]}` para el inventario y `knowledge_search` por ruta y por nombre. Reutiliza los actores que ya existan (los comparten C4 y las pantallas).
 2. **Actores** que falten.
 3. **Pantallas destino primero:** la pantalla a la que se navega va antes que la que navega a ella. Si no, `navigatesTo` da un warning y no crea la arista.
 4. **Pantallas de origen,** con `navigatesTo`. Si hay ERD o C4, liga cada pantalla en `uses` con sus entidades o su contenedor web.

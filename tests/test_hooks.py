@@ -162,6 +162,42 @@ class GuardTest(HookCase):
         self.assertIsNone(self.guard(PLUGIN + "page_create", STAGING, transcript=str(Path(self.home.name, "missing.jsonl"))))
 
 
+class InventoryTest(HookCase):
+    """hooks/tools.json is the corp server's tools/list (pai-portal 0.2.5+)."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.tools = json.loads((ROOT / "hooks" / "tools.json").read_text())["tools"]
+        source = (ROOT / "hooks" / "guard.py").read_text()
+        cls.guard_names = set(
+            name
+            for block in ("IRREVERSIBLE = {", "ATTENTION = {", "SEARCH_BEFORE_CREATE = {")
+            for name in __import__("re").findall(r'^    "([a-z_]+)":', source.split(block, 1)[1].split("\n}", 1)[0], __import__("re").M)
+        )
+
+    def test_inventory_has_the_025_tools(self) -> None:
+        for tool in ("task_board", "knowledge_view", "knowledge_library", "knowledge_graph", "page_create"):
+            self.assertIn(tool, self.tools)
+
+    def test_every_read_passes_and_every_write_asks_in_production(self) -> None:
+        for name, hints in self.tools.items():
+            output = self.guard(PLUGIN + name, PRODUCTION, transcript=self.transcript(PLUGIN + "page_search", PLUGIN + "knowledge_search", PLUGIN + "timeline_get", PLUGIN + "project_list", PLUGIN + "organization_list", PLUGIN + "product_list", PLUGIN + "agent_list"))
+            if hints["readOnly"]:
+                self.assertIsNone(output, name)
+            else:
+                self.assertEqual(self.decision(output)[0], "ask", name)
+
+    def test_guard_names_exist_on_the_server(self) -> None:
+        self.assertEqual(sorted(n for n in self.guard_names if n not in self.tools), [])
+
+    def test_irreversible_tools_are_writes(self) -> None:
+        self.assertEqual(sorted(n for n in self.guard_names if self.tools.get(n, {}).get("readOnly")), [])
+
+    def test_skill_inventory_names_every_tool(self) -> None:
+        inventory = (ROOT / "skills" / "pai-console" / "references" / "tools.md").read_text()
+        self.assertEqual(sorted(n for n in self.tools if f"`{n}`" not in inventory), [])
+
+
 class SessionStartTest(HookCase):
     def test_announces_staging(self) -> None:
         output = self.run_hook(SESSION_START, {"hook_event_name": "SessionStart"}, STAGING)

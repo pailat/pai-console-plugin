@@ -2,6 +2,7 @@
 name: proposals-payments
 description: Propuestas (SOW) y cobros de un proyecto de Pai Console. Cubre redactar y guardar la propuesta, enviarla y registrar su aceptación o rechazo, ligar hitos a la propuesta, importar CFDI (facturas de ingreso), registrar pagos desde el complemento de pago y anular pagos. Úsalo cuando pidan propuesta, cotización, SOW, inversión, factura, CFDI, complemento de pago, pago recibido, cobro o anulación.
 argument-hint: "[proyecto] [propuesta, factura o pago]"
+compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
 # Propuestas y Pagos en Pai

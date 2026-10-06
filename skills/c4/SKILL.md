@@ -2,6 +2,7 @@
 name: c4
 description: Modela la arquitectura C4 de un sistema en el Conocimiento de un proyecto de Pai Console. Usa nodos component por nivel (context, container, component, code) y nodos actor para las personas; las relaciones llevan descripción y tecnología. Úsalo cuando pidan arquitectura, C4, diagrama de contexto o de contenedores, componentes o el mapa de un sistema.
 argument-hint: "[proyecto] [sistema o repositorio a documentar]"
+compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
 # C4 en Pai: `component` por nivel + `actor`
@@ -26,8 +27,8 @@ Lee antes el skill `pai-console`.
 ## Orden
 
 1. **Descubre** el proyecto y **busca lo que ya existe**:
-   - `knowledge_search` con `kinds:["component","actor"]` y el nombre del sistema;
-   - `knowledge_library` si existe.
+   - **inventario:** `knowledge_library {projectId, kinds:["component","actor"]}`, recorriendo `offset` hasta `total`;
+   - **por tema:** `knowledge_search` con esos kinds y el nombre del sistema.
 
    Si el sistema ya está, **agrega debajo**; no lo dupliques.
 2. **Actores primero:** `actor` con `actorType` (`person`, `role`, `system` o `agent`), `description` (10–1000) y `goals` (≥1). Reutiliza los actores que ya existan: los comparten las pantallas y los flujos.
@@ -36,7 +37,14 @@ Lee antes el skill `pai-console`.
 5. **Nivel component** (solo donde aporte), con `parent: ["component/<contenedor>"]` y `stereotype` cuando aplique.
 6. **Nivel code:** casi nunca. Solo si la persona lo pide o el elemento es central.
 7. **Siempre crea primero el destino de una relación o de un `parent`.** Si el destino no existe, la escritura no falla: devuelve un warning y no crea la arista. Si pasó, vuelve a guardar el nodo cuando el destino exista.
-8. **Verifica** con `knowledge_get` de cada nodo: `contains` desde el padre, y `uses` o `performs` según sus relaciones. El diagrama se ve en el **Portal**, en el detalle del nodo del sistema: `https://app.pai.lat/organization/projects/<projectId>/knowledge/<nodeId>` en producción (en staging, la misma ruta en el Portal de staging). La vista trae los botones de los cuatro niveles. El campo `url` de los nodos trae la ruta legacy `/portal/organization/…`: quítale `/portal`. No uses `knowledge_view` hasta que esté unificada.
+8. **Verifica con `knowledge_view {view:"c4", scope:"component/<sistema>", level, format:"json"}`**, nivel por nivel (`context`, luego `container`…). Es la misma vista que dibuja el Portal.
+   - Los elementos del nivel están, con su `c4Type` y su `technology`. Las personas aparecen como actores.
+   - Las relaciones llevan la `description` y la `technology` que declaraste.
+   - El árbol (`tree`) cuelga cada elemento de su padre.
+9. **Entrega** a la persona:
+   - las citas `kb:`;
+   - el Mermaid (`format:"mermaid"`) si lo pide;
+   - el enlace del Portal: el `url` de la vista (ya trae `?level=`) con el host del Portal (`https://app.pai.lat` en producción, el Portal de staging en staging), **quitándole el prefijo legacy `/portal`**.
 
 Ejemplo completo y validado: `${CLAUDE_PLUGIN_ROOT}/skills/c4/examples/shop-c4.json`. Incluye un actor, un sistema, un sistema externo, tres contenedores (uno de ellos BD ligada al ERD), un repository y un controller.
 

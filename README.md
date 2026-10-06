@@ -6,6 +6,15 @@ Plugin de Claude Code para que el staff de Pai opere proyectos de clientes en **
 - skills opinados para Recursos, Conocimiento (ERD, C4, pantallas), Cronograma, Propuestas y Pagos, y Productos;
 - una guarda de escrituras en producción.
 
+## Requisitos
+
+**Pai 0.2.5 en adelante.** Los skills usan sin alternativas lo que llega en 0.2.5:
+- `data_model` y C4 por niveles;
+- `knowledge_view`, `knowledge_library`, `knowledge_graph` y `task_board`;
+- las anotaciones de las tools y los errores con `cause`.
+
+Un entorno con una versión anterior no está soportado: el modelo lo dice y para, sin improvisar. Producción queda soportada cuando corra 0.2.5.
+
 ## Instalación
 
 Desde el marketplace de Pai (`pai-marketplace`, el del kit de marca):
@@ -51,7 +60,7 @@ El plugin trae un solo servidor MCP, `pai` (`plugin:pai-console:pai`). Su URL sa
 | `PreToolUse` · producción (`hooks/guard.py`) | En producción **cada escritura pide confirmación**; las lecturas pasan libres. Las irreversibles (`project_delete`, `page_delete`, `payment_void`, `product_deploy` a production…) lo dicen y nombran qué arrastran. No bloquea nada: decide la persona. En staging no pregunta. Cubre las tools del plugin y las del servidor de usuario `pai-console`, cuyo entorno se deduce de su URL. |
 | `PreToolUse` · buscar antes de crear (`hooks/guard.py`) | Rechaza `page_create`, `knowledge_create`, `milestone_create`, `project_create`, `organization_create`, `product_create` y `agent_create` si en la sesión no hubo antes una búsqueda o un listado de su área. El modelo lee el motivo, busca y reintenta. Evita duplicados, el error más caro de deshacer en el grafo. |
 
-Las lecturas se listan una por una en `hooks/guard.py` porque el servidor no anota todas sus tools (pedido M2 al agente `mcp`). Una tool desconocida cuenta como escritura.
+La guarda sabe qué es lectura por las anotaciones del propio servidor. Las lee de `hooks/tools.json`, que `tools/gen-references.ts` genera construyendo el servidor MCP de pai-portal en memoria. Una tool que no está en ese archivo cuenta como escritura hasta que se regenere.
 
 ### Skills
 
@@ -80,7 +89,8 @@ Todos los skills de área se pueden invocar como comando (`/pai-console:erd`, `/
 Requiere un checkout de pai-portal con dependencias, por ejemplo un worktree detached de `release/0.2.5`.
 
 ```bash
-# Regenerar las referencias desde los contratos (kinds, ontología, catálogo de vistas, tipos de page)
+# Regenerar desde pai-portal: referencias (kinds, ontología, catálogo de vistas, tipos de page),
+# hooks/tools.json (inventario y anotaciones de las tools) y evals/mocks/pai/_tools.json
 PAI_PORTAL=~/worktrees/pai-console-plugin-ref bun tools/gen-references.ts
 
 # Validar cada ejemplo de los skills contra los esquemas reales

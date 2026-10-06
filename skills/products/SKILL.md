@@ -2,6 +2,7 @@
 name: products
 description: Productos de un proyecto de Pai Console (las apps que Pai construye u opera) y su ciclo de vida. Cubre alta, estados con aprobación, aprovisionamiento de una Pai App (GitHub + Railway), variables, deploys a staging y producción, dominios, equipo y acceso a producción. Úsalo cuando pidan crear o registrar un producto, aprovisionar, desplegar, configurar variables o dominios, ver logs, dar acceso o pasar un producto a live.
 argument-hint: "[proyecto] [producto y acción]"
+compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
 # Productos en Pai

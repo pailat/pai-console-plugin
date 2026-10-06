@@ -2,6 +2,7 @@
 name: views
 description: Compone vistas de Pai (catálogo pai-view@1) en Recursos de Pai Console. Cubre tableros y dashboards con KPIs, mockups de pantallas de aplicación con AppShell, reportes visuales, fichas, comparativos y estados de proyecto, como un bloque view en una page canvas. Úsalo cuando pidan un tablero, dashboard, vista, mockup, wireframe, pantalla de una app, reporte visual, KPIs o gráficas en Pai, o editar una vista existente.
 argument-hint: "[proyecto] [qué vista: tablero, pantalla, reporte…]"
+compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
 # Vistas de Pai (`pai-view@1`)

@@ -1,0 +1,509 @@
+{
+  "generatedFrom": "pai-portal 90128af4 (2026-10-06 Merge pull request #143 from pailat/fix/0.2.5/url-params-allowlist)",
+  "tools": {
+    "agent_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "agent_delete": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "agent_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "agent_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "agent_update": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "brief_agenda": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "brief_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "brief_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "brief_update_status": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "comment_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "comment_history": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "comment_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "comment_recipients": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "comment_reopen": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "comment_reply": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "comment_resolve": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "comment_send_to_agent": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "credit_balance": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "credit_transactions": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "file_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "file_delete": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "file_download_url": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "file_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "file_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "file_update": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "file_upload": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "knowledge_archive": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "knowledge_audit": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "knowledge_context": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "knowledge_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "knowledge_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "knowledge_graph": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "knowledge_impact": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "knowledge_kinds": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "knowledge_library": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "knowledge_link": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "knowledge_observe": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "knowledge_resolve": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "knowledge_revive": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "knowledge_search": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "knowledge_supersede": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "knowledge_unlink": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "knowledge_update": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "knowledge_view": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "milestone_baseline_capture": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "milestone_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "milestone_delete": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "milestone_dependency_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "milestone_dependency_delete": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "milestone_dependency_update": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "milestone_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "milestone_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "milestone_owner_options": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "milestone_proposal_link": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "milestone_reorder": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "milestone_update": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "organization_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "organization_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "organization_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "page_asset_upload": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "page_catalog": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "page_comment_reply": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "page_comprehension": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "page_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "page_delete": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "page_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "page_migrate": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "page_move": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "page_read": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "page_restore": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "page_search": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "page_types": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "page_update": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "page_validate": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "page_version": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "page_versions": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "payment_cfdi_import": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "payment_file_upload": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "payment_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "payment_record": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "payment_void": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "product_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_decide_status": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_deploy": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "product_domain_attach": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_domain_remove": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "product_domain_set": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_environment_remove": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "product_environment_set": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "product_link_project": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_link_remove": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "product_link_set": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "product_logs": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "product_member_add": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_member_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "product_member_remove": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "product_member_update": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_production_access_set": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_provision": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_provisioning_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "product_request_status": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_unlink_project": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "product_update": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_variables_set": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "project_activity": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "project_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "project_delete": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "project_invite_client": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "project_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "project_status": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "project_summary": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "project_update": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "proposal_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "proposal_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "proposal_save": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "proposal_set_status": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "status_update_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "status_update_publish": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "task_board": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "task_dependency_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "task_dependency_delete": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "task_dependency_update": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "timeline_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "whoami": {
+      "readOnly": true,
+      "destructive": false
+    }
+  }
+}

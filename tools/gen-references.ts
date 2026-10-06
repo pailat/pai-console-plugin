@@ -6,6 +6,13 @@
  * - skills/knowledge/references/ontology.md   rels and their allowed kind pairs
  * - skills/views/references/view-catalog.md   pai-view@1 components and props
  * - skills/resources/references/page-types.md built-in page types and blocks
+ * - hooks/tools.json                          every MCP tool of the corp server
+ *                                             (staff) with its annotations: the
+ *                                             production guard reads it
+ * - evals/mocks/pai/_tools.json               the same tools/list, for the evals
+ *
+ * The tool list comes from building pai-portal's MCP server in memory as Pai
+ * staff on `corp` (no database: tools/list never reaches a store).
  *
  * Usage (pai-portal checkout with dependencies installed):
  *   PAI_PORTAL=~/worktrees/pai-console-plugin-ref bun tools/gen-references.ts
@@ -355,3 +362,82 @@ for (const type of BUILTIN_PAGE_TYPES as PageType[]) {
 	);
 }
 write("skills/resources/references/page-types.md", typeLines.join("\n"));
+
+// ---------------------------------------------------------------- tools ----
+
+const { createMcpToolServer } = await import(
+	join(portal, "apps/api/src/modules/mcp/index.ts")
+);
+const silent = {
+	info() {},
+	error() {},
+	warn() {},
+	debug() {},
+	child() {
+		return silent;
+	},
+};
+const serve = createMcpToolServer({
+	runInTenant: async () => {
+		throw new Error("tools/list only");
+	},
+	platform: null,
+	directory: null,
+	management: null,
+	invitations: null,
+	storage: null,
+	memberships: null,
+	provisioning: null,
+	surface: "corp",
+	logger: silent,
+});
+const response = await serve(
+	new Request("http://localhost/mcp", {
+		method: "POST",
+		headers: {
+			"content-type": "application/json",
+			accept: "application/json, text/event-stream",
+			"mcp-protocol-version": "2025-06-18",
+		},
+		body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }),
+	}),
+	{
+		id: "00000000-0000-4000-8000-000000000001",
+		name: "gen-references",
+		email: null,
+		role: "admin",
+		clientId: "gen-references",
+		scopes: ["pai:manage"],
+	},
+);
+const body = await response.text();
+const rpc = JSON.parse(
+	body.trimStart().startsWith("{")
+		? body
+		: (body.split("\n").find((line) => line.startsWith("data:")) ?? "").slice(5),
+);
+type Tool = {
+	name: string;
+	annotations?: { readOnlyHint?: boolean; destructiveHint?: boolean; idempotentHint?: boolean };
+};
+const tools = (rpc.result?.tools ?? []) as Tool[];
+if (tools.length === 0) {
+	console.error("tools/list returned no tools:", body.slice(0, 300));
+	process.exit(1);
+}
+const inventory = {
+	generatedFrom: `pai-portal ${revision} (${describe})`,
+	tools: Object.fromEntries(
+		tools
+			.map((tool) => [
+				tool.name,
+				{
+					readOnly: tool.annotations?.readOnlyHint === true,
+					destructive: tool.annotations?.destructiveHint === true,
+				},
+			])
+			.sort(([a], [b]) => String(a).localeCompare(String(b))),
+	),
+};
+write("hooks/tools.json", JSON.stringify(inventory, null, 2));
+write("evals/mocks/pai/_tools.json", JSON.stringify(rpc.result, null, 1));

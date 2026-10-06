@@ -15,8 +15,8 @@ the plugin's `mcp_url` option) and a user-level `pai-console` server
 (`mcp__pai-console__*`, environment from its URL in ~/.claude.json). An unknown
 environment counts as production: failing safe means asking once too often.
 
-Reads are listed explicitly because the server does not annotate every tool
-(MCP request M2): an unknown tool counts as a write.
+Reads come from the server's own annotations (hooks/tools.json, generated from
+pai-portal 0.2.5+): a tool not in that file counts as a write.
 """
 
 from __future__ import annotations
@@ -31,63 +31,26 @@ USER_PREFIX = "mcp__pai-console__"
 
 STAGING_HOSTS = ("mcp-edge-corp-staging.up.railway.app",)
 
-READ_TOOLS = frozenset(
-    {
-        "whoami",
-        "organization_list",
-        "organization_get",
-        "project_list",
-        "project_summary",
-        "project_status",
-        "project_activity",
-        "status_update_list",
-        "brief_list",
-        "brief_get",
-        "brief_agenda",
-        "timeline_get",
-        "task_board",
-        "milestone_list",
-        "milestone_get",
-        "milestone_owner_options",
-        "page_catalog",
-        "page_types",
-        "page_validate",
-        "page_list",
-        "page_search",
-        "page_read",
-        "page_versions",
-        "page_version",
-        "page_comprehension",
-        "file_list",
-        "file_get",
-        "file_download_url",
-        "knowledge_kinds",
-        "knowledge_search",
-        "knowledge_get",
-        "knowledge_context",
-        "knowledge_impact",
-        "knowledge_audit",
-        "knowledge_list",
-        "knowledge_view",
-        "knowledge_library",
-        "knowledge_graph",
-        "proposal_list",
-        "proposal_get",
-        "payment_list",
-        "product_list",
-        "product_get",
-        "product_provisioning_get",
-        "product_logs",
-        "product_member_list",
-        "comment_list",
-        "comment_history",
-        "comment_recipients",
-        "agent_list",
-        "agent_get",
-        "credit_balance",
-        "credit_transactions",
-    }
-)
+TOOLS_FILE = Path(__file__).resolve().parent / "tools.json"
+
+
+def load_read_tools() -> frozenset[str]:
+    """Reads of the corp server, from its own annotations (hooks/tools.json).
+
+    `tools/gen-references.ts` regenerates the file from pai-portal (0.2.5+,
+    where every tool declares readOnlyHint). A tool missing from it counts as
+    a write, so a new tool asks in production until the file is regenerated.
+    """
+    try:
+        inventory = json.loads(TOOLS_FILE.read_text())
+    except (OSError, ValueError):
+        return frozenset()
+    return frozenset(
+        name for name, hints in (inventory.get("tools") or {}).items() if hints.get("readOnly")
+    )
+
+
+READ_TOOLS = load_read_tools()
 
 # Create tool -> tools that count as "looked for what exists first".
 SEARCH_BEFORE_CREATE = {
@@ -95,7 +58,6 @@ SEARCH_BEFORE_CREATE = {
     "knowledge_create": (
         "knowledge_search",
         "knowledge_context",
-        "knowledge_list",
         "knowledge_library",
         "task_board",
     ),
@@ -121,8 +83,6 @@ IRREVERSIBLE = {
     "product_domain_attach": "Conecta un dominio propio en Railway; no hay herramienta para desconectarlo.",
     "product_member_remove": "Quita a la persona del equipo del producto y de sus roles en la app.",
     "proposal_set_status": "Transición de la propuesta (sent/accepted/rejected) que no se puede revertir.",
-    "proposal_accept": "Acepta la propuesta en nombre de la persona conectada; no se puede revertir.",
-    "proposal_reject": "Rechaza la propuesta en nombre de la persona conectada; no se puede revertir.",
     "milestone_baseline_capture": "Congela la línea base del hito; solo se puede capturar una vez.",
     "agent_delete": "Borra el agente del proyecto para siempre (para retirarlo usa status archived).",
     "knowledge_unlink": "Borra la arista entre los nodos.",

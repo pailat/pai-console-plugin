@@ -2,6 +2,7 @@
 name: schedule
 description: Planea y lleva el Cronograma de un proyecto de Pai Console. Cubre hitos (fechas, monto, criterios de aceptación, línea base), dependencias entre hitos y entre tareas, tareas (nodos task de Knowledge) y el tablero de Tareas. Úsalo cuando pidan plan de trabajo, cronograma, hitos, tareas, kanban, tablero, dependencias, línea base o el avance y los atrasos del proyecto.
 argument-hint: "[proyecto] [qué planear o actualizar]"
+compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
 # Cronograma y Tareas en Pai
@@ -18,7 +19,7 @@ Lee antes el skill `pai-console`.
   - entre tareas: `task_dependency_*`.
 
   En ambos casos el servidor rechaza duplicados y ciclos.
-- **Tablero** (`task_board`, PR #139):
+- **Tablero** (`task_board {milestoneId?, search?, columns?, limit, offset}`, paginado con `nextOffset`):
 
 | Columna | Estado de la tarea |
 |---|---|
@@ -27,11 +28,11 @@ Lee antes el skill `pai-console`.
 | Hecha (`done`) | resuelta `done` |
 | Descartada (`discarded`) | resuelta `wont_do` o rechazada |
 
-  Cada tarea trae su `revision` y en `moves` las transiciones posibles. Si `task_board` no existe en tu entorno, lee las tareas con `timeline_get`.
+  Cada tarea trae su `revision`, su `citation` y en `moves` las transiciones posibles, con la tool y la entrada exactas: síguelas.
 
 ## Planear desde cero
 
-1. **Lee lo que hay:** `timeline_get` y `milestone_list`. Si ya hay plan, ajústalo; no lo dupliques.
+1. **Lee lo que hay:** `timeline_get`, `milestone_list` y `task_board`. Si ya hay plan, ajústalo; no lo dupliques.
 2. **Responsables:** `milestone_owner_options` da los `ownerUserId` válidos.
 3. **Hitos, en orden:** `milestone_create` con:
    - `name` (en español), `description`, `acceptanceCriteria` (cómo se sabe que está hecho);
@@ -67,7 +68,7 @@ Notas:
 
 ## Reportar el estado
 
-1. Lee `timeline_get` (y `task_board` si existe).
+1. Lee `timeline_get` (hitos, dependencias, `scheduleLabel`, `blockedNow`) y `task_board` (tareas por columna).
 2. Resume: hitos por estado, tareas Atrasadas y bloqueadas (`blockedNow`), y lo próximo a vencer.
 3. Si la persona lo pide, publícalo con `status_update_publish {health, headline, body}`: `health` es `on_track`, `at_risk` u `off_track`; `headline` ≤120 y `body` ≤600 caracteres. **El cliente lo ve al momento:** muéstrale el texto antes de publicar.
 

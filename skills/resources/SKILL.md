@@ -2,6 +2,7 @@
 name: resources
 description: Crea y mantiene Recursos de un proyecto de Pai Console. Cubre pages (pai-page) con tipo y bloques, vistas con layout canvas y bloque view (catálogo pai-view@1), imágenes (assets) y archivos. Úsalo cuando pidan una page, documento, reporte, guía, PRD, SOW, arquitectura, tablero, dashboard, vista o pantalla visual, subir imágenes o documentos, o mover, restaurar o borrar una page.
 argument-hint: "[proyecto] [tema o tipo de recurso]"
+compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
 # Recursos en Pai: pages, vistas, imágenes y archivos

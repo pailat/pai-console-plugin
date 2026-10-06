@@ -4,6 +4,7 @@ description: Muestra o cambia el entorno del MCP de Pai del plugin (staging o pr
 argument-hint: "[staging | production]"
 disable-model-invocation: true
 allowed-tools: Bash(claude plugin configure:*)
+compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
 # Entorno del MCP de Pai

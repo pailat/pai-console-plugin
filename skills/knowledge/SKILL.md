@@ -1,6 +1,7 @@
 ---
 name: knowledge
 description: Crea y mantiene el Conocimiento (grafo de nodos y aristas) de un proyecto de Pai Console. Cubre elegir el kind, plantillas, fuentes obligatorias, propuestas que confirma una persona, CAS con expectedRevision, enlaces según la ontología y el ciclo de vida (resolve, supersede, archive). Úsalo para registrar decisiones, reglas de negocio, riesgos, preguntas, supuestos, hechos, glosario, módulos o cualquier nodo. ERD, C4 y pantallas tienen skills propios (erd, c4, screens).
+compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
 # Conocimiento en Pai
@@ -53,7 +54,7 @@ Referencia completa, generada desde los contratos: `${CLAUDE_PLUGIN_ROOT}/skills
 
 ## Crear un nodo
 
-1. `knowledge_search` con el tema y los kinds probables. Si el bundle es amplio, `knowledge_context`.
+1. `knowledge_search` con el tema y los kinds probables. Para ver todo lo de un kind en el proyecto, `knowledge_library {projectId, kinds}`. Para el bundle de contexto alrededor de un nodo o tema, `knowledge_context`.
 2. Si existe algo equivalente: **actualízalo, enlázalo o, si lo contradice, propón el reemplazo**. No crees un duplicado.
 3. `knowledge_create` con:
    - `kind`, `slug` (en inglés y kebab-case), `title` (en español, ≤200), `summary` (≤280);
@@ -101,6 +102,8 @@ Si da `ONTOLOGY`, ese par no admite esa relación. Busca en `${CLAUDE_PLUGIN_ROO
 
 - `knowledge_audit` lista nodos débiles, delgados (sin justificación), huérfanos y preguntas sin resolver. Úsalo al cerrar una sesión de modelado y dale el resultado a la persona.
 - `knowledge_impact` (`maxDepth` ≤3) dice qué se afecta si cambia un nodo. Úsalo antes de proponer el reemplazo de una decisión.
+- `knowledge_graph {projectId?}` muestra la estructura: nodos con su grado, aristas y hubs (`hubThreshold`). Úsalo para encontrar los nodos centrales y los huérfanos de un proyecto o de toda la organización.
+- `knowledge_library` sin `projectId` busca en **toda la organización**: sirve para reutilizar conocimiento de otro proyecto del mismo cliente (cítalo; no lo copies).
 
 ## Qué no hacer
 
