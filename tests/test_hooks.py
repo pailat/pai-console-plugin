@@ -115,8 +115,15 @@ class GuardTest(HookCase):
         decision, _ = self.decision(self.guard(PLUGIN + "brand_new_tool", PRODUCTION))
         self.assertEqual(decision, "ask")
 
-    def test_unknown_environment_counts_as_production(self) -> None:
-        decision, _ = self.decision(self.guard(PLUGIN + "page_update", None))
+    def test_unset_option_uses_the_manifest_default(self) -> None:
+        # Claude Code exports the option only once it is set; the server then
+        # runs on the manifest default (staging), and so must the guard.
+        self.assertIsNone(self.guard(PLUGIN + "page_update", None))
+        output = self.run_hook(SESSION_START, {"hook_event_name": "SessionStart"}, None)
+        self.assertIn("STAGING", output["systemMessage"])
+
+    def test_unknown_url_counts_as_production(self) -> None:
+        decision, _ = self.decision(self.guard(PLUGIN + "page_update", "https://example.com/mcp"))
         self.assertEqual(decision, "ask")
 
     def test_user_level_server_uses_its_own_url(self) -> None:

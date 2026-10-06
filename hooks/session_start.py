@@ -25,6 +25,24 @@ def label(environment: str) -> str:
     return "STAGING" if environment == "staging" else "PRODUCCIÓN"
 
 
+def plugin_url() -> str | None:
+    """The plugin server's URL: the configured option, else the manifest default.
+
+    Claude Code exports CLAUDE_PLUGIN_OPTION_MCP_URL only once the option has
+    been set; until then the server runs on the manifest default, so the hooks
+    read that same default instead of guessing.
+    """
+    url = os.environ.get("CLAUDE_PLUGIN_OPTION_MCP_URL")
+    if url:
+        return url
+    root = os.environ.get("CLAUDE_PLUGIN_ROOT") or str(Path(__file__).resolve().parent.parent)
+    try:
+        manifest = json.loads((Path(root) / ".claude-plugin" / "plugin.json").read_text())
+    except (OSError, ValueError):
+        return None
+    return ((manifest.get("userConfig") or {}).get("mcp_url") or {}).get("default")
+
+
 def user_server_url() -> str | None:
     try:
         config = json.loads((Path.home() / ".claude.json").read_text())
@@ -35,7 +53,7 @@ def user_server_url() -> str | None:
 
 
 def main() -> None:
-    url = os.environ.get("CLAUDE_PLUGIN_OPTION_MCP_URL")
+    url = plugin_url()
     environment = environment_of_url(url)
     lines = [
         f"MCP de Pai (plugin pai-console): entorno {label(environment)}, servidor `pai` en {url or 'sin configurar'}.",

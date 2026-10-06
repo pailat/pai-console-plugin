@@ -161,6 +161,24 @@ def environment_of_url(url: str | None) -> str:
     return "staging" if any(host in url for host in STAGING_HOSTS) else "production"
 
 
+def plugin_url() -> str | None:
+    """The plugin server's URL: the configured option, else the manifest default.
+
+    Claude Code exports CLAUDE_PLUGIN_OPTION_MCP_URL only once the option has
+    been set; until then the server runs on the manifest default, so the hooks
+    read that same default instead of guessing.
+    """
+    url = os.environ.get("CLAUDE_PLUGIN_OPTION_MCP_URL")
+    if url:
+        return url
+    root = os.environ.get("CLAUDE_PLUGIN_ROOT") or str(Path(__file__).resolve().parent.parent)
+    try:
+        manifest = json.loads((Path(root) / ".claude-plugin" / "plugin.json").read_text())
+    except (OSError, ValueError):
+        return None
+    return ((manifest.get("userConfig") or {}).get("mcp_url") or {}).get("default")
+
+
 def user_server_url() -> str | None:
     """URL of the user-level `pai-console` server, if it is configured there."""
     try:
@@ -174,7 +192,7 @@ def user_server_url() -> str | None:
 def tool_environment(tool_name: str) -> tuple[str, str, str] | None:
     """(tool, environment, url) of a Pai tool, or None when it is not one."""
     if tool_name.startswith(PLUGIN_PREFIX):
-        url = os.environ.get("CLAUDE_PLUGIN_OPTION_MCP_URL")
+        url = plugin_url()
         return tool_name[len(PLUGIN_PREFIX) :], environment_of_url(url), url or "?"
     if tool_name.startswith(USER_PREFIX):
         url = user_server_url()
