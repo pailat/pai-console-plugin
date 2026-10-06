@@ -28,6 +28,7 @@ Lee antes el skill `pai-console`.
 
 1. **Descubre** el proyecto y **busca lo que ya existe**:
    - **inventario:** `knowledge_library {projectId, kinds:["component","actor"]}`, recorriendo `offset` hasta `total`;
+   - **de la organización:** el mismo `knowledge_library` con `projectId: "organization"`. Los modelos y sistemas compartidos del cliente pueden vivir ahí: enlázalos por uuid en vez de recrearlos;
    - **por tema:** `knowledge_search` con esos kinds y el nombre del sistema.
 
    Si el sistema ya está, **agrega debajo**; no lo dupliques.

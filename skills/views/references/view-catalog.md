@@ -1,6 +1,6 @@
 # Catálogo de vistas `pai-view@1`
 
-> Generado por `tools/gen-references.ts` desde pai-portal `90128af4` (2026-10-06 Merge pull request #143 from pailat/fix/0.2.5/url-params-allowlist), `packages/views/src/catalog.ts`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `e0552ed1` (2026-10-06 Merge pull request #151 from pailat/feat/0.2.5/knowledge-org-owned), `packages/views/src/catalog.ts`. No editar a mano: regenerar.
 
 Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props, children? } } }. Los hijos se referencian por id.
 
@@ -9,7 +9,7 @@ Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props,
 - Usa sólo los componentes de este catálogo; no hay className, style, colores ni HTML.
 - Los ids son únicos, empiezan con letra y se reutilizan al editar.
 - Las props omitidas que aceptan null toman su valor por defecto.
-- Sólo AppShell, Stack, Grid, Card, Collapsible, Tabs y Section tienen hijos; Tabs lleva un hijo por pestaña, en orden.
+- Sólo AppShell, Card, Collapsible, Grid, Section, Stack, Tabs, UnderlinedTabs, Tooltip y ButtonGroup tienen hijos; Tabs y UnderlinedTabs llevan un hijo por pestaña, en orden.
 - Para una pantalla de aplicación (dashboard, módulo) usa AppShell como raíz: así la vista se ve con su barra lateral y se puede abrir a pantalla completa.
 - Datos estáticos: escribe valores ya formateados, con su fecha de corte en el detalle o la descripción.
 - Enlaces sólo a rutas del Portal (/…) o a https.
@@ -27,12 +27,68 @@ Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props,
 - tableRows: 200
 - chartCategories: 60
 - chartSeries: 6
-- gridColumns: 4
+- gridColumns: 6
 - navItems: 12
 
 ## Componentes
 
 Las props que aceptan `null` son opcionales en la práctica: si se omiten toman su valor por defecto. Las demás son obligatorias.
+
+### AppShell (admite hijos)
+
+Simula una aplicación completa: barra lateral con marca, menú con iconos y usuario, y un encabezado con el título de la pantalla; sus hijos son el contenido. Úsalo como raíz de la vista. En Recursos se muestra en un marco con escritorio/tableta/móvil y se abre a pantalla completa; en pantallas angostas el menú pasa a un botón.
+
+- `brand`: { name: string (min 1, ≤160), detail?: string (≤80) (null = por defecto) }
+- `nav`: [{ label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock", active?: boolean (null = por defecto) }] (min 1, máx 12)
+- `secondaryTitle`: string (≤80) (null = por defecto)
+- `secondaryNav`: [{ label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock", active?: boolean (null = por defecto) }] (máx 12) (null = por defecto)
+- `title`: string (min 1, ≤160)
+- `user`: { name: string (min 1, ≤160), detail?: string (≤80) (null = por defecto) } (null = por defecto)
+
+### Accordion
+
+Secciones desplegables de texto (preguntas frecuentes, detalles secundarios).
+
+- `items`: [{ title: string (min 1, ≤160), content: string (≤2000) }] (min 1, máx 60)
+- `type`: "single"|"multiple" (null = por defecto)
+
+### Card (admite hijos)
+
+Tarjeta con título y descripción opcionales que agrupa contenido relacionado. En su encabezado puede llevar una acción (botón; con href navega) y un menú «⋯» decorativo. No la uses como encabezado de la vista ni anides tarjetas dentro de tarjetas.
+
+- `title`: string (null = por defecto)
+- `description`: string (null = por defecto)
+- `maxWidth`: "sm"|"md"|"lg"|"full" (null = por defecto)
+- `centered`: boolean (null = por defecto)
+- `action`: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock" (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
+- `menu`: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock" (null = por defecto), destructive?: boolean (null = por defecto), separatorBefore?: boolean (null = por defecto) }] (min 1, máx 20) (null = por defecto)
+
+### Collapsible (admite hijos)
+
+Una sección desplegable con título; sus hijos se muestran al abrirla.
+
+- `title`: string
+- `defaultOpen`: boolean (null = por defecto)
+
+### Grid (admite hijos)
+
+Cuadrícula de 1 a 6 columnas que se apila en pantallas angostas. Úsala para tarjetas de métricas (5 o 6 en una fila de KPIs) o grupos paralelos.
+
+- `columns`: integer (≥1, ≤6) (null = por defecto)
+- `gap`: "sm"|"md"|"lg"|"xl" (null = por defecto)
+
+### Section (admite hijos)
+
+Región con título (h2) y descripción opcional que agrupa los bloques de un tema de la vista.
+
+- `title`: string (min 1, ≤160)
+- `description`: string (≤2000) (null = por defecto)
+
+### Separator
+
+Línea divisoria entre bloques.
+
+- `orientation`: "horizontal"|"vertical" (null = por defecto)
 
 ### Stack (admite hijos)
 
@@ -43,28 +99,6 @@ Contenedor flex vertical u horizontal; la base de cualquier vista. Sus hijos se 
 - `align`: "start"|"center"|"end"|"stretch" (null = por defecto)
 - `justify`: "start"|"center"|"end"|"between"|"around" (null = por defecto)
 
-### Grid (admite hijos)
-
-Cuadrícula de 1 a 4 columnas que se apila en móvil. Úsala para tarjetas de métricas o grupos paralelos.
-
-- `columns`: integer (≥1, ≤4) (null = por defecto)
-- `gap`: "sm"|"md"|"lg"|"xl" (null = por defecto)
-
-### Card (admite hijos)
-
-Tarjeta con título y descripción opcionales que agrupa contenido relacionado. No la uses como encabezado de la vista ni anides tarjetas dentro de tarjetas.
-
-- `title`: string (null = por defecto)
-- `description`: string (null = por defecto)
-- `maxWidth`: "sm"|"md"|"lg"|"full" (null = por defecto)
-- `centered`: boolean (null = por defecto)
-
-### Separator
-
-Línea divisoria entre bloques.
-
-- `orientation`: "horizontal"|"vertical" (null = por defecto)
-
 ### Tabs (admite hijos)
 
 Pestañas. Declara las pestañas en tabs y pon un hijo por pestaña, en el mismo orden (normalmente un Stack).
@@ -72,40 +106,12 @@ Pestañas. Declara las pestañas en tabs y pon un hijo por pestaña, en el mismo
 - `tabs`: [{ label: string (min 1, ≤160), value: string (min 1, ≤80) }] (min 2, máx 8)
 - `defaultValue`: string (null = por defecto)
 
-### Accordion
+### UnderlinedTabs (admite hijos)
 
-Secciones desplegables de texto (preguntas frecuentes, detalles secundarios).
+Pestañas subrayadas, las de las secciones de un proyecto en Portal (Resumen, Cronograma, Pagos). Mismas props que Tabs: un hijo por pestaña, en orden.
 
-- `items`: [{ title: string (min 1, ≤160), content: string (≤2000) }] (min 1, máx 60)
-- `type`: "single"|"multiple" (null = por defecto)
-
-### Collapsible (admite hijos)
-
-Una sección desplegable con título; sus hijos se muestran al abrirla.
-
-- `title`: string
-- `defaultOpen`: boolean (null = por defecto)
-
-### Heading
-
-Título de una parte de la vista. h1 sólo para el título principal; luego h2 y h3.
-
-- `text`: string
-- `level`: "h1"|"h2"|"h3"|"h4" (null = por defecto)
-
-### Text
-
-Párrafo de texto plano (sin Markdown). Variantes: body, lead (introducción), muted, caption, code.
-
-- `text`: string
-- `variant`: "body"|"caption"|"muted"|"lead"|"code" (null = por defecto)
-
-### Badge
-
-Etiqueta corta de estado o categoría.
-
-- `text`: string
-- `variant`: "default"|"secondary"|"destructive"|"outline" (null = por defecto)
+- `tabs`: [{ label: string (min 1, ≤160), value: string (min 1, ≤80) }] (min 2, máx 8)
+- `defaultValue`: string (null = por defecto)
 
 ### Alert
 
@@ -115,13 +121,124 @@ Aviso destacado: info, success, warning o error. Úsalo para conclusiones, riesg
 - `message`: string (null = por defecto)
 - `type`: "info"|"success"|"warning"|"error" (null = por defecto)
 
-### Table
+### Avatar
 
-Tabla de datos: columns son los encabezados y rows un arreglo de filas con una celda por columna.
+Iniciales de una persona (sin imagen externa).
 
-- `columns`: [string (min 1, ≤160)] (min 1, máx 10)
-- `rows`: [[string (≤640)]] (máx 200)
-- `caption`: string (≤160) (null = por defecto)
+- `name`: string
+- `size`: "sm"|"md"|"lg" (null = por defecto)
+
+### Badge
+
+Etiqueta corta de estado o categoría.
+
+- `text`: string
+- `variant`: "default"|"secondary"|"destructive"|"outline" (null = por defecto)
+
+### Heading
+
+Título de una parte de la vista. h1 sólo para el título principal; luego h2 y h3.
+
+- `text`: string
+- `level`: "h1"|"h2"|"h3"|"h4" (null = por defecto)
+
+### Item
+
+Fila de una lista (archivo, persona, integración): icono, título, descripción y un dato a la derecha. Con href toda la fila es un enlace. Apila varios en un Stack con gap sm.
+
+- `title`: string (min 1, ≤160)
+- `description`: string (≤2000) (null = por defecto)
+- `icon`: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock" (null = por defecto)
+- `meta`: string (min 1, ≤160) (null = por defecto)
+- `href`: string (null = por defecto)
+- `variant`: "default"|"outline"|"muted" (null = por defecto)
+
+### Kbd
+
+Atajo de teclado («⌘ K», «Ctrl Enter»): una tecla por elemento de keys.
+
+- `keys`: [string (min 1, ≤12)] (min 1, máx 4)
+
+### Link
+
+Enlace a una ruta del Portal (/organization/projects/…) o a un sitio https.
+
+- `label`: string (min 1, ≤160)
+- `href`: string
+
+### List
+
+Lista de viñetas o numerada de texto plano.
+
+- `items`: [string (min 1, ≤640)] (min 1, máx 60)
+- `ordered`: boolean (null = por defecto)
+
+### StatusBadge
+
+Estado con el tono de Pai (neutral, info, progress, success, warning, danger), como en las tablas de proyectos, pagos y propuestas. El texto dice el estado; el tono sólo lo refuerza.
+
+- `label`: string (min 1, ≤160)
+- `tone`: "neutral"|"info"|"progress"|"success"|"warning"|"danger"
+
+### StatusDot
+
+Punto de color con su texto: el estado discreto de una fila o un hito (neutral, info, progress, success, warning, danger).
+
+- `label`: string (min 1, ≤160)
+- `tone`: "neutral"|"info"|"progress"|"success"|"warning"|"danger"
+
+### Text
+
+Párrafo de texto plano (sin Markdown). Variantes: body, lead (introducción), muted, caption, code. tone lo colorea para una nota breve: success, warning, danger o info.
+
+- `text`: string
+- `variant`: "body"|"caption"|"muted"|"lead"|"code" (null = por defecto)
+- `tone`: "success"|"warning"|"danger"|"info" (null = por defecto)
+
+### Tooltip (admite hijos)
+
+Muestra un texto breve al pasar el cursor o enfocar su único hijo, que no debe ser interactivo (Text, Badge, StatusBadge, Kbd): la ayuda de un dato.
+
+- `text`: string (min 1, ≤160)
+
+### BarList
+
+Lista de barras horizontales con su porcentaje (ventas por vendedor, avance por área). Cada barra se mide contra max, o contra la mayor si no hay max; display reemplaza el número mostrado («$1.2 M»).
+
+- `items`: [{ label: string (min 1, ≤160), value: number (≥0), display?: string (≤40) (null = por defecto) }] (min 1, máx 60)
+- `max`: number (null = por defecto)
+- `showPercent`: boolean (null = por defecto)
+
+### Chart
+
+Gráfica con los colores del tema: bar, line, area o pie. categories es el eje X (o las porciones de pie) y cada serie trae un valor por categoría. pie usa una sola serie. Con kind bar, orientation horizontal dibuja barras acostadas (rankings, etiquetas largas).
+
+- `title`: string (min 1, ≤160)
+- `description`: string (≤2000) (null = por defecto)
+- `kind`: "bar"|"line"|"area"|"pie"
+- `categories`: [string (min 1, ≤80)] (min 1, máx 60)
+- `series`: [{ name: string (min 1, ≤80), values: [number] }] (min 1, máx 6)
+- `unit`: string (≤20) (null = por defecto)
+- `stacked`: boolean (null = por defecto)
+- `orientation`: "vertical"|"horizontal" (null = por defecto)
+
+### KeyValue
+
+Pares etiqueta–valor (fechas, responsables, montos) en 1 a 3 columnas.
+
+- `items`: [{ label: string (min 1, ≤160), value: string (min 1, ≤400) }] (min 1, máx 60)
+- `columns`: integer (≥1, ≤3) (null = por defecto)
+
+### Metric
+
+Indicador (KPI): etiqueta, valor ya formateado («68 %», «$1.2 M»), unidad pequeña opcional («MXN») y detalle con su comparación o fecha de corte. tone colorea el valor: positive, warning, negative o info.
+
+- `label`: string (min 1, ≤160)
+- `value`: string (min 1, ≤40)
+- `detail`: string (≤160) (null = por defecto)
+- `trend`: "up"|"down"|"flat" (null = por defecto)
+- `unit`: string (min 1, ≤12) (null = por defecto)
+- `tone`: "neutral"|"positive"|"warning"|"negative"|"info" (null = por defecto)
 
 ### Progress
 
@@ -131,72 +248,219 @@ Barra de avance de 0 a 100 con etiqueta opcional.
 - `max`: number (null = por defecto)
 - `label`: string (null = por defecto)
 
-### Avatar
+### Table
 
-Iniciales de una persona (sin imagen externa).
+Tabla de datos: columns son los encabezados y rows un arreglo de filas con una celda por columna.
 
-- `name`: string
-- `size`: "sm"|"md"|"lg" (null = por defecto)
+- `columns`: [string (min 1, ≤160)] (min 1, máx 10)
+- `rows`: [[string (≤640)]] (máx 200)
+- `caption`: string (≤160) (null = por defecto)
 
-### Link
+### ActionMenu
 
-Enlace a una ruta del Portal (/organization/projects/…) o a un sitio https.
+Menú de acciones que se abre al pulsar: sin label es el botón «⋯» de las filas y tarjetas; con label es un botón con flecha. Sus opciones son decorativas (no ejecutan nada).
+
+- `label`: string (min 1, ≤160) (null = por defecto)
+- `items`: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock" (null = por defecto), destructive?: boolean (null = por defecto), separatorBefore?: boolean (null = por defecto) }] (min 1, máx 20)
+- `align`: "start"|"end" (null = por defecto)
+
+### Button
+
+Botón con las variantes de Pai. Con href navega (ruta del Portal o https); sin href es decorativo: se ve y se pulsa, pero no hace nada. iconOnly deja sólo el icono (label queda como nombre accesible).
 
 - `label`: string (min 1, ≤160)
-- `href`: string
+- `variant`: "default"|"secondary"|"outline"|"ghost"|"destructive"|"link" (null = por defecto)
+- `size`: "sm"|"default"|"lg" (null = por defecto)
+- `icon`: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock" (null = por defecto)
+- `iconOnly`: boolean (null = por defecto)
+- `href`: string (null = por defecto)
+- `disabled`: boolean (null = por defecto)
 
-### AppShell (admite hijos)
+### ButtonGroup (admite hijos)
 
-Simula una aplicación completa: barra lateral con marca, menú con iconos y usuario, y un encabezado con el título de la pantalla; sus hijos son el contenido. Úsalo como raíz de la vista. En Recursos se muestra en un marco con escritorio/tableta/móvil y se abre a pantalla completa; en pantallas angostas el menú pasa a un botón.
+Agrupa botones relacionados (Button, ActionMenu) pegados entre sí, como «Exportar | ⋯».
 
-- `brand`: { name: string (min 1, ≤160), detail?: string (≤80) (null = por defecto) }
-- `nav`: [{ label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key", active?: boolean (null = por defecto) }] (min 1, máx 12)
-- `secondaryTitle`: string (≤80) (null = por defecto)
-- `secondaryNav`: [{ label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key", active?: boolean (null = por defecto) }] (máx 12) (null = por defecto)
-- `title`: string (min 1, ≤160)
-- `user`: { name: string (min 1, ≤160), detail?: string (≤80) (null = por defecto) } (null = por defecto)
+- `orientation`: "horizontal"|"vertical" (null = por defecto)
 
-### Section (admite hijos)
+### Calendar
 
-Región con título (h2) y descripción opcional que agrupa los bloques de un tema de la vista.
+Calendario de un mes con fechas marcadas (entregas, reuniones). selected son fechas AAAA-MM-DD; con mode range son el inicio y el fin. Se puede cambiar de mes y elegir dentro de la vista; nada se guarda.
+
+- `month`: string (null = por defecto)
+- `selected`: [string] (máx 31) (null = por defecto)
+- `mode`: "single"|"multiple"|"range" (null = por defecto)
+
+### Checkbox
+
+Casilla con su etiqueta (aceptar términos, marcar una opción). Se marca y desmarca dentro de la vista; nada se guarda.
+
+- `label`: string (min 1, ≤160)
+- `description`: string (≤2000) (null = por defecto)
+- `checked`: boolean (null = por defecto)
+- `disabled`: boolean (null = por defecto)
+
+### Command
+
+Buscador de comandos (paleta tipo ⌘K) con grupos de opciones y atajos. Filtra al escribir dentro de la vista; las opciones no ejecutan nada.
+
+- `placeholder`: string (min 1, ≤160) (null = por defecto)
+- `groups`: [{ heading?: string (min 1, ≤160) (null = por defecto), items: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock" (null = por defecto), shortcut?: string (≤20) (null = por defecto) }] (min 1, máx 20) }] (min 1, máx 6)
+- `empty`: string (min 1, ≤160) (null = por defecto)
+
+### Dropzone
+
+Zona para arrastrar o elegir archivos (decorativa: no sube nada). accept dice qué se admite («PDF o XML, hasta 10 MB»).
 
 - `title`: string (min 1, ≤160)
 - `description`: string (≤2000) (null = por defecto)
+- `accept`: string (≤120) (null = por defecto)
+- `button`: string (min 1, ≤160) (null = por defecto)
 
-### Metric
+### FilterBar
 
-Indicador (KPI): etiqueta, valor ya formateado («68 %», «$1.2 M») y detalle opcional con su comparación o fecha de corte.
+Barra de filtros sobre una tabla o tablero: buscador opcional, filtros «Etiqueta: valor» (listas que cambian dentro de la vista, sin filtrar nada) y un botón principal a la derecha.
+
+- `search`: string (min 1, ≤160) (null = por defecto)
+- `filters`: [{ label: string (min 1, ≤40), value: string (min 1, ≤80), options?: [string (min 1, ≤80)] (máx 20) (null = por defecto) }] (máx 6)
+- `action`: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock" (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
+
+### Input
+
+Campo de texto de una línea con etiqueta y ayuda opcionales. Se puede escribir en él, pero nada se envía ni se guarda.
+
+- `label`: string (min 1, ≤160) (null = por defecto)
+- `description`: string (≤2000) (null = por defecto)
+- `disabled`: boolean (null = por defecto)
+- `placeholder`: string (min 1, ≤160) (null = por defecto)
+- `value`: string (≤400) (null = por defecto)
+- `type`: "text"|"email"|"number"|"search"|"tel"|"url" (null = por defecto)
+
+### RadioGroup
+
+Opciones excluyentes visibles a la vez (2 a 6), con etiqueta. Cambia dentro de la vista; nada se guarda.
+
+- `label`: string (min 1, ≤160) (null = por defecto)
+- `description`: string (≤2000) (null = por defecto)
+- `disabled`: boolean (null = por defecto)
+- `options`: [{ label: string (min 1, ≤160), value: string (min 1, ≤80) }] (min 2, máx 6)
+- `value`: string (null = por defecto)
+
+### Select
+
+Lista desplegable para elegir una opción. Se abre y cambia dentro de la vista; nada se guarda. value es la opción elegida al cargar.
+
+- `label`: string (min 1, ≤160) (null = por defecto)
+- `description`: string (≤2000) (null = por defecto)
+- `disabled`: boolean (null = por defecto)
+- `placeholder`: string (min 1, ≤160) (null = por defecto)
+- `options`: [{ label: string (min 1, ≤160), value: string (min 1, ≤80) }] (min 1, máx 60)
+- `value`: string (null = por defecto)
+
+### Switch
+
+Interruptor de encendido/apagado con su etiqueta (preferencias, avisos). Cambia dentro de la vista; nada se guarda.
 
 - `label`: string (min 1, ≤160)
-- `value`: string (min 1, ≤40)
-- `detail`: string (≤160) (null = por defecto)
-- `trend`: "up"|"down"|"flat" (null = por defecto)
+- `description`: string (≤2000) (null = por defecto)
+- `checked`: boolean (null = por defecto)
+- `disabled`: boolean (null = por defecto)
 
-### Chart
+### Textarea
 
-Gráfica con los colores del tema: bar, line, area o pie. categories es el eje X (o las porciones de pie) y cada serie trae un valor por categoría. pie usa una sola serie.
+Campo de texto de varias líneas (comentarios, notas). Se puede escribir, pero nada se envía.
+
+- `label`: string (min 1, ≤160) (null = por defecto)
+- `description`: string (≤2000) (null = por defecto)
+- `disabled`: boolean (null = por defecto)
+- `placeholder`: string (min 1, ≤160) (null = por defecto)
+- `value`: string (≤2000) (null = por defecto)
+- `rows`: integer (≥2, ≤12) (null = por defecto)
+
+### ToggleGroup
+
+Botones segmentados para cambiar de modo (Lista | Tablero, Semana | Mes). Cambia dentro de la vista; no cambia el contenido ni navega.
+
+- `options`: [{ label: string (min 1, ≤160), value: string (min 1, ≤80), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock" (null = por defecto) }] (min 2, máx 6)
+- `value`: string (null = por defecto)
+- `variant`: "default"|"outline" (null = por defecto)
+
+### Breadcrumb
+
+Migas de pan: dónde está la pantalla («Proyectos › Portenta › Cronograma»). El último elemento es la página actual; los anteriores pueden llevar href.
+
+- `items`: [{ label: string (min 1, ≤160), href?: string (null = por defecto) }] (min 1, máx 8)
+
+### Pagination
+
+Paginación bajo una tabla o lista: página actual de un total. Se puede cambiar de página dentro de la vista, pero el contenido no cambia.
+
+- `page`: integer (≥1, ≤9007199254740991)
+- `pages`: integer (≥1, ≤999)
+
+### EmptyState
+
+Estado vacío de una sección, como en Portal: icono, «Aún no hay {objetos}», una línea para quien mira y una acción opcional (botón con href o decorativo).
 
 - `title`: string (min 1, ≤160)
 - `description`: string (≤2000) (null = por defecto)
-- `kind`: "bar"|"line"|"area"|"pie"
-- `categories`: [string (min 1, ≤80)] (min 1, máx 60)
-- `series`: [{ name: string (min 1, ≤80), values: [number] }] (min 1, máx 6)
-- `unit`: string (≤20) (null = por defecto)
-- `stacked`: boolean (null = por defecto)
+- `icon`: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock" (null = por defecto)
+- `action`: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock" (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
 
-### KeyValue
+### ErrorState
 
-Pares etiqueta–valor (fechas, responsables, montos) en 1 a 3 columnas.
+Error al cargar una sección, como en Portal: «No se pudo cargar {X}.», una explicación opcional y el botón «Reintentar» (decorativo).
 
-- `items`: [{ label: string (min 1, ≤160), value: string (min 1, ≤400) }] (min 1, máx 60)
-- `columns`: integer (≥1, ≤3) (null = por defecto)
+- `title`: string (min 1, ≤160)
+- `description`: string (≤2000) (null = por defecto)
+- `retry`: boolean (null = por defecto)
 
-### List
+### LoadingState
 
-Lista de viñetas o numerada de texto plano.
+Sección cargando, como en Portal: anuncia «Cargando {sección}» a los lectores de pantalla y muestra un esqueleto con la forma del contenido (text, list, card o table).
 
-- `items`: [string (min 1, ≤640)] (min 1, máx 60)
-- `ordered`: boolean (null = por defecto)
+- `label`: string (min 1, ≤160)
+- `shape`: "text"|"list"|"card"|"table" (null = por defecto)
+- `rows`: integer (≥1, ≤12) (null = por defecto)
+
+### Skeleton
+
+Bloques grises con la forma del contenido que aún no llega: text (líneas), list (filas con avatar), card (tarjeta) o table (filas de tabla).
+
+- `shape`: "text"|"list"|"card"|"table" (null = por defecto)
+- `rows`: integer (≥1, ≤12) (null = por defecto)
+
+### Spinner
+
+Indicador de actividad en curso (enviando, procesando) con un texto opcional al lado.
+
+- `label`: string (min 1, ≤160) (null = por defecto)
+
+### Checklist
+
+Lista de verificación (documentos de un expediente, requisitos): cada punto done (Validado), pending (Pendiente) o warning (Con observaciones), con un detalle opcional. label cambia la etiqueta del estado si hace falta («Recibido»).
+
+- `items`: [{ label: string (min 1, ≤160), status: "done"|"pending"|"warning", detail?: string (≤160) (null = por defecto), statusLabel?: string (min 1, ≤40) (null = por defecto) }] (min 1, máx 40)
+
+### MilestoneGanttLegend
+
+Leyenda del Cronograma de Portal: colores de estado de los hitos (pendiente, en curso, completado, vencido) y, si se indican, barras, puntos, tareas, dependencias y línea base.
+
+- `ranges`: boolean (null = por defecto)
+- `points`: boolean (null = por defecto)
+- `tasks`: boolean (null = por defecto)
+- `dependencies`: boolean (null = por defecto)
+- `baseline`: boolean (null = por defecto)
+
+### MilestoneGanttSkeleton
+
+Cronograma de Portal cargando: barra de navegación, árbol de hitos y barras del Gantt en gris. Para mostrar cómo se ve la pantalla mientras llegan los datos.
+
+
+### Stages
+
+Etapas de un proceso en una línea horizontal (Prospecto › Propuesta › Negociación › Cierre): cada una done, current o upcoming, con un detalle breve opcional (fecha, responsable).
+
+- `items`: [{ label: string (min 1, ≤160), status: "done"|"current"|"upcoming", detail?: string (≤80) (null = por defecto) }] (min 2, máx 8)
 
 ### Timeline
 

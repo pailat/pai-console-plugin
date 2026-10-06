@@ -18,6 +18,7 @@ Un **`data_model`** agrupa **`entity`** (tablas). **Una entidad son sus columnas
 1. **Descubre** organización y proyecto (`pai-console` §1).
 2. **Busca lo que ya existe:**
    - **inventario:** `knowledge_library {projectId, kinds:["data_model","entity"]}`, recorriendo `offset` hasta `total`;
+   - **de la organización:** el mismo `knowledge_library` con `projectId: "organization"`. Los modelos y sistemas compartidos del cliente pueden vivir ahí: enlázalos por uuid en vez de recrearlos;
    - **por tema:** `knowledge_search` con esos kinds y las palabras del dominio, en español y en inglés.
 
    Si ya hay un modelo, **extiéndelo**: agrega entidades con `dataModel` apuntando a él. No crees otro.

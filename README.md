@@ -11,6 +11,7 @@ Plugin de Claude Code para que el staff de Pai opere proyectos de clientes en **
 **Pai 0.2.5 en adelante.** Los skills usan sin alternativas lo que llega en 0.2.5:
 - `data_model` y C4 por niveles;
 - `knowledge_view`, `knowledge_library`, `knowledge_graph` y `task_board`;
+- la UI generativa (`view_catalog`, `view_render` y vistas en las lecturas) y el conocimiento propio de la organización;
 - las anotaciones de las tools y los errores con `cause`.
 
 Un entorno con una versión anterior no está soportado: el modelo lo dice y para, sin improvisar. Producción queda soportada cuando corra 0.2.5.
@@ -68,7 +69,7 @@ La guarda sabe qué es lectura por las anotaciones del propio servidor. Las lee 
 |---|---|
 | `pai-console` | El método base: entorno, descubrimiento, buscar antes de crear, CAS, idempotencia, nombres en inglés, errores, citas. Con el inventario de tools |
 | `resources` | Pages con tipo, imágenes, archivos, mover, restaurar y borrar |
-| `views` | Vistas `pai-view@1` en una page canvas: tableros de KPIs, mockups de pantallas con AppShell, reportes visuales, comparativos. Recetas validadas y catálogo generado |
+| `views` | UI generativa de Pai (`pai-view@1`, 54 componentes): `view_render` para dibujar en la conversación, y tableros, mockups con AppShell, reportes visuales y comparativos guardados en Recursos. Recetas validadas y catálogo generado |
 | `knowledge` | Kinds, fuentes, propuestas que confirma una persona, enlaces por ontología, ciclo de vida |
 | `erd` | `data_model` + `entity`: columnas tipadas; las relaciones salen de las FK |
 | `c4` | `component` por nivel y `actor`; relaciones con descripción y tecnología |

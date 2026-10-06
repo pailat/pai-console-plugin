@@ -2152,6 +2152,38 @@
    }
   },
   {
+   "name": "payment_file_download_url",
+   "title": "Descargar archivo de pago",
+   "description": "URL firmada y temporal (60 s) para descargar un comprobante o el PDF/XML de una factura de la sección Pagos (fileId de payment_list). Úsala de inmediato y no la guardes ni la compartas.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "organizationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Organización (organization_list); debes ser miembro"
+     },
+     "fileId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     }
+    },
+    "required": [
+     "organizationId",
+     "fileId"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   }
+  },
+  {
    "name": "file_list",
    "title": "Listar archivos",
    "description": "Archivos de Recursos del proyecto con carpeta, tipo, tamaño y visibilidad. Un cliente ve sólo los compartidos con el cliente. Las páginas de Recursos se leen con page_list y page_read.",
@@ -12072,9 +12104,17 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "properties": {
      "projectId": {
-      "type": "string",
-      "format": "uuid",
-      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+       },
+       {
+        "type": "string",
+        "const": "organization"
+       }
+      ]
      },
      "query": {
       "type": "string",
@@ -12198,9 +12238,17 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "properties": {
      "projectId": {
-      "type": "string",
-      "format": "uuid",
-      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+       },
+       {
+        "type": "string",
+        "const": "organization"
+       }
+      ]
      },
      "status": {
       "maxItems": 7,
@@ -12243,6 +12291,57 @@
     "readOnlyHint": true,
     "idempotentHint": true,
     "destructiveHint": false,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "view_catalog",
+   "title": "Catálogo de vistas",
+   "description": "Catálogo pai-view@1 del sistema de diseño de Pai: componentes (layout, métricas, gráficas, tablas, cronologías), sus props, reglas, límites y un ejemplo. Consúltalo antes de componer una vista con view_render.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {}
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "view_render",
+   "title": "Dibujar vista",
+   "description": "Dibuja una vista generativa con el sistema de diseño de Pai (tokens, componentes y tema claro u oscuro del host): un dashboard, una comparación, un resumen visual de datos que ya obtuviste con otras herramientas. Compón spec con los componentes de view_catalog; se valida antes de dibujarse y un error dice qué corregir. No inventes cifras: usa sólo datos que obtuviste y escribe valores ya formateados con su fecha de corte.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "description": "Título de la vista"
+     },
+     "spec": {
+      "type": "object",
+      "propertyNames": {
+       "type": "string"
+      },
+      "additionalProperties": {},
+      "description": "Vista pai-view@1: { root, elements } (ver view_catalog)"
+     }
+    },
+    "required": [
+     "title",
+     "spec"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
     "openWorldHint": false
    }
   }

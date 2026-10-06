@@ -112,6 +112,7 @@ Las tools declaran sus anotaciones, y la guarda las lee de `hooks/tools.json`, q
 | `proposal_list` | L | |
 | `proposal_get` | L | |
 | `payment_list` | L | |
+| `payment_file_download_url` | L | URL firmada de 60 s para un comprobante o el PDF/XML de una factura (`fileId` de `payment_list`); úsala de inmediato y no la guardes |
 | `proposal_save` | E | Solo borradores; moneda por defecto **mxn** |
 | `proposal_set_status` | E · IRR | draft → sent → accepted/rejected |
 | `milestone_proposal_link` | E | |
@@ -149,6 +150,15 @@ Las tools declaran sus anotaciones, y la guarda las lee de `hooks/tools.json`, q
 | `product_domain_attach` | E · IRR | Devuelve los `dnsRecords` |
 | `product_production_access_set` | E · IRR | Redespliega producción |
 | `product_member_remove` | E · IRR | |
+
+## Vistas (UI generativa)
+
+| Tool | Tipo | Nota |
+|---|---|---|
+| `view_catalog` | L | Catálogo `pai-view@1` (componentes, props, reglas, ejemplo). Prefiere la referencia del skill `views` |
+| `view_render` | L | Dibuja en la conversación una vista que compones (`{title, spec}`); la valida y no guarda nada |
+
+Además, en los hosts con MCP Apps, el resultado de cada tool de lectura se dibuja solo como una vista de Pai.
 
 ## Otros
 

@@ -1,6 +1,6 @@
 # Kinds de Conocimiento
 
-> Generado por `tools/gen-references.ts` desde pai-portal `90128af4` (2026-10-06 Merge pull request #143 from pailat/fix/0.2.5/url-params-allowlist), `packages/contracts/src/knowledge`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `e0552ed1` (2026-10-06 Merge pull request #151 from pailat/feat/0.2.5/knowledge-org-owned), `packages/contracts/src/knowledge`. No editar a mano: regenerar.
 
 Cada kind tiene una plantilla estricta: una clave que no aparece aquí se rechaza. `properties` lleva exactamente estas claves. Las secciones `refs` materializan aristas al guardar.
 

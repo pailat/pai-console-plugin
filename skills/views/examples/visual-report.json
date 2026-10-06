@@ -25,32 +25,102 @@
               "spec": {
                 "root": "root",
                 "elements": {
-                  "root": { "type": "Stack", "props": { "direction": "vertical", "gap": "lg" }, "children": ["title", "lead", "facts", "progress", "milestones", "details"] },
-                  "title": { "type": "Heading", "props": { "text": "Fase 0 — Descubrimiento", "level": "h1" } },
-                  "lead": { "type": "Text", "props": { "text": "Entendimos el proceso de venta, priorizamos los módulos y dejamos lista la propuesta de la Fase 1. Corte al 2026-10-06.", "variant": "lead" } },
+                  "root": {
+                    "type": "Stack",
+                    "props": {
+                      "direction": "vertical",
+                      "gap": "lg"
+                    },
+                    "children": [
+                      "title",
+                      "lead",
+                      "stages",
+                      "facts",
+                      "progress",
+                      "deliverables",
+                      "milestones",
+                      "details"
+                    ]
+                  },
+                  "title": {
+                    "type": "Heading",
+                    "props": {
+                      "text": "Fase 0 — Descubrimiento",
+                      "level": "h1"
+                    }
+                  },
+                  "lead": {
+                    "type": "Text",
+                    "props": {
+                      "text": "Entendimos el proceso de venta, priorizamos los módulos y dejamos lista la propuesta de la Fase 1. Corte al 2026-10-06.",
+                      "variant": "lead"
+                    }
+                  },
                   "facts": {
                     "type": "KeyValue",
                     "props": {
                       "columns": 3,
                       "items": [
-                        { "label": "Inicio", "value": "2026-09-01" },
-                        { "label": "Cierre previsto", "value": "2026-10-17" },
-                        { "label": "Responsable Pai", "value": "Alejandro Sánchez" },
-                        { "label": "Entrevistas", "value": "11 de 12" },
-                        { "label": "Módulos priorizados", "value": "6" },
-                        { "label": "Inversión", "value": "$180,000 MXN" }
+                        {
+                          "label": "Inicio",
+                          "value": "2026-09-01"
+                        },
+                        {
+                          "label": "Cierre previsto",
+                          "value": "2026-10-17"
+                        },
+                        {
+                          "label": "Responsable Pai",
+                          "value": "Alejandro Sánchez"
+                        },
+                        {
+                          "label": "Entrevistas",
+                          "value": "11 de 12"
+                        },
+                        {
+                          "label": "Módulos priorizados",
+                          "value": "6"
+                        },
+                        {
+                          "label": "Inversión",
+                          "value": "$180,000 MXN"
+                        }
                       ]
                     }
                   },
-                  "progress": { "type": "Progress", "props": { "value": 80, "label": "Avance de la fase: 80 %" } },
+                  "progress": {
+                    "type": "Progress",
+                    "props": {
+                      "value": 80,
+                      "label": "Avance de la fase: 80 %"
+                    }
+                  },
                   "milestones": {
                     "type": "Timeline",
                     "props": {
                       "items": [
-                        { "date": "2026-09-05", "title": "Arranque", "description": "Reunión de inicio y acceso a sistemas.", "status": "done" },
-                        { "date": "2026-09-26", "title": "Entrevistas", "description": "Ventas, cobranza y dirección.", "status": "done" },
-                        { "date": "2026-10-10", "title": "Mapa de procesos", "status": "current" },
-                        { "date": "2026-10-17", "title": "Propuesta de Fase 1", "status": "upcoming" }
+                        {
+                          "date": "2026-09-05",
+                          "title": "Arranque",
+                          "description": "Reunión de inicio y acceso a sistemas.",
+                          "status": "done"
+                        },
+                        {
+                          "date": "2026-09-26",
+                          "title": "Entrevistas",
+                          "description": "Ventas, cobranza y dirección.",
+                          "status": "done"
+                        },
+                        {
+                          "date": "2026-10-10",
+                          "title": "Mapa de procesos",
+                          "status": "current"
+                        },
+                        {
+                          "date": "2026-10-17",
+                          "title": "Propuesta de Fase 1",
+                          "status": "upcoming"
+                        }
                       ]
                     }
                   },
@@ -59,8 +129,67 @@
                     "props": {
                       "type": "multiple",
                       "items": [
-                        { "title": "¿Qué queda fuera de la fase?", "content": "Integraciones con el ERP y migración de datos históricos; se cotizan en la Fase 1." },
-                        { "title": "¿Qué necesitamos del cliente?", "content": "La entrevista pendiente con Finanzas y el catálogo de productos vigente." }
+                        {
+                          "title": "¿Qué queda fuera de la fase?",
+                          "content": "Integraciones con el ERP y migración de datos históricos; se cotizan en la Fase 1."
+                        },
+                        {
+                          "title": "¿Qué necesitamos del cliente?",
+                          "content": "La entrevista pendiente con Finanzas y el catálogo de productos vigente."
+                        }
+                      ]
+                    }
+                  },
+                  "stages": {
+                    "type": "Stages",
+                    "props": {
+                      "items": [
+                        {
+                          "label": "Arranque",
+                          "status": "done",
+                          "detail": "2026-09-05"
+                        },
+                        {
+                          "label": "Entrevistas",
+                          "status": "done",
+                          "detail": "2026-09-26"
+                        },
+                        {
+                          "label": "Mapa de procesos",
+                          "status": "current",
+                          "detail": "2026-10-10"
+                        },
+                        {
+                          "label": "Propuesta",
+                          "status": "upcoming",
+                          "detail": "2026-10-17"
+                        }
+                      ]
+                    }
+                  },
+                  "deliverables": {
+                    "type": "Checklist",
+                    "props": {
+                      "items": [
+                        {
+                          "label": "Minutas de entrevistas",
+                          "status": "done"
+                        },
+                        {
+                          "label": "Inventario de sistemas",
+                          "status": "done"
+                        },
+                        {
+                          "label": "Mapa de procesos de venta",
+                          "status": "pending",
+                          "detail": "En revisión con Ventas"
+                        },
+                        {
+                          "label": "Catálogo de productos",
+                          "status": "warning",
+                          "detail": "Falta la lista vigente del cliente",
+                          "statusLabel": "Con observaciones"
+                        }
                       ]
                     }
                   }

@@ -103,7 +103,13 @@ Si da `ONTOLOGY`, ese par no admite esa relación. Busca en `${CLAUDE_PLUGIN_ROO
 - `knowledge_audit` lista nodos débiles, delgados (sin justificación), huérfanos y preguntas sin resolver. Úsalo al cerrar una sesión de modelado y dale el resultado a la persona.
 - `knowledge_impact` (`maxDepth` ≤3) dice qué se afecta si cambia un nodo. Úsalo antes de proponer el reemplazo de una decisión.
 - `knowledge_graph {projectId?}` muestra la estructura: nodos con su grado, aristas y hubs (`hubThreshold`). Úsalo para encontrar los nodos centrales y los huérfanos de un proyecto o de toda la organización.
-- `knowledge_library` sin `projectId` busca en **toda la organización**: sirve para reutilizar conocimiento de otro proyecto del mismo cliente (cítalo; no lo copies).
+- **Conocimiento de la organización:** un nodo puede no tener proyecto y ser **de la organización** (un glosario común, reglas del cliente, sistemas compartidos).
+  - `knowledge_library` y `knowledge_graph` aceptan tres alcances en `projectId`: un proyecto (sus nodos más los de la organización enlazados a él), `"organization"` (solo los de la organización), o ninguno (todo).
+  - En los resultados, esos nodos traen `project: null`.
+  - **Antes de crear en un proyecto, busca también en `"organization"`.** Si ya existe ahí, enlázalo (`knowledge_link` acepta su uuid como `targetRef`) en vez de duplicarlo.
+  - Crear un nodo de la organización o mover un nodo entre proyecto y organización **no está en el MCP**: lo hace una persona en el Portal o en Console. Propónselo si un nodo de proyecto debería ser común.
+  - En el Portal, la ficha de un nodo de la organización está en `/organization/knowledge/<nodeId>`.
+- Las tareas siempre viven en su proyecto.
 
 ## Qué no hacer
 

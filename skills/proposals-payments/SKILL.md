@@ -79,6 +79,7 @@ Bloques obligatorios en algún lugar del documento: `deliverables`, `data-table`
 
    De las cuentas solo se guardan los últimos 4 dígitos.
 4. Los hitos ligados pasan a **pagados** cuando sus facturas cubren su monto. Verifica con `payment_list`.
+5. Para descargar un comprobante o el PDF/XML de una factura: `payment_file_download_url {fileId}` (el `fileId` viene de `payment_list`). La URL dura 60 s: úsala de inmediato y no la guardes ni la compartas.
 
 ## Anular un pago
 

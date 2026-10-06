@@ -31,7 +31,7 @@
                       "brand": { "name": "Biblioteca en línea", "detail": "Sucursal Centro" },
                       "nav": [
                         { "label": "Inicio", "icon": "home" },
-                        { "label": "Catálogo", "icon": "layers" },
+                        { "label": "Catálogo", "icon": "book-open" },
                         { "label": "Préstamos", "icon": "calendar", "active": true },
                         { "label": "Socios", "icon": "users" },
                         { "label": "Reportes", "icon": "reports" }
@@ -43,27 +43,34 @@
                     },
                     "children": ["content"]
                   },
-                  "content": { "type": "Stack", "props": { "direction": "vertical", "gap": "lg" }, "children": ["kpis", "overdueAlert", "loansCard"] },
+                  "content": { "type": "Stack", "props": { "direction": "vertical", "gap": "lg" }, "children": ["crumbs", "kpis", "overdueAlert", "loansCard"] },
+                  "crumbs": { "type": "Breadcrumb", "props": { "items": [ { "label": "Inicio", "href": "#home" }, { "label": "Préstamos" } ] } },
                   "kpis": { "type": "Grid", "props": { "columns": 3, "gap": "md" }, "children": ["kpiActive", "kpiOverdue", "kpiToday"] },
                   "kpiActive": { "type": "Metric", "props": { "label": "Préstamos activos", "value": "87" } },
-                  "kpiOverdue": { "type": "Metric", "props": { "label": "Vencidos", "value": "9", "detail": "vs. 14 la semana pasada", "trend": "down" } },
+                  "kpiOverdue": { "type": "Metric", "props": { "label": "Vencidos", "value": "9", "detail": "vs. 14 la semana pasada", "trend": "down", "tone": "warning" } },
                   "kpiToday": { "type": "Metric", "props": { "label": "Devoluciones hoy", "value": "12" } },
                   "overdueAlert": { "type": "Alert", "props": { "title": "9 préstamos vencidos", "message": "Se envió el aviso por correo a cada socio el 2026-10-05.", "type": "warning" } },
-                  "loansCard": { "type": "Card", "props": { "title": "Préstamos recientes", "description": "Los 5 más recientes; el resto en Ver todos." }, "children": ["loansTable", "seeAll"] },
+                  "loansCard": {
+                    "type": "Card",
+                    "props": { "title": "Préstamos", "description": "Ordenados por fecha de vencimiento.", "action": { "label": "Nuevo préstamo", "icon": "plus" }, "menu": [ { "label": "Exportar", "icon": "download" } ] },
+                    "children": ["filters", "loansTable", "pager"]
+                  },
+                  "filters": { "type": "FilterBar", "props": { "search": "Buscar por libro o socio", "filters": [ { "label": "Estado", "value": "Todos", "options": ["Todos", "Activo", "Vence hoy", "Vencido"] } ] } },
                   "loansTable": {
                     "type": "Table",
                     "props": {
                       "columns": ["Libro", "Socio", "Prestado", "Vence", "Estado"],
                       "rows": [
-                        ["Rayuela", "Mario Ruiz", "2026-09-22", "2026-10-06", "Vence hoy"],
                         ["Pedro Páramo", "Ana Torres", "2026-09-20", "2026-10-04", "Vencido"],
+                        ["Rayuela", "Mario Ruiz", "2026-09-22", "2026-10-06", "Vence hoy"],
                         ["Ficciones", "Luis Vega", "2026-09-28", "2026-10-12", "Activo"],
                         ["Aura", "Sofía Ríos", "2026-09-29", "2026-10-13", "Activo"],
                         ["Santa Evita", "Diego Paz", "2026-09-30", "2026-10-14", "Activo"]
-                      ]
+                      ],
+                      "caption": "5 de 87 préstamos activos"
                     }
                   },
-                  "seeAll": { "type": "Link", "props": { "label": "Ver todos los préstamos", "href": "#loans" } }
+                  "pager": { "type": "Pagination", "props": { "page": 1, "pages": 18 } }
                 }
               }
             }

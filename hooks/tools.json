@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "pai-portal 90128af4 (2026-10-06 Merge pull request #143 from pailat/fix/0.2.5/url-params-allowlist)",
+  "generatedFrom": "pai-portal e0552ed1 (2026-10-06 Merge pull request #151 from pailat/feat/0.2.5/knowledge-org-owned)",
   "tools": {
     "agent_create": {
       "readOnly": false,
@@ -309,6 +309,10 @@
       "readOnly": false,
       "destructive": false
     },
+    "payment_file_download_url": {
+      "readOnly": true,
+      "destructive": false
+    },
     "payment_file_upload": {
       "readOnly": false,
       "destructive": false
@@ -498,6 +502,14 @@
       "destructive": false
     },
     "timeline_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "view_catalog": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "view_render": {
       "readOnly": true,
       "destructive": false
     },

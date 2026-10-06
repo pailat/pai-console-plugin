@@ -3,7 +3,7 @@
  * contracts, so a skill never shows an input the server would reject.
  *
  * An example is `skills/<skill>/examples/*.json`:
- *   { "tool": "knowledge_create" | "page_create" | "page_update", "input": {...} }
+ *   { "tool": "knowledge_create" | "page_create" | "page_update" | "view_render", "input": {...} }
  * or an array of those (a sequence of calls).
  *
  * Usage (pai-portal checkout with dependencies installed):
@@ -31,6 +31,9 @@ const { validatePageContent } = await import(
 );
 const { findBuiltinPageType } = await import(
 	join(contracts, "pages/types/registry.ts")
+);
+const { validateViewSpec } = await import(
+	join(portal, "packages/views/src/spec.ts")
 );
 
 type Call = { tool: string; input: Record<string, unknown> };
@@ -100,6 +103,18 @@ function pageWrite(input: Record<string, unknown>, allowed: Set<string>): string
 	return problems;
 }
 
+function viewRender(input: Record<string, unknown>): string[] {
+	const problems = Object.keys(input)
+		.filter((key) => key !== "title" && key !== "spec")
+		.map((key) => `${key}: clave no admitida por la tool`);
+	if (typeof input.title !== "string" || !input.title || input.title.length > 160)
+		problems.push("title: obligatorio, de 1 a 160 caracteres");
+	const result = validateViewSpec(input.spec);
+	for (const issue of result.issues ?? [])
+		problems.push(`spec.${issue.path ?? ""}: ${issue.message}`);
+	return problems;
+}
+
 function check(call: Call): string[] {
 	switch (call.tool) {
 		case "knowledge_create":
@@ -108,6 +123,8 @@ function check(call: Call): string[] {
 			return pageWrite(call.input, PAGE_CREATE_KEYS);
 		case "page_update":
 			return pageWrite(call.input, PAGE_UPDATE_KEYS);
+		case "view_render":
+			return viewRender(call.input);
 		default:
 			return [`tool ${call.tool}: el validador no la conoce`];
 	}
