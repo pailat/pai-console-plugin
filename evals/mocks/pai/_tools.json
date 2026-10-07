@@ -1487,7 +1487,7 @@
   {
    "name": "proposal_set_status",
    "title": "Registrar estado de propuesta",
-   "description": "Marca un borrador como enviado o registra el resultado comunicado por el cliente. No envía correos ni procesa cobros. Para aceptar requiere acceptedByName; para rechazar requiere reason.",
+   "description": "Marca un borrador como enviado o registra el resultado comunicado por el cliente. No envía correos ni procesa cobros. Para aceptar requiere acceptedByName; para rechazar requiere reason. Pasa expectedRevision = revision de proposal_get para no actuar sobre una versión que no leíste: si la propuesta cambió, responde CONFLICT y debes volver a leerla.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1524,6 +1524,12 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 2000
+     },
+     "expectedRevision": {
+      "description": "revision de proposal_get; ante CONFLICT vuelve a leer",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
      }
     },
     "required": [
@@ -12297,11 +12303,39 @@
   {
    "name": "view_catalog",
    "title": "Catálogo de vistas",
-   "description": "Catálogo pai-view@1 del sistema de diseño de Pai: componentes (layout, métricas, gráficas, tablas, cronologías), sus props, reglas, límites y un ejemplo. Consúltalo antes de componer una vista con view_render.",
+   "description": "Catálogo pai-view@1 del sistema de diseño de Pai. Sin argumentos: formato, reglas, límites, layouts, un ejemplo y el índice de componentes (layout, métricas, gráficas, tablas, cronologías, pantallas de Pai) con sus props por nombre. Con types (o group): el esquema completo y un ejemplo de esos componentes; pídelos antes de usarlos. Consúltalo antes de componer una vista con view_render.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "properties": {}
+    "properties": {
+     "types": {
+      "description": "Componentes de los que quieres el esquema y el ejemplo.",
+      "maxItems": 30,
+      "type": "array",
+      "items": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 60
+      }
+     },
+     "group": {
+      "description": "Todos los componentes de un grupo del índice.",
+      "type": "string",
+      "enum": [
+       "app",
+       "site",
+       "layout",
+       "content",
+       "data",
+       "controls",
+       "navigation",
+       "feedback",
+       "planning",
+       "project",
+       "knowledge"
+      ]
+     }
+    }
    },
    "annotations": {
     "readOnlyHint": true,

@@ -44,10 +44,10 @@ Bloques obligatorios en algún lugar del documento: `deliverables`, `data-table`
 4. **Enviar:** `proposal_set_status {status:"sent"}`.
    - Valida el SOW y arranca la ventana de aceptación.
    - **No manda correo:** la persona avisa al cliente por su canal.
-   - No hay `expectedRevision`: lee justo antes y confirma.
+   - Manda `expectedRevision` (la `revision` de `proposal_get`): si cambió, responde `CONFLICT` y hay que volver a leer.
 5. **Respuesta del cliente**, por una de dos vías:
    - el cliente la acepta o rechaza en el Portal (`proposal_accept` / `proposal_reject` son del cliente, no del staff);
-   - el staff registra lo que el cliente comunicó por otro medio: `proposal_set_status {status:"accepted", acceptedByName}` o `{status:"rejected", reason}`.
+   - el staff registra lo que el cliente comunicó por otro medio: `proposal_set_status {status:"accepted", acceptedByName, expectedRevision}` o `{status:"rejected", reason, expectedRevision}`.
 
    **Irreversible:** confirma el nombre exacto de quien aceptó.
 6. **Liga cada hito que cobra** con `milestone_proposal_link {milestoneId, proposalId}`. Alimenta el «siguiente cobro» de Pagos.

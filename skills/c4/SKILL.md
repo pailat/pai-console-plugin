@@ -46,7 +46,7 @@ Lee antes el skill `pai-console`.
    - **el diagrama dibujado:** `view_render` con un `C4Diagram` que recibe la respuesta de `knowledge_view` tal cual (skill `views`, «Diagramas de Conocimiento»);
    - las citas `kb:`;
    - el Mermaid (`format:"mermaid"`) si lo pide;
-   - el enlace del Portal: el `url` de la vista (ya trae `?level=`) con el host del Portal (`https://app.pai.lat` en producción, el Portal de staging en staging), **quitándole el prefijo legacy `/portal`**.
+   - el enlace del Portal: el `url` de la vista (ya trae `?level=`) con el host del Portal delante (`https://app.pai.lat` en producción; en staging, el Portal de staging).
 
 Ejemplo completo y validado: `${CLAUDE_PLUGIN_ROOT}/skills/c4/examples/shop-c4.json`. Incluye un actor, un sistema, un sistema externo, tres contenedores (uno de ellos BD ligada al ERD), un repository y un controller.
 

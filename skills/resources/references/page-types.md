@@ -1,6 +1,6 @@
 # Tipos de page y bloques
 
-> Generado por `tools/gen-references.ts` desde pai-portal `4ae9b884` (2026-10-07 Merge pull request #159 from pailat/fix/0.2.5/package-cycle), `packages/contracts/src/pages`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `c364c4ab` (2026-10-07 Merge pull request #166 from pailat/fix/0.2.5/release-clean-2), `packages/contracts/src/pages`. No editar a mano: regenerar.
 
 ## Límites del contenido
 

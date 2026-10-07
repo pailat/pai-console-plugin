@@ -1,6 +1,6 @@
 # Kinds de Conocimiento
 
-> Generado por `tools/gen-references.ts` desde pai-portal `4ae9b884` (2026-10-07 Merge pull request #159 from pailat/fix/0.2.5/package-cycle), `packages/contracts/src/knowledge`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `c364c4ab` (2026-10-07 Merge pull request #166 from pailat/fix/0.2.5/release-clean-2), `packages/contracts/src/knowledge`. No editar a mano: regenerar.
 
 Cada kind tiene una plantilla estricta: una clave que no aparece aquí se rechaza. `properties` lleva exactamente estas claves. Las secciones `refs` materializan aristas al guardar.
 
@@ -697,7 +697,7 @@ Ejemplo de `properties`:
 
 ```json
 {
- "route": "/portal/organization/projects/[projectId]/knowledge",
+ "route": "/organization/projects/[projectId]/knowledge",
  "purpose": "Listar y filtrar los nodos de Knowledge del proyecto y abrir su detalle.",
  "actors": [
   "actor/staff-pai",

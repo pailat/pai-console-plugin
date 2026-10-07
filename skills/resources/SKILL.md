@@ -47,9 +47,7 @@ Si dudas entre page y nodo, piensa en el uso. **Una page se lee de corrido; un n
    - `idempotencyKey`: `page-<proyecto>-<ruta-con-guiones>`.
 7. **Lee la respuesta** (`warnings`, `document.revision`) y da a la persona:
    - la ruta y la revisión;
-   - el enlace del Portal: `https://app.pai.lat/organization/projects/<projectId>/resources/<path>` en producción (en staging, la misma ruta en el Portal de staging).
-
-   El campo `url` de la respuesta trae una ruta legacy (`/portal/…/pages/…`): no la uses como enlace.
+   - el enlace del Portal: el `url` de la respuesta con el host del Portal delante (`https://app.pai.lat` en producción; en staging, el Portal de staging).
 
 Ejemplos validados:
 - `${CLAUDE_PLUGIN_ROOT}/skills/resources/examples/report-page.json`: tipo `report`, con sus cinco secciones obligatorias;

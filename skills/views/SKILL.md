@@ -1,6 +1,6 @@
 ---
 name: views
-description: UI generativa de Pai (catálogo pai-view@1, 70 componentes del sistema de diseño de Pai, con pantallas reales de Portal, Console y pai.lat y diagramas de Conocimiento). Dibuja vistas en la conversación con view_render (dashboards, comparativos, resúmenes visuales de datos ya obtenidos) o guárdalas en Recursos como bloque view de una page canvas (tableros, mockups de pantallas con AppShell, reportes visuales). Úsalo cuando pidan ver, mostrar, graficar o comparar datos de Pai de forma visual, un tablero, dashboard, mockup, wireframe o pantalla (de una app de cliente, del Portal, de Console o del sitio), dibujar un ERD, un C4 o el grafo, o editar una vista existente.
+description: UI generativa de Pai (catálogo pai-view@1, 90 componentes del sistema de diseño de Pai: pantallas reales de Portal, Console y pai.lat, las piezas de datos del Portal —Pagos, Cronograma, Tareas, Proyectos, Actividad, Biblioteca— y diagramas de Conocimiento). Dibuja vistas en la conversación con view_render (dashboards, comparativos, resúmenes visuales de datos ya obtenidos) o guárdalas en Recursos como bloque view de una page canvas (tableros, mockups de pantallas con AppShell, reportes visuales). Úsalo cuando pidan ver, mostrar, graficar o comparar datos de Pai de forma visual, un tablero, dashboard, mockup, wireframe o pantalla (de una app de cliente, del Portal, de Console o del sitio), dibujar un ERD, un C4 o el grafo, o editar una vista existente.
 argument-hint: "[proyecto] [qué vista: tablero, pantalla, comparativo…]"
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
@@ -9,13 +9,19 @@ compatibility: "Pai 0.2.5+ (MCP corp)"
 
 Lee antes el skill `pai-console`: entorno, descubrimiento, buscar antes de crear, CAS.
 
-**Catálogo completo**, generado desde el código: `${CLAUDE_PLUGIN_ROOT}/skills/views/references/view-catalog.md`. Tiene los layouts de raíz, los 10 grupos y los 70 componentes con sus props, límites e iconos. `view_catalog` devuelve lo mismo desde el servidor.
+**Catálogo completo**, generado desde el código: `${CLAUDE_PLUGIN_ROOT}/skills/views/references/view-catalog.md`. Tiene los layouts de raíz, los 11 grupos y los 90 componentes con sus props, límites y un ejemplo de cada uno.
+
+`view_catalog` es la fuente del servidor:
+- sin argumentos devuelve el **índice** (reglas, layouts y los componentes con sus props por nombre);
+- con `{types: [...]}` o `{group}` devuelve el **esquema completo y un ejemplo** de esos componentes.
+
+Si un componente no está en la referencia o dudas de una prop, **pide su detalle** con `view_catalog {types}` antes de usarlo. Si lo vas a hacer para muchos componentes, delégalo a `pai-explorer`.
 
 ## Tres formas en que aparece una vista
 
 | Forma | Cuándo | Cómo |
 |---|---|---|
-| **Automática** | Toda tool de lectura (`timeline_get`, `payment_list`, `task_board`, `knowledge_view`…) | En los hosts con MCP Apps, su resultado ya se dibuja solo como una vista de Pai. **No lo repitas** con `view_render` ni con tablas en texto: comenta lo importante |
+| **Automática** | Toda tool de lectura (`timeline_get`, `payment_list`, `task_board`, `knowledge_view`…) | Solo en los hosts con MCP Apps, el resultado crudo de esa tool se dibuja solo. No sustituye un resumen: **si la persona pide ver, mostrar, graficar o comparar, compón la vista y dibújala con `view_render`**, aunque ya hayas leído los datos |
 | **En la conversación** | «Muéstrame», «compara», «resume visualmente», un dashboard para responder ahora | **`view_render {title, spec}`**: dibuja la vista que compones, la valida y no guarda nada. Es una lectura: no pide confirmación ni en producción |
 | **Guardada en Recursos** | Un tablero, mockup o reporte visual que el equipo o el cliente van a volver a abrir | Bloque `view` en una page `layout: "canvas"` (§ Guardar). Previsualízala antes con `view_render` |
 
@@ -47,7 +53,7 @@ Si dudas entre dibujar y guardar, dibuja y ofrece guardarla.
 - **Tienen hijos** solo los shells (AppShell, PortalShell, ConsoleShell, SiteShell, AuthFrame), Stack, Grid, Section, Card, Collapsible, Tabs, UnderlinedTabs, Tooltip y ButtonGroup.
   - Tabs y UnderlinedTabs llevan un hijo por pestaña, en orden; normalmente cada hijo es un Stack.
   - Tooltip lleva un solo hijo, no interactivo.
-- **Props estrictas:** solo las del catálogo. Nada de `className`, `style`, colores, HTML ni expresiones. Las props que admiten `null` se pueden omitir.
+- **Props estrictas:** cada objeto de props es cerrado y solo lleva las del catálogo. Nada de `className`, `style`, colores, HTML ni expresiones. Las props que admiten `null` se pueden omitir.
 - **Iconos:** solo los del catálogo, por ejemplo `home`, `users`, `calendar`, `wallet`, `receipt`, `reports`, `book-open`, `plus`, `download`, `check`. La lista completa está en la referencia.
 - Límites: ≤300 elementos y ≤12 niveles; `KnowledgeGraph` ≤1500 aristas; `Grid` de 1 a 6 columnas; `Table` ≤10 columnas y ≤200 filas; `Chart` ≤6 series y ≤60 categorías.
 
@@ -64,6 +70,36 @@ Si dudas entre dibujar y guardar, dibuja y ofrece guardarla.
 
 **Nunca recrees una pantalla de Pai con `AppShell`:** para el Portal usa `PortalShell` y para Console `ConsoleShell`. Ya traen el menú, las migas y el usuario reales, así que no los dibujes a mano. Para piezas sueltas del chrome fuera de un shell están `PageBar`, `OrgSwitcher`, `ProjectSwitcher` y `ProjectHeader`.
 
+## Piezas de pantalla de Pai: con los datos de su tool
+
+Estos componentes son las pantallas reales del Portal y de Console. Se alimentan con la respuesta de una tool: **dásela casi tal cual, sin inventar filas.** El ejemplo de cada uno en la referencia muestra la forma exacta.
+
+| Componente | Datos de | Es |
+|---|---|---|
+| `ProjectsTable` | `project_list` | «Proyectos» de una organización |
+| `OrganizationsGrid` / `OrganizationMembers` | `organization_list` / `organization_get` | Inicio del Portal / miembros e invitaciones |
+| `ActivityFeed` | `project_activity` | Actividad por día (`variant`: recent en Portal, log en Console) |
+| `MilestoneTimeline` | `timeline_get` | El Cronograma real: hitos, tareas, dependencias y línea base |
+| `TaskBoard` | `task_board` | El tablero de Tareas real (cuatro columnas fijas) |
+| `Payments` | `payment_list` | «Pagos»: facturas abiertas, siguiente cobro y pagado; montos en unidades, nunca datos bancarios |
+| `ProposalSummary` / `ProposalLifecycle` | `proposal_get` | Resumen comercial / ciclo enviada, aceptada o rechazada |
+| `ProductsList` / `ProductDetail` | `product_list` / `product_get` | Productos y el Inicio de un producto |
+| `Resources` | `page_list` / `file_list` | Una carpeta de Recursos |
+| `KnowledgeTable` | `knowledge_library` / `knowledge_search` | La biblioteca de Conocimiento |
+| `CommentsPanel` / `HistoryPanel` | `comment_list` / `page_versions` | Los paneles del riel de un documento |
+
+Genéricos que imitan esas pantallas con datos propios:
+- `DataTable`: columnas tipadas, búsqueda, filtros, orden y páginas;
+- `Kanban`: un tablero sin dominio; para tareas de Pai usa `TaskBoard`;
+- `DetailSheet`: el panel lateral de detalle;
+- `KnowledgeKindBadge`: el tipo de un nodo.
+
+En el sitio, `ContactSection` es el «Hablemos» de pai.lat, dentro de `SiteShell`.
+
+Todos funcionan **dentro de la vista** (filtran, ordenan, arrastran, abren) y **nada se guarda ni navega**.
+
+Úsalos para combinar varias piezas en una vista (por ejemplo `ProjectHeader` + `MilestoneTimeline` + `Payments`), para mockups de pantallas nuevas dentro de `PortalShell` o `ConsoleShell`, o para guardar un tablero en Recursos.
+
 ## Qué componente usar
 
 | Necesito… | Usa | No uses |
@@ -72,11 +108,11 @@ Si dudas entre dibujar y guardar, dibuja y ofrece guardarla.
 | El estado de algo | **`StatusBadge`** con su tono (neutral, info, progress, success, warning, danger), como en el Portal; `StatusDot` en filas | `Badge` para estados: `Badge` es para categorías |
 | Partes de un total o un ranking | `BarList` (con `display` para el valor formateado) | `Chart` `pie` con muchas porciones |
 | Evolución en el tiempo | `Chart` `line`, `area` o `bar` | `Table` |
-| Detalle tabular | `Table`, con `caption` que diga el corte o el top N | |
+| Detalle tabular | `Table` (simple, con `caption` del corte o del top N) o `DataTable` (tipada, con búsqueda, filtros y páginas) | |
 | Datos clave de una ficha | `KeyValue` (1–3 columnas) | |
 | Un proceso por etapas | **`Stages`** (done, current, upcoming) | `Timeline`, que es para fechas y eventos |
 | Requisitos o entregables con estado | **`Checklist`** | `List` |
-| Hitos con fecha | `Timeline` | |
+| Hitos con fecha | `Timeline`; el Cronograma completo, `MilestoneTimeline` | |
 | Una lista de archivos, personas o integraciones | `Item` apilados en un `Stack` `gap: "sm"` | `List` |
 | Secciones de un proyecto como en el Portal | `UnderlinedTabs` | `Tabs` |
 | Una conclusión o un riesgo | `Alert` (uno; el que hay que atender) | Varios `Alert` |

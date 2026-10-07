@@ -226,6 +226,13 @@ type JsonSchema = {
 };
 
 function schemaType(schema: JsonSchema): string {
+	const source = (schema as Record<string, unknown>)["x-pai-source"];
+	if (typeof source === "string")
+		return `objeto que viene de \`${source}\` tal cual (no lo escribas a mano)`;
+	if (Array.isArray(schema.type) && schema.type.includes("null")) {
+		const rest = schema.type.filter((t) => t !== "null");
+		return `${schemaType({ ...schema, type: rest.length === 1 ? rest[0] : rest })} (null = por defecto)`;
+	}
 	if (schema.anyOf) {
 		const parts = schema.anyOf.filter((s) => s.type !== "null").map(schemaType);
 		const nullable = schema.anyOf.some((s) => s.type === "null");
@@ -299,23 +306,47 @@ if (viewGroups.length) {
 viewLines.push(
 	"## Componentes",
 	"",
-	"Las props que aceptan `null` son opcionales en la práctica: si se omiten toman su valor por defecto. Las demás son obligatorias.",
+	"Cada objeto de props es cerrado. `?` marca una prop opcional; las que aceptan `null` toman su valor por defecto si se omiten. Las props «que vienen de» una tool se copian tal cual de su respuesta.",
 	"",
 );
-for (const component of views.components as Array<{
+const { describeViewComponents, VIEW_COMPONENT_TYPES } = await import(
+	join(contracts, "views/catalog.ts")
+);
+const detailed = describeViewComponents({ types: [...VIEW_COMPONENT_TYPES] })
+	.components as Array<{
 	type: string;
+	group: string;
 	description: string;
 	children: boolean;
 	props: JsonSchema;
-}>) {
+	example?: unknown;
+}>;
+const groupOrder = viewGroups.map((group) => group.group);
+const groupLabel = new Map(viewGroups.map((group) => [group.group, group.label]));
+detailed.sort(
+	(a, b) =>
+		groupOrder.indexOf(a.group) - groupOrder.indexOf(b.group) ||
+		a.type.localeCompare(b.type),
+);
+let currentGroup = "";
+for (const component of detailed) {
+	if (component.group !== currentGroup) {
+		currentGroup = component.group;
+		viewLines.push(`### Grupo: ${groupLabel.get(currentGroup) ?? currentGroup}`, "");
+	}
+	const required = new Set((component.props.required ?? []) as string[]);
 	viewLines.push(
-		`### ${component.type}${component.children ? " (admite hijos)" : ""}`,
+		`#### ${component.type}${component.children ? " (admite hijos)" : ""}`,
 		"",
 		component.description,
 		"",
 		...Object.entries(component.props.properties ?? {}).map(
-			([key, value]) => `- \`${key}\`: ${schemaType(value)}`,
+			([key, value]) =>
+				`- \`${key}\`${required.has(key) ? "" : "?"}: ${schemaType(value)}`,
 		),
+		...(component.example
+			? ["", `Ejemplo: \`${JSON.stringify(component.example)}\``]
+			: []),
 		"",
 	);
 }

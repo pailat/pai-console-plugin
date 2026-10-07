@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "pai-portal 4ae9b884 (2026-10-07 Merge pull request #159 from pailat/fix/0.2.5/package-cycle)",
+  "generatedFrom": "pai-portal c364c4ab (2026-10-07 Merge pull request #166 from pailat/fix/0.2.5/release-clean-2)",
   "tools": {
     "agent_create": {
       "readOnly": false,
