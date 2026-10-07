@@ -6,7 +6,7 @@
     "path": "reports/phase-0-summary",
     "title": "Ficha de la Fase 0",
     "description": "Resumen visual del descubrimiento: alcance, equipo, avance e hitos.",
-    "audience": "cliente",
+    "audience": "client",
     "summary": "Ficha visual de la Fase 0 al 2026-10-06",
     "idempotencyKey": "page-shop-reports-phase-0-summary",
     "content": {

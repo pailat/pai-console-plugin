@@ -38,6 +38,7 @@ Un **`data_model`** agrupa **`entity`** (tablas). **Una entidad son sus columnas
    - `relations`: una por FK, con la `cardinality` (`n-1` o `1-1`), `identifying`, `optional` y `onDelete` que esperabas.
    - **`unresolved` vacío.** Si trae FKs, su destino no existe o no es una `entity`. Corrige y vuelve a guardar la entidad.
 8. **Entrega** a la persona:
+   - **el diagrama dibujado:** `view_render` con un `ErdDiagram` que recibe la respuesta de `knowledge_view` tal cual (skill `views`, «Diagramas de Conocimiento»);
    - las citas `kb:` de cada nodo;
    - el Mermaid de la vista (`format:"mermaid"`) si lo pide;
    - el enlace del Portal: el `url` de la vista con el host del Portal (`https://app.pai.lat` en producción, el Portal de staging en staging), **quitándole el prefijo legacy `/portal`** que aún trae.

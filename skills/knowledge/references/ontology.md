@@ -1,6 +1,6 @@
 # Ontología de Conocimiento
 
-> Generado por `tools/gen-references.ts` desde pai-portal `e0552ed1` (2026-10-06 Merge pull request #151 from pailat/feat/0.2.5/knowledge-org-owned), `packages/contracts/src/knowledge/ontology.ts`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `4ae9b884` (2026-10-07 Merge pull request #159 from pailat/fix/0.2.5/package-cycle), `packages/contracts/src/knowledge/ontology.ts`. No editar a mano: regenerar.
 
 Un `knowledge_link` (o un link en `knowledge_create`) solo se acepta si el par source → target aparece aquí. Si no, el error es `ONTOLOGY`.
 

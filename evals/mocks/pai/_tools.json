@@ -6228,8 +6228,8 @@
      "audience": {
       "type": "string",
       "enum": [
-       "cliente",
-       "equipo"
+       "client",
+       "internal"
       ]
      },
      "limit": {
@@ -6288,8 +6288,8 @@
      "audience": {
       "type": "string",
       "enum": [
-       "cliente",
-       "equipo"
+       "client",
+       "internal"
       ]
      },
      "organizationId": {
@@ -6621,8 +6621,8 @@
      "audience": {
       "type": "string",
       "enum": [
-       "cliente",
-       "equipo"
+       "client",
+       "internal"
       ]
      },
      "content": {

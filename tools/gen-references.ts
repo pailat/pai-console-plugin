@@ -265,11 +265,43 @@ const viewLines: string[] = [
 	"",
 	...Object.entries(views.limits).map(([k, v]) => `- ${k}: ${v}`),
 	"",
+];
+const layouts = (views.layouts ?? []) as Array<{ root: string; use: string }>;
+if (layouts.length) {
+	viewLines.push(
+		"## Layouts: la raíz de la vista",
+		"",
+		"Una pantalla completa empieza con uno de estos componentes como `root` (y solo ahí). Un documento, reporte o tablero empieza con `Stack`.",
+		"",
+		...layouts.map((layout) => `- **${layout.root}**: ${layout.use}`),
+		"",
+	);
+}
+const viewGroups = (views.groups ?? []) as Array<{
+	group: string;
+	label: string;
+	description: string;
+	components: string[];
+}>;
+if (viewGroups.length) {
+	viewLines.push(
+		"## Grupos",
+		"",
+		"| Grupo | Para | Componentes |",
+		"|---|---|---|",
+		...viewGroups.map(
+			(group) =>
+				`| ${group.label} | ${group.description} | ${group.components.join(", ")} |`,
+		),
+		"",
+	);
+}
+viewLines.push(
 	"## Componentes",
 	"",
 	"Las props que aceptan `null` son opcionales en la práctica: si se omiten toman su valor por defecto. Las demás son obligatorias.",
 	"",
-];
+);
 for (const component of views.components as Array<{
 	type: string;
 	description: string;

@@ -7,7 +7,7 @@
     "title": "Rendimiento del checkout",
     "description": "Por qué el checkout tarda más de 3 s en móvil y qué hacer.",
     "typeSlug": "report",
-    "audience": "equipo",
+    "audience": "internal",
     "summary": "Reporte de rendimiento del checkout",
     "idempotencyKey": "page-shop-reports-checkout-performance",
     "content": {

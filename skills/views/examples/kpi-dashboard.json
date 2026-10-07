@@ -6,7 +6,7 @@
     "path": "dashboards/project-status",
     "title": "Estado del proyecto",
     "description": "Tablero con avance, hitos, cobros y horas del proyecto al corte.",
-    "audience": "equipo",
+    "audience": "internal",
     "summary": "Tablero de estado del proyecto al 2026-10-06",
     "idempotencyKey": "page-shop-dashboards-project-status",
     "content": {

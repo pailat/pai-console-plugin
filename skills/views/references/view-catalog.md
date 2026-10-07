@@ -1,6 +1,6 @@
 # Catálogo de vistas `pai-view@1`
 
-> Generado por `tools/gen-references.ts` desde pai-portal `e0552ed1` (2026-10-06 Merge pull request #151 from pailat/feat/0.2.5/knowledge-org-owned), `packages/views/src/catalog.ts`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `4ae9b884` (2026-10-07 Merge pull request #159 from pailat/fix/0.2.5/package-cycle), `packages/views/src/catalog.ts`. No editar a mano: regenerar.
 
 Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props, children? } } }. Los hijos se referencian por id.
 
@@ -9,8 +9,8 @@ Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props,
 - Usa sólo los componentes de este catálogo; no hay className, style, colores ni HTML.
 - Los ids son únicos, empiezan con letra y se reutilizan al editar.
 - Las props omitidas que aceptan null toman su valor por defecto.
-- Sólo AppShell, Card, Collapsible, Grid, Section, Stack, Tabs, UnderlinedTabs, Tooltip y ButtonGroup tienen hijos; Tabs y UnderlinedTabs llevan un hijo por pestaña, en orden.
-- Para una pantalla de aplicación (dashboard, módulo) usa AppShell como raíz: así la vista se ve con su barra lateral y se puede abrir a pantalla completa.
+- Sólo AppShell, AuthFrame, ConsoleShell, PortalShell, SiteShell, Card, Collapsible, Grid, Section, Stack, Tabs, UnderlinedTabs, Tooltip y ButtonGroup tienen hijos; Tabs y UnderlinedTabs llevan un hijo por pestaña, en orden.
+- Elige el layout con la raíz de la vista: AppShell, AuthFrame, ConsoleShell, PortalShell, SiteShell son pantallas completas (ver layouts) y van sólo en la raíz; un documento, reporte o tablero empieza con Stack. Nunca recrees una pantalla de Pai con AppShell: AppShell es para apps de clientes.
 - Datos estáticos: escribe valores ya formateados, con su fecha de corte en el detalle o la descripción.
 - Enlaces sólo a rutas del Portal (/…) o a https.
 - Máximo 300 elementos y 12 niveles de anidamiento.
@@ -29,6 +29,38 @@ Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props,
 - chartSeries: 6
 - gridColumns: 6
 - navItems: 12
+- erdTables: 120
+- erdRelations: 400
+- c4Elements: 150
+- c4Relations: 400
+- graphNodes: 500
+- graphEdges: 1500
+
+## Layouts: la raíz de la vista
+
+Una pantalla completa empieza con uno de estos componentes como `root` (y solo ahí). Un documento, reporte o tablero empieza con `Stack`.
+
+- **AppShell**: Simula una aplicación completa: barra lateral con marca, menú con iconos y usuario, y un encabezado con el título de la pantalla; sus hijos son el contenido. Úsalo como raíz de la vista. En Recursos se muestra en un marco con escritorio/tableta/móvil y se abre a pantalla completa; en pantallas angostas el menú pasa a un botón.
+- **AuthFrame**: Pantalla de identidad de Pai (iniciar sesión, registro, invitación), idéntica a la real: fondo animado de Pai, logo blanco y una tarjeta centrada con title y description; sus hijos van dentro de la tarjeta (Input, Button, Text, Separator…). Va siempre como raíz de la vista. Nada se envía.
+- **ConsoleShell**: Pantalla de Console (el back office de Pai), idéntica a la real: selector «Consola», el menú real según lo que la persona puede hacer (admin, workforce o all), usuario al pie, la barra con migas y el título de la página con una acción opcional. Sus hijos son el contenido. Va siempre como raíz de la vista. active es la clave del ítem activo (admin.users, admin.organizations, workforce.payments…). Nada navega.
+- **PortalShell**: Pantalla del Portal de Pai, idéntica a la real: selector de organización, el menú real del área (home, organization, project o product) tal como lo ve un cliente o el staff de Pai (audience), usuario al pie y la barra con migas y, para staff, «Preguntar al agente». Sus hijos son el contenido de la página. Va siempre como raíz de la vista. active es la clave del ítem activo del menú (projects, milestones, payments…). menu reemplaza el menú real sólo para pantallas que Portal aún no tiene. Nada navega.
+- **SiteShell**: Página del sitio público de Pai (pai.lat), idéntica a la real: header flotante con logo, menús Soluciones/Productos/Empresa, idiomas ES/EN/PT y «Hablemos de tu proyecto»; footer con columnas y banner de cookies. Sus hijos son las secciones (SiteHero, LogoGrid, SectionIntro, ServiceCards, CtaBand…). Va siempre como raíz. page marca la página del menú (home deja el header transparente sobre el hero; contact quita el botón). Nunca uses AppShell ni PortalShell para el sitio. Nada navega.
+- **Stack**: Documento, reporte o tablero dentro de una página de Recursos (sin chrome de app).
+
+## Grupos
+
+| Grupo | Para | Componentes |
+|---|---|---|
+| Aplicación | Pantallas completas: la raíz de la vista y su layout. PortalShell y ConsoleShell (las apps de Pai, con su chrome real), SiteShell (el sitio público pai.lat), AuthFrame (login y registro) y AppShell (la app de un cliente). | AppShell, AuthFrame, ConsoleShell, PortalShell, SiteShell |
+| Sitio web | Secciones del sitio público de Pai (pai.lat) para usar dentro de SiteShell: hero, logos de clientes, titular con texto, tarjetas de servicios y llamada a la acción. | CtaBand, LogoGrid, SectionIntro, ServiceCards, SiteHero |
+| Estructura | Contenedores que ordenan la vista: pilas, cuadrículas, tarjetas, secciones y pestañas. | Accordion, Card, Collapsible, Grid, Section, Separator, Stack, Tabs, UnderlinedTabs |
+| Contenido | Títulos, texto, etiquetas, avisos, listas y enlaces. | Alert, Avatar, Badge, Heading, Item, Kbd, Link, List, StatusBadge, StatusDot, Text, Tooltip |
+| Datos | Indicadores, tablas, gráficas y pares etiqueta–valor. | BarList, Chart, KeyValue, Metric, Progress, Table |
+| Controles | Botones, menús y campos de formulario. Responden dentro de la vista (abren, cambian, se marcan) pero nada se envía, guarda ni navega, salvo un botón con href. | ActionMenu, Button, ButtonGroup, Calendar, Checkbox, Command, Dropzone, FilterBar, Input, RadioGroup, Select, Switch, Textarea, ToggleGroup |
+| Navegación | Migas, paginación y las piezas sueltas del chrome de Pai: barra de página, selectores de organización y proyecto, cabecera de proyecto. | Breadcrumb, OrgSwitcher, PageBar, Pagination, ProjectHeader, ProjectSwitcher |
+| Estados | Vacío, error y carga de una sección, con el aspecto que usan Portal y Console. | EmptyState, ErrorState, LoadingState, Skeleton, Spinner |
+| Planeación | Cronologías, etapas e hitos. | Checklist, MilestoneGanttLegend, MilestoneGanttSkeleton, Stages, Timeline |
+| Conocimiento | Diagramas del grafo de Conocimiento: ERD, C4 y el grafo de nodos. Se mueven y acercan dentro de la vista; los enlaces llevan a la página de cada nodo cuando la vista trae href. | C4Diagram, ErdDiagram, KnowledgeGraph |
 
 ## Componentes
 
@@ -39,11 +71,95 @@ Las props que aceptan `null` son opcionales en la práctica: si se omiten toman 
 Simula una aplicación completa: barra lateral con marca, menú con iconos y usuario, y un encabezado con el título de la pantalla; sus hijos son el contenido. Úsalo como raíz de la vista. En Recursos se muestra en un marco con escritorio/tableta/móvil y se abre a pantalla completa; en pantallas angostas el menú pasa a un botón.
 
 - `brand`: { name: string (min 1, ≤160), detail?: string (≤80) (null = por defecto) }
-- `nav`: [{ label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock", active?: boolean (null = por defecto) }] (min 1, máx 12)
+- `nav`: [{ label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in", active?: boolean (null = por defecto) }] (min 1, máx 12)
 - `secondaryTitle`: string (≤80) (null = por defecto)
-- `secondaryNav`: [{ label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock", active?: boolean (null = por defecto) }] (máx 12) (null = por defecto)
+- `secondaryNav`: [{ label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in", active?: boolean (null = por defecto) }] (máx 12) (null = por defecto)
 - `title`: string (min 1, ≤160)
 - `user`: { name: string (min 1, ≤160), detail?: string (≤80) (null = por defecto) } (null = por defecto)
+
+### AuthFrame (admite hijos)
+
+Pantalla de identidad de Pai (iniciar sesión, registro, invitación), idéntica a la real: fondo animado de Pai, logo blanco y una tarjeta centrada con title y description; sus hijos van dentro de la tarjeta (Input, Button, Text, Separator…). Va siempre como raíz de la vista. Nada se envía.
+
+- `title`: string (min 1, ≤160) (null = por defecto)
+- `description`: string (≤2000) (null = por defecto)
+
+### ConsoleShell (admite hijos)
+
+Pantalla de Console (el back office de Pai), idéntica a la real: selector «Consola», el menú real según lo que la persona puede hacer (admin, workforce o all), usuario al pie, la barra con migas y el título de la página con una acción opcional. Sus hijos son el contenido. Va siempre como raíz de la vista. active es la clave del ítem activo (admin.users, admin.organizations, workforce.payments…). Nada navega.
+
+- `area`: "admin"|"workforce"|"all" (null = por defecto)
+- `active`: string (≤80) (null = por defecto)
+- `menu`: [{ label?: string (min 1, ≤160) (null = por defecto), items: [{ key: string (min 1, ≤80), label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in" }] (min 1, máx 12) }] (min 1, máx 6) (null = por defecto)
+- `breadcrumb`: [{ label: string (min 1, ≤160), href?: string (null = por defecto) }] (min 1, máx 6) (null = por defecto)
+- `title`: string (min 1, ≤160) (null = por defecto)
+- `action`: string (min 1, ≤160) (null = por defecto)
+- `user`: { name: string (min 1, ≤160), email: string (min 1, ≤160) }
+
+### PortalShell (admite hijos)
+
+Pantalla del Portal de Pai, idéntica a la real: selector de organización, el menú real del área (home, organization, project o product) tal como lo ve un cliente o el staff de Pai (audience), usuario al pie y la barra con migas y, para staff, «Preguntar al agente». Sus hijos son el contenido de la página. Va siempre como raíz de la vista. active es la clave del ítem activo del menú (projects, milestones, payments…). menu reemplaza el menú real sólo para pantallas que Portal aún no tiene. Nada navega.
+
+- `area`: "home"|"organization"|"project"|"product" (null = por defecto)
+- `audience`: "client"|"staff" (null = por defecto)
+- `active`: string (≤80) (null = por defecto)
+- `menu`: [{ label?: string (min 1, ≤160) (null = por defecto), items: [{ key: string (min 1, ≤80), label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in" }] (min 1, máx 12) }] (min 1, máx 6) (null = por defecto)
+- `organization`: string (min 1, ≤160) (null = por defecto)
+- `organizations`: [string (min 1, ≤160)] (máx 20) (null = por defecto)
+- `project`: string (min 1, ≤160) (null = por defecto)
+- `projects`: [string (min 1, ≤160)] (máx 20) (null = por defecto)
+- `breadcrumb`: [{ label: string (min 1, ≤160), href?: string (null = por defecto) }] (min 1, máx 6) (null = por defecto)
+- `user`: { name: string (min 1, ≤160), email: string (min 1, ≤160) }
+
+### SiteShell (admite hijos)
+
+Página del sitio público de Pai (pai.lat), idéntica a la real: header flotante con logo, menús Soluciones/Productos/Empresa, idiomas ES/EN/PT y «Hablemos de tu proyecto»; footer con columnas y banner de cookies. Sus hijos son las secciones (SiteHero, LogoGrid, SectionIntro, ServiceCards, CtaBand…). Va siempre como raíz. page marca la página del menú (home deja el header transparente sobre el hero; contact quita el botón). Nunca uses AppShell ni PortalShell para el sitio. Nada navega.
+
+- `lang`: "es"|"en"|"pt" (null = por defecto)
+- `page`: "home"|"services"|"industries"|"portal"|"about"|"manifesto"|"contact" (null = por defecto)
+- `cookies`: boolean (null = por defecto)
+
+### CtaBand
+
+Cierre de una página del sitio: titular grande, una línea de texto y dos llamadas (primary sólida en el color de marca, secondary con flecha). centered la centra.
+
+- `headline`: string (min 1, ≤200)
+- `description`: string (≤2000) (null = por defecto)
+- `primary`: string (min 1, ≤160)
+- `secondary`: string (min 1, ≤160) (null = por defecto)
+- `centered`: boolean (null = por defecto)
+
+### LogoGrid
+
+Rejilla de logos de clientes de la home de pai.lat («Equipos que confían en Pai»): celdas con línea fina, 2, 4 u 8 por fila según el ancho. Cada logo se escribe como su nombre en tipografía de marca (la vista no carga imágenes).
+
+- `kicker`: string (min 1, ≤160) (null = por defecto)
+- `logos`: [string (min 1, ≤40)] (min 2, máx 16)
+
+### SectionIntro
+
+Sección del sitio con titular grande a la izquierda y texto a la derecha (en móvil, uno bajo el otro), como las de la home de pai.lat. kicker es una etiqueta pequeña sobre el titular.
+
+- `kicker`: string (min 1, ≤160) (null = por defecto)
+- `title`: string (min 1, ≤200)
+- `body`: string (≤2000)
+
+### ServiceCards
+
+Tarjetas de servicios o capacidades del sitio (2 a 6), en 1, 2 o 3 columnas: icono, título, texto y una lista corta de lo que incluye.
+
+- `items`: [{ title: string (min 1, ≤160), body: string (≤2000), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in" (null = por defecto), points?: [string (min 1, ≤160)] (máx 6) (null = por defecto) }] (min 2, máx 6)
+
+### SiteHero
+
+Hero de la home de pai.lat, el real: fondo de puntos y malla de color animada a la derecha, sello opcional (badge, p. ej. «Stripe Premier Partner»), titular grande cuyo final (highlight) va en el degradado de marca, introducción y dos llamadas (primary sólida, secondary discreta). Primer hijo de SiteShell.
+
+- `badge`: string (min 1, ≤160) (null = por defecto)
+- `title`: string (min 1, ≤200)
+- `highlight`: string (≤120) (null = por defecto)
+- `intro`: string (≤2000)
+- `primary`: string (min 1, ≤160) (null = por defecto)
+- `secondary`: string (min 1, ≤160) (null = por defecto)
 
 ### Accordion
 
@@ -60,8 +176,8 @@ Tarjeta con título y descripción opcionales que agrupa contenido relacionado. 
 - `description`: string (null = por defecto)
 - `maxWidth`: "sm"|"md"|"lg"|"full" (null = por defecto)
 - `centered`: boolean (null = por defecto)
-- `action`: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock" (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
-- `menu`: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock" (null = por defecto), destructive?: boolean (null = por defecto), separatorBefore?: boolean (null = por defecto) }] (min 1, máx 20) (null = por defecto)
+- `action`: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in" (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
+- `menu`: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in" (null = por defecto), destructive?: boolean (null = por defecto), separatorBefore?: boolean (null = por defecto) }] (min 1, máx 20) (null = por defecto)
 
 ### Collapsible (admite hijos)
 
@@ -148,7 +264,7 @@ Fila de una lista (archivo, persona, integración): icono, título, descripción
 
 - `title`: string (min 1, ≤160)
 - `description`: string (≤2000) (null = por defecto)
-- `icon`: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock" (null = por defecto)
+- `icon`: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in" (null = por defecto)
 - `meta`: string (min 1, ≤160) (null = por defecto)
 - `href`: string (null = por defecto)
 - `variant`: "default"|"outline"|"muted" (null = por defecto)
@@ -261,7 +377,7 @@ Tabla de datos: columns son los encabezados y rows un arreglo de filas con una c
 Menú de acciones que se abre al pulsar: sin label es el botón «⋯» de las filas y tarjetas; con label es un botón con flecha. Sus opciones son decorativas (no ejecutan nada).
 
 - `label`: string (min 1, ≤160) (null = por defecto)
-- `items`: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock" (null = por defecto), destructive?: boolean (null = por defecto), separatorBefore?: boolean (null = por defecto) }] (min 1, máx 20)
+- `items`: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in" (null = por defecto), destructive?: boolean (null = por defecto), separatorBefore?: boolean (null = por defecto) }] (min 1, máx 20)
 - `align`: "start"|"end" (null = por defecto)
 
 ### Button
@@ -271,7 +387,7 @@ Botón con las variantes de Pai. Con href navega (ruta del Portal o https); sin 
 - `label`: string (min 1, ≤160)
 - `variant`: "default"|"secondary"|"outline"|"ghost"|"destructive"|"link" (null = por defecto)
 - `size`: "sm"|"default"|"lg" (null = por defecto)
-- `icon`: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock" (null = por defecto)
+- `icon`: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in" (null = por defecto)
 - `iconOnly`: boolean (null = por defecto)
 - `href`: string (null = por defecto)
 - `disabled`: boolean (null = por defecto)
@@ -304,7 +420,7 @@ Casilla con su etiqueta (aceptar términos, marcar una opción). Se marca y desm
 Buscador de comandos (paleta tipo ⌘K) con grupos de opciones y atajos. Filtra al escribir dentro de la vista; las opciones no ejecutan nada.
 
 - `placeholder`: string (min 1, ≤160) (null = por defecto)
-- `groups`: [{ heading?: string (min 1, ≤160) (null = por defecto), items: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock" (null = por defecto), shortcut?: string (≤20) (null = por defecto) }] (min 1, máx 20) }] (min 1, máx 6)
+- `groups`: [{ heading?: string (min 1, ≤160) (null = por defecto), items: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in" (null = por defecto), shortcut?: string (≤20) (null = por defecto) }] (min 1, máx 20) }] (min 1, máx 6)
 - `empty`: string (min 1, ≤160) (null = por defecto)
 
 ### Dropzone
@@ -322,7 +438,7 @@ Barra de filtros sobre una tabla o tablero: buscador opcional, filtros «Etiquet
 
 - `search`: string (min 1, ≤160) (null = por defecto)
 - `filters`: [{ label: string (min 1, ≤40), value: string (min 1, ≤80), options?: [string (min 1, ≤80)] (máx 20) (null = por defecto) }] (máx 6)
-- `action`: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock" (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
+- `action`: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in" (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
 
 ### Input
 
@@ -380,7 +496,7 @@ Campo de texto de varias líneas (comentarios, notas). Se puede escribir, pero n
 
 Botones segmentados para cambiar de modo (Lista | Tablero, Semana | Mes). Cambia dentro de la vista; no cambia el contenido ni navega.
 
-- `options`: [{ label: string (min 1, ≤160), value: string (min 1, ≤80), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock" (null = por defecto) }] (min 2, máx 6)
+- `options`: [{ label: string (min 1, ≤160), value: string (min 1, ≤80), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in" (null = por defecto) }] (min 2, máx 6)
 - `value`: string (null = por defecto)
 - `variant`: "default"|"outline" (null = por defecto)
 
@@ -390,6 +506,22 @@ Migas de pan: dónde está la pantalla («Proyectos › Portenta › Cronograma�
 
 - `items`: [{ label: string (min 1, ≤160), href?: string (null = por defecto) }] (min 1, máx 8)
 
+### OrgSwitcher
+
+El selector de organización de Portal, solo: muestra la organización (o Pai sin organization) y se abre con «Buscar…», Pai, Consola (staff) y «Tus organizaciones». Filtra al escribir; elegir no cambia nada.
+
+- `organization`: string (min 1, ≤160) (null = por defecto)
+- `organizations`: [string (min 1, ≤160)] (máx 20) (null = por defecto)
+- `staff`: boolean (null = por defecto)
+
+### PageBar
+
+La barra superior de una página de Portal o Console, sola: botón del menú lateral, migas, acciones a la derecha (botones decorativos) y, si assistant, «Preguntar al agente». Úsala para mostrar la barra fuera de un PortalShell/ConsoleShell (que ya la traen).
+
+- `breadcrumb`: [{ label: string (min 1, ≤160), href?: string (null = por defecto) }] (min 1, máx 6)
+- `actions`: [string (min 1, ≤160)] (máx 3) (null = por defecto)
+- `assistant`: boolean (null = por defecto)
+
 ### Pagination
 
 Paginación bajo una tabla o lista: página actual de un total. Se puede cambiar de página dentro de la vista, pero el contenido no cambia.
@@ -397,14 +529,32 @@ Paginación bajo una tabla o lista: página actual de un total. Se puede cambiar
 - `page`: integer (≥1, ≤9007199254740991)
 - `pages`: integer (≥1, ≤999)
 
+### ProjectHeader
+
+Cabecera de un proyecto de Portal (Inicio, Cronograma, Pagos…): nombre, estado (draft, planned, active, on_hold, completed, cancelled), arquitecto de Pai, fechas ya formateadas («28 jul – 18 ago») y la salud declarada (on_track, at_risk, off_track). compact es la versión de la barra del Cronograma.
+
+- `name`: string (min 1, ≤160)
+- `status`: "draft"|"planned"|"active"|"on_hold"|"completed"|"cancelled"
+- `architect`: string (min 1, ≤160) (null = por defecto)
+- `dates`: string (≤60) (null = por defecto)
+- `health`: "on_track"|"at_risk"|"off_track" (null = por defecto)
+- `compact`: boolean (null = por defecto)
+
+### ProjectSwitcher
+
+El selector de proyecto de las migas de Portal: el nombre del proyecto con ⌃⌄ que abre la lista buscable de projects. Elegir no navega.
+
+- `project`: string (min 1, ≤160)
+- `projects`: [string (min 1, ≤160)] (máx 30) (null = por defecto)
+
 ### EmptyState
 
 Estado vacío de una sección, como en Portal: icono, «Aún no hay {objetos}», una línea para quien mira y una acción opcional (botón con href o decorativo).
 
 - `title`: string (min 1, ≤160)
 - `description`: string (≤2000) (null = por defecto)
-- `icon`: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock" (null = por defecto)
-- `action`: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock" (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
+- `icon`: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in" (null = por defecto)
+- `action`: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in" (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
 
 ### ErrorState
 
@@ -467,6 +617,32 @@ Etapas de un proceso en una línea horizontal (Prospecto › Propuesta › Negoc
 Cronología de hitos o eventos con fecha, título, descripción y estado (done, current, upcoming).
 
 - `items`: [{ date: string (min 1, ≤40), title: string (min 1, ≤160), description?: string (≤2000) (null = por defecto), status?: "done"|"current"|"upcoming" (null = por defecto) }] (min 1, máx 60)
+
+### C4Diagram
+
+Diagrama C4 de Conocimiento, el mismo de Portal, en uno de sus cuatro niveles (context, container, component, code): elementos dentro del límite, personas y sistemas externos, relaciones con qué hacen y su tecnología (agrupadas y enrutadas para no encimarse). view es exactamente la proyección `c4` que devuelve la tool knowledge_view (no la escribas a mano). Con href, cada elemento y los botones de nivel llevan a la página del nodo ({id}, más ?level=); sin href no hay enlaces.
+
+- `view`: object
+- `href`: string (≤500) (null = por defecto)
+- `height`: "sm"|"md"|"lg" (null = por defecto)
+
+### ErdDiagram
+
+Diagrama entidad-relación de Conocimiento, el mismo de Portal: tablas con sus columnas (PK/FK/UQ), relaciones con cardinalidad pata de gallo y, en un ERD de sistema, un marco por modelo. view es exactamente la proyección `erd` que devuelve la tool knowledge_view (no la escribas a mano). href lleva a la página de cada tabla o modelo ({id}); sin href no hay enlaces. focus resalta una tabla.
+
+- `view`: object
+- `href`: string (≤500) (null = por defecto)
+- `focus`: string (≤200) (null = por defecto)
+- `height`: "sm"|"md"|"lg" (null = por defecto)
+
+### KnowledgeGraph
+
+Grafo de Conocimiento, el mismo de Portal (WebGL): un punto por nodo, coloreado por su kind, y una línea por relación. Se arrastra, se acerca y al elegir un punto se resaltan sus vecinos y su título. Con href, el nodo elegido enlaza a su página ({id}). Usa los nodos y relaciones que devolvieron knowledge_list, knowledge_get o knowledge_context.
+
+- `nodes`: [{ id: string (min 1, ≤200), title: string (min 1, ≤200), kind: "objective"|"decision"|"adr"|"business_rule"|"constraint"|"risk"|"question"|"assumption"|"task"|"pattern"|"runbook"|"gotcha"|"antipattern"|"note"|"concept"|"fact"|"reference"|"module"|"screen"|"flow"|"data_model"|"entity"|"component"|"actor"|"glossary_term" }] (min 1, máx 500)
+- `edges`: [{ source: string (min 1, ≤200), target: string (min 1, ≤200), rel: string (min 1, ≤40) }] (máx 1500)
+- `href`: string (≤500) (null = por defecto)
+- `height`: "sm"|"md"|"lg" (null = por defecto)
 
 ## Ejemplo del catálogo
 

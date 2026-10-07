@@ -1,6 +1,6 @@
 ---
 name: views
-description: UI generativa de Pai (catálogo pai-view@1, 54 componentes del sistema de diseño de Pai). Dibuja vistas en la conversación con view_render (dashboards, comparativos, resúmenes visuales de datos ya obtenidos) o guárdalas en Recursos como bloque view de una page canvas (tableros, mockups de pantallas con AppShell, reportes visuales). Úsalo cuando pidan ver, mostrar, graficar o comparar datos de Pai de forma visual, un tablero, dashboard, mockup, wireframe o pantalla de una app, o editar una vista existente.
+description: UI generativa de Pai (catálogo pai-view@1, 70 componentes del sistema de diseño de Pai, con pantallas reales de Portal, Console y pai.lat y diagramas de Conocimiento). Dibuja vistas en la conversación con view_render (dashboards, comparativos, resúmenes visuales de datos ya obtenidos) o guárdalas en Recursos como bloque view de una page canvas (tableros, mockups de pantallas con AppShell, reportes visuales). Úsalo cuando pidan ver, mostrar, graficar o comparar datos de Pai de forma visual, un tablero, dashboard, mockup, wireframe o pantalla (de una app de cliente, del Portal, de Console o del sitio), dibujar un ERD, un C4 o el grafo, o editar una vista existente.
 argument-hint: "[proyecto] [qué vista: tablero, pantalla, comparativo…]"
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
@@ -9,7 +9,7 @@ compatibility: "Pai 0.2.5+ (MCP corp)"
 
 Lee antes el skill `pai-console`: entorno, descubrimiento, buscar antes de crear, CAS.
 
-**Catálogo completo**, generado desde el código: `${CLAUDE_PLUGIN_ROOT}/skills/views/references/view-catalog.md`. Tiene los 54 componentes con sus props, límites e iconos. `view_catalog` devuelve lo mismo desde el servidor.
+**Catálogo completo**, generado desde el código: `${CLAUDE_PLUGIN_ROOT}/skills/views/references/view-catalog.md`. Tiene los layouts de raíz, los 10 grupos y los 70 componentes con sus props, límites e iconos. `view_catalog` devuelve lo mismo desde el servidor.
 
 ## Tres formas en que aparece una vista
 
@@ -41,12 +41,28 @@ Si dudas entre dibujar y guardar, dibuja y ofrece guardarla.
 
 - **Plano:** cada elemento se declara una vez en `elements` y se referencia por id en `children`. Tiene un solo padre, todo cuelga de `root` y no hay ciclos ni elementos sueltos.
 - **Ids** en inglés y camelCase, que digan qué son (`kpiCollected`, `loansTable`). Al editar, **conserva los ids** de lo que no cambia.
-- **Tienen hijos** solo AppShell, Stack, Grid, Section, Card, Collapsible, Tabs, UnderlinedTabs, Tooltip y ButtonGroup.
+- **La raíz elige el layout:**
+  - una pantalla completa empieza con un shell, que va **solo en la raíz** (tabla de abajo);
+  - un documento, reporte, tablero o resumen empieza con **`Stack`**.
+- **Tienen hijos** solo los shells (AppShell, PortalShell, ConsoleShell, SiteShell, AuthFrame), Stack, Grid, Section, Card, Collapsible, Tabs, UnderlinedTabs, Tooltip y ButtonGroup.
   - Tabs y UnderlinedTabs llevan un hijo por pestaña, en orden; normalmente cada hijo es un Stack.
   - Tooltip lleva un solo hijo, no interactivo.
 - **Props estrictas:** solo las del catálogo. Nada de `className`, `style`, colores, HTML ni expresiones. Las props que admiten `null` se pueden omitir.
 - **Iconos:** solo los del catálogo, por ejemplo `home`, `users`, `calendar`, `wallet`, `receipt`, `reports`, `book-open`, `plus`, `download`, `check`. La lista completa está en la referencia.
-- Límites: ≤300 elementos y ≤12 niveles; `Grid` de 1 a 6 columnas; `Table` ≤10 columnas y ≤200 filas; `Chart` ≤6 series y ≤60 categorías.
+- Límites: ≤300 elementos y ≤12 niveles; `KnowledgeGraph` ≤1500 aristas; `Grid` de 1 a 6 columnas; `Table` ≤10 columnas y ≤200 filas; `Chart` ≤6 series y ≤60 categorías.
+
+## Layouts: la raíz
+
+| Raíz | Es | Úsala para |
+|---|---|---|
+| `Stack` | Contenido sin pantalla alrededor | Tableros, reportes, resúmenes, comparativos y todo `view_render` de datos |
+| `PortalShell` | **El Portal de Pai, idéntico al real.** `area` (home, organization, project, product), `audience` (client o staff), `active` (ítem del menú), `organization`, `project`, `breadcrumb`, `user` | Mockups de pantallas nuevas o cambios del Portal. `menu` reemplaza el menú real solo para secciones que el Portal aún no tiene |
+| `ConsoleShell` | **Console, idéntico al real.** `area` (admin, workforce o all), `active` (`admin.users`, `workforce.payments`…), `breadcrumb`, `title`, `action`, `user` | Mockups del back office |
+| `SiteShell` | **pai.lat, idéntico al real.** `lang`, `page`, con hijos `SiteHero`, `LogoGrid`, `SectionIntro`, `ServiceCards`, `CtaBand` | Páginas o secciones del sitio |
+| `AuthFrame` | **Login, registro e invitación de Pai** | Pantallas de identidad, con `Input` y `Button` dentro |
+| `AppShell` | **La app de un cliente**, con su marca y su menú | Mockups de los productos que Pai construye para un cliente |
+
+**Nunca recrees una pantalla de Pai con `AppShell`:** para el Portal usa `PortalShell` y para Console `ConsoleShell`. Ya traen el menú, las migas y el usuario reales, así que no los dibujes a mano. Para piezas sueltas del chrome fuera de un shell están `PageBar`, `OrgSwitcher`, `ProjectSwitcher` y `ProjectHeader`.
 
 ## Qué componente usar
 
@@ -64,25 +80,54 @@ Si dudas entre dibujar y guardar, dibuja y ofrece guardarla.
 | Una lista de archivos, personas o integraciones | `Item` apilados en un `Stack` `gap: "sm"` | `List` |
 | Secciones de un proyecto como en el Portal | `UnderlinedTabs` | `Tabs` |
 | Una conclusión o un riesgo | `Alert` (uno; el que hay que atender) | Varios `Alert` |
+| La cabecera de un proyecto (estado, arquitecto, fechas, salud) | `ProjectHeader` | KeyValue + Badge armados a mano |
+| Un ERD | **`ErdDiagram`**, con `view` = la proyección `erd` de `knowledge_view {format:"json"}` **tal cual** | Tablas o Mermaid a mano |
+| Un C4 | **`C4Diagram`**, con `view` = la proyección `c4` de `knowledge_view` tal cual | Cajas con Card |
+| El grafo de Conocimiento | **`KnowledgeGraph`**, con `nodes` y `edges` de `knowledge_graph` (o de `knowledge_get` / `knowledge_context`), ≤1500 aristas | |
 
 **Controles y estados son de mockup:**
-- Button, ButtonGroup, ActionMenu, FilterBar, ToggleGroup, Input, Select, Textarea, Checkbox, RadioGroup, Switch, Calendar, Command, Dropzone, Pagination y Breadcrumb **no hacen nada**: son decorativos. Un `Button` o un `Link` con `href` solo navega.
+- Button, ButtonGroup, ActionMenu, FilterBar, ToggleGroup, Input, Select, Textarea, Checkbox, RadioGroup, Switch, Calendar, Command, Dropzone, Pagination, Breadcrumb, OrgSwitcher y ProjectSwitcher **no envían, guardan ni navegan**: responden dentro de la vista y nada más. Un `Button` o un `Link` con `href` solo navega.
 - EmptyState, ErrorState, LoadingState, Skeleton, Spinner, MilestoneGanttLegend y MilestoneGanttSkeleton dibujan los estados de una pantalla.
 
 Úsalos para **mockups de pantallas**, no en un dashboard de datos reales: ahí darían a entender que se puede filtrar o actuar.
+
+## Diagramas de Conocimiento
+
+Los diagramas se dibujan con los datos del servidor, **nunca escritos a mano**.
+
+**ERD:**
+1. `knowledge_view {view: "erd", scope: "data_model/<slug>", format: "json"}`.
+2. `view_render` con la respuesta **tal cual** en `view`:
+
+```json
+{ "title": "ERD — Modelo de ventas",
+  "spec": { "root": "root", "elements": {
+    "root": { "type": "Stack", "props": { "direction": "vertical", "gap": "md" }, "children": ["erd"] },
+    "erd": { "type": "ErdDiagram", "props": { "view": <respuesta de knowledge_view>, "height": "lg" } } } } }
+```
+
+- `href`: la ruta del nodo con `{id}`, para que cada tabla enlace a su página.
+- `focus`: resalta una tabla.
+
+**C4:** igual, con `view: "c4"` y su `level`, en un `C4Diagram`.
+
+**Grafo:** `knowledge_graph {projectId}`. Convierte sus nodos a `{id, title, kind}` y sus aristas a `{source, target, rel}`, y pásalos a `KnowledgeGraph` (≤1500 aristas).
+
+Úsalos para mostrar en la conversación lo que modelaste (skills `erd` y `c4`) o, guardados, en un reporte de arquitectura en Recursos.
 
 ## Recetas
 
 Cada receta tiene un ejemplo completo y validado en `${CLAUDE_PLUGIN_ROOT}/skills/views/examples/`. Parte de él.
 
-1. **Resumen en la conversación** (`render-payments-summary.json`, `view_render`): `Section` con origen y corte → `Grid` de `Metric` → `BarList` → `Item` con lo siguiente.
+1. **Resumen en la conversación** (`render-payments-summary.json`, `view_render`): `Stack` → `Section` con origen y corte → `Grid` de `Metric` → `BarList` → `Item` con lo siguiente.
 2. **Tablero de KPIs** (`kpi-dashboard.json`): `Section` con `StatusBadge` de salud y un `Alert` → `Grid` de 4 `Metric` → `UnderlinedTabs` con `Stages` + `Table` y `Chart` + `BarList`.
-3. **Mockup de pantalla** (`app-screen.json`): `AppShell` (brand, `nav` con uno `active`, `title`, `user`) → `Breadcrumb` → KPIs → `Alert` → `Card` con `action` y `menu`, que contiene `FilterBar` + `Table` + `Pagination`.
+3. **Pantalla del Portal** (`portal-screen.json`): `PortalShell` (`area: "project"`, `audience`, organización, proyecto, migas y usuario) → `Stack` con `ProjectHeader` y una `Card` con `FilterBar` e `Item`. Para Console es igual, con `ConsoleShell`.
+4. **Mockup de app de cliente** (`app-screen.json`): `AppShell` (brand, `nav` con uno `active`, `title`, `user`) → `Breadcrumb` → KPIs → `Alert` → `Card` con `action` y `menu`, que contiene `FilterBar` + `Table` + `Pagination`.
    - Se ve en un marco de escritorio, tableta o móvil y se abre a pantalla completa.
    - Para los estados vacíos o de error de la pantalla, haz variantes con `EmptyState` o `ErrorState`.
    - Liga el mockup desde el nodo `screen` (skill `screens`) con `wireframe: {description, pageId}`.
-4. **Reporte visual o ficha** (`visual-report.json`): `Heading` h1 + `Text` lead → `Stages` → `KeyValue` → `Progress` → `Checklist` de entregables → `Timeline` → `Accordion`.
-5. **Comparativo** (`comparison.json`): `Section` → `Grid` de `Card`, una por opción, con `StatusBadge` (Recomendada, Alternativa o Descartada), `KeyValue` y `List` → `Alert` `info` con la conclusión. No anides `Card` dentro de `Card`.
+5. **Reporte visual o ficha** (`visual-report.json`): `Heading` h1 + `Text` lead → `Stages` → `KeyValue` → `Progress` → `Checklist` de entregables → `Timeline` → `Accordion`.
+6. **Comparativo** (`comparison.json`): `Stack` → `Section` → `Grid` de `Card`, una por opción, con `StatusBadge` (Recomendada, Alternativa o Descartada), `KeyValue` y `List` → `Alert` `info` con la conclusión. No anides `Card` dentro de `Card`.
 
 ## Diseño
 
@@ -98,7 +143,7 @@ Cada receta tiene un ejemplo completo y validado en `${CLAUDE_PLUGIN_ROOT}/skill
 3. `page_validate` con la page: `layout: "canvas"`, un bloque `{id, type: "view", title, spec}` y **sin `typeSlug`**, porque ningún tipo built-in admite `view`.
 4. `page_create`:
    - `path` en inglés por carpeta: `dashboards/…`, `mockups/…`, `reports/…`;
-   - `audience`: `equipo` o `cliente`;
+   - `audience`: `internal` o `client`;
    - `summary` ≤80 e `idempotencyKey` estable.
 
 **Editar:**

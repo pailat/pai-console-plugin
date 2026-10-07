@@ -69,7 +69,7 @@ La guarda sabe qué es lectura por las anotaciones del propio servidor. Las lee 
 |---|---|
 | `pai-console` | El método base: entorno, descubrimiento, buscar antes de crear, CAS, idempotencia, nombres en inglés, errores, citas. Con el inventario de tools |
 | `resources` | Pages con tipo, imágenes, archivos, mover, restaurar y borrar |
-| `views` | UI generativa de Pai (`pai-view@1`, 54 componentes): `view_render` para dibujar en la conversación, y tableros, mockups con AppShell, reportes visuales y comparativos guardados en Recursos. Recetas validadas y catálogo generado |
+| `views` | UI generativa de Pai (`pai-view@1`, 70 componentes): `view_render` para dibujar en la conversación; layouts reales de Portal, Console, pai.lat y login; diagramas ERD/C4 y grafo; tableros, mockups, reportes visuales y comparativos guardados en Recursos. Recetas validadas y catálogo generado |
 | `knowledge` | Kinds, fuentes, propuestas que confirma una persona, enlaces por ontología, ciclo de vida |
 | `erd` | `data_model` + `entity`: columnas tipadas; las relaciones salen de las FK |
 | `c4` | `component` por nivel y `actor`; relaciones con descripción y tecnología |

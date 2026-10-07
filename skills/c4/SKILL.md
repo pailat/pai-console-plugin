@@ -43,6 +43,7 @@ Lee antes el skill `pai-console`.
    - Las relaciones llevan la `description` y la `technology` que declaraste.
    - El árbol (`tree`) cuelga cada elemento de su padre.
 9. **Entrega** a la persona:
+   - **el diagrama dibujado:** `view_render` con un `C4Diagram` que recibe la respuesta de `knowledge_view` tal cual (skill `views`, «Diagramas de Conocimiento»);
    - las citas `kb:`;
    - el Mermaid (`format:"mermaid"`) si lo pide;
    - el enlace del Portal: el `url` de la vista (ya trae `?level=`) con el host del Portal (`https://app.pai.lat` en producción, el Portal de staging en staging), **quitándole el prefijo legacy `/portal`**.

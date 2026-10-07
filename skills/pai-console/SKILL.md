@@ -37,6 +37,8 @@ Un `*_create` se rechaza si en la sesión no buscaste antes en su área:
 | `milestone_create` | `timeline_get` o `milestone_list` |
 | `project_create` / `organization_create` / `product_create` / `agent_create` | su `*_list` |
 
+La búsqueda tiene que haber **terminado** antes del create: no los lances en paralelo, porque el hook todavía no ve la búsqueda y rechaza el create.
+
 Buscar no es un trámite:
 - Busca por título, ruta y palabras del tema, en español y en inglés.
 - Si encuentras algo equivalente, **actualízalo o enlázalo; no lo dupliques**.

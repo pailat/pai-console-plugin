@@ -6,7 +6,7 @@
     "path": "mockups/loans",
     "title": "Mockup — Préstamos",
     "description": "Pantalla de préstamos de la Biblioteca en línea, para validar con el cliente antes de construirla.",
-    "audience": "cliente",
+    "audience": "client",
     "summary": "Mockup de la pantalla de préstamos",
     "idempotencyKey": "page-library-mockups-loans",
     "content": {

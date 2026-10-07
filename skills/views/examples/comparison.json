@@ -6,7 +6,7 @@
     "path": "reports/payment-provider-comparison",
     "title": "Comparativo de pasarelas de pago",
     "description": "Tres opciones de pasarela para la tienda y la recomendada.",
-    "audience": "equipo",
+    "audience": "internal",
     "summary": "Comparativo de pasarelas de pago",
     "idempotencyKey": "page-shop-reports-payment-provider-comparison",
     "content": {
@@ -26,14 +26,13 @@
                 "root": "root",
                 "elements": {
                   "root": {
-                    "type": "Section",
+                    "type": "Stack",
                     "props": {
-                      "title": "Pasarelas de pago para la tienda",
-                      "description": "Comisiones públicas consultadas el 2026-10-06; montos en MXN por cobro con tarjeta nacional."
+                      "direction": "vertical",
+                      "gap": "lg"
                     },
                     "children": [
-                      "options",
-                      "conclusion"
+                      "summary"
                     ]
                   },
                   "options": {
@@ -188,6 +187,17 @@
                       "message": "Por la madurez de su API y porque el equipo ya lo opera; la diferencia de comisión no compensa el riesgo de integración.",
                       "type": "info"
                     }
+                  },
+                  "summary": {
+                    "type": "Section",
+                    "props": {
+                      "title": "Pasarelas de pago para la tienda",
+                      "description": "Comisiones públicas consultadas el 2026-10-06; montos en MXN por cobro con tarjeta nacional."
+                    },
+                    "children": [
+                      "options",
+                      "conclusion"
+                    ]
                   }
                 }
               }

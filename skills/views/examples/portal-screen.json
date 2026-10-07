@@ -1,0 +1,56 @@
+{
+  "tool": "page_create",
+  "input": {
+    "organizationId": "ORG_ID",
+    "projectId": "PROJECT_ID",
+    "path": "mockups/portal-project-documents",
+    "title": "Mockup — Documentos del proyecto en el Portal",
+    "description": "Propuesta de una sección «Documentos» en el proyecto del Portal, para revisarla antes de construirla.",
+    "audience": "internal",
+    "summary": "Mockup de la sección Documentos del Portal",
+    "idempotencyKey": "page-pai-mockups-portal-project-documents",
+    "content": {
+      "schemaVersion": 1,
+      "componentSetVersion": "pai-core-v1",
+      "layout": "canvas",
+      "sections": [
+        {
+          "id": "screen",
+          "title": "Documentos",
+          "blocks": [
+            {
+              "id": "documentsMockup",
+              "type": "view",
+              "title": "Mockup — Documentos del proyecto",
+              "spec": {
+                "root": "shell",
+                "elements": {
+                  "shell": {
+                    "type": "PortalShell",
+                    "props": {
+                      "area": "project",
+                      "audience": "client",
+                      "organization": "Portenta",
+                      "project": "Plataforma de ventas · Fase 1",
+                      "breadcrumb": [ { "label": "Proyectos", "href": "#projects" }, { "label": "Plataforma de ventas · Fase 1", "href": "#project" }, { "label": "Documentos" } ],
+                      "user": { "name": "Juan Carlos Vega", "email": "jc@portenta.example" }
+                    },
+                    "children": ["content"]
+                  },
+                  "content": { "type": "Stack", "props": { "direction": "vertical", "gap": "lg" }, "children": ["header", "documentsCard"] },
+                  "header": { "type": "ProjectHeader", "props": { "name": "Plataforma de ventas · Fase 1", "status": "active", "architect": "Alejandro Sánchez", "dates": "1 sep – 15 dic", "health": "on_track" } },
+                  "documentsCard": { "type": "Card", "props": { "title": "Documentos", "description": "Contratos, propuestas y entregables firmados.", "action": { "label": "Subir documento", "icon": "upload" } }, "children": ["documentsFilter", "documentsList"] },
+                  "documentsFilter": { "type": "FilterBar", "props": { "search": "Buscar documento", "filters": [ { "label": "Tipo", "value": "Todos", "options": ["Todos", "Contrato", "Propuesta", "Entregable"] } ] } },
+                  "documentsList": { "type": "Stack", "props": { "direction": "vertical", "gap": "sm" }, "children": ["docContract", "docProposal", "docDelivery"] },
+                  "docContract": { "type": "Item", "props": { "title": "Contrato de servicios", "description": "Firmado por ambas partes", "icon": "file-signature", "meta": "2026-09-01", "variant": "outline" } },
+                  "docProposal": { "type": "Item", "props": { "title": "Propuesta Fase 1", "description": "Aceptada", "icon": "file", "meta": "2026-08-28", "variant": "outline" } },
+                  "docDelivery": { "type": "Item", "props": { "title": "Entregable: mapa de procesos", "description": "En revisión del cliente", "icon": "list-checks", "meta": "2026-10-03", "variant": "outline" } }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

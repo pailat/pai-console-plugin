@@ -42,7 +42,7 @@ Si dudas entre page y nodo, piensa en el uso. **Una page se lee de corrido; un n
 5. **`page_validate {content, typeSlug}`** hasta que no haya `issues`. Además del contrato, revisa la estructura (secciones faltantes o desordenadas, bloques no permitidos) y la calidad (fuentes con URL y fecha, texto mínimo).
 6. **`page_create`** con:
    - `path`, `title` (en español), `description`, `typeSlug`;
-   - `audience`: `equipo` (interna) o `cliente` (la ve el cliente). Si no te lo dijeron, pregunta; si nadie decide, usa `equipo`;
+   - `audience`: `internal` (solo el equipo) o `client` (la ve el cliente). Si no te lo dijeron, pregunta; si nadie decide, usa `internal`;
    - `content`, `summary` (≤80, como un mensaje de commit);
    - `idempotencyKey`: `page-<proyecto>-<ruta-con-guiones>`.
 7. **Lee la respuesta** (`warnings`, `document.revision`) y da a la persona:

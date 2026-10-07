@@ -5,23 +5,103 @@
     "spec": {
       "root": "root",
       "elements": {
-        "root": { "type": "Section", "props": { "title": "Cobros por hito", "description": "Datos de payment_list y timeline_get al 2026-10-06." }, "children": ["kpis", "byMilestone", "next"] },
-        "kpis": { "type": "Grid", "props": { "columns": 3, "gap": "md" }, "children": ["kpiContract", "kpiPaid", "kpiPending"] },
-        "kpiContract": { "type": "Metric", "props": { "label": "Contrato", "value": "$480,000", "unit": "MXN" } },
-        "kpiPaid": { "type": "Metric", "props": { "label": "Cobrado", "value": "$240,000", "unit": "MXN", "detail": "2 de 4 hitos", "tone": "positive" } },
-        "kpiPending": { "type": "Metric", "props": { "label": "Por cobrar", "value": "$240,000", "unit": "MXN", "detail": "Siguiente: Pagos, 2026-10-25" } },
+        "root": {
+          "type": "Stack",
+          "props": {
+            "direction": "vertical",
+            "gap": "lg"
+          },
+          "children": [
+            "summary"
+          ]
+        },
+        "kpis": {
+          "type": "Grid",
+          "props": {
+            "columns": 3,
+            "gap": "md"
+          },
+          "children": [
+            "kpiContract",
+            "kpiPaid",
+            "kpiPending"
+          ]
+        },
+        "kpiContract": {
+          "type": "Metric",
+          "props": {
+            "label": "Contrato",
+            "value": "$480,000",
+            "unit": "MXN"
+          }
+        },
+        "kpiPaid": {
+          "type": "Metric",
+          "props": {
+            "label": "Cobrado",
+            "value": "$240,000",
+            "unit": "MXN",
+            "detail": "2 de 4 hitos",
+            "tone": "positive"
+          }
+        },
+        "kpiPending": {
+          "type": "Metric",
+          "props": {
+            "label": "Por cobrar",
+            "value": "$240,000",
+            "unit": "MXN",
+            "detail": "Siguiente: Pagos, 2026-10-25"
+          }
+        },
         "byMilestone": {
           "type": "BarList",
           "props": {
             "items": [
-              { "label": "Descubrimiento — pagado", "value": 120000, "display": "$120,000" },
-              { "label": "Catálogo y carrito — pagado", "value": 120000, "display": "$120,000" },
-              { "label": "Pagos — pendiente", "value": 120000, "display": "$120,000" },
-              { "label": "Lanzamiento — pendiente", "value": 120000, "display": "$120,000" }
+              {
+                "label": "Descubrimiento — pagado",
+                "value": 120000,
+                "display": "$120,000"
+              },
+              {
+                "label": "Catálogo y carrito — pagado",
+                "value": 120000,
+                "display": "$120,000"
+              },
+              {
+                "label": "Pagos — pendiente",
+                "value": 120000,
+                "display": "$120,000"
+              },
+              {
+                "label": "Lanzamiento — pendiente",
+                "value": 120000,
+                "display": "$120,000"
+              }
             ]
           }
         },
-        "next": { "type": "Item", "props": { "title": "Siguiente cobro: hito «Pagos»", "description": "Se factura al entregar la integración de pagos.", "icon": "receipt", "meta": "2026-10-25" } }
+        "next": {
+          "type": "Item",
+          "props": {
+            "title": "Siguiente cobro: hito «Pagos»",
+            "description": "Se factura al entregar la integración de pagos.",
+            "icon": "receipt",
+            "meta": "2026-10-25"
+          }
+        },
+        "summary": {
+          "type": "Section",
+          "props": {
+            "title": "Cobros por hito",
+            "description": "Datos de payment_list y timeline_get al 2026-10-06."
+          },
+          "children": [
+            "kpis",
+            "byMilestone",
+            "next"
+          ]
+        }
       }
     }
   }
