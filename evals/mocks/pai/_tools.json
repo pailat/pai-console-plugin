@@ -5615,6 +5615,74 @@
    }
   },
   {
+   "name": "organization_slug_set",
+   "title": "Cambiar la dirección de la organización",
+   "description": "Cambia la dirección (slug) de la organización en las URLs del Portal (`/{slug}/…`): minúsculas sin acentos, números y guiones, hasta 60 caracteres. La dirección anterior sigue redirigiendo a la nueva y no se puede dar a otra organización. El nombre visible no cambia.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "organizationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     },
+     "slug": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 60
+     }
+    },
+    "required": [
+     "organizationId",
+     "slug"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": true,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "project_slug_set",
+   "title": "Cambiar la dirección del proyecto",
+   "description": "Cambia la dirección (slug) del proyecto en las URLs del Portal (`/{organización}/{slug}/…`), única dentro de la organización: minúsculas sin acentos, números y guiones, hasta 60 caracteres. La dirección anterior sigue redirigiendo a la nueva. El nombre visible no cambia.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "organizationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     },
+     "projectId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     },
+     "slug": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 60
+     }
+    },
+    "required": [
+     "organizationId",
+     "projectId",
+     "slug"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": true,
+    "openWorldHint": false
+   }
+  },
+  {
    "name": "project_status",
    "title": "Estado del proyecto",
    "description": "Resumen administrativo del proyecto: datos, milestones en orden, propuesta, archivos e invitaciones pendientes de la organización. Descubre organizationId con organization_list y projectId con project_list. Consulta la biblioteca Pages por separado con page_list, page_search y page_read antes de editar su contenido.",
@@ -6226,7 +6294,7 @@
   },
   {
    "name": "page_list",
-   "description": "Lista una página de pages por path (20 por defecto, máximo 100). Continúa con nextCursor mientras hasMore. Los comentarios pendientes sólo cubren esta página; si hay truncación, lee el documento con page_read view=full.",
+   "description": "Lista una página de pages por path (20 por defecto, máximo 100). Continúa con nextCursor mientras hasMore. Por defecto cada page trae id, path, title, revision, updatedAt, typeSlug, audience y openCommentCount (su enlace es resourcesUrl + path); view=full devuelve el resumen completo con url. pathPrefix limita a una carpeta (la page de esa ruta y las de debajo). Los comentarios pendientes sólo cubren esta página; si hay truncación, lee el documento con page_read view=full.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -6248,6 +6316,21 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 512
+     },
+     "pathPrefix": {
+      "description": "Carpeta, p. ej. «pantallas/console»: la page de esa ruta y las de debajo.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+     },
+     "view": {
+      "default": "compact",
+      "description": "compact (por defecto) o full: el resumen completo de cada page, con url.",
+      "type": "string",
+      "enum": [
+       "compact",
+       "full"
+      ]
      },
      "organizationId": {
       "type": "string",
@@ -6564,7 +6647,7 @@
   },
   {
    "name": "page_create",
-   "description": "Crea una page nativa con contenido del catálogo y sin imágenes. Para imágenes: crea primero, usa page_asset_upload, sube cada archivo por PUT y luego page_update con href para Markdown o assetId para figure. Requiere summary e idempotencyKey estable: reutiliza la misma clave y entrada al reintentar. Devuelve enlace y revisión. Un reintento con la misma clave devuelve la respuesta original de la creación (revisión 1, created: true) aunque la page ya haya cambiado: antes de page_update lee la revisión vigente con page_read.",
+   "description": "Crea una page nativa con contenido del catálogo y sin imágenes. Para imágenes: crea primero, usa page_asset_upload, sube cada archivo por PUT y luego page_update con href para Markdown o assetId para figure. Requiere summary e idempotencyKey estable: reutiliza la misma clave y entrada al reintentar. Devuelve pageId, path, title, revision, versionId, url, warnings y brokenLinks (el documento completo sólo con verbose: true). Un reintento con la misma clave devuelve la respuesta original de la creación (revisión 1, created: true) aunque la page ya haya cambiado: antes de page_update lee la revisión vigente con page_read.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -8050,6 +8133,10 @@
       "minLength": 1,
       "maxLength": 200
      },
+     "verbose": {
+      "description": "true devuelve además el documento completo (body y pageContent). Por defecto la respuesta sólo trae ids, revisión, enlace y avisos.",
+      "type": "boolean"
+     },
      "organizationId": {
       "type": "string",
       "format": "uuid",
@@ -8081,7 +8168,7 @@
   },
   {
    "name": "page_update",
-   "description": "Reemplaza contenido JSON de una page con expectedDocumentId = document.id y expectedRevision = document.revision obtenidos de page_read. Ante CONFLICT vuelve a leer e integra cambios; no sobrescribas a ciegas. Una page con tipo se sigue validando contra su contrato: corrige el contenido en vez de quitar el tipo (sólo detachType lo retira, y queda auditado).",
+   "description": "Reemplaza el contenido JSON de una page, su title o su description (lo omitido se conserva; la versión registra los tres) con expectedDocumentId = document.id y expectedRevision = document.revision obtenidos de page_read. Conserva id, versiones y enlaces. Ante CONFLICT vuelve a leer e integra cambios; no sobrescribas a ciegas. Una page con tipo se sigue validando contra su contrato: corrige el contenido en vez de quitar el tipo (sólo detachType lo retira, y queda auditado). Devuelve pageId, path, title, revision, versionId, url, warnings y brokenLinks (el documento completo sólo con verbose: true).",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -8114,6 +8201,7 @@
       ]
      },
      "content": {
+      "description": "JSON completo nuevo de la page. Omitirlo conserva el contenido vigente (para cambiar sólo title o description).",
       "type": "object",
       "properties": {
        "schemaVersion": {
@@ -9522,6 +9610,24 @@
       ],
       "additionalProperties": false
      },
+     "title": {
+      "description": "Nuevo título. Omitirlo conserva el vigente.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+     },
+     "description": {
+      "description": "Nueva descripción; null la borra. Omitirla conserva la vigente.",
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 1000
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
      "expectedRevision": {
       "type": "integer",
       "minimum": 0,
@@ -9537,6 +9643,10 @@
       "type": "boolean",
       "const": true
      },
+     "verbose": {
+      "description": "true devuelve además el documento completo (body y pageContent). Por defecto la respuesta sólo trae ids, revisión, enlace y avisos.",
+      "type": "boolean"
+     },
      "organizationId": {
       "type": "string",
       "format": "uuid",
@@ -9551,7 +9661,6 @@
     "required": [
      "path",
      "expectedDocumentId",
-     "content",
      "expectedRevision",
      "summary",
      "organizationId",
@@ -9568,7 +9677,7 @@
   },
   {
    "name": "page_restore",
-   "description": "Restaura una versión como nueva revisión nativa conservando audiencia vigente. Requiere expectedDocumentId = document.id, expectedRevision = document.revision de page_read y summary.",
+   "description": "Restaura una versión como nueva revisión nativa conservando audiencia vigente. Requiere expectedDocumentId = document.id, expectedRevision = document.revision de page_read y summary. Devuelve ids, revisión y enlace (el documento completo sólo con verbose: true).",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -9597,6 +9706,10 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 80
+     },
+     "verbose": {
+      "description": "true devuelve además el documento completo (body y pageContent). Por defecto la respuesta sólo trae ids, revisión, enlace y avisos.",
+      "type": "boolean"
      },
      "organizationId": {
       "type": "string",
@@ -9644,6 +9757,10 @@
       "minLength": 1,
       "maxLength": 80
      },
+     "verbose": {
+      "description": "true devuelve además el documento completo (body y pageContent). Por defecto la respuesta sólo trae ids, revisión, enlace y avisos.",
+      "type": "boolean"
+     },
      "organizationId": {
       "type": "string",
       "format": "uuid",
@@ -9673,7 +9790,7 @@
   {
    "name": "page_move",
    "title": "Mover documento de Page",
-   "description": "Cambia la ruta de un documento y reescribe los enlaces relativos de los demás documentos que lo apuntaban (cada uno recibe su versión). Falla si ya existe un documento en `newPath`. Requiere `summary`. Revisa siempre `warnings`: un traslado puede conservarse con enlaces pendientes por conflictos o fallos de colaboración; lee las rutas indicadas antes de corregirlas y no repitas el traslado.",
+   "description": "Cambia la ruta de un documento y reescribe los enlaces de los demás documentos que lo apuntaban, relativos o absolutos del Portal (`/organization/projects/<id>/resources/<ruta>`, con o sin origen https; cada uno recibe su versión y queda en `rewritten`). Falla si ya existe un documento en `newPath`. Requiere `summary`. Devuelve pageId, path, oldPath, revision, url, rewritten y warnings (el documento completo sólo con verbose: true). Revisa siempre `warnings`: un traslado puede conservarse con enlaces pendientes por conflictos o fallos de colaboración; lee las rutas indicadas antes de corregirlas y no repitas el traslado.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -9705,6 +9822,10 @@
       "minLength": 1,
       "maxLength": 80,
       "description": "Resumen de la versión (máx. 80 caracteres)"
+     },
+     "verbose": {
+      "description": "true devuelve además el documento completo (body y pageContent). Por defecto la respuesta sólo trae ids, revisión, enlace y avisos.",
+      "type": "boolean"
      }
     },
     "required": [
@@ -12301,9 +12422,257 @@
    }
   },
   {
+   "name": "organization_theme_get",
+   "title": "Ver tema de la organización",
+   "description": "Tema de marca de la organización: el publicado (lo que ve el cliente), el borrador con sus problemas (contraste AA, esquema, logo) y las últimas versiones. Úsalo antes de editar.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "organizationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Organización (organization_list); debes ser miembro"
+     }
+    },
+    "required": [
+     "organizationId"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "organization_theme_preview",
+   "title": "Vista previa del tema",
+   "description": "Valida un tema propuesto (o el borrador si no das theme) sin guardar nada: devuelve sus problemas de contraste AA y de esquema, el CSS que se aplicaría y una muestra con los componentes de Pai.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "organizationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Organización (organization_list); debes ser miembro"
+     },
+     "theme": {
+      "type": "object",
+      "propertyNames": {
+       "type": "string"
+      },
+      "additionalProperties": {},
+      "description": "Tema completo (organizationThemeSchema, versión 1): { schemaVersion: 1, light: {…}, dark: {…}, font, radius, shadow, logo: { light, dark } }. light/dark: colores \"#rrggbb\" u \"oklch(L C H)\" para estas claves (las que no pongas quedan de Pai): background, foreground, card, card-foreground, popover, popover-foreground, primary, primary-foreground, secondary, secondary-foreground, muted, muted-foreground, accent, accent-foreground, border, ring, brand, brand-foreground, brand-text, chart-1, chart-2, chart-3, chart-4, chart-5, sidebar, sidebar-foreground, sidebar-primary, sidebar-primary-foreground, sidebar-accent, sidebar-accent-foreground, sidebar-border, sidebar-ring. font: inter | dm-sans | manrope | plus-jakarta-sans | figtree | source-serif-4 | lora | null. radius: rem de 0 a 1.25 en pasos de 0.0625 | null (Pai: 0.5). shadow: none | soft | default | strong | null. logo.light / logo.dark: la referencia que devuelve organization_theme_logo_confirm, o null."
+     }
+    },
+    "required": [
+     "organizationId"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "organization_theme_save_draft",
+   "title": "Guardar borrador del tema",
+   "description": "Guarda el tema como borrador nuevo (lo publicado no cambia). Se rechaza si no cumple el esquema o un logo no es de esta organización; los problemas de contraste se permiten en borrador y vuelven en issues. Publica con organization_theme_publish.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "organizationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Organización (organization_list); debes ser miembro"
+     },
+     "theme": {
+      "type": "object",
+      "propertyNames": {
+       "type": "string"
+      },
+      "additionalProperties": {},
+      "description": "Tema completo (organizationThemeSchema, versión 1): { schemaVersion: 1, light: {…}, dark: {…}, font, radius, shadow, logo: { light, dark } }. light/dark: colores \"#rrggbb\" u \"oklch(L C H)\" para estas claves (las que no pongas quedan de Pai): background, foreground, card, card-foreground, popover, popover-foreground, primary, primary-foreground, secondary, secondary-foreground, muted, muted-foreground, accent, accent-foreground, border, ring, brand, brand-foreground, brand-text, chart-1, chart-2, chart-3, chart-4, chart-5, sidebar, sidebar-foreground, sidebar-primary, sidebar-primary-foreground, sidebar-accent, sidebar-accent-foreground, sidebar-border, sidebar-ring. font: inter | dm-sans | manrope | plus-jakarta-sans | figtree | source-serif-4 | lora | null. radius: rem de 0 a 1.25 en pasos de 0.0625 | null (Pai: 0.5). shadow: none | soft | default | strong | null. logo.light / logo.dark: la referencia que devuelve organization_theme_logo_confirm, o null."
+     }
+    },
+    "required": [
+     "organizationId",
+     "theme"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "organization_theme_publish",
+   "title": "Publicar tema",
+   "description": "Publica el borrador (o la versión indicada) como el tema que ven el Portal y las vistas del cliente desde su siguiente carga. Se rechaza con la lista de problemas si no cumple el contraste AA, el esquema o sus logos; corrige y vuelve a guardar el borrador.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "organizationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Organización (organization_list); debes ser miembro"
+     },
+     "version": {
+      "description": "Versión a publicar (historial); por defecto, el borrador",
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+     }
+    },
+    "required": [
+     "organizationId"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": true,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "organization_theme_revert",
+   "title": "Volver a una versión del tema",
+   "description": "Vuelve a una versión anterior: la copia como borrador nuevo y, salvo publish: false, la publica. Se valida otra vez antes de escribir; si ya no cumple AA o sus logos, se rechaza y nada cambia.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "organizationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Organización (organization_list); debes ser miembro"
+     },
+     "version": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991,
+      "description": "Versión (historial)"
+     },
+     "publish": {
+      "description": "Publicarla al volver (por defecto true)",
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "organizationId",
+     "version"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "organization_theme_logo_upload_url",
+   "title": "URL de subida del logo",
+   "description": "URL firmada (5 min) para subir el logo del tema con PUT: PNG, WebP o SVG de hasta 512 KB; el PUT lleva exactamente el contentType y el tamaño declarados. Después llama a organization_theme_logo_confirm con fileKey.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "organizationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Organización (organization_list); debes ser miembro"
+     },
+     "variant": {
+      "type": "string",
+      "enum": [
+       "light",
+       "dark"
+      ],
+      "description": "light: logo para fondo claro; dark: para fondo oscuro"
+     },
+     "contentType": {
+      "type": "string",
+      "enum": [
+       "image/png",
+       "image/webp",
+       "image/svg+xml"
+      ]
+     },
+     "size": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 524288,
+      "description": "Tamaño exacto del archivo en bytes"
+     }
+    },
+    "required": [
+     "organizationId",
+     "variant",
+     "contentType",
+     "size"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "organization_theme_logo_confirm",
+   "title": "Confirmar logo subido",
+   "description": "Tras el PUT: Pai lee el logo, comprueba que es PNG, WebP o SVG válido (el SVG se sanea) y devuelve la referencia que va en theme.logo.light o theme.logo.dark del borrador.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "organizationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "Organización (organization_list); debes ser miembro"
+     },
+     "storageKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "description": "fileKey de organization_theme_logo_upload_url"
+     }
+    },
+    "required": [
+     "organizationId",
+     "storageKey"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   }
+  },
+  {
    "name": "view_catalog",
    "title": "Catálogo de vistas",
-   "description": "Catálogo pai-view@1 del sistema de diseño de Pai. Sin argumentos: formato, reglas, límites, layouts, un ejemplo y el índice de componentes (layout, métricas, gráficas, tablas, cronologías, pantallas de Pai) con sus props por nombre. Con types (o group): el esquema completo y un ejemplo de esos componentes; pídelos antes de usarlos. Consúltalo antes de componer una vista con view_render.",
+   "description": "Catálogo pai-view@1 del sistema de diseño de Pai. Sin argumentos: formato, reglas, límites, layouts, un ejemplo y el índice de componentes (layout, métricas, gráficas, tablas, cronologías, pantallas de Pai) con sus props por nombre (los grupos extensos, como patterns y forms, sólo con su resumen). Con types (o group): el esquema completo y un ejemplo de esos componentes; pídelos antes de usarlos. Con recipe: una pantalla completa de ejemplo (tablero, lista con filtros, detalle, lista y lectura) para adaptar. Consúltalo antes de componer una vista con view_render.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -12324,15 +12693,29 @@
       "enum": [
        "app",
        "site",
+       "patterns",
        "layout",
        "content",
        "data",
        "controls",
+       "forms",
+       "conversation",
        "navigation",
        "feedback",
        "planning",
        "project",
+       "commerce",
        "knowledge"
+      ]
+     },
+     "recipe": {
+      "description": "Una receta de pantalla del índice (recipes): su vista completa para adaptarla. Opcional; no va con types ni group.",
+      "type": "string",
+      "enum": [
+       "dashboard",
+       "list-filters",
+       "record-detail",
+       "list-reading"
       ]
      }
     }

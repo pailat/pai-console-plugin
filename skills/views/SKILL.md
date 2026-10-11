@@ -1,6 +1,6 @@
 ---
 name: views
-description: UI generativa de Pai (catálogo pai-view@1, 90 componentes del sistema de diseño de Pai: pantallas reales de Portal, Console y pai.lat, las piezas de datos del Portal —Pagos, Cronograma, Tareas, Proyectos, Actividad, Biblioteca— y diagramas de Conocimiento). Dibuja vistas en la conversación con view_render (dashboards, comparativos, resúmenes visuales de datos ya obtenidos) o guárdalas en Recursos como bloque view de una page canvas (tableros, mockups de pantallas con AppShell, reportes visuales). Úsalo cuando pidan ver, mostrar, graficar o comparar datos de Pai de forma visual, un tablero, dashboard, mockup, wireframe o pantalla (de una app de cliente, del Portal, de Console o del sitio), dibujar un ERD, un C4 o el grafo, o editar una vista existente.
+description: UI generativa de Pai (catálogo pai-view@1, 140 componentes del sistema de diseño de Pai sobre ReUI: pantallas reales de Portal, Console y pai.lat, patrones de pantalla con regiones (tablero, detalle, lista, chat, formulario, wizard…), formularios, chat, comercio, las piezas de datos del Portal —Pagos, Cronograma, Tareas, Proyectos, Actividad, Biblioteca— y diagramas de Conocimiento). Dibuja vistas en la conversación con view_render (dashboards, comparativos, resúmenes visuales de datos ya obtenidos) o guárdalas en Recursos como bloque view de una page canvas (tableros, mockups de pantallas con AppShell, reportes visuales). Úsalo cuando pidan ver, mostrar, graficar o comparar datos de Pai de forma visual, un tablero, dashboard, mockup, wireframe o pantalla (de una app de cliente, del Portal, de Console o del sitio), dibujar un ERD, un C4 o el grafo, o editar una vista existente.
 argument-hint: "[proyecto] [qué vista: tablero, pantalla, comparativo…]"
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
@@ -9,11 +9,12 @@ compatibility: "Pai 0.2.5+ (MCP corp)"
 
 Lee antes el skill `pai-console`: entorno, descubrimiento, buscar antes de crear, CAS.
 
-**Catálogo completo**, generado desde el código: `${CLAUDE_PLUGIN_ROOT}/skills/views/references/view-catalog.md`. Tiene los layouts de raíz, los 11 grupos y los 90 componentes con sus props, límites y un ejemplo de cada uno.
+**Catálogo completo**, generado desde el código: `${CLAUDE_PLUGIN_ROOT}/skills/views/references/view-catalog.md`. Tiene los layouts de raíz, los 15 grupos, los 140 componentes con sus props, límites y un ejemplo de cada uno, y las 4 recetas del servidor completas.
 
 `view_catalog` es la fuente del servidor:
 - sin argumentos devuelve el **índice** (reglas, layouts y los componentes con sus props por nombre);
-- con `{types: [...]}` o `{group}` devuelve el **esquema completo y un ejemplo** de esos componentes.
+- con `{types: [...]}` o `{group}` devuelve el **esquema completo y un ejemplo** de esos componentes;
+- con `{recipe}` (`dashboard`, `list-filters`, `record-detail`, `list-reading`) devuelve una **pantalla completa** lista para cambiarle los datos.
 
 Si un componente no está en la referencia o dudas de una prop, **pide su detalle** con `view_catalog {types}` antes de usarlo. Si lo vas a hacer para muchos componentes, delégalo a `pai-explorer`.
 
@@ -50,7 +51,7 @@ Si dudas entre dibujar y guardar, dibuja y ofrece guardarla.
 - **La raíz elige el layout:**
   - una pantalla completa empieza con un shell, que va **solo en la raíz** (tabla de abajo);
   - un documento, reporte, tablero o resumen empieza con **`Stack`**.
-- **Tienen hijos** solo los shells (AppShell, PortalShell, ConsoleShell, SiteShell, AuthFrame), Stack, Grid, Section, Card, Collapsible, Tabs, UnderlinedTabs, Tooltip y ButtonGroup.
+- **Tienen hijos** solo los shells (AppShell, PortalShell, ConsoleShell, SiteShell, AuthFrame), los patrones (`*Layout`, `SplitView`), Stack, Grid, Section, Card, Frame, DialogFrame, DetailSheet, Collapsible, Tabs, UnderlinedTabs, Tooltip, Popover, ButtonGroup, Stepper, ContactSection y ProposalSummary. La lista exacta está en las reglas de la referencia.
   - Tabs y UnderlinedTabs llevan un hijo por pestaña, en orden; normalmente cada hijo es un Stack.
   - Tooltip lleva un solo hijo, no interactivo.
 - **Props estrictas:** cada objeto de props es cerrado y solo lleva las del catálogo. Nada de `className`, `style`, colores, HTML ni expresiones. Las props que admiten `null` se pueden omitir.
@@ -64,7 +65,7 @@ Si dudas entre dibujar y guardar, dibuja y ofrece guardarla.
 | `Stack` | Contenido sin pantalla alrededor | Tableros, reportes, resúmenes, comparativos y todo `view_render` de datos |
 | `PortalShell` | **El Portal de Pai, idéntico al real.** `area` (home, organization, project, product), `audience` (client o staff), `active` (ítem del menú), `organization`, `project`, `breadcrumb`, `user` | Mockups de pantallas nuevas o cambios del Portal. `menu` reemplaza el menú real solo para secciones que el Portal aún no tiene |
 | `ConsoleShell` | **Console, idéntico al real.** `area` (admin, workforce o all), `active` (`admin.users`, `workforce.payments`…), `breadcrumb`, `title`, `action`, `user` | Mockups del back office |
-| `SiteShell` | **pai.lat, idéntico al real.** `lang`, `page`, con hijos `SiteHero`, `LogoGrid`, `SectionIntro`, `ServiceCards`, `CtaBand` | Páginas o secciones del sitio |
+| `SiteShell` | **pai.lat, idéntico al real.** `lang`, `page`, con hijos del grupo Sitio web: `SiteHero`, `LogoGrid`, `SectionIntro`, `ServiceCards`, `HowItWorks`, `Testimonials`, `BlogList`, `CtaBand`, `ContactSection` | Páginas o secciones del sitio |
 | `AuthFrame` | **Login, registro e invitación de Pai** | Pantallas de identidad, con `Input` y `Button` dentro |
 | `AppShell` | **La app de un cliente**, con su marca y su menú | Mockups de los productos que Pai construye para un cliente |
 
@@ -147,13 +148,37 @@ Los diagramas se dibujan con los datos del servidor, **nunca escritos a mano**.
 
 **C4:** igual, con `view: "c4"` y su `level`, en un `C4Diagram`.
 
+## Patrones: pantallas con regiones
+
+Dentro de un shell (o en la raíz), un **patrón** reparte la pantalla en regiones con nombre: lleva **un hijo por región, en el orden de sus regiones**, y `regions` elige cuáles usa (en ese mismo orden). Cada región trae su marco, así que no envuelvas los hijos en `Card`.
+
+| Patrón | Para |
+|---|---|
+| `DashboardLayout` | Tablero: `kpis` (Stats), `main` (Chart o DataTable), `side` (BarList, Timeline, Item), `footer` (DataTable) |
+| `PageLayout` | Sección de producto: `header` (PageHeader, ProjectHeader), `toolbar` (FilterBar, botones), `main` (DataTable, Kanban…), `aside` |
+| `DetailLayout` | Detalle de un registro: `header`, `summary` (KeyValue, Stats), `main` (Tabs, Section…), `aside` |
+| `SplitView` | Lista y lectura: `list` y `detail` |
+| `BoardLayout` | Tablero o agenda: `toolbar`, `board` (Kanban, Gantt, TaskBoard, EventCalendar), `aside` |
+| `FilesLayout` | Explorador: `tree` (Tree), `list` (FileList, DataTable), `preview` |
+| `DocLayout` | Documento largo: `header`, `toc`, `content` |
+| `FormLayout` | Formulario de maqueta: `intro`, `fields`, `actions` |
+| `WizardLayout` | Alta guiada: `steps` (Stages), `main`, `actions` |
+| `SettingsLayout` | Ajustes: `nav` y `main` |
+| `ChatLayout` | Chat de maqueta con un agente: `thread` (ChatThread), `composer` (ChatComposer), `aside` |
+| `AuthLayout` | Acceso o registro de **la app de un cliente** (para Pai usa `AuthFrame`): `brand`, `form`, `aside` |
+| `EmptyLayout` | Estado vacío rico: `visual`, `message`, `actions`, `preview` |
+
+Antes de usar un patrón pide su esquema con `view_catalog {types}`: las regiones y qué va en cada una están en su descripción.
+
 **Grafo:** `knowledge_graph {projectId}`. Convierte sus nodos a `{id, title, kind}` y sus aristas a `{source, target, rel}`, y pásalos a `KnowledgeGraph` (≤1500 aristas).
 
 Úsalos para mostrar en la conversación lo que modelaste (skills `erd` y `c4`) o, guardados, en un reporte de arquitectura en Recursos.
 
 ## Recetas
 
-Cada receta tiene un ejemplo completo y validado en `${CLAUDE_PLUGIN_ROOT}/skills/views/examples/`. Parte de él.
+**Del servidor** (`view_catalog {recipe}`; también completas al final de la referencia): `dashboard` (AppShell + DashboardLayout), `list-filters` (encabezado, filtros y tabla), `record-detail` (detalle con pestañas y lateral) y `list-reading` (SplitView). Para la pantalla de una app de cliente, **parte de la receta más cercana** y cambia sus datos.
+
+**Del plugin**: cada una tiene un ejemplo completo y validado en `${CLAUDE_PLUGIN_ROOT}/skills/views/examples/`. Parte de él.
 
 1. **Resumen en la conversación** (`render-payments-summary.json`, `view_render`): `Stack` → `Section` con origen y corte → `Grid` de `Metric` → `BarList` → `Item` con lo siguiente.
 2. **Tablero de KPIs** (`kpi-dashboard.json`): `Section` con `StatusBadge` de salud y un `Alert` → `Grid` de 4 `Metric` → `UnderlinedTabs` con `Stages` + `Table` y `Chart` + `BarList`.

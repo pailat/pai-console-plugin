@@ -1,6 +1,6 @@
 # Catálogo de vistas `pai-view@1`
 
-> Generado por `tools/gen-references.ts` desde pai-portal `c364c4ab` (2026-10-07 Merge pull request #166 from pailat/fix/0.2.5/release-clean-2), `packages/views/src/catalog.ts`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `dfc02d78` (2026-10-11 merge: mcp-pages @45e2e4f0 (#169: page_update con título y descripción, page_move reescribe URLs absolutas del Portal, escrituras y page_list compactos, filtros de DataTable por celda)), `packages/views/src/catalog.ts`. No editar a mano: regenerar.
 
 Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props, children? } } }. Los hijos se referencian por id.
 
@@ -10,9 +10,11 @@ Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props,
 - Cada objeto de props es cerrado: sólo las props de su esquema; las demás se rechazan.
 - Los ids son únicos, empiezan con letra y se reutilizan al editar.
 - Las props omitidas que aceptan null toman su valor por defecto.
-- Sólo AppShell, AuthFrame, ConsoleShell, PortalShell, SiteShell, ContactSection, Card, Collapsible, DetailSheet, Grid, Section, Stack, Tabs, UnderlinedTabs, Tooltip, ButtonGroup y ProposalSummary tienen hijos; Tabs y UnderlinedTabs llevan un hijo por pestaña, en orden.
+- Sólo AppShell, AuthFrame, ConsoleShell, PortalShell, SiteShell, ContactSection, AuthLayout, BoardLayout, ChatLayout, DashboardLayout, DetailLayout, DocLayout, EmptyLayout, FilesLayout, FormLayout, PageLayout, SettingsLayout, SplitView, WizardLayout, Card, Collapsible, DetailSheet, DialogFrame, Frame, Grid, Section, Stack, Tabs, UnderlinedTabs, Tooltip, ButtonGroup, Popover, Stepper y ProposalSummary tienen hijos; Tabs y UnderlinedTabs llevan un hijo por pestaña, en orden.
 - Elige el layout con la raíz de la vista: AppShell, AuthFrame, ConsoleShell, PortalShell, SiteShell son pantallas completas (ver layouts) y van sólo en la raíz; un documento, reporte o tablero empieza con Stack. Nunca recrees una pantalla de Pai con AppShell: AppShell es para apps de clientes.
-- Antes de usar un componente, pide su esquema y su ejemplo con view_catalog({ types: [...] }) o por grupo (view_catalog({ group })); aquí sólo están sus props por nombre (nombre? es opcional).
+- Antes de usar un componente, pide su descripción, su esquema y su ejemplo con view_catalog({ types: [...] }) o por grupo (view_catalog({ group })); aquí sólo están su resumen y, en los grupos con index props, sus props por nombre (nombre? es opcional). Los grupos con index names sólo traen el resumen: pide sus props por grupo.
+- Un patrón (grupo patterns) lleva un hijo por región, en el orden de sus regiones; regions elige cuáles usa, en ese mismo orden.
+- Para una pantalla completa puedes partir de una receta (recipes): pídela con view_catalog({ recipe }) y cambia sus datos por los tuyos. Es opcional.
 - Datos estáticos: escribe valores ya formateados, con su fecha de corte en el detalle o la descripción.
 - Enlaces sólo a rutas del Portal (/…) o a https.
 - Máximo 300 elementos y 12 niveles de anidamiento.
@@ -42,28 +44,32 @@ Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props,
 
 Una pantalla completa empieza con uno de estos componentes como `root` (y solo ahí). Un documento, reporte o tablero empieza con `Stack`.
 
-- **AppShell**: Simula una aplicación completa: barra lateral con marca, menú con iconos y usuario, y un encabezado con el título de la pantalla; sus hijos son el contenido. Úsalo como raíz de la vista. En Recursos se muestra en un marco con escritorio/tableta/móvil y se abre a pantalla completa; en pantallas angostas el menú pasa a un botón.
-- **AuthFrame**: Pantalla de identidad de Pai (iniciar sesión, registro, invitación), idéntica a la real: fondo animado de Pai, logo blanco y una tarjeta centrada con title y description; sus hijos van dentro de la tarjeta (Input, Button, Text, Separator…). Va siempre como raíz de la vista. Nada se envía.
-- **ConsoleShell**: Pantalla de Console (el back office de Pai), idéntica a la real: selector «Consola», el menú real según lo que la persona puede hacer (admin, workforce o all), usuario al pie, la barra con migas y el título de la página con una acción opcional. Sus hijos son el contenido. Va siempre como raíz de la vista. active es la clave del ítem activo (admin.users, admin.organizations, workforce.payments…). Nada navega.
-- **PortalShell**: Pantalla del Portal de Pai, idéntica a la real: selector de organización, el menú real del área (home, organization, project o product) tal como lo ve un cliente o el staff de Pai (audience), usuario al pie y la barra con migas y, para staff, «Preguntar al agente». Sus hijos son el contenido de la página. Va siempre como raíz de la vista. active es la clave del ítem activo del menú (projects, milestones, payments…). menu reemplaza el menú real sólo para pantallas que Portal aún no tiene. Nada navega.
-- **SiteShell**: Página del sitio público de Pai (pai.lat), idéntica a la real: header flotante con logo, menús Soluciones/Productos/Empresa, idiomas ES/EN/PT y «Hablemos de tu proyecto»; footer con columnas y banner de cookies. Sus hijos son las secciones (SiteHero, LogoGrid, SectionIntro, ServiceCards, CtaBand…). Va siempre como raíz. page marca la página del menú (home deja el header transparente sobre el hero; contact quita el botón). Nunca uses AppShell ni PortalShell para el sitio. Nada navega.
+- **AppShell**: App de un cliente: barra lateral con menú y usuario, encabezado y contenido. Sólo raíz.
+- **AuthFrame**: Pantalla de identidad de Pai (login, registro, invitación) con su tarjeta. Sólo raíz.
+- **ConsoleShell**: Pantalla de Console idéntica a la real: menú, migas y título. Sólo raíz.
+- **PortalShell**: Pantalla del Portal idéntica a la real: selector de org, menú del área y migas. Sólo raíz.
+- **SiteShell**: Página de pai.lat con su header, footer y cookies; hijos: secciones del sitio. Sólo raíz.
 - **Stack**: Documento, reporte o tablero dentro de una página de Recursos (sin chrome de app).
 
 ## Grupos
 
 | Grupo | Para | Componentes |
 |---|---|---|
-| Aplicación | Pantallas completas: la raíz de la vista y su layout. PortalShell y ConsoleShell (las apps de Pai, con su chrome real), SiteShell (el sitio público pai.lat), AuthFrame (login y registro) y AppShell (la app de un cliente). | AppShell, AuthFrame, ConsoleShell, PortalShell, SiteShell |
-| Sitio web | Secciones del sitio público de Pai (pai.lat) para usar dentro de SiteShell: hero, logos de clientes, titular con texto, tarjetas de servicios, llamada a la acción y «Hablemos» (contacto en dos columnas). | ContactSection, CtaBand, LogoGrid, SectionIntro, ServiceCards, SiteHero |
-| Estructura | Contenedores que ordenan la vista: pilas, cuadrículas, tarjetas, secciones, pestañas y el panel de detalle de un elemento. | Accordion, Card, Collapsible, DetailSheet, Grid, Section, Separator, Stack, Tabs, UnderlinedTabs |
-| Contenido | Títulos, texto, etiquetas, avisos, listas y enlaces; los paneles de comentarios e historial de un documento. | Alert, Avatar, Badge, CommentsPanel, Heading, HistoryPanel, Item, Kbd, Link, List, StatusBadge, StatusDot, Text, Tooltip |
-| Datos | Indicadores, tablas, gráficas y pares etiqueta–valor. | BarList, Chart, DataTable, KeyValue, Metric, Progress, Table |
-| Controles | Botones, menús y campos de formulario. Responden dentro de la vista (abren, cambian, se marcan) pero nada se envía, guarda ni navega, salvo un botón con href. | ActionMenu, Button, ButtonGroup, Calendar, Checkbox, Command, Dropzone, FilterBar, Input, RadioGroup, Select, Switch, Textarea, ToggleGroup |
-| Navegación | Migas, paginación y las piezas sueltas del chrome de Pai: barra de página, selectores de organización y proyecto, cabecera de proyecto. | Breadcrumb, OrgSwitcher, PageBar, Pagination, ProjectHeader, ProjectSwitcher |
+| Aplicación | Pantallas completas, sólo en la raíz: las apps de Pai, pai.lat, login y la app de un cliente. | AppShell, AuthFrame, ConsoleShell, PortalShell, SiteShell |
+| Sitio web | Secciones de un sitio web (pai.lat o el de un cliente) dentro de SiteShell. | BlogList, ContactSection, CtaBand, HowItWorks, LogoGrid, SectionIntro, ServiceCards, SiteHero, Testimonials |
+| Patrones | Layouts de pantalla con regiones con nombre (encabezado, principal, lateral…): un hijo por región, en orden. Van dentro de un shell o en la raíz. | AuthLayout, BoardLayout, ChatLayout, DashboardLayout, DetailLayout, DocLayout, EmptyLayout, FilesLayout, FormLayout, PageLayout, SettingsLayout, SplitView, WizardLayout |
+| Estructura | Contenedores que ordenan la vista. | Accordion, Card, Collapsible, DetailSheet, DialogFrame, Frame, Grid, Section, Separator, Stack, Tabs, UnderlinedTabs |
+| Contenido | Títulos, texto, etiquetas, avisos, listas, enlaces y código. | Alert, Avatar, Badge, CodeBlock, CommentsPanel, Heading, HistoryPanel, HoverCard, IconTile, Item, Kbd, Link, List, Rating, StatusBadge, StatusDot, Text, Tooltip |
+| Datos | Indicadores, tablas, gráficas y pares etiqueta–valor. | BarList, Chart, DataTable, FileList, Heatmap, KeyValue, Metric, Progress, ProgressRing, Stats, Table, Tree, TreeTable |
+| Controles | Botones, menús y campos de formulario. Responden dentro de la vista (abren, cambian, se marcan) pero nada se envía, guarda ni navega, salvo un botón con href. | ActionMenu, Autocomplete, Button, ButtonGroup, Calendar, Checkbox, Command, DateSelector, Dropzone, FilterBar, Input, Popover, RadioGroup, Select, Switch, Textarea, ToggleGroup |
+| Formularios | Campos de formulario de maqueta: se ven como en Pai pero no se enfocan, no envían ni guardan nada, ni piden datos sensibles. | Cascader, Combobox, InputOTP, NumberField, PhoneInput, SignaturePad, Slider, TimePicker |
+| Conversación | Maquetas de un chat con un agente: mensajes y el cuadro para escribir. No se conectan a ningún agente ni envían mensajes. | ChatComposer, ChatThread |
+| Navegación | Migas, paginación y piezas sueltas del chrome de Pai. | Breadcrumb, Menubar, NavigationMenu, OrgSwitcher, PageBar, PageHeader, Pagination, ProjectHeader, ProjectSwitcher |
 | Estados | Vacío, error y carga de una sección, con el aspecto que usan Portal y Console. | EmptyState, ErrorState, LoadingState, Skeleton, Spinner |
-| Planeación | Cronologías, etapas e hitos; el Cronograma, el tablero de Tareas y un Kanban genérico. | Checklist, Kanban, MilestoneGanttLegend, MilestoneGanttSkeleton, MilestoneTimeline, Stages, TaskBoard, Timeline |
+| Planeación | Cronologías, etapas, pasos, hitos, Tareas y Kanban. | Checklist, EventCalendar, Gantt, Kanban, MilestoneGanttLegend, MilestoneGanttSkeleton, MilestoneTimeline, Stages, Stepper, TaskBoard, Timeline |
 | Proyecto | Piezas de las pantallas de un proyecto en Portal y Console: propuestas, pagos, productos. Sólo muestran lo que la vista trae; nada se guarda. | ActivityFeed, OrganizationMembers, OrganizationsGrid, Payments, ProductDetail, ProductsList, ProjectsTable, ProposalLifecycle, ProposalSummary, Resources |
-| Conocimiento | Conocimiento: los diagramas del grafo (ERD, C4 y el grafo de nodos), la biblioteca de nodos y el badge de tipo de un nodo. Los diagramas se mueven y acercan dentro de la vista; los enlaces llevan a la página de cada nodo cuando la vista trae href. | C4Diagram, ErdDiagram, KnowledgeGraph, KnowledgeKindBadge, KnowledgeTable |
+| Comercio | Planes, comparativas y reseñas del cliente, sólo informativos: nada se compra, cobra ni envía, y los precios son del cliente, no de Pai. | ComparisonTable, PricingGrid, ReviewList |
+| Conocimiento | Diagramas del grafo (ERD, C4, nodos), la biblioteca y el badge de tipo. Los diagramas se mueven y acercan en la vista. | C4Diagram, ErdDiagram, KnowledgeGraph, KnowledgeKindBadge, KnowledgeTable |
 
 ## Componentes
 
@@ -73,12 +79,14 @@ Cada objeto de props es cerrado. `?` marca una prop opcional; las que aceptan `n
 
 #### AppShell (admite hijos)
 
-Simula una aplicación completa: barra lateral con marca, menú con iconos y usuario, y un encabezado con el título de la pantalla; sus hijos son el contenido. Úsalo como raíz de la vista. En Recursos se muestra en un marco con escritorio/tableta/móvil y se abre a pantalla completa; en pantallas angostas el menú pasa a un botón.
+App completa de un cliente, sólo raíz: marca, menú con iconos y badge opcional, usuario y contenido. layout sidebar (null) conserva la barra lateral; inset usa el lateral con contenido en SidebarInset; topbar muestra marca, menú horizontal y usuario (no admite secondaryNav: se ignora). En una página, la barra lateral se pliega a iconos con tooltip si la vista no es ancha, y en angosto el menú abre con un botón. breadcrumb muestra migas antes de title; sus href navegan. En Recursos se ve en un marco de dispositivos y puede abrirse a pantalla completa.
 
 - `brand`: { name: string (min 1, ≤160), detail?: string (≤80) (null = por defecto) }
-- `nav`: [{ label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap", active?: boolean (null = por defecto) }] (min 1, máx 12)
+- `nav`: [{ label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap", active?: boolean (null = por defecto), badge?: string (min 1, ≤6) (null = por defecto) }] (min 1, máx 12)
 - `secondaryTitle`?: string (≤80) (null = por defecto)
-- `secondaryNav`?: [{ label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap", active?: boolean (null = por defecto) }] (máx 12) (null = por defecto)
+- `secondaryNav`?: [{ label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap", active?: boolean (null = por defecto), badge?: string (min 1, ≤6) (null = por defecto) }] (máx 12) (null = por defecto)
+- `layout`?: "sidebar"|"inset"|"topbar"|null (null = por defecto)
+- `breadcrumb`?: [{ label: string (min 1, ≤160), href?: string (null = por defecto) }] (min 1, máx 4) (null = por defecto)
 - `title`: string (min 1, ≤160)
 - `user`?: { name: string (min 1, ≤160), detail?: string (≤80) (null = por defecto) } (null = por defecto)
 
@@ -86,7 +94,7 @@ Ejemplo: `{"brand":{"name":"Portenta","detail":"Ciclo de venta"},"nav":[{"label"
 
 #### AuthFrame (admite hijos)
 
-Pantalla de identidad de Pai (iniciar sesión, registro, invitación), idéntica a la real: fondo animado de Pai, logo blanco y una tarjeta centrada con title y description; sus hijos van dentro de la tarjeta (Input, Button, Text, Separator…). Va siempre como raíz de la vista. Nada se envía.
+Pantalla de identidad de Pai (iniciar sesión, registro, invitación), idéntica a la real: fondo animado de Pai, logo blanco y una tarjeta centrada con title y description; sus hijos van dentro de la tarjeta (Input, Button, Text, Separator…). Va siempre como raíz de la vista. Es una maqueta: los campos y botones se pintan deshabilitados, nada se escribe ni se envía.
 
 - `title`?: string (min 1, ≤160) (null = por defecto)
 - `description`?: string (≤2000) (null = por defecto)
@@ -109,7 +117,7 @@ Ejemplo: `{"area":"admin","active":"admin.organizations","breadcrumb":[{"label":
 
 #### PortalShell (admite hijos)
 
-Pantalla del Portal de Pai, idéntica a la real: selector de organización, el menú real del área (home, organization, project o product) tal como lo ve un cliente o el staff de Pai (audience), usuario al pie y la barra con migas y, para staff, «Preguntar al agente». Sus hijos son el contenido de la página. Va siempre como raíz de la vista. active es la clave del ítem activo del menú (projects, milestones, payments…). menu reemplaza el menú real sólo para pantallas que Portal aún no tiene. Nada navega.
+Pantalla del Portal de Pai, idéntica a la real: selector de organización, el menú real del área (home, organization, project o product) tal como lo ve un cliente o el staff de Pai (audience), usuario al pie y la barra con migas. Sus hijos son el contenido de la página. Va siempre como raíz de la vista. active es la clave del ítem activo del menú (projects, milestones, payments…). menu reemplaza el menú real sólo para pantallas que Portal aún no tiene. Nada navega.
 
 - `area`?: "home"|"organization"|"project"|"product"|null (null = por defecto)
 - `audience`?: "client"|"staff"|null (null = por defecto)
@@ -135,6 +143,15 @@ Página del sitio público de Pai (pai.lat), idéntica a la real: header flotant
 Ejemplo: `{"lang":"es","page":"home","cookies":true}`
 
 ### Grupo: Sitio web
+
+#### BlogList
+
+Lista de artículos de un sitio (pai.lat o el de un cliente) en tarjetas: title, excerpt, date opcional (AAAA-MM-DD), category opcional y href opcional (ruta del Portal o https; sin él, la tarjeta no enlaza). title opcional encabeza la sección. Usa sólo artículos que existan: no inventes títulos ni enlaces.
+
+- `title`?: string (min 1, ≤200) (null = por defecto)
+- `posts`: [{ title: string (min 1, ≤160), excerpt: string (≤2000), date?: string (null = por defecto), category?: string (min 1, ≤160) (null = por defecto), href?: string (null = por defecto) }] (min 1, máx 9)
+
+Ejemplo: `{"title":"Del blog","posts":[{"title":"Cinco formas de reducir las citas perdidas","excerpt":"Recordatorios, confirmación en un clic y lista de espera: lo que nos funcionó en tres sucursales.","date":"2026-09-18","category":"Operación","href":"https://pai.lat/blog"},{"title":"Cómo elegir horarios que sí se llenan","excerpt":"Lo que aprendimos de un año de agenda en línea en clínicas dentales.","date":"2026-08-30","category":"Agenda"}]}`
 
 #### ContactSection (admite hijos)
 
@@ -162,6 +179,16 @@ Cierre de una página del sitio: titular grande, una línea de texto y dos llama
 - `centered`?: boolean (null = por defecto)
 
 Ejemplo: `{"headline":"Hablemos de tu proyecto","description":"Te respondemos en 24 horas con los siguientes pasos.","primary":"Agenda una llamada","secondary":"Conoce nuestros servicios","centered":true}`
+
+#### HowItWorks
+
+Sección «cómo funciona» de un sitio (pai.lat o el de un cliente): de 2 a 6 pasos numerados en orden, cada uno con title y body; en pantallas anchas van en fila (hasta 3 por fila), en angostas uno bajo otro. title y intro opcionales encabezan la sección. Para tarjetas de servicios usa ServiceCards.
+
+- `title`?: string (min 1, ≤200) (null = por defecto)
+- `intro`?: string (≤2000) (null = por defecto)
+- `steps`: [{ title: string (min 1, ≤160), body: string (≤2000) }] (min 2, máx 6)
+
+Ejemplo: `{"title":"Cómo agendar tu cita","steps":[{"title":"Elige la sucursal","body":"Ve las sucursales cercanas y sus horarios."},{"title":"Escoge el horario","body":"Sólo aparecen los horarios libres de ese día."},{"title":"Recibe la confirmación","body":"Te llega por correo, con un recordatorio un día antes."}]}`
 
 #### LogoGrid
 
@@ -192,7 +219,7 @@ Ejemplo: `{"items":[{"title":"Diagnóstico","body":"Entendemos tu operación y l
 
 #### SiteHero
 
-Hero de la home de pai.lat, el real: fondo de puntos y malla de color animada a la derecha, sello opcional (badge, p. ej. «Stripe Premier Partner»), titular grande cuyo final (highlight) va en el degradado de marca, introducción y dos llamadas (primary sólida, secondary discreta). Primer hijo de SiteShell.
+Hero de un sitio. variant pai (o null) es el de la home de pai.lat, el real: fondo de puntos y malla de color animada, sello opcional (badge, p. ej. «Stripe Premier Partner»), titular grande cuyo final (highlight) va en el color de marca, introducción y dos llamadas (primary sólida, secondary discreta). variant plain es el de un sitio de cliente: el mismo titular, intro y llamadas, sin el degradado ni la malla de Pai (highlight sigue al titular, sin color). Primer hijo de SiteShell.
 
 - `badge`?: string (min 1, ≤160) (null = por defecto)
 - `title`: string (min 1, ≤200)
@@ -200,8 +227,137 @@ Hero de la home de pai.lat, el real: fondo de puntos y malla de color animada a 
 - `intro`: string (≤2000)
 - `primary`?: string (min 1, ≤160) (null = por defecto)
 - `secondary`?: string (min 1, ≤160) (null = por defecto)
+- `variant`?: "pai"|"plain"|null (null = por defecto)
 
 Ejemplo: `{"badge":"Stripe Premier Partner","title":"Hacemos simple lo complejo, ","highlight":"posible lo imposible.","intro":"Diseñamos, construimos y operamos productos digitales, pagos e IA para empresas y plataformas en México y Latinoamérica.","primary":"Hablemos de tu proyecto","secondary":"Explora cómo trabajamos"}`
+
+#### Testimonials
+
+Sección de testimonios de un sitio (pai.lat o el de un cliente): de 1 a 6 citas con quote, author, role opcional (cargo y empresa) y source. Usa sólo citas y calificaciones que vengan de datos del cliente o de una herramienta: no inventes testimonios, nombres ni estrellas. source dice de dónde salen (p. ej. «Encuesta NPS sep 2026», «Google Reviews»); sin source, el item se marca «Ejemplo» y no se presenta como real. title opcional encabeza la sección.
+
+- `title`?: string (min 1, ≤200) (null = por defecto)
+- `items`: [{ quote: string (≤2000), author: string (min 1, ≤160), role?: string (min 1, ≤160) (null = por defecto), source?: string (min 2, ≤60) (null = por defecto) }] (min 1, máx 6)
+
+Ejemplo: `{"title":"Lo que dicen nuestros pacientes","items":[{"quote":"Agendar mi cita me tomó un minuto y me llegó el recordatorio un día antes.","author":"Mariana López","role":"Paciente desde 2024","source":"Google Reviews"},{"quote":"Dejamos de perder citas por olvidos: los recordatorios hicieron la diferencia.","author":"Dra. Paula Méndez","role":"Directora, sucursal Roma","source":"Encuesta NPS sep 2026"}]}`
+
+### Grupo: Patrones
+
+#### AuthLayout (admite hijos)
+
+Pantalla de acceso o registro de la app de un cliente, sólo como maqueta: brand (Heading o Text con el nombre de la app), form (Input de correo, Checkbox, Button) y aside (un panel con texto o una cita). Un hijo por región, en ese orden; regions elige cuáles usa. El formulario se pinta deshabilitado: se lee, pero nada se enfoca ni se envía. asideSide end (por omisión) o start; en pantallas angostas el panel se oculta. Dentro sólo admite los del grupo forms y Stack, Grid, Section, Frame, Separator, Heading, Text, Alert, Badge, StatusBadge, StatusDot, Avatar, IconTile, Kbd, List, Link, Item, EmptyState, ErrorState, LoadingState, Skeleton, Spinner, Button, ButtonGroup, Checkbox, Input, RadioGroup, Select, Switch, Textarea, DateSelector, Autocomplete y Stages. Para las pantallas de identidad de Pai usa AuthFrame. Nunca pidas contraseñas reales ni códigos: usa sólo campos de ejemplo.
+
+- `regions`?: ["brand"|"form"|"aside"] (min 1, máx 3) (null = por defecto)
+- `asideSide`?: "start"|"end"|null (null = por defecto)
+
+Ejemplo: `{"asideSide":"end"}`
+
+#### BoardLayout (admite hijos)
+
+Pantalla de tablero o agenda: toolbar (FilterBar, ToggleGroup, Button), board (Kanban, Gantt, TaskBoard o EventCalendar; se desplaza en horizontal si no cabe) y aside (KeyValue, Item, ActivityFeed). Un hijo por región, en ese orden; regions elige cuáles usa. aside va a la derecha en pantallas anchas (asideWidth narrow 18rem o medium 22rem, por omisión) y debajo en angostas.
+
+- `regions`?: ["toolbar"|"board"|"aside"] (min 1, máx 3) (null = por defecto)
+- `asideWidth`?: "narrow"|"medium"|null (null = por defecto)
+
+Ejemplo: `{"asideWidth":"medium"}`
+
+#### ChatLayout (admite hijos)
+
+Pantalla de una conversación con un agente, de maqueta: no se conecta a ningún agente ni envía mensajes. thread lleva el hilo (ChatThread), composer el cuadro para escribir (ChatComposer, que ya es maqueta por sí mismo) y aside un lateral opcional (contexto, archivos, pasos: KeyValue, List, FileList…). Un hijo por región, en ese orden; regions elige cuáles usa. En pantallas anchas aside va a la derecha; en angostas, debajo. Dentro de Card no dibuja un marco propio.
+
+- `regions`?: ["thread"|"composer"|"aside"] (min 1, máx 3) (null = por defecto)
+
+Ejemplo: `{}`
+
+#### DashboardLayout (admite hijos)
+
+Tablero dentro de un shell (PortalShell, AppShell) o en la raíz. kpis contiene Stats; main, Chart o DataTable; side, BarList, Timeline o Item; footer, DataTable. regions elige las regiones presentes y sus hijos las llenan en ese orden, uno por región. side define el ancho del lateral: narrow (1/3, por omisión) o wide (1/2). Cada región trae su marco.
+
+- `regions`?: ["kpis"|"main"|"side"|"footer"] (min 1, máx 4) (null = por defecto)
+- `side`?: "narrow"|"wide"|null (null = por defecto)
+
+Ejemplo: `{"side":"narrow"}`
+
+#### DetailLayout (admite hijos)
+
+Detalle dentro de un shell o en la raíz: header (PageHeader, ProjectHeader o Heading), summary (KeyValue o Stats), main (Tabs, Section, Timeline o DataTable), aside (KeyValue, Item, ActivityFeed o Checklist). regions elige las regiones y sus hijos las llenan en ese orden, uno por región. asideSide coloca el lateral al inicio o al final en pantallas anchas; en angostas queda al final. stickyAside fija el lateral al hacer scroll.
+
+- `regions`?: ["header"|"summary"|"main"|"aside"] (min 1, máx 4) (null = por defecto)
+- `asideSide`?: "end"|"start"|null (null = por defecto)
+- `stickyAside`?: boolean (null = por defecto)
+
+Ejemplo: `{"asideSide":"end","stickyAside":true}`
+
+#### DocLayout (admite hijos)
+
+Layout de un documento largo (manual, política, especificación): header (PageHeader o Heading), toc (el índice: un List o un Stack de Item con los títulos de las secciones) y content (Section tras Section). Un hijo por región, en ese orden; regions elige cuáles usa. En pantallas anchas el índice va a la izquierda y se queda fijo al hacer scroll (tocWidth narrow 12rem o medium 16rem, por omisión); en angostas va arriba.
+
+- `regions`?: ["header"|"toc"|"content"] (min 1, máx 3) (null = por defecto)
+- `tocWidth`?: "narrow"|"medium"|null (null = por defecto)
+
+Ejemplo: `{"tocWidth":"medium"}`
+
+#### EmptyLayout (admite hijos)
+
+Estado vacío de una pantalla o sección más rico que EmptyState: visual (IconTile o un Skeleton de lo que vendrá), message (Heading y Text), actions (Button o ButtonGroup) y preview (una muestra de cómo se verá: Card, Table o Chart de ejemplo). Un hijo por región, en ese orden; regions elige cuáles usa. layout centered (por omisión) centra todo y pone preview debajo; split pone el mensaje a la izquierda y preview a la derecha en pantallas anchas. Para un vacío simple usa EmptyState.
+
+- `regions`?: ["visual"|"message"|"actions"|"preview"] (min 1, máx 4) (null = por defecto)
+- `layout`?: "centered"|"split"|null (null = por defecto)
+
+Ejemplo: `{"layout":"centered"}`
+
+#### FilesLayout (admite hijos)
+
+Explorador de archivos o documentos: tree (Tree de carpetas), list (FileList o DataTable de archivos) y preview (el detalle del archivo elegido: KeyValue, Text, Card). Un hijo por región, en ese orden; regions elige cuáles usa. En pantallas anchas van en tres columnas (árbol de treeWidth narrow 14rem o medium 18rem, por omisión; vista previa de 20rem); en angostas, una debajo de otra. Elegir en el árbol o la lista no cambia la vista: es estática.
+
+- `regions`?: ["tree"|"list"|"preview"] (min 1, máx 3) (null = por defecto)
+- `treeWidth`?: "narrow"|"medium"|null (null = por defecto)
+
+Ejemplo: `{"treeWidth":"medium"}`
+
+#### FormLayout (admite hijos)
+
+Formulario de maqueta (alta, edición, contacto): intro (Heading y Text), fields (Input, Select, Textarea, Checkbox o los del grupo forms, en un Stack o Grid) y actions (Button o ButtonGroup). Un hijo por región, en ese orden; regions elige cuáles usa. Los campos y las acciones se pintan deshabilitados: se ven y se leen, pero no se enfocan, no se envían ni guardan nada. columns 2 pone los campos en dos columnas en pantallas anchas. Dentro sólo admite los del grupo forms y Stack, Grid, Section, Frame, Separator, Heading, Text, Alert, Badge, StatusBadge, StatusDot, Avatar, IconTile, Kbd, List, Link, Item, EmptyState, ErrorState, LoadingState, Skeleton, Spinner, Button, ButtonGroup, Checkbox, Input, RadioGroup, Select, Switch, Textarea, DateSelector, Autocomplete y Stages. Nunca pidas contraseñas, tarjetas, cuentas bancarias ni códigos de verificación.
+
+- `regions`?: ["intro"|"fields"|"actions"] (min 1, máx 3) (null = por defecto)
+- `columns`?: number | number (null = por defecto)
+
+Ejemplo: `{"columns":1}`
+
+#### PageLayout (admite hijos)
+
+Layout de una página de producto, como las secciones de un proyecto en Portal: header (PageHeader o ProjectHeader), toolbar (FilterBar, ToggleGroup y botones), main (DataTable, TreeTable, Kanban, Stack…) y aside (KeyValue, Item, Timeline). Un hijo por región, en ese orden; regions elige cuáles usa (p. ej. ["header", "main"]). aside va a la derecha en pantallas anchas y debajo en angostas. width contained centra el contenido con un ancho de lectura (formularios, documentos); full (por omisión) usa todo el ancho. Va dentro de un shell (PortalShell, ConsoleShell, AppShell) o en la raíz.
+
+- `regions`?: ["header"|"toolbar"|"main"|"aside"] (min 1, máx 4) (null = por defecto)
+- `width`?: "full"|"contained"|null (null = por defecto)
+
+Ejemplo: `{"width":"full"}`
+
+#### SettingsLayout (admite hijos)
+
+Pantalla de ajustes (de una cuenta, un espacio o un producto): nav es el menú de secciones (normalmente un Stack de Item o ToggleGroup vertical) y main el panel de la sección (Section con Input, Switch, Select…). Un hijo por región, en ese orden; regions elige cuáles usa. nav va a la izquierda y fijo al hacer scroll en pantallas anchas, y arriba en angostas. navWidth: narrow (12rem) o medium (16rem, por omisión). Elegir en nav no cambia main: la vista es estática.
+
+- `regions`?: ["nav"|"main"] (min 1, máx 2) (null = por defecto)
+- `navWidth`?: "narrow"|"medium"|null (null = por defecto)
+
+Ejemplo: `{"navWidth":"medium"}`
+
+#### SplitView (admite hijos)
+
+Vista de lista y lectura: list contiene la lista de registros; detail muestra el registro elegido. regions elige cuáles usa y sus hijos las llenan en ese orden, uno por región. listWidth fija el ancho de la lista en pantallas anchas: narrow (18rem), medium (24rem, por omisión) o wide (32rem); en angostas se apilan. Elegir en la lista no cambia el detalle: la vista es estática. Dentro de Card no dibuja un marco propio.
+
+- `regions`?: ["list"|"detail"] (min 1, máx 2) (null = por defecto)
+- `listWidth`?: "narrow"|"medium"|"wide"|null (null = por defecto)
+
+Ejemplo: `{"listWidth":"medium"}`
+
+#### WizardLayout (admite hijos)
+
+Asistente o alta guiada (onboarding, configuración): steps (Stages con el paso actual), main (el contenido del paso: campos, texto, opciones) y actions (Anterior, Siguiente). Un hijo por región, en ese orden; regions elige cuáles usa. orientation top (por omisión) pone los pasos arriba; side, a la izquierda en pantallas anchas. Todo se pinta deshabilitado (los pasos también): se ve y se lee, pero nada se enfoca, avanza ni envía. Dentro sólo admite los del grupo forms y Stack, Grid, Section, Frame, Separator, Heading, Text, Alert, Badge, StatusBadge, StatusDot, Avatar, IconTile, Kbd, List, Link, Item, EmptyState, ErrorState, LoadingState, Skeleton, Spinner, Button, ButtonGroup, Checkbox, Input, RadioGroup, Select, Switch, Textarea, DateSelector, Autocomplete y Stages.
+
+- `regions`?: ["steps"|"main"|"actions"] (min 1, máx 3) (null = por defecto)
+- `orientation`?: "top"|"side"|null (null = por defecto)
+
+Ejemplo: `{"orientation":"top"}`
 
 ### Grupo: Estructura
 
@@ -238,7 +394,7 @@ Ejemplo: `{"title":"Detalle del cálculo","defaultOpen":true}`
 
 #### DetailSheet (admite hijos)
 
-Detalle de un elemento (un pago, una tarea, un hito) con la anatomía del panel lateral de Pai: antetítulo, título, estados, descripción, cuerpo (sus hijos: KeyValue, Text, Timeline…) y acciones al pie. presentation inline (por omisión) lo dibuja en la vista; overlay lo abre sobre la página con un botón (triggerLabel). Cerrar sólo lo oculta en la vista.
+Detalle de un elemento (un pago, una tarea, un hito) con la anatomía del panel lateral de Pai: antetítulo, título, estados, descripción, cuerpo (sus hijos: KeyValue, Text, Timeline…; cada Section hija es una sección con rótulo) y acciones al pie. variant: detail (por omisión, un registro), create (alta) o settings (edición). presentation inline (por omisión) lo dibuja en la vista; overlay lo abre sobre la página con un botón (triggerLabel). Cerrar sólo lo oculta en la vista.
 
 - `eyebrow`?: string (min 1, ≤160) (null = por defecto)
 - `title`: string (min 1, ≤160)
@@ -249,12 +405,37 @@ Detalle de un elemento (un pago, una tarea, un hito) con la anatomía del panel 
 - `open`?: boolean (null = por defecto)
 - `triggerLabel`?: string (min 1, ≤160) (null = por defecto)
 - `size`?: "md"|"lg"|null (null = por defecto)
+- `variant`?: "detail"|"create"|"settings"|null (null = por defecto)
 
 Ejemplo: `{"eyebrow":"Pago · 2 de 3","title":"Anticipo de construcción","description":"USD 4,000.00 · Transferencia","badges":[{"label":"Pagado","tone":"success"}],"actions":[{"label":"Descargar factura","icon":"download"}]}`
 
+#### DialogFrame (admite hijos)
+
+La maqueta de un diálogo o una confirmación, dibujada en su lugar de la vista: no se abre encima de la página, no oscurece el fondo ni atrapa el foco. title, description, icon opcional, tone destructive para una confirmación de borrar, y sus hijos son el cuerpo (Text, KeyValue, campos de maqueta…). actions son hasta 3 botones decorativos al pie (el primero, el principal); no navegan ni hacen nada. size: sm, md (por omisión) o lg.
+
+- `title`: string (min 1, ≤160)
+- `description`?: string (≤2000) (null = por defecto)
+- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto)
+- `tone`?: "default"|"destructive"|null (null = por defecto)
+- `actions`?: [{ label: string (min 1, ≤160) }] (min 1, máx 3) (null = por defecto)
+- `size`?: "sm"|"md"|"lg"|null (null = por defecto)
+
+Ejemplo: `{"title":"¿Archivar el proyecto?","description":"El equipo dejará de verlo en la lista de proyectos activos.","tone":"destructive","actions":[{"label":"Archivar"},{"label":"Cancelar"}]}`
+
+#### Frame (admite hijos)
+
+Marco de paneles: un panel por hijo; stacked los une (ficha por secciones). Un solo bloque: Card.
+
+- `title`?: string (min 1, ≤160) (null = por defecto)
+- `description`?: string (≤2000) (null = por defecto)
+- `stacked`?: boolean (null = por defecto)
+- `action`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
+
+Ejemplo: `{"title":"Producto","description":"Ambientes y dominios.","stacked":true}`
+
 #### Grid (admite hijos)
 
-Cuadrícula de 1 a 6 columnas que se apila en pantallas angostas. Úsala para tarjetas de métricas (5 o 6 en una fila de KPIs) o grupos paralelos.
+Cuadrícula de 1 a 6 columnas que se apila en pantallas angostas. Úsala para tarjetas de métricas (5 o 6 en una fila de KPIs) o grupos paralelos. Dentro de una AppShell en una página, 4 columnas caben antes.
 
 - `columns`?: integer (≥1, ≤6) (null = por defecto)
 - `gap`?: "sm"|"md"|"lg"|"xl"|null (null = por defecto)
@@ -331,12 +512,24 @@ Ejemplo: `{"name":"Julio César Vega","size":"md"}`
 
 #### Badge
 
-Etiqueta corta de estado o categoría.
+Etiqueta corta de estado o categoría. tone (neutral, info, progress, success, warning, danger) la colorea y manda sobre variant.
 
 - `text`: string
 - `variant`?: "default"|"secondary"|"destructive"|"outline"|null (null = por defecto)
+- `tone`?: "neutral"|"info"|"progress"|"success"|"warning"|"danger"|null (null = por defecto)
 
-Ejemplo: `{"text":"En curso","variant":"secondary"}`
+Ejemplo: `{"text":"En curso","variant":"secondary","tone":"progress"}`
+
+#### CodeBlock
+
+Código resaltado con copiar; sólo texto, no se ejecuta. title: archivo o comando.
+
+- `code`: string (min 1, ≤8000)
+- `language`: "text"|"ts"|"tsx"|"js"|"json"|"sql"|"bash"|"yaml"|"md"|"html"|"css"
+- `title`?: string (min 1, ≤160) (null = por defecto)
+- `lineNumbers`?: boolean (null = por defecto)
+
+Ejemplo: `{"code":"const total = pagos.reduce((suma, p) => suma + p.monto, 0);","language":"ts","title":"totales.ts"}`
 
 #### CommentsPanel
 
@@ -365,6 +558,30 @@ Historial de versiones de un documento (el panel del riel de Portal y Console), 
 - `emptyLabel`?: string (min 1, ≤160) (null = por defecto)
 
 Ejemplo: `{"entries":[{"id":"v3","revision":3,"summary":"Mueve el anticipo al hito 2","kind":"edit","author":"Luis Pérez","at":"2026-10-02T17:10:00Z","current":true},{"id":"v2","revision":2,"summary":"Agrega el cronograma de pagos","kind":"edit","author":"Agente","agent":true,"at":"2026-09-28T10:00:00Z"},{"id":"v1","revision":1,"summary":"Primera versión","kind":"create","author":"Luis Pérez","at":"2026-09-27T09:30:00Z"}]}`
+
+#### HoverCard
+
+Un dato (label, subrayado punteado) que al pasar el cursor o enfocarlo con el teclado abre una tarjeta de sólo lectura: title, text y hasta 6 pares etiqueta–valor (items), como la ficha breve de una persona, un cliente o un término. No lleva hijos ni controles: para botones, campos o filtros en un panel usa Popover. La tarjeta sólo se abre con el cursor o el foco (no en táctil): no pongas ahí nada que no esté también en otro lugar de la vista. side elige dónde abre (bottom por omisión).
+
+- `label`: string (min 1, ≤160)
+- `title`?: string (min 1, ≤160) (null = por defecto)
+- `text`?: string (min 1, ≤280) (null = por defecto)
+- `items`?: [{ label: string (min 1, ≤160), value: string (min 1, ≤120) }] (min 1, máx 6) (null = por defecto)
+- `side`?: "top"|"right"|"bottom"|"left"|null (null = por defecto)
+
+Ejemplo: `{"label":"Ana López","title":"Ana López","text":"Arquitecta de Pai a cargo del proyecto.","items":[{"label":"Región","value":"Norte"},{"label":"Proyectos activos","value":"3"}]}`
+
+#### IconTile
+
+Icono en su cuadro (filas, tarjetas). label lo nombra; soft y solid toman el tone.
+
+- `icon`: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"
+- `label`: string (min 1, ≤160)
+- `tone`?: "neutral"|"info"|"progress"|"success"|"warning"|"danger"|null (null = por defecto)
+- `variant`?: "outline"|"elevated"|"soft"|"solid"|null (null = por defecto)
+- `size`?: "sm"|"default"|"lg"|null (null = por defecto)
+
+Ejemplo: `{"icon":"wallet","label":"Pagos","tone":"info","variant":"soft"}`
 
 #### Item
 
@@ -404,6 +621,18 @@ Lista de viñetas o numerada de texto plano.
 - `ordered`?: boolean (null = por defecto)
 
 Ejemplo: `{"items":["Validar el alcance","Firmar la propuesta","Agendar el arranque"],"ordered":true}`
+
+#### Rating
+
+Calificación con estrellas, admite decimales. maxRating fija el total (5 por omisión); size elige sm, default o lg; showValue muestra el número. editable permite cambiar la calificación en estado local: nada se guarda. rating no puede superar maxRating.
+
+- `rating`: number (≥0, ≤10)
+- `maxRating`?: integer (≥1, ≤10) (null = por defecto)
+- `size`?: "sm"|"default"|"lg"|null (null = por defecto)
+- `showValue`?: boolean (null = por defecto)
+- `editable`?: boolean (null = por defecto)
+
+Ejemplo: `{"rating":4.5,"showValue":true}`
 
 #### StatusBadge
 
@@ -455,7 +684,7 @@ Ejemplo: `{"items":[{"label":"Norte","value":82,"display":"$4.1 M"},{"label":"Ce
 
 #### Chart
 
-Gráfica con los colores del tema: bar, line, area o pie. categories es el eje X (o las porciones de pie) y cada serie trae un valor por categoría. pie usa una sola serie. Con kind bar, orientation horizontal dibuja barras acostadas (rankings, etiquetas largas).
+Gráfica con los colores del tema: bar, line, area o pie. categories es el eje X (o las porciones de pie) y cada serie trae un valor por categoría. pie usa una sola serie. Con kind bar, orientation horizontal dibuja barras acostadas (rankings, etiquetas largas). stacked apila las series en bar y area (totales por categoría); null o false las pone lado a lado, y en line o pie no cambia nada.
 
 - `title`: string (min 1, ≤160)
 - `description`?: string (≤2000) (null = por defecto)
@@ -470,7 +699,7 @@ Ejemplo: `{"title":"Horas por mes","kind":"bar","categories":["Jul","Ago","Sep"]
 
 #### DataTable
 
-La tabla de datos de Portal y Console (DataTable): columnas tipadas (text, number, money en centavos alineado a la derecha, percent, date, badge, status con tono, link, person, progress), buscador, filtros «Etiqueta: valor», orden por columna, paginación (pageSize; null la oculta y muestra todas las filas), selección (selectable añade casillas; selectionSummary deja sólo el pie «0 de N fila(s) seleccionada(s)», como la lista de proyectos), filas apagadas (muted) y un menú «⋯» por fila. Todo funciona dentro de la vista (filtra, ordena, pagina) y nada se guarda ni navega. Cada fila trae id y cells: { [key de columna]: valor }; una celda vacía es null.
+La tabla de datos de Portal y Console (DataTable): columnas tipadas (text, number, money en centavos alineado a la derecha, percent, date, badge, status con tono, link, person, progress), buscador, filtros «Etiqueta: valor» (filters[].key es la key de una columna o de cualquier celda que traen las filas, aunque no sea columna, p. ej. la de un secondaryKey), orden por columna (defaultSort.key, sólo columnas), paginación (pageSize; null la oculta y muestra todas las filas), selección (selectable añade casillas; selectionSummary deja sólo el pie «0 de N fila(s) seleccionada(s)», como la lista de proyectos), filas apagadas (muted) y un menú «⋯» por fila. Todo funciona dentro de la vista (filtra, ordena, pagina) y nada se guarda ni navega. Cada fila trae id y cells: { [key de columna]: valor }; una celda vacía es null.
 
 - `columns`: [{ key: string, header: string (min 1, ≤160), sortable?: boolean (null = por defecto), hideBelow?: "sm"|"md"|"lg"|null (null = por defecto), type: "text"|"number"|"money"|"percent"|"date"|"badge"|"status"|"link"|"person"|"progress", secondaryKey?: string (null = por defecto), decimals?: integer (≥0, ≤4) (null = por defecto), currency?: string (min 3, ≤3) (null = por defecto), plusTax?: boolean (null = por defecto), format?: "day"|"instant"|"relative"|null (null = por defecto) }] (min 1, máx 10)
 - `rows`: [{ id: string (min 1, ≤80), cells: object, muted?: boolean (null = por defecto), actions?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), destructive?: boolean (null = por defecto), separatorBefore?: boolean (null = por defecto) }] (min 1, máx 20) (null = por defecto) }] (máx 200)
@@ -485,6 +714,28 @@ La tabla de datos de Portal y Console (DataTable): columnas tipadas (text, numbe
 
 Ejemplo: `{"columns":[{"key":"client","header":"Cliente","type":"text","secondaryKey":"city","sortable":true},{"key":"seller","header":"Vendedor","type":"person","hideBelow":"md"},{"key":"stage","header":"Etapa","type":"status","sortable":true},{"key":"amount","header":"Monto","type":"money","currency":"MXN","sortable":true},{"key":"close","header":"Cierre","type":"date","hideBelow":"sm","sortable":true}],"rows":[{"id":"v1","cells":{"client":"Grupo Lumen","city":"Monterrey","seller":{"name":"Ana López","secondary":"Norte"},"stage":{"label":"Negociación","tone":"progress"},"amount":42000000,"close":"2026-10-28"},"actions":[{"label":"Ver detalle"},{"label":"Marcar como ganada","icon":"check"}]},{"id":"v2","cells":{"client":"Ñandú Logística","city":"Querétaro","seller":{"name":"Luis Pérez","secondary":"Centro"},"stage":{"label":"Propuesta enviada","tone":"info"},"amount":18500000,"close":"2026-11-15"}},{"id":"v3","cells":{"client":"Constructora Alba","city":"Puebla","seller":{"name":"Ana López","secondary":"Norte"},"stage":{"label":"Perdida","tone":"danger"},"amount":9900000,"close":"2026-09-30"},"muted":true}],"search":"Buscar cliente…","filters":[{"key":"stage","title":"Etapa"}],"defaultSort":{"key":"amount","desc":true},"pageSize":10,"selectable":false,"empty":{"title":"Aún no hay ventas","icon":"receipt"},"toolbarAction":{"label":"Nueva venta","icon":"plus"}}`
 
+#### FileList
+
+Lista de archivos de una carpeta o un expediente, en filas (layout list, por omisión) o tarjetas (grid): nombre, tipo (pdf, document, sheet, slides, image, video, audio, code, archive u other: elige el icono), tamaño ya formateado («2.4 MB»), dueño y fecha de actualización (AAAA-MM-DD). Con href (ruta del Portal o https) el nombre enlaza; sin href es texto. No abre, descarga ni muestra el contenido de ningún archivo. Para la carpeta de Recursos de Pai usa Resources.
+
+- `files`: [{ id: string (min 1, ≤80), name: string (min 1, ≤160), kind: "pdf"|"document"|"sheet"|"slides"|"image"|"video"|"audio"|"code"|"archive"|"other", size?: string (min 1, ≤20) (null = por defecto), owner?: string (min 1, ≤160) (null = por defecto), updated?: string (null = por defecto), href?: string (null = por defecto) }] (min 1, máx 200)
+- `layout`?: "list"|"grid"|null (null = por defecto)
+
+Ejemplo: `{"files":[{"id":"f1","name":"Propuesta comercial.pdf","kind":"pdf","size":"1.2 MB","owner":"Ana López","updated":"2026-10-02"},{"id":"f2","name":"Presupuesto 2027.xlsx","kind":"sheet","size":"84 KB","owner":"Luis Pérez","updated":"2026-09-28"},{"id":"f3","name":"Planos de la bodega.zip","kind":"archive","size":"24 MB","updated":"2026-09-15"}],"layout":"list"}`
+
+#### Heatmap
+
+Mapa de calor con los colores del tema: una matriz de filas × columnas (días × horas, semanas × días…) donde cada celda es más intensa cuanto mayor su valor. rows y columns son las etiquetas de los ejes; values trae una fila por cada fila, con un valor (0 o más) por columna. 0 se pinta vacío. La leyenda va de «Menos» a «Más» con el máximo; unit se añade a los valores. Las cifras se leen también sin el color (lectores de pantalla).
+
+- `title`: string (min 1, ≤160)
+- `description`?: string (≤2000) (null = por defecto)
+- `rows`: [string (min 1, ≤40)] (min 1, máx 31)
+- `columns`: [string (min 1, ≤40)] (min 1, máx 60)
+- `values`: [[number (≥0)]] (min 1, máx 31)
+- `unit`?: string (≤20) (null = por defecto)
+
+Ejemplo: `{"title":"Actividad del equipo por día y hora","rows":["Lun","Mar","Mié","Jue","Vie"],"columns":["9","11","13","15","17"],"values":[[4,7,2,6,3],[5,8,3,7,2],[3,6,1,9,4],[6,9,2,8,5],[2,4,0,3,1]],"unit":"tareas"}`
+
 #### KeyValue
 
 Pares etiqueta–valor (fechas, responsables, montos) en 1 a 3 columnas.
@@ -496,16 +747,19 @@ Ejemplo: `{"items":[{"label":"Responsable","value":"Ana López"},{"label":"Inici
 
 #### Metric
 
-Indicador (KPI): etiqueta, valor ya formateado («68 %», «$1.2 M»), unidad pequeña opcional («MXN») y detalle con su comparación o fecha de corte. tone colorea el valor: positive, warning, negative o info.
+Indicador (KPI): etiqueta, valor ya formateado («68 %», «$1.2 M»), unidad pequeña opcional («MXN») cambio opcional («+12 %», badge con trend) y detalle con su comparación o fecha de corte. tone colorea el valor: positive, warning, negative o info. icon añade un IconTile y trendLine una sparkline de 2–24 valores.
 
 - `label`: string (min 1, ≤160)
+- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto)
+- `trendLine`?: [number] (min 2, máx 24) (null = por defecto)
 - `value`: string (min 1, ≤40)
 - `detail`?: string (≤160) (null = por defecto)
 - `trend`?: "up"|"down"|"flat"|null (null = por defecto)
 - `unit`?: string (min 1, ≤12) (null = por defecto)
+- `delta`?: string (min 1, ≤12) (null = por defecto)
 - `tone`?: "neutral"|"positive"|"warning"|"negative"|"info"|null (null = por defecto)
 
-Ejemplo: `{"label":"Avance","value":"68 %","detail":"+12 pts vs. agosto","trend":"up","tone":"positive"}`
+Ejemplo: `{"label":"Avance","value":"68 %","delta":"+12 pts","detail":"vs. agosto","trend":"up","tone":"positive"}`
 
 #### Progress
 
@@ -517,6 +771,27 @@ Barra de avance de 0 a 100 con etiqueta opcional.
 
 Ejemplo: `{"value":68,"label":"Avance del proyecto"}`
 
+#### ProgressRing
+
+Anillo de avance de 0 a 100, con el valor al centro y la etiqueta debajo: para un indicador que se lee de un vistazo (avance de un hito, presupuesto usado). display reemplaza el texto del centro (p. ej. «5 de 8»); sin él se ve «68 %». description agrega una línea de apoyo. size elige sm, md (por omisión) o lg. Para varias barras en fila, usa Progress o BarList.
+
+- `label`: string (min 1, ≤160)
+- `value`: number (≥0, ≤100)
+- `display`?: string (min 1, ≤20) (null = por defecto)
+- `description`?: string (≤2000) (null = por defecto)
+- `size`?: "sm"|"md"|"lg"|null (null = por defecto)
+
+Ejemplo: `{"label":"Avance del hito de pagos","value":68,"description":"Quedan la conciliación y las pruebas con el banco."}`
+
+#### Stats
+
+Fila de 1–6 KPIs: valor formateado, unidad, cambio con trend y tone y detalle. icon añade un IconTile; progress dibuja una barra de 0 a 100 con su etiqueta (label, «Avance» por omisión) y el porcentaje a la vista; trendLine dibuja una sparkline de 2–24 valores. variant elige row (fila dividida, por omisión) o cards (tarjetas en rejilla); dentro de Card siempre se usa row.
+
+- `items`: [{ label: string (min 1, ≤160), value: string (min 1, ≤40), unit?: string (min 1, ≤12) (null = por defecto), delta?: string (min 1, ≤12) (null = por defecto), trend?: "up"|"down"|"flat"|null (null = por defecto), tone?: "neutral"|"positive"|"warning"|"negative"|"info"|null (null = por defecto), detail?: string (≤160) (null = por defecto), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), progress?: { value: number (≥0, ≤100), label?: string (min 1, ≤160) (null = por defecto) } (null = por defecto), trendLine?: [number] (min 2, máx 24) (null = por defecto) }] (min 1, máx 6)
+- `variant`?: "row"|"cards"|null (null = por defecto)
+
+Ejemplo: `{"items":[{"label":"Avance","icon":"chart","value":"68 %","delta":"+12 pts","trend":"up","tone":"positive"},{"label":"Cobrado","value":"$1.2 M","unit":"MXN","detail":"de $2.0 M","progress":{"value":60,"label":"Meta de cobro"}},{"label":"Hitos vencidos","trendLine":[5,4,3,1,2],"value":"2","delta":"+1","trend":"up","tone":"negative"}]}`
+
 #### Table
 
 Tabla de datos: columns son los encabezados y rows un arreglo de filas con una celda por columna.
@@ -526,6 +801,28 @@ Tabla de datos: columns son los encabezados y rows un arreglo de filas con una c
 - `caption`?: string (≤160) (null = por defecto)
 
 Ejemplo: `{"columns":["Hito","Responsable","Fecha"],"rows":[["Diseño","Ana López","12 sep"],["Desarrollo","Luis Pérez","30 oct"]],"caption":"Hitos del trimestre"}`
+
+#### Tree
+
+Árbol plegable (carpetas, módulos): nodos con id único y children, hasta 4 niveles y 200 nodos; expanded: ids abiertos; label: su nombre.
+
+- `items`: [any] (min 1, máx 60)
+- `expanded`?: [string (min 1, ≤60)] (máx 200) (null = por defecto)
+- `label`?: string (min 1, ≤160) (null = por defecto)
+
+Ejemplo: `{"items":[{"id":"docs","label":"Documentos","icon":"folder","children":[{"id":"sow","label":"SOW firmado","icon":"file-signature","badge":"v2"},{"id":"prd","label":"PRD","icon":"file"}]},{"id":"designs","label":"Diseños","icon":"folder"}],"expanded":["docs"],"label":"Carpetas del proyecto"}`
+
+#### TreeTable
+
+Tabla de árbol: las mismas columnas tipadas de DataTable (text, number, money en centavos, percent, date, badge, status, link, person, progress), pero cada fila puede traer children (hasta 3 niveles) que se despliegan bajo ella con su sangría: grupos por etapa o región con sus subtotales en las celdas del grupo, una lista de materiales, un organigrama. La primera columna lleva el botón de desplegar y siempre se ve (sin hideBelow). expanded: top (por omisión) abre el primer nivel, all todo, none nada. totals agrega un pie con el total general. search filtra y conserva los padres de lo que encuentra. Las columnas sortable ordenan entre hermanas. Todo pasa en la vista; nada se guarda ni navega.
+
+- `columns`: [{ key: string, header: string (min 1, ≤160), sortable?: boolean (null = por defecto), hideBelow?: "sm"|"md"|"lg"|null (null = por defecto), type: "text"|"number"|"money"|"percent"|"date"|"badge"|"status"|"link"|"person"|"progress", secondaryKey?: string (null = por defecto), decimals?: integer (≥0, ≤4) (null = por defecto), currency?: string (min 3, ≤3) (null = por defecto), plusTax?: boolean (null = por defecto), format?: "day"|"instant"|"relative"|null (null = por defecto) }] (min 1, máx 10)
+- `rows`: [{ id: string (min 1, ≤80), cells: object, muted?: boolean (null = por defecto), children?: [{ id: string (min 1, ≤80), cells: object, muted?: boolean (null = por defecto), children?: [{ id: string (min 1, ≤80), cells: object, muted?: boolean (null = por defecto) }] (min 1, máx 50) (null = por defecto) }] (min 1, máx 50) (null = por defecto) }] (min 1, máx 200)
+- `expanded`?: "top"|"all"|"none"|null (null = por defecto)
+- `search`?: string (min 1, ≤160) (null = por defecto)
+- `totals`?: { label: string (min 1, ≤160), cells: object } (null = por defecto)
+
+Ejemplo: `{"columns":[{"key":"name","header":"Etapa / proyecto","type":"text"},{"key":"owner","header":"Responsable","type":"person","hideBelow":"md"},{"key":"status","header":"Estado","type":"status"},{"key":"amount","header":"Monto","type":"money","currency":"MXN","sortable":true},{"key":"progress","header":"Avance","type":"progress","hideBelow":"sm"}],"rows":[{"id":"negociacion","cells":{"name":"Negociación","amount":60500000},"children":[{"id":"lumen","cells":{"name":"Portal de clientes · Grupo Lumen","owner":{"name":"Ana López","secondary":"Norte"},"status":{"label":"En revisión","tone":"progress"},"amount":42000000,"progress":60}},{"id":"nandu","cells":{"name":"App de rutas · Ñandú Logística","owner":{"name":"Luis Pérez","secondary":"Centro"},"status":{"label":"Propuesta enviada","tone":"info"},"amount":18500000,"progress":35}}]},{"id":"cierre","cells":{"name":"Cierre","amount":9900000},"children":[{"id":"alba","cells":{"name":"ERP de obra · Constructora Alba","owner":{"name":"Ana López","secondary":"Norte"},"status":{"label":"Firmada","tone":"success"},"amount":9900000,"progress":100}}]}],"expanded":"top","totals":{"label":"Total","cells":{"amount":70400000}}}`
 
 ### Grupo: Controles
 
@@ -538,6 +835,18 @@ Menú de acciones que se abre al pulsar: sin label es el botón «⋯» de las f
 - `align`?: "start"|"end"|null (null = por defecto)
 
 Ejemplo: `{"items":[{"label":"Editar","icon":"pencil"},{"label":"Duplicar","icon":"copy"},{"label":"Eliminar","icon":"trash","destructive":true,"separatorBefore":true}],"align":"end"}`
+
+#### Autocomplete
+
+Campo de texto que sugiere opciones mientras se escribe, con su etiqueta y ayuda: buscar un cliente, una ciudad o una persona entre items (2 a 50, { label, value }). Al elegir una opción el campo toma su texto; empty es el aviso cuando nada coincide («Sin resultados» por omisión). Responde dentro de la vista; nada se envía ni se guarda.
+
+- `label`?: string (min 1, ≤160) (null = por defecto)
+- `description`?: string (≤160) (null = por defecto)
+- `placeholder`?: string (≤80) (null = por defecto)
+- `items`: [{ label: string (min 1, ≤160), value: string (min 1, ≤80) }] (min 2, máx 50)
+- `empty`?: string (min 1, ≤80) (null = por defecto)
+
+Ejemplo: `{"label":"Cliente","placeholder":"Busca un cliente…","items":[{"label":"Grupo Lumen","value":"lumen"},{"label":"Ñandú Logística","value":"nandu"},{"label":"Constructora Alba","value":"alba"}]}`
 
 #### Button
 
@@ -592,6 +901,20 @@ Buscador de comandos (paleta tipo ⌘K) con grupos de opciones y atajos. Filtra 
 
 Ejemplo: `{"placeholder":"Busca un proyecto o una acción…","groups":[{"heading":"Acciones","items":[{"label":"Nueva propuesta","icon":"file-signature","shortcut":"⌘N"},{"label":"Subir archivo","icon":"upload"}]},{"heading":"Ir a","items":[{"label":"Cronograma","icon":"calendar"},{"label":"Pagos","icon":"wallet"}]}]}`
 
+#### DateSelector
+
+Filtro de fecha de reUI en un botón con calendario: al abrirlo se elige un día o un rango (o un mes, trimestre, semestre o año si periodTypes los ofrece) y un operador (Es, Hasta, Desde, Entre); «Aplicar» cambia el texto del botón. value es el filtro al cargar, de días: { operator, start, end? } en AAAA-MM-DD (end sólo con between). allowRange false quita «Entre»; presetMode fija un operador; showTwoMonths muestra dos meses en pantallas anchas. label nombra el filtro («Fecha de cierre»). Responde dentro de la vista; nada filtra, se envía ni se guarda.
+
+- `label`?: string (min 1, ≤160) (null = por defecto)
+- `value`?: { operator: "is"|"before"|"after"|"between", start: string, end?: string (null = por defecto) } (null = por defecto)
+- `allowRange`?: boolean (null = por defecto)
+- `periodTypes`?: ["day"|"month"|"quarter"|"half-year"|"year"] (min 1, máx 5) (null = por defecto)
+- `defaultPeriodType`?: "day"|"month"|"quarter"|"half-year"|"year"|null (null = por defecto)
+- `presetMode`?: "is"|"before"|"after"|"between"|null (null = por defecto)
+- `showTwoMonths`?: boolean (null = por defecto)
+
+Ejemplo: `{"label":"Fecha de cierre","value":{"operator":"between","start":"2026-10-01","end":"2026-10-31"}}`
+
 #### Dropzone
 
 Zona para arrastrar o elegir archivos (decorativa: no sube nada). accept dice qué se admite («PDF o XML, hasta 10 MB»).
@@ -625,6 +948,17 @@ Campo de texto de una línea con etiqueta y ayuda opcionales. Se puede escribir 
 - `type`?: "text"|"email"|"number"|"search"|"tel"|"url"|null (null = por defecto)
 
 Ejemplo: `{"label":"Correo del cliente","placeholder":"nombre@empresa.com","type":"email","description":"Le enviaremos la propuesta a esta dirección."}`
+
+#### Popover (admite hijos)
+
+Panel flotante que abre un botón con label e icon opcional. Sus hijos contienen filtros o detalles y title añade un título dentro del panel. side elige dónde abre (bottom por omisión). Los cambios quedan en la vista: nada se envía ni se guarda.
+
+- `label`: string (min 1, ≤160)
+- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto)
+- `title`?: string (≤80) (null = por defecto)
+- `side`?: "top"|"right"|"bottom"|"left"|null (null = por defecto)
+
+Ejemplo: `{"label":"Ver filtros","icon":"filter","title":"Filtrar entregables"}`
 
 #### RadioGroup
 
@@ -685,6 +1019,119 @@ Botones segmentados para cambiar de modo (Lista | Tablero, Semana | Mes). Cambia
 
 Ejemplo: `{"options":[{"label":"Lista","value":"list"},{"label":"Tablero","value":"board"}],"value":"list","variant":"outline"}`
 
+### Grupo: Formularios
+
+#### Cascader
+
+Selector de maqueta para un valor dentro de un árbol de hasta 3 niveles, con su etiqueta: región › estado › ciudad, área › equipo › rol, categoría › servicio. items son los nodos de primer nivel { value, label, children? } (1 a 30 por nivel, value único en todo el árbol); value es el value de una hoja (un nodo sin children) y el campo muestra su ruta («México / Jalisco / Guadalajara»); placeholder es el texto mientras no hay valor. Se ve como en Pai pero está deshabilitado: no se abre y nada se envía ni se guarda.
+
+- `label`: string (min 1, ≤160)
+- `items`: [{ value: string (min 1, ≤80), label: string (min 1, ≤160), children?: [{ value: string (min 1, ≤80), label: string (min 1, ≤160), children?: [{ value: string (min 1, ≤80), label: string (min 1, ≤160) }] (min 1, máx 30) (null = por defecto) }] (min 1, máx 30) (null = por defecto) }] (min 1, máx 30)
+- `value`?: string (min 1, ≤80) (null = por defecto)
+- `placeholder`?: string (min 1, ≤80) (null = por defecto)
+
+Ejemplo: `{"label":"Sede del proyecto","placeholder":"Elige una ciudad","value":"gdl","items":[{"value":"mx","label":"México","children":[{"value":"jal","label":"Jalisco","children":[{"value":"gdl","label":"Guadalajara"},{"value":"zap","label":"Zapopan"}]},{"value":"nl","label":"Nuevo León","children":[{"value":"mty","label":"Monterrey"}]}]},{"value":"co","label":"Colombia","children":[{"value":"ant","label":"Antioquia","children":[{"value":"med","label":"Medellín"}]}]}]}`
+
+#### Combobox
+
+Campo de maqueta que en Pai se escribe para filtrar una lista y elegir una opción, con su etiqueta: responsable, cliente, servicio. options son las opciones (2 a 50, { label, value }); value es el value de la elegida (su texto aparece en el campo); placeholder, el texto mientras no hay valor. Se ve como en Pai pero está deshabilitado: no se abre y nada se envía ni se guarda.
+
+- `label`: string (min 1, ≤160)
+- `options`: [{ label: string (min 1, ≤160), value: string (min 1, ≤80) }] (min 2, máx 50)
+- `value`?: string (min 1, ≤80) (null = por defecto)
+- `placeholder`?: string (min 1, ≤80) (null = por defecto)
+
+Ejemplo: `{"label":"Responsable","placeholder":"Busca a una persona…","value":"lucia","options":[{"label":"Lucía Herrera","value":"lucia"},{"label":"Mateo Ríos","value":"mateo"},{"label":"Valeria Campos","value":"valeria"}]}`
+
+#### InputOTP
+
+Casillas de un código corto que no es secreto, de maqueta y con su etiqueta: el folio de una cita, el código de una sala o de una invitación. length es el número de casillas (4 a 8); value, dígitos de ejemplo (a lo más length) o nada para dejarlas vacías. Es sólo visual: está deshabilitado, no autocompleta y nada se envía. Nunca la uses para contraseñas, PIN ni códigos de verificación: un formulario de maqueta no los pide.
+
+- `label`: string (min 1, ≤160)
+- `length`: integer (≥4, ≤8)
+- `value`?: string (≤8) (null = por defecto)
+
+Ejemplo: `{"label":"Código de la sala","length":6,"value":"4821"}`
+
+#### NumberField
+
+Campo numérico de maqueta con botones − y + a los lados y su etiqueta: cantidad de licencias, horas estimadas, porcentaje de anticipo. value es el número que muestra; min, max y step acotan el rango (value dentro de él); unit es la unidad corta que va a la derecha («horas», «%», «MXN»). Se ve como en Pai pero está deshabilitado: no se escribe en él y nada se envía ni se guarda.
+
+- `label`: string (min 1, ≤160)
+- `value`?: number (null = por defecto)
+- `min`?: number (null = por defecto)
+- `max`?: number (null = por defecto)
+- `step`?: number (null = por defecto)
+- `unit`?: string (min 1, ≤16) (null = por defecto)
+
+Ejemplo: `{"label":"Horas estimadas","value":24,"min":0,"max":200,"step":4,"unit":"horas"}`
+
+#### PhoneInput
+
+Campo de teléfono de maqueta con su etiqueta: el prefijo del país (country: MX, US, CO, AR, CL, PE, GT, ES; MX por omisión) y el número ya formateado («55 1234 5678»). Es una maqueta: no valida el número ni lo envía, y está deshabilitado. No escribas el número real de una persona; usa uno de ejemplo o déjalo vacío con placeholder.
+
+- `label`: string (min 1, ≤160)
+- `country`?: "MX"|"US"|"CO"|"AR"|"CL"|"PE"|"GT"|"ES"|null (null = por defecto)
+- `value`?: string (≤20) (null = por defecto)
+- `placeholder`?: string (min 1, ≤40) (null = por defecto)
+
+Ejemplo: `{"label":"Teléfono de contacto","country":"MX","placeholder":"55 0000 0000"}`
+
+#### SignaturePad
+
+Espacio para firmar en un formulario de maqueta: su etiqueta, la línea de firma con «Firma aquí» y una nota opcional bajo la línea («Nombre y firma del representante»). Siempre está vacío: no captura trazos, no guarda nada y nunca dice que algo esté firmado. No escribas ahí nombres de quien firmó ni fechas de firma.
+
+- `label`: string (min 1, ≤160)
+- `note`?: string (min 1, ≤80) (null = por defecto)
+
+Ejemplo: `{"label":"Firma del cliente","note":"Nombre y firma del representante legal"}`
+
+#### Slider
+
+Deslizador de maqueta con su etiqueta: un presupuesto, un porcentaje de avance, un rango de precios. value es un número o un rango [desde, hasta] (desde ≤ hasta); min y max acotan la barra (0 y 100 por omisión, value dentro); step es el paso; unit, la unidad del valor que se lee junto a la etiqueta: «%» o «días» lo acompañan, y un código de moneda ISO («MXN», «USD») le da formato de moneda («MXN 40,000.00»). Se ve como en Pai pero está deshabilitado: no se mueve y nada se envía ni se guarda.
+
+- `label`: string (min 1, ≤160)
+- `value`: number | array
+- `min`?: number (null = por defecto)
+- `max`?: number (null = por defecto)
+- `step`?: number (null = por defecto)
+- `unit`?: string (min 1, ≤16) (null = por defecto)
+
+Ejemplo: `{"label":"Rango de presupuesto","value":[40000,120000],"min":0,"max":200000,"step":5000,"unit":"MXN"}`
+
+#### TimePicker
+
+Selector de hora de maqueta con su etiqueta: la hora de una junta, de una entrega o de un corte. value es la hora en formato HH:mm de 24 h («14:30») aunque hourCycle 12 la muestre como «02:30 p. m.»; minuteStep es el paso de los minutos (15 da 00, 15, 30, 45) y min y max acotan las horas (HH:mm, value entre ellos). Se ve como en Pai pero está deshabilitado: no se abre y nada se envía ni se guarda.
+
+- `label`: string (min 1, ≤160)
+- `value`?: string (null = por defecto)
+- `hourCycle`?: number | number (null = por defecto)
+- `minuteStep`?: integer (≥1, ≤30) (null = por defecto)
+- `min`?: string (null = por defecto)
+- `max`?: string (null = por defecto)
+
+Ejemplo: `{"label":"Hora de la revisión","value":"10:30","hourCycle":24,"minuteStep":15,"min":"09:00","max":"18:00"}`
+
+### Grupo: Conversación
+
+#### ChatComposer
+
+El cuadro donde se escribe un mensaje a un agente, de maqueta: no se conecta a ningún agente ni envía mensajes. Se pinta deshabilitado, con los botones de adjuntar y enviar decorativos (también deshabilitados). placeholder es el texto de ayuda; value, un borrador de ejemplo; attachments, nombres de archivos ya adjuntos (sin enlace). Va al pie de ChatLayout o debajo de un ChatThread. Nunca pidas contraseñas, tarjetas ni códigos.
+
+- `placeholder`?: string (min 1, ≤160) (null = por defecto)
+- `value`?: string (≤2000) (null = por defecto)
+- `attachments`?: [string (min 1, ≤160)] (máx 5) (null = por defecto)
+
+Ejemplo: `{"placeholder":"Pregunta sobre el proyecto…","attachments":["Acta revisión 2026-10-02.pdf"]}`
+
+#### ChatThread
+
+Hilo de una conversación, de sólo lectura y de maqueta: no se conecta a ningún agente ni envía mensajes. Cada mensaje lleva id (único), role (user a la derecha, assistant a la izquierda con su avatar, system centrado y discreto), author opcional (sin él: «Tú» o «Asistente»), at opcional (instante ISO), text en texto plano (sin Markdown, HTML ni enlaces), attachments (nombres de archivo, sin enlace) y steps del agente (label y status done, running o error). Usa sólo mensajes que te dio una herramienta o el usuario; no inventes lo que dijo una persona.
+
+- `messages`: [{ id: string (min 1, ≤80), role: "user"|"assistant"|"system", author?: string (min 1, ≤160) (null = por defecto), at?: string (null = por defecto), text: string (≤2000), attachments?: [string (min 1, ≤160)] (máx 10) (null = por defecto), steps?: [{ label: string (min 1, ≤160), status: "done"|"running"|"error" }] (máx 12) (null = por defecto) }] (min 1, máx 60)
+
+Ejemplo: `{"messages":[{"id":"m1","role":"user","author":"Ana Torres","at":"2026-10-06T16:02:00Z","text":"¿Cómo va el hito de pagos del portal de proveedores?"},{"id":"m2","role":"assistant","at":"2026-10-06T16:02:10Z","text":"El hito «Pagos a proveedores» va al 68 %: quedan la conciliación y las pruebas con el banco. La entrega sigue para el 28 de octubre.","steps":[{"label":"Leí el plan del proyecto","status":"done"},{"label":"Revisé las tareas abiertas","status":"done"}]},{"id":"m3","role":"user","author":"Ana Torres","at":"2026-10-06T16:04:00Z","text":"Te paso el acta de la última revisión.","attachments":["Acta revisión 2026-10-02.pdf"]}]}`
+
 ### Grupo: Navegación
 
 #### Breadcrumb
@@ -694,6 +1141,22 @@ Migas de pan: dónde está la pantalla («Proyectos › Portenta › Cronograma�
 - `items`: [{ label: string (min 1, ≤160), href?: string (null = por defecto) }] (min 1, máx 8)
 
 Ejemplo: `{"items":[{"label":"Proyectos","href":"/organization/projects"},{"label":"Portenta"},{"label":"Cronograma"}]}`
+
+#### Menubar
+
+Barra de menús de una app de escritorio o editor: hasta 6 menús (Archivo, Editar, Ver…), cada uno con 1 a 12 opciones con su atajo opcional («⌘ S») y una línea antes (separatorBefore). Los menús se abren dentro de la vista; las opciones son decorativas: no ejecutan nada ni navegan.
+
+- `menus`: [{ label: string (min 1, ≤160), items: [{ label: string (min 1, ≤160), shortcut?: string (min 1, ≤20) (null = por defecto), separatorBefore?: boolean (null = por defecto) }] (min 1, máx 12) }] (min 1, máx 6)
+
+Ejemplo: `{"menus":[{"label":"Archivo","items":[{"label":"Nuevo documento","shortcut":"⌘ N"},{"label":"Exportar como PDF","separatorBefore":true}]},{"label":"Editar","items":[{"label":"Deshacer","shortcut":"⌘ Z"},{"label":"Rehacer","shortcut":"⇧ ⌘ Z"}]}]}`
+
+#### NavigationMenu
+
+Navegación horizontal de un sitio o app. Cada item lleva href para un enlace directo o items para un submenú de 2–8 enlaces con descripción opcional, nunca ambos. Los href navegan sólo a rutas del Portal o https; los enlaces del submenú sin href quedan inertes. Hasta 6 entradas principales.
+
+- `items`: [{ label: string (min 1, ≤160), href?: string (null = por defecto), items?: [{ label: string (min 1, ≤160), href?: string (null = por defecto), description?: string (≤120) (null = por defecto) }] (min 2, máx 8) (null = por defecto) }] (min 1, máx 6)
+
+Ejemplo: `{"items":[{"label":"Proyectos","href":"/organization/projects"},{"label":"Recursos","items":[{"label":"Entregables","href":"/resources/entregables","description":"Documentos y avances compartidos."},{"label":"Guías","description":"Material de apoyo para el equipo."}]}]}`
 
 #### OrgSwitcher
 
@@ -707,13 +1170,29 @@ Ejemplo: `{"organization":"Portenta","organizations":["Portenta","Grupo Lumen","
 
 #### PageBar
 
-La barra superior de una página de Portal o Console, sola: botón del menú lateral, migas, acciones a la derecha (botones decorativos) y, si assistant, «Preguntar al agente». Úsala para mostrar la barra fuera de un PortalShell/ConsoleShell (que ya la traen).
+La barra superior de una página de Portal o Console, sola: botón del menú lateral, migas, acciones a la derecha (botones decorativos). assistant está obsoleta y no muestra nada. Úsala para mostrar la barra fuera de un PortalShell/ConsoleShell (que ya la traen).
 
 - `breadcrumb`: [{ label: string (min 1, ≤160), href?: string (null = por defecto) }] (min 1, máx 6)
 - `actions`?: [string (min 1, ≤160)] (máx 3) (null = por defecto)
 - `assistant`?: boolean (null = por defecto)
 
-Ejemplo: `{"breadcrumb":[{"label":"Proyectos","href":"/organization/projects"},{"label":"CRM comercial"}],"actions":["Exportar"],"assistant":true}`
+Ejemplo: `{"breadcrumb":[{"label":"Proyectos","href":"/organization/projects"},{"label":"CRM comercial"}],"actions":["Exportar"]}`
+
+#### PageHeader
+
+Encabezado de una página de producto, como los de Portal y Console: back (enlace de regreso, «← Todos los proyectos»), icon (en su cuadro), eyebrow (antetítulo), title, description, badges (estados con tono), meta (datos breves con icono: «Activo», «Por asignar», «Actualizado 6 oct») y hasta 3 actions a la derecha (la primera sólida, las demás con borde; con href navegan). level h2 lo usa como encabezado de una sección de la página. Úsalo en la región header de PageLayout o DetailLayout; para un proyecto de Portal, ProjectHeader.
+
+- `back`?: { label: string (min 1, ≤160), href?: string (null = por defecto) } (null = por defecto)
+- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto)
+- `eyebrow`?: string (min 1, ≤60) (null = por defecto)
+- `title`: string (min 1, ≤160)
+- `level`?: "h1"|"h2"|null (null = por defecto)
+- `description`?: string (≤2000) (null = por defecto)
+- `badges`?: [{ label: string (min 1, ≤160), tone: "neutral"|"info"|"progress"|"success"|"warning"|"danger" }] (min 1, máx 4) (null = por defecto)
+- `meta`?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto) }] (min 1, máx 4) (null = por defecto)
+- `actions`?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), href?: string (null = por defecto) }] (min 1, máx 3) (null = por defecto)
+
+Ejemplo: `{"back":{"label":"Todos los proyectos","href":"/organization/projects"},"icon":"folder","title":"Pai Ecosystem","description":"Lo que se decidió en el proyecto, por qué y qué partes lo componen.","badges":[{"label":"Activo","tone":"success"}],"meta":[{"label":"Por asignar","icon":"user"},{"label":"Actualizado 6 oct 2026","icon":"calendar"}],"actions":[{"label":"Nuevo nodo","icon":"plus"},{"label":"Ver en toda la organización"}]}`
 
 #### Pagination
 
@@ -750,12 +1229,14 @@ Ejemplo: `{"project":"CRM comercial","projects":["CRM comercial","Portal de dist
 
 #### EmptyState
 
-Estado vacío de una sección, como en Portal: icono, «Aún no hay {objetos}», una línea para quien mira y una acción opcional (botón con href o decorativo).
+Estado vacío de una sección, como en Portal: icono, «Aún no hay {objetos}», una línea para quien mira y una acción opcional (botón con href o decorativo). illustration elige tile (por omisión) o stack (IconStack); secondaryAction añade una segunda acción con borde.
 
 - `title`: string (min 1, ≤160)
 - `description`?: string (≤2000) (null = por defecto)
 - `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto)
 - `action`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
+- `illustration`?: "tile"|"stack"|null (null = por defecto)
+- `secondaryAction`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
 
 Ejemplo: `{"title":"Aún no hay propuestas","description":"Cuando el equipo envíe una propuesta, aparecerá aquí.","icon":"file-signature","action":{"label":"Nueva propuesta","icon":"plus"}}`
 
@@ -806,6 +1287,29 @@ Lista de verificación (documentos de un expediente, requisitos): cada punto don
 
 Ejemplo: `{"items":[{"label":"Identificación oficial","status":"done"},{"label":"Comprobante de domicilio","status":"warning","detail":"Tiene más de tres meses."},{"label":"Constancia de situación fiscal","status":"pending"}]}`
 
+#### EventCalendar
+
+Calendario de eventos de reUI para la agenda de un cliente o un equipo: events con id, title, start y end y allDay. Un evento de todo el día usa días AAAA-MM-DD con end incluido (start 2026-11-11 y end 2026-11-12 son dos días); uno con hora usa instantes ISO con zona («2026-11-04T10:00:00-06:00») y end es la hora en que termina. view abre en month (por omisión), week, day o agenda; date es el día al que abre y height su alto (sm, md por omisión, lg). Se navega y se cambia de vista; nada se arrastra, se crea ni se guarda. Para las fechas de entrega de un proyecto de Pai usa MilestoneTimeline.
+
+- `events`: [{ id: string (min 1, ≤80), title: string (min 1, ≤160), start: string, end: string, allDay?: boolean (null = por defecto) }] (máx 200)
+- `view`?: "month"|"week"|"day"|"agenda"|null (null = por defecto)
+- `date`?: string (null = por defecto)
+- `height`?: "sm"|"md"|"lg"|null (null = por defecto)
+
+Ejemplo: `{"events":[{"id":"e1","title":"Revisión de diseño","start":"2026-11-04T10:00:00-06:00","end":"2026-11-04T11:00:00-06:00"},{"id":"e2","title":"Entrega de wireframes","start":"2026-11-06","end":"2026-11-06","allDay":true},{"id":"e3","title":"Taller con el cliente","start":"2026-11-11","end":"2026-11-12","allDay":true}],"view":"month","date":"2026-11-01"}`
+
+#### Gantt
+
+Diagrama de Gantt de reUI para el plan de un cliente (para los hitos de un proyecto de Pai usa MilestoneTimeline): resources es el árbol de filas a la izquierda (hasta 3 niveles: fase, tarea, subtarea) y events las barras, cada una en su fila (resourceId), con start y end (AAAA-MM-DD, end incluido), progress de 0 a 100, milestone (un rombo en start), dependencies (ids de las barras que la preceden, con flecha) y la línea base planeada (baselineStart y baselineEnd). scale (day, week, month por omisión, quarter o year) y date (el día al que abre) eligen la vista; height su alto (sm, md por omisión, lg). Se navega y se cambia de escala; nada se arrastra ni se guarda.
+
+- `resources`: [{ id: string (min 1, ≤80), title: string (min 1, ≤160), children?: [{ id: string (min 1, ≤80), title: string (min 1, ≤160), children?: [{ id: string (min 1, ≤80), title: string (min 1, ≤160) }] (min 1, máx 30) (null = por defecto) }] (min 1, máx 30) (null = por defecto) }] (min 1, máx 30)
+- `events`: [{ id: string (min 1, ≤80), title: string (min 1, ≤160), resourceId: string (min 1, ≤80), start: string, end: string, progress?: number (≥0, ≤100) (null = por defecto), milestone?: boolean (null = por defecto), dependencies?: [string (min 1, ≤80)] (máx 10) (null = por defecto), baselineStart?: string (null = por defecto), baselineEnd?: string (null = por defecto) }] (máx 200)
+- `scale`?: "day"|"week"|"month"|"quarter"|"year"|null (null = por defecto)
+- `date`?: string (null = por defecto)
+- `height`?: "sm"|"md"|"lg"|null (null = por defecto)
+
+Ejemplo: `{"resources":[{"id":"diseno","title":"Diseño","children":[{"id":"wireframes","title":"Wireframes"},{"id":"visual","title":"Diseño visual"}]},{"id":"desarrollo","title":"Desarrollo","children":[{"id":"api","title":"API de pedidos"}]}],"events":[{"id":"e1","title":"Wireframes","resourceId":"wireframes","start":"2026-11-02","end":"2026-11-13","progress":100},{"id":"e2","title":"Diseño visual","resourceId":"visual","start":"2026-11-16","end":"2026-11-27","progress":40,"dependencies":["e1"]},{"id":"e3","title":"API de pedidos","resourceId":"api","start":"2026-11-23","end":"2026-12-11","progress":10,"dependencies":["e1"]},{"id":"e4","title":"Entrega a revisión","resourceId":"api","start":"2026-12-14","end":"2026-12-14","milestone":true}],"scale":"month","date":"2026-11-02"}`
+
 #### Kanban
 
 Tablero Kanban genérico (el de Tareas de Pai, sin su dominio): columnas con su contador y tarjetas con título, descripción, etiquetas, responsable y fecha. Con interactive (por omisión true) las tarjetas se arrastran entre columnas dentro de la vista; nada se guarda. Para las tareas de un proyecto usa TaskBoard.
@@ -837,7 +1341,7 @@ Ejemplo: `{}`
 
 #### MilestoneTimeline
 
-El Cronograma real de Portal: hitos como barras en el tiempo (con avance, responsable, monto y estado de pago), sus tareas, dependencias y línea base, y el panel de detalle al elegir uno. Se puede cambiar la escala, el zoom y las columnas, y abrir hitos y tareas; nada se guarda ni navega. Fechas AAAA-MM-DD; today fija el día de hoy (por defecto, el actual). selected abre un hito al cargar. staff es el de Console: «Nuevo hito» en la barra y los botones de editar y eliminar del detalle, inertes. framed:false lo dibuja sin marco, como en Portal.
+El Cronograma real de Portal: hitos como barras en el tiempo (con avance, responsable, monto y estado de pago), sus tareas, dependencias y línea base, y el panel de detalle al elegir uno. Se puede cambiar la escala, el zoom y las columnas, y abrir hitos y tareas; nada se guarda ni navega. Fechas AAAA-MM-DD; today fija el día de hoy (por defecto, el actual). selected abre un hito al cargar. staff es el de Console: «Nuevo hito» en la barra y los botones de editar y eliminar del detalle, inertes. Trae su propio marco (framed ya no cambia nada).
 
 - `milestones`: [{ id: string (min 1, ≤80), name: string (min 1, ≤160), start?: string (null = por defecto), end?: string (null = por defecto), status?: "pending"|"in_progress"|"completed"|null (null = por defecto), progress?: { done: integer (≥0, ≤9007199254740991), total: integer (≥0, ≤9007199254740991) } (null = por defecto), owner?: string (min 1, ≤160) (null = por defecto), amount?: number (≥0) (null = por defecto), currency?: string (min 3, ≤3) (null = por defecto), paymentStatus?: "unpaid"|"pending"|"paid"|null (null = por defecto), description?: string (≤2000) (null = por defecto), acceptanceCriteria?: string (≤2000) (null = por defecto), dependsOn?: [string (min 1, ≤80)] (máx 20) (null = por defecto), baseline?: { start: string, end: string } (null = por defecto), tasks?: [{ id: string (min 1, ≤80), title: string (min 1, ≤160), start?: string (null = por defecto), due?: string (null = por defecto), status?: "todo"|"doing"|"done"|"cancelled"|null (null = por defecto), owner?: string (min 1, ≤160) (null = por defecto), summary?: string (≤2000) (null = por defecto), dependsOn?: [string (min 1, ≤80)] (máx 20) (null = por defecto) }] (máx 60) (null = por defecto) }] (min 1, máx 60)
 - `today`?: string (null = por defecto)
@@ -858,6 +1362,16 @@ Etapas de un proceso en una línea horizontal (Prospecto › Propuesta › Negoc
 - `items`: [{ label: string (min 1, ≤160), status: "done"|"current"|"upcoming", detail?: string (≤80) (null = por defecto) }] (min 2, máx 8)
 
 Ejemplo: `{"items":[{"label":"Prospecto","status":"done","detail":"2 sep"},{"label":"Propuesta","status":"done","detail":"15 sep"},{"label":"Negociación","status":"current","detail":"En curso"},{"label":"Cierre","status":"upcoming"}]}`
+
+#### Stepper (admite hijos)
+
+Pasos navegables: un hijo por paso, en orden; current (desde 1) abre uno. Sin contenido usa Stages.
+
+- `steps`: [{ title: string (min 1, ≤160), description?: string (≤80) (null = por defecto) }] (min 2, máx 8)
+- `current`?: integer (≥1, ≤8) (null = por defecto)
+- `orientation`?: "horizontal"|"vertical"|null (null = por defecto)
+
+Ejemplo: `{"steps":[{"title":"Datos","description":"Empresa y contacto"},{"title":"Alcance"},{"title":"Confirmar"}],"current":2}`
 
 #### TaskBoard
 
@@ -998,6 +1512,35 @@ Una carpeta de Recursos como la muestra el Portal: sus subcarpetas (con cuántas
 
 Ejemplo: `{"folders":[{"name":"Entregables","pages":2,"files":1,"updatedAt":"2026-10-02T15:00:00Z","preview":["Alcance","Plan de pruebas"]}],"entries":[{"title":"Brief del proyecto","kind":"page","updatedAt":"2026-09-20T12:00:00Z"},{"title":"Contrato firmado.pdf","kind":"file","mimeType":"application/pdf","sizeBytes":482113,"updatedAt":"2026-09-25T18:00:00Z"}]}`
 
+### Grupo: Comercio
+
+#### ComparisonTable
+
+Tabla comparativa de un cliente: plans son las columnas (2 a 5) y cada fila de rows lleva feature y un valor por plan: true (✓ incluido), false (✗ no incluido) o un texto corto («Hasta 5», «Por uso»). highlighted resalta la columna de un plan por su nombre. caption describe la tabla. Es informativa: sin precios de Pai, formularios ni datos de pago; usa sólo datos del cliente o de una herramienta.
+
+- `caption`?: string (≤2000) (null = por defecto)
+- `plans`: [string (min 1, ≤40)] (min 2, máx 5)
+- `highlighted`?: string (min 1, ≤40) (null = por defecto)
+- `rows`: [{ feature: string (min 1, ≤160), values: [boolean | string (min 1, ≤40)] }] (min 1, máx 30)
+
+Ejemplo: `{"caption":"Qué incluye cada plan","plans":["Básico","Clínica","Red"],"highlighted":"Clínica","rows":[{"feature":"Agenda en línea","values":[true,true,true]},{"feature":"Sucursales","values":["1","Hasta 5","Ilimitadas"]},{"feature":"Reportes mensuales","values":[false,true,true]},{"feature":"Soporte dedicado","values":[false,false,true]}]}`
+
+#### PricingGrid
+
+Tarjetas de planes de un cliente (2 a 4): name, price en texto ya formateado («$1,490 MXN», «A cotizar»), period opcional («al mes»), description, features (lo que incluye) y cta, el texto de un botón que se pinta deshabilitado. highlighted resalta un plan (a lo más uno) con «Recomendado». Los precios son contenido del cliente (también dentro del sitio de pai.lat): nunca los presentes como precios de Pai ni inventes cifras, y ningún plan puede nombrar a Pai; úsalos sólo si vienen de sus datos o de una herramienta. Es informativo: nada se compra, cobra ni envía, y no lleva formularios ni datos de pago.
+
+- `plans`: [{ name: string (min 1, ≤160), price: string (min 1, ≤40), period?: string (min 1, ≤40) (null = por defecto), description?: string (≤2000) (null = por defecto), features: [string (min 1, ≤160)] (máx 12), highlighted?: boolean (null = por defecto), cta?: string (min 1, ≤40) (null = por defecto) }] (min 2, máx 4)
+
+Ejemplo: `{"plans":[{"name":"Básico","price":"$490 MXN","period":"al mes","description":"Para una sucursal.","features":["Agenda en línea","Recordatorios por correo"],"cta":"Elegir Básico"},{"name":"Clínica","price":"$1,490 MXN","period":"al mes","description":"Para varias sucursales y su equipo.","features":["Todo lo de Básico","Hasta 5 sucursales","Reportes mensuales"],"highlighted":true,"cta":"Elegir Clínica"},{"name":"Red","price":"A cotizar","features":["Sucursales ilimitadas","Soporte dedicado"],"cta":"Hablar con ventas"}]}`
+
+#### ReviewList
+
+Lista de reseñas de los clientes de un cliente: author, rating de 0 a 5 (admite medios), text, at opcional (AAAA-MM-DD) y source. Usa sólo citas y calificaciones que vengan de datos del cliente o de una herramienta: no inventes testimonios, nombres ni estrellas. source dice de dónde salen (p. ej. «Encuesta NPS sep 2026», «Google Reviews»); sin source, el item se marca «Ejemplo» y no se presenta como real. Sólo lectura: nada se publica ni responde.
+
+- `reviews`: [{ author: string (min 1, ≤160), rating: number (≥0, ≤5), text: string (≤2000), at?: string (null = por defecto), source?: string (min 2, ≤60) (null = por defecto) }] (min 1, máx 20)
+
+Ejemplo: `{"reviews":[{"author":"Mariana López","rating":5,"text":"Agendar mi cita me tomó un minuto y me llegó el recordatorio un día antes.","at":"2026-09-14","source":"Google Reviews"},{"author":"Jorge Ramírez","rating":4,"text":"Muy buena atención; me gustaría poder cambiar la cita desde el correo.","at":"2026-09-02","source":"Encuesta NPS sep 2026"}]}`
+
 ### Grupo: Conocimiento
 
 #### C4Diagram
@@ -1050,6 +1593,50 @@ La biblioteca de Conocimiento de Portal y Console: tabla de nodos con tipo, esta
 - `search`?: string (≤120) (null = por defecto)
 
 Ejemplo: `{"items":[{"id":"dec-stack","title":"API monolítica en NestJS","kind":"decision","status":"active","visibility":"client","project":"Sitio web","updatedAt":"2026-10-02T15:00:00Z"},{"id":"rule-iva","title":"Los precios se muestran sin IVA","kind":"business_rule","status":"active","visibility":"client","updatedAt":"2026-09-20T10:00:00Z"},{"id":"q-crm","title":"¿El CRM entra en F1?","kind":"question","status":"proposed","visibility":"internal","project":"CRM","updatedAt":"2026-10-05T18:30:00Z"}]}`
+
+## Recetas
+
+Pantallas armadas de punta a punta (`view_catalog` con `recipe`). Copia la receta más cercana, cambia los datos por los de las tools y quita lo que sobre.
+
+### dashboard
+
+Tablero de una app: KPIs, gráfica, ranking lateral y tabla al pie.
+
+Tablero de la app de un cliente: AppShell como raíz y DashboardLayout con Stats en kpis, Chart en main, BarList en side y DataTable en footer. Cambia los datos por los que trajeron las herramientas (con su fecha de corte) y quita las regiones que no uses con regions.
+
+```json
+{"root":"app","elements":{"app":{"type":"AppShell","props":{"brand":{"name":"Portenta","detail":"Ventas"},"nav":[{"label":"Tablero","icon":"dashboard","active":true},{"label":"Clientes","icon":"users"}],"title":"Tablero comercial"},"children":["tablero"]},"tablero":{"type":"DashboardLayout","props":{"side":"narrow"},"children":["kpis","grafica","ranking","tabla"]},"kpis":{"type":"Stats","props":{"items":[{"label":"Ventas del mes","value":"$1.8 M","delta":"+12 %","trend":"up","tone":"positive"},{"label":"Oportunidades","value":"42","detail":"al 30 sep 2026"},{"label":"Ticket medio","value":"$43 K","delta":"-3 %","trend":"down","tone":"warning"}]}},"grafica":{"type":"Chart","props":{"title":"Ventas por mes","kind":"bar","categories":["Jul","Ago","Sep"],"series":[{"name":"Ventas","values":[1.4,1.6,1.8]}],"unit":"M"}},"ranking":{"type":"BarList","props":{"items":[{"label":"Ana López","value":640},{"label":"Luis Pérez","value":410}]}},"tabla":{"type":"DataTable","props":{"columns":[{"key":"cliente","header":"Cliente","type":"text"},{"key":"monto","header":"Monto","type":"money"}],"rows":[{"id":"r1","cells":{"cliente":"Grupo Lumen","monto":42000000}},{"id":"r2","cells":{"cliente":"Ñandú Logística","monto":18500000}}]}}}}
+```
+
+### list-filters
+
+Lista con encabezado, filtros y tabla: la pantalla de una sección.
+
+Pantalla de lista (proyectos, clientes, pedidos): PageLayout con PageHeader en header, FilterBar en toolbar y DataTable (o TreeTable si hay grupos) en main. Va en la raíz o dentro de un shell (PortalShell, ConsoleShell, AppShell).
+
+```json
+{"root":"pagina","elements":{"pagina":{"type":"PageLayout","props":{"regions":["header","toolbar","main"]},"children":["encabezado","filtros","tabla"]},"encabezado":{"type":"PageHeader","props":{"title":"Clientes","description":"Cuentas activas y su responsable.","actions":[{"label":"Nuevo cliente","icon":"plus"}]}},"filtros":{"type":"FilterBar","props":{"search":"Buscar cliente…","filters":[{"label":"Región","value":"Todas","options":["Todas","Norte","Centro"]}]}},"tabla":{"type":"DataTable","props":{"columns":[{"key":"cliente","header":"Cliente","type":"text","sortable":true},{"key":"estado","header":"Estado","type":"status"}],"rows":[{"id":"c1","cells":{"cliente":"Grupo Lumen","estado":{"label":"Activo","tone":"success"}}},{"id":"c2","cells":{"cliente":"Constructora Alba","estado":{"label":"En pausa","tone":"warning"}}}],"pageSize":10}}}}
+```
+
+### record-detail
+
+Detalle de un registro: encabezado, datos clave, pestañas y lateral.
+
+Pantalla de detalle (un cliente, un pedido, un contrato): DetailLayout con PageHeader en header, KeyValue en summary, Tabs en main (una pestaña por hijo: Timeline, Text, DataTable) e Item en aside.
+
+```json
+{"root":"detalle","elements":{"detalle":{"type":"DetailLayout","props":{},"children":["encabezado","datos","pestanas","lateral"]},"encabezado":{"type":"PageHeader","props":{"back":{"label":"Clientes"},"title":"Grupo Lumen","badges":[{"label":"Activo","tone":"success"}]}},"datos":{"type":"KeyValue","props":{"items":[{"label":"Responsable","value":"Ana López"},{"label":"Región","value":"Norte"},{"label":"Cliente desde","value":"mar 2024"}],"columns":3}},"pestanas":{"type":"Tabs","props":{"tabs":[{"label":"Actividad","value":"actividad"},{"label":"Notas","value":"notas"}],"defaultValue":"actividad"},"children":["actividad","notas"]},"actividad":{"type":"Timeline","props":{"items":[{"date":"2 oct","title":"Propuesta enviada","status":"done"},{"date":"9 oct","title":"Revisión con dirección","status":"current"}]}},"notas":{"type":"Text","props":{"text":"Prefiere reuniones los martes."}},"lateral":{"type":"Item","props":{"title":"Contrato marco.pdf","description":"Firmado el 15 mar 2024","icon":"file"}}}}
+```
+
+### list-reading
+
+Lista y lectura: elementos a la izquierda y el elegido a la derecha.
+
+Bandeja o revisión (solicitudes, mensajes, incidencias): SplitView con un Stack de Item en list y DetailSheet en línea en detail (antetítulo, título, estados y sus hijos). Elegir en la lista no cambia el detalle: la vista es estática.
+
+```json
+{"root":"bandeja","elements":{"bandeja":{"type":"SplitView","props":{"listWidth":"medium"},"children":["lista","lectura"]},"lista":{"type":"Stack","props":{"direction":"vertical","gap":"sm"},"children":["s1","s2"]},"s1":{"type":"Item","props":{"title":"Cambio de alcance","description":"Grupo Lumen","meta":"hoy"}},"s2":{"type":"Item","props":{"title":"Factura pendiente","description":"Ñandú Logística","meta":"ayer"}},"lectura":{"type":"DetailSheet","props":{"eyebrow":"Solicitud","title":"Cambio de alcance","badges":[{"label":"En revisión","tone":"progress"}]},"children":["texto"]},"texto":{"type":"Text","props":{"text":"El cliente pide sumar el módulo de reportes a la fase 2."}}}}
+```
 
 ## Ejemplo del catálogo
 

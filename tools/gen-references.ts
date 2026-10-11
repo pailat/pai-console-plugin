@@ -288,8 +288,10 @@ const viewGroups = (views.groups ?? []) as Array<{
 	group: string;
 	label: string;
 	description: string;
-	components: string[];
+	components: Array<string | { type: string }>;
 }>;
+const componentName = (component: string | { type: string }) =>
+	typeof component === "string" ? component : component.type;
 if (viewGroups.length) {
 	viewLines.push(
 		"## Grupos",
@@ -298,7 +300,7 @@ if (viewGroups.length) {
 		"|---|---|---|",
 		...viewGroups.map(
 			(group) =>
-				`| ${group.label} | ${group.description} | ${group.components.join(", ")} |`,
+				`| ${group.label} | ${group.description} | ${group.components.map(componentName).join(", ")} |`,
 		),
 		"",
 	);
@@ -349,6 +351,34 @@ for (const component of detailed) {
 			: []),
 		"",
 	);
+}
+const { VIEW_RECIPE_NAMES, describeViewRecipe } = await import(
+	join(contracts, "views/catalog.ts")
+);
+if (VIEW_RECIPE_NAMES?.length) {
+	viewLines.push(
+		"## Recetas",
+		"",
+		"Pantallas armadas de punta a punta (`view_catalog` con `recipe`). Copia la receta más cercana, cambia los datos por los de las tools y quita lo que sobre.",
+		"",
+	);
+	for (const name of VIEW_RECIPE_NAMES as string[]) {
+		const { recipe } = describeViewRecipe(name) as {
+			recipe: { name: string; summary: string; description: string; spec: unknown };
+		};
+		viewLines.push(
+			`### ${recipe.name}`,
+			"",
+			recipe.summary,
+			"",
+			recipe.description,
+			"",
+			"```json",
+			JSON.stringify(recipe.spec),
+			"```",
+			"",
+		);
+	}
 }
 viewLines.push(
 	"## Ejemplo del catálogo",

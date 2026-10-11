@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "pai-portal c364c4ab (2026-10-07 Merge pull request #166 from pailat/fix/0.2.5/release-clean-2)",
+  "generatedFrom": "pai-portal dfc02d78 (2026-10-11 merge: mcp-pages @45e2e4f0 (#169: page_update con título y descripción, page_move reescribe URLs absolutas del Portal, escrituras y page_list compactos, filtros de DataTable por celda))",
   "tools": {
     "agent_create": {
       "readOnly": false,
@@ -237,6 +237,38 @@
       "readOnly": true,
       "destructive": false
     },
+    "organization_slug_set": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "organization_theme_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "organization_theme_logo_confirm": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "organization_theme_logo_upload_url": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "organization_theme_preview": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "organization_theme_publish": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "organization_theme_revert": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "organization_theme_save_draft": {
+      "readOnly": false,
+      "destructive": false
+    },
     "page_asset_upload": {
       "readOnly": false,
       "destructive": false
@@ -448,6 +480,10 @@
     "project_list": {
       "readOnly": true,
       "destructive": false
+    },
+    "project_slug_set": {
+      "readOnly": false,
+      "destructive": true
     },
     "project_status": {
       "readOnly": true,

@@ -1,6 +1,6 @@
 # Inventario de tools del MCP corp de Pai (0.2.5+)
 
-**Fuente:** pai-portal `release/0.2.5` (`apps/api/src/modules/mcp/tools/*.ts`).
+**Fuente:** pai-portal `feat/0.2.5/reui` (`apps/api/src/modules/mcp/tools/*.ts`).
 
 Las tools declaran sus anotaciones, y la guarda las lee de `hooks/tools.json`, que se genera desde el servidor. Todas las tools de proyecto reciben `organizationId` y `projectId`.
 
@@ -17,12 +17,14 @@ Las tools declaran sus anotaciones, y la guarda las lee de `hooks/tools.json`, q
 | `organization_list` | L | `query`, `limit` ≤100 |
 | `organization_get` | L | Miembros, invitaciones y proyectos |
 | `organization_create` | E | Quien llama entra como admin; con `ownerEmail` envía una invitación |
+| `organization_slug_set` | E | Staff. Cambia el slug de la organización en las URLs del Portal; el anterior redirige y no se reutiliza |
 | `project_list` | L | |
 | `project_summary` | L | |
 | `project_status` | L | |
 | `project_activity` | L | |
 | `project_create` | E | `status` empieza en draft; las fechas van en ISO |
 | `project_update` | E | |
+| `project_slug_set` | E | Staff. Cambia el slug del proyecto en las URLs del Portal; el anterior redirige |
 | `project_invite_client` | E | Envía un correo con la invitación |
 | `project_delete` | E · IRR | **Borra en cascada los pagos y los CFDI** |
 | `status_update_list` | L | |
@@ -31,6 +33,20 @@ Las tools declaran sus anotaciones, y la guarda las lee de `hooks/tools.json`, q
 | `brief_get` | L | |
 | `brief_agenda` | L | |
 | `brief_update_status` | E | new → reviewing → converted |
+
+## Tema de la organización
+
+La marca que ven el Portal y las vistas del cliente. Flujo: `organization_theme_get` → `organization_theme_preview` → `organization_theme_save_draft` → `organization_theme_publish`.
+
+| Tool | Tipo | Nota |
+|---|---|---|
+| `organization_theme_get` | L | Tema publicado, borrador con sus problemas (AA, esquema, logo) y versiones. Léelo antes de editar |
+| `organization_theme_preview` | L | Valida un tema (o el borrador) sin guardar: problemas de contraste AA, CSS y muestra |
+| `organization_theme_save_draft` | E | Borrador nuevo; lo publicado no cambia. Los problemas de AA se permiten en borrador |
+| `organization_theme_publish` | E | El cliente lo ve en su siguiente carga. Se rechaza si no cumple AA, esquema o logos |
+| `organization_theme_revert` | E | Copia una versión como borrador y, salvo `publish: false`, la publica |
+| `organization_theme_logo_upload_url` | E | URL firmada (5 min) para el PUT del logo: PNG, WebP o SVG ≤512 KB, con el `contentType` y `size` declarados |
+| `organization_theme_logo_confirm` | E | Tras el PUT: valida el logo y devuelve la referencia para `theme.logo.light` o `theme.logo.dark` |
 
 ## Recursos
 

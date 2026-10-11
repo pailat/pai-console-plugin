@@ -97,6 +97,10 @@ ATTENTION = {
     "knowledge_archive": "Archiva el nodo (reversible con knowledge_revive).",
     "organization_create": "Crea una organización nueva (con ownerEmail envía una invitación).",
     "project_invite_client": "Envía una invitación por correo a la persona del cliente.",
+    "organization_slug_set": "Cambia la URL de la organización en el Portal; la anterior redirige y no se puede reutilizar.",
+    "project_slug_set": "Cambia la URL del proyecto en el Portal; la anterior redirige.",
+    "organization_theme_publish": "Publica el tema de marca; el cliente lo ve en Portal y vistas desde su siguiente carga.",
+    "organization_theme_revert": "Vuelve a una versión anterior del tema y, salvo publish: false, la publica al cliente.",
 }
 
 
