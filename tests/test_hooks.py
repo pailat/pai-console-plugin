@@ -210,9 +210,10 @@ class SessionStartTest(HookCase):
         self.assertIn("mcp__plugin_pai-console_pai__", context)
         self.assertNotIn("pide confirmación", context)
 
-    def test_announces_develop_as_staging(self) -> None:
+    def test_announces_develop(self) -> None:
         output = self.run_hook(SESSION_START, {"hook_event_name": "SessionStart"}, DEVELOP)
-        self.assertIn("STAGING", output["systemMessage"])
+        self.assertIn("DEVELOP", output["systemMessage"])
+        self.assertNotIn("confirmación", output["hookSpecificOutput"]["additionalContext"])
         self.assertIn(DEVELOP, output["systemMessage"])
 
     def test_announces_production_and_user_server(self) -> None:

@@ -12,17 +12,21 @@ import json
 import os
 from pathlib import Path
 
-STAGING_HOSTS = ("mcp-edge-corp-staging.up.railway.app", "mcp-edge-corp-develop.up.railway.app")
+STAGING_HOSTS = ("mcp-edge-corp-staging.up.railway.app",)
+DEVELOP_HOSTS = ("mcp-edge-corp-develop.up.railway.app",)
+LABELS = {"staging": "STAGING", "develop": "DEVELOP", "production": "PRODUCCIÓN"}
 
 
 def environment_of_url(url: str | None) -> str:
     if not url:
         return "production"
+    if any(host in url for host in DEVELOP_HOSTS):
+        return "develop"
     return "staging" if any(host in url for host in STAGING_HOSTS) else "production"
 
 
 def label(environment: str) -> str:
-    return "STAGING" if environment == "staging" else "PRODUCCIÓN"
+    return LABELS[environment]
 
 
 def plugin_url() -> str | None:

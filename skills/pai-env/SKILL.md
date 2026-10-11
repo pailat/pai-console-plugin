@@ -16,7 +16,7 @@ URLs del edge corp:
 | Entorno | URL |
 |---|---|
 | staging (por defecto) | `https://mcp-edge-corp-staging.up.railway.app/mcp` |
-| develop (se anuncia como staging, sin guarda de producción) | `https://mcp-edge-corp-develop.up.railway.app/mcp` |
+| develop (sin guarda de producción) | `https://mcp-edge-corp-develop.up.railway.app/mcp` |
 | production | `https://mcp-corp.pai.lat/mcp` |
 
 1. Muestra el valor actual con `claude plugin configure pai-console --json`.

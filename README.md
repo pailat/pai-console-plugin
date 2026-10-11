@@ -39,7 +39,7 @@ El plugin trae un solo servidor MCP, `pai` (`plugin:pai-console:pai`). Su URL sa
 | Entorno | URL | Authorization server |
 |---|---|---|
 | **staging** (por defecto) | `https://mcp-edge-corp-staging.up.railway.app/mcp` | Console de staging |
-| develop (se anuncia como staging) | `https://mcp-edge-corp-develop.up.railway.app/mcp` | Console de develop |
+| develop (sin guarda de producción) | `https://mcp-edge-corp-develop.up.railway.app/mcp` | Console de develop |
 | producción | `https://mcp-corp.pai.lat/mcp` | `https://console.pai.lat` |
 
 **Cambiar de entorno**, por cualquiera de estas vías:
