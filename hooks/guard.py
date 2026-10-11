@@ -29,7 +29,7 @@ from pathlib import Path
 PLUGIN_PREFIX = "mcp__plugin_pai-console_pai__"
 USER_PREFIX = "mcp__pai-console__"
 
-STAGING_HOSTS = ("mcp-edge-corp-staging.up.railway.app",)
+STAGING_HOSTS = ("mcp-edge-corp-staging.up.railway.app", "mcp-edge-corp-develop.up.railway.app")
 
 TOOLS_FILE = Path(__file__).resolve().parent / "tools.json"
 

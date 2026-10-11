@@ -1,7 +1,7 @@
 ---
 name: pai-env
-description: Muestra o cambia el entorno del MCP de Pai del plugin (staging o producción).
-argument-hint: "[staging | production]"
+description: Muestra o cambia el entorno del MCP de Pai del plugin (staging, develop o producción).
+argument-hint: "[staging | develop | production]"
 disable-model-invocation: true
 allowed-tools: Bash(claude plugin configure:*)
 compatibility: "Pai 0.2.5+ (MCP corp)"
@@ -16,6 +16,7 @@ URLs del edge corp:
 | Entorno | URL |
 |---|---|
 | staging (por defecto) | `https://mcp-edge-corp-staging.up.railway.app/mcp` |
+| develop (se anuncia como staging, sin guarda de producción) | `https://mcp-edge-corp-develop.up.railway.app/mcp` |
 | production | `https://mcp-corp.pai.lat/mcp` |
 
 1. Muestra el valor actual con `claude plugin configure pai-console --json`.

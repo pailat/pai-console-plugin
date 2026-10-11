@@ -39,6 +39,7 @@ El plugin trae un solo servidor MCP, `pai` (`plugin:pai-console:pai`). Su URL sa
 | Entorno | URL | Authorization server |
 |---|---|---|
 | **staging** (por defecto) | `https://mcp-edge-corp-staging.up.railway.app/mcp` | Console de staging |
+| develop (se anuncia como staging) | `https://mcp-edge-corp-develop.up.railway.app/mcp` | Console de develop |
 | producción | `https://mcp-corp.pai.lat/mcp` | `https://console.pai.lat` |
 
 **Cambiar de entorno**, por cualquiera de estas vías:
@@ -77,7 +78,7 @@ La guarda sabe qué es lectura por las anotaciones del propio servidor. Las lee 
 | `schedule` | Hitos, dependencias, tareas, línea base, tablero |
 | `proposals-payments` | SOW, estados, CFDI, pagos, anulación |
 | `products` | Alta, estados, aprovisionamiento, deploys, variables, dominios, acceso |
-| `pai-env` | `/pai-console:pai-env [staging\|production]`: ver o cambiar el entorno (solo manual) |
+| `pai-env` | `/pai-console:pai-env [staging\|develop\|production]`: ver o cambiar el entorno (solo manual) |
 
 Todos los skills de área se pueden invocar como comando (`/pai-console:erd`, `/pai-console:c4`, `/pai-console:resources`, `/pai-console:views`…) o los carga el modelo cuando la tarea encaja.
 

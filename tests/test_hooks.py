@@ -15,6 +15,7 @@ GUARD = ROOT / "hooks" / "guard.py"
 SESSION_START = ROOT / "hooks" / "session_start.py"
 
 STAGING = "https://mcp-edge-corp-staging.up.railway.app/mcp"
+DEVELOP = "https://mcp-edge-corp-develop.up.railway.app/mcp"
 PRODUCTION = "https://mcp-corp.pai.lat/mcp"
 PLUGIN = "mcp__plugin_pai-console_pai__"
 USER = "mcp__pai-console__"
@@ -84,6 +85,9 @@ class GuardTest(HookCase):
     def test_staging_writes_pass_without_confirmation(self) -> None:
         self.assertIsNone(self.guard(PLUGIN + "page_update", STAGING))
         self.assertIsNone(self.guard(PLUGIN + "project_delete", STAGING))
+
+    def test_develop_writes_pass_without_confirmation(self) -> None:
+        self.assertIsNone(self.guard(PLUGIN + "page_update", DEVELOP))
 
     def test_production_reads_pass(self) -> None:
         for tool in ("whoami", "page_read", "knowledge_search", "timeline_get", "page_validate"):
@@ -205,6 +209,11 @@ class SessionStartTest(HookCase):
         context = output["hookSpecificOutput"]["additionalContext"]
         self.assertIn("mcp__plugin_pai-console_pai__", context)
         self.assertNotIn("pide confirmación", context)
+
+    def test_announces_develop_as_staging(self) -> None:
+        output = self.run_hook(SESSION_START, {"hook_event_name": "SessionStart"}, DEVELOP)
+        self.assertIn("STAGING", output["systemMessage"])
+        self.assertIn(DEVELOP, output["systemMessage"])
 
     def test_announces_production_and_user_server(self) -> None:
         output = self.run_hook(SESSION_START, {"hook_event_name": "SessionStart"}, PRODUCTION, user_url=PRODUCTION)

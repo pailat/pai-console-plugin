@@ -12,7 +12,7 @@ import json
 import os
 from pathlib import Path
 
-STAGING_HOSTS = ("mcp-edge-corp-staging.up.railway.app",)
+STAGING_HOSTS = ("mcp-edge-corp-staging.up.railway.app", "mcp-edge-corp-develop.up.railway.app")
 
 
 def environment_of_url(url: str | None) -> str:
