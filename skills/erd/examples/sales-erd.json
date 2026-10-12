@@ -7,9 +7,9 @@
       "kind": "data_model",
       "slug": "sales-model",
       "title": "Modelo de ventas",
-      "summary": "Clientes, pedidos y sus líneas en la base de datos de la tienda.",
+      "summary": "Clientes, direcciones, pedidos, sus líneas y el catálogo de categorías.",
       "properties": {
-        "purpose": "Registra a los clientes de la tienda en línea, sus pedidos y lo que contiene cada pedido.",
+        "purpose": "Registra a los clientes de la tienda en línea, sus direcciones, sus pedidos, lo que contiene cada pedido y el árbol de categorías del catálogo.",
         "engine": "PostgreSQL 16",
         "namespace": "public",
         "conventions": [
@@ -53,6 +53,32 @@
       "organizationId": "ORG_ID",
       "projectId": "PROJECT_ID",
       "kind": "entity",
+      "slug": "address",
+      "title": "Dirección",
+      "summary": "Dirección postal de un cliente.",
+      "properties": {
+        "physicalName": "address",
+        "dataModel": ["data_model/sales-model"],
+        "purpose": "Direcciones postales de un cliente; un pedido usa una para facturar y otra para enviar.",
+        "columns": [
+          { "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
+          { "name": "customer_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false, "referencesEntity": "entity/customer", "referencesColumn": "id", "onDelete": "cascade" },
+          { "name": "line1", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+          { "name": "city", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+          { "name": "postal_code", "type": "text", "nullable": false, "primaryKey": false, "unique": false }
+        ]
+      },
+      "sources": [{ "type": "repo", "path": "db/schema.sql", "ref": "main" }],
+      "changeSummary": "Alta de la entidad address",
+      "idempotencyKey": "kn-shop-entity-address"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "entity",
       "slug": "order",
       "title": "Pedido",
       "summary": "Compra confirmada de un cliente.",
@@ -63,6 +89,8 @@
         "columns": [
           { "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
           { "name": "customer_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false, "referencesEntity": "entity/customer", "referencesColumn": "id", "onDelete": "restrict", "description": "Quién compra." },
+          { "name": "billing_address_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false, "referencesEntity": "entity/address", "referencesColumn": "id", "onDelete": "restrict", "description": "Dirección de facturación." },
+          { "name": "shipping_address_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false, "referencesEntity": "entity/address", "referencesColumn": "id", "onDelete": "set_null", "description": "Dirección de envío; vacía si se recoge en tienda." },
           { "name": "status", "type": "enum", "nullable": false, "primaryKey": false, "unique": false, "enumValues": ["open", "paid", "cancelled"] },
           { "name": "total_cents", "type": "bigint", "nullable": false, "primaryKey": false, "unique": false },
           { "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
@@ -98,6 +126,30 @@
       "sources": [{ "type": "repo", "path": "db/schema.sql", "ref": "main" }],
       "changeSummary": "Alta de la entidad order_line",
       "idempotencyKey": "kn-shop-entity-order-line"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "entity",
+      "slug": "category",
+      "title": "Categoría",
+      "summary": "Categoría del catálogo, anidable.",
+      "properties": {
+        "physicalName": "category",
+        "dataModel": ["data_model/sales-model"],
+        "purpose": "Categorías del catálogo; una categoría puede colgar de otra (árbol).",
+        "columns": [
+          { "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
+          { "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+          { "name": "parent_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false, "referencesEntity": "entity/category", "referencesColumn": "id", "onDelete": "set_null", "description": "Categoría madre; vacía en la raíz." }
+        ]
+      },
+      "sources": [{ "type": "repo", "path": "db/schema.sql", "ref": "main" }],
+      "changeSummary": "Alta de la entidad category",
+      "idempotencyKey": "kn-shop-entity-category"
     }
   }
 ]

@@ -67,6 +67,8 @@ El par `direction:to` es único dentro de un nodo.
 
 Declara cada relación **una sola vez**, en el nodo que la inicia (`out`), salvo las de actores, que van con `in` en el elemento que usan.
 
+Dos elementos pueden usarse en ambos sentidos (la API llama al proveedor y el proveedor avisa a la API por webhook): son dos relaciones, una `out` en cada nodo, y el diagrama dibuja las dos.
+
 ## Estereotipos (solo en el nivel component)
 
 | `stereotype` | Lleva | Exige |
