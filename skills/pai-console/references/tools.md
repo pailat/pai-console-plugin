@@ -174,7 +174,7 @@ La marca que ven el Portal y las vistas del cliente. Flujo: `organization_theme_
 | `view_catalog` | L | Catálogo `pai-view@1` (componentes, props, reglas, ejemplo). Prefiere la referencia del skill `views` |
 | `view_render` | L | Dibuja en la conversación una vista que compones (`{title, spec}`); la valida y no guarda nada |
 
-Además, en los hosts con MCP Apps, el resultado de cada tool de lectura se dibuja solo como una vista de Pai.
+Además, en los hosts con MCP Apps, las lecturas con una vista propia se dibujan solas como una vista de Pai: `project_summary`, `project_list`, `project_activity`, `status_update_list`, `timeline_get`, `milestone_list`, `payment_list`, `proposal_list`, `task_board`, `file_list`, `page_list`, `page_suggestions`, `page_comprehension`, `page_knowledge_health`, `agent_inbox`, `knowledge_library`, `knowledge_graph`, `knowledge_view`, `organization_theme_preview` y `view_render`. Las demás lecturas (detalles, búsquedas, validaciones, catálogos) devuelven solo datos y texto (ATE-203).
 
 ## Otros
 
