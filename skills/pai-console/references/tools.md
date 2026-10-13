@@ -46,12 +46,14 @@ Las tools declaran sus anotaciones, y la guarda las lee de `hooks/tools.json`, q
 
 ## Tema de la organización
 
-La marca que ven el Portal y las vistas del cliente. Flujo: `organization_theme_get` → `organization_theme_preview` → `organization_theme_save_draft` → `organization_theme_publish`.
+La marca que ven el Portal y las vistas del cliente: colores, fuente, radio, sombra, logos y `shell`, el app shell del Portal (ATE-212). Es lo mismo que edita Ajustes › Apariencia en el Portal (área `organization:appearance`, solo staff). Flujo: `organization_theme_get` → `organization_theme_preview` → `organization_theme_save_draft` → `organization_theme_publish`.
+
+`theme` va completo: `{schemaVersion: 1, light, dark, font, radius, shadow, shell, logo: {light, dark}}`. `shell` es un preset (`sidebar`, `floating`, `header`, `dual-rail`, `section-tabs`, `framed`, `topbar`, `icon-rail`) o `null` (el de Pai); otro valor da un problema `shell`. Las pantallas `PortalShell` de las vistas lo toman del tema publicado.
 
 | Tool | Tipo | Nota |
 |---|---|---|
 | `organization_theme_get` | L | Tema publicado, borrador con sus problemas (AA, esquema, logo) y versiones. Léelo antes de editar |
-| `organization_theme_preview` | L | Valida un tema (o el borrador) sin guardar: problemas de contraste AA, CSS y muestra |
+| `organization_theme_preview` | L | Valida un tema (o el borrador) sin guardar: problemas de contraste AA, CSS, `shells` (los que puede elegir; `id: null` = el de Pai) y muestra |
 | `organization_theme_save_draft` | E | Borrador nuevo; lo publicado no cambia. Los problemas de AA se permiten en borrador |
 | `organization_theme_publish` | E | El cliente lo ve en su siguiente carga. Se rechaza si no cumple AA, esquema o logos |
 | `organization_theme_revert` | E | Copia una versión como borrador y, salvo `publish: false`, la publica |
@@ -198,13 +200,13 @@ La marca que ven el Portal y las vistas del cliente. Flujo: `organization_theme_
 
 Además, en los hosts con MCP Apps, las lecturas con una vista propia se dibujan solas como una vista de Pai: `project_summary`, `project_list`, `project_activity`, `project_close_review`, `status_update_list`, `timeline_get`, `milestone_list`, `payment_list`, `proposal_list`, `task_board`, `file_list`, `page_list`, `page_suggestions`, `page_comprehension`, `page_knowledge_health`, `page_projection`, `agent_inbox`, `knowledge_library`, `knowledge_graph`, `knowledge_view`, `organization_theme_preview`, las lecturas del CRM (`crm_overview_get`, `crm_lead_list`, `crm_lead_summary`, `crm_lead_get`, `crm_lead_record`, `crm_lead_event_list`, `crm_lead_duplicates`, `crm_lead_organization_suggestions`, `crm_submission_get`, `crm_opportunity_list`, `crm_opportunity_summary`, `crm_opportunity_get`, `crm_opportunity_event_list`, `crm_trace_get`) y `view_render`. `knowledge_view` y `page_projection` se dibujan en el lienzo (`ui://pai/canvas.html`). Las demás lecturas (detalles, búsquedas, validaciones, catálogos) devuelven solo datos y texto (ATE-203).
 
-## CRM (solo staff, permisos `crm:*`)
+## CRM (staff, o roles de Console con `crm:access`; permisos `crm:*`)
 
 Detalle y reglas en el skill `crm`. Toda escritura de lead u oportunidad lleva `expectedRevision`; montos en centavos, MXN y USD nunca se suman.
 
 | Tool | Tipo | Nota |
 |---|---|---|
-| `crm_access_get` | L | Tus permisos: crm:access, edit, convert, revenue, purge, import |
+| `crm_access_get` | L | Tus permisos: crm:access, edit, convert, revenue, purge, import, join |
 | `crm_overview_get` | L | Portada de /crm: cifras, embudo, «Por atender», tus tareas, conversiones |
 | `crm_owner_list` | L | Propietarios posibles (ids para `ownerUserId`) |
 | `crm_submission_get` | L | Un envío de Forms y el lead que generó |
@@ -213,7 +215,7 @@ Detalle y reglas en el skill `crm`. Toda escritura de lead u oportunidad lleva `
 | `crm_lead_summary` | L | Tuyos que requieren atención, tiempo de respuesta, fuera de SLA, sin siguiente paso |
 | `crm_lead_get` | L | El lead con su `revision`, siguiente paso y cadena |
 | `crm_lead_record` | L | Ficha completa: calificación, envío, espacio, oportunidades, nodos sembrados, actividades |
-| `crm_lead_event_list` | L | Historial del lead (≤200) |
+| `crm_lead_event_list` | L | Historial del lead (≤200); los montos, solo con `crm:revenue` |
 | `crm_lead_duplicates` | L | **Antes de crear:** mismo correo, mismo dominio, organizaciones cliente |
 | `crm_lead_organization_suggestions` | L | Organizaciones parecidas y qué campos llenaría; nunca liga |
 | `crm_lead_create` | E | Referido, manual o MCP; `firstTask` obligatoria; `phone` opcional; avisa por correo |
@@ -227,7 +229,7 @@ Detalle y reglas en el skill `crm`. Toda escritura de lead u oportunidad lleva `
 | `crm_lead_disqualify` | E | Motivo de la lista; archiva |
 | `crm_lead_mark_duplicate` | E | Liga al lead que sobrevive y archiva |
 | `crm_lead_workspace_open` | E | Crea o liga la organización y abre el proyecto «Descubrimiento»; no se re-liga |
-| `crm_lead_workspace_join` | E | Te agrega como admin de la organización del lead; auditado |
+| `crm_lead_workspace_join` | E | Te agrega como admin de la organización del lead; auditado. Solo aparece con `crm:join` |
 | `crm_lead_archive` | E | Sale del tablero sin borrarse |
 | `crm_lead_unarchive` | E | |
 | `crm_lead_purge` | E · IRR | Borrado duro de basura sin cadena (`spam`, `test`, `mistake`); `crm:purge` |

@@ -17,7 +17,10 @@ Actúas como la persona que conectó el MCP, con sus mismos permisos que en Cons
 
 ## 1. Descubre antes de nada
 
-1. `whoami`: confirma que la persona es staff (`access: "staff"`). Si no lo es, en corp no hay tools.
+1. `whoami`: confirma que la persona es staff (`access: "staff"`). Si no lo es, en corp no tiene tools de proyecto:
+   - si sus roles de Console le dan `crm:access`, solo ve las tools del CRM (skill `crm`);
+   - ser «staff en organizaciones» (Administración › Usuarios › Roles) vale en el Portal, no en el MCP: aquí cuenta su rol de plataforma.
+   - Sin tools, no hay nada que rodear: díselo y que pida el acceso.
 2. `organization_list`: da el `organizationId` y tu rol en ella.
 3. `project_list`: da el `projectId`.
 4. `project_summary`, y `status_update_list` si necesitas el estado declarado.

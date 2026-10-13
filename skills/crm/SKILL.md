@@ -1,13 +1,13 @@
 ---
 name: crm
-description: "CRM de Pai en Console (solo staff, MCP corp): leads, calificación, espacio de trabajo, oportunidades, pronóstico y la cadena envío → lead → oportunidad → propuesta → proyecto. Cubre revisar el tablero y lo que requiere atención, crear leads (desde Forms, referidos o a mano) sin duplicados, contactar, calificar, descalificar o ligar duplicados, abrir la organización y el proyecto de Descubrimiento, mover oportunidades por etapa, pausar, perder o ganar, interlocutores y probabilidad. Úsalo cuando pidan CRM, lead, prospecto, envío de Forms, calificar, pipeline, embudo, oportunidad, trato, pronóstico, forecast, «qué me toca», «requiere atención», ganar o perder un trato."
+description: "CRM de Pai en Console (staff, o roles de Console con crm:access; MCP corp): leads, calificación, espacio de trabajo, oportunidades, pronóstico y la cadena envío → lead → oportunidad → propuesta → proyecto. Cubre revisar el tablero y lo que requiere atención, crear leads (desde Forms, referidos o a mano) sin duplicados, contactar, calificar, descalificar o ligar duplicados, abrir la organización y el proyecto de Descubrimiento, mover oportunidades por etapa, pausar, perder o ganar, interlocutores y probabilidad. Úsalo cuando pidan CRM, lead, prospecto, envío de Forms, calificar, pipeline, embudo, oportunidad, trato, pronóstico, forecast, «qué me toca», «requiere atención», ganar o perder un trato."
 argument-hint: "[lead, oportunidad u organización]"
-compatibility: "Pai 0.2.5+ (MCP corp, staff con permisos crm:*)"
+compatibility: "Pai 0.2.5+ (MCP corp, permisos crm:*)"
 ---
 
 # CRM de Pai
 
-Lee antes el skill `pai-console`. El CRM es **solo para el staff de Pai** en el MCP corp: un cliente nunca lo ve y el edge público no registra estas tools. Las tools no reciben `organizationId`/`projectId` de proyecto: trabajan sobre leads y oportunidades por su id.
+Lee antes el skill `pai-console`. El CRM es del equipo de Pai en el MCP corp: lo usa el staff y quien tenga un rol de Console con `crm:access` (sin ser staff, ese corp le da **solo** las tools del CRM). Un cliente nunca lo ve y el edge público no registra estas tools. Las tools no reciben `organizationId`/`projectId` de proyecto: trabajan sobre leads y oportunidades por su id.
 
 Inventario completo: `${CLAUDE_PLUGIN_ROOT}/skills/pai-console/references/tools.md` § CRM.
 
@@ -23,8 +23,9 @@ Inventario completo: `${CLAUDE_PLUGIN_ROOT}/skills/pai-console/references/tools.
 | `crm:revenue` | Montos, pronóstico ponderado, `crm_opportunity_list`, `crm_opportunity_event_list` y ajustar probabilidad |
 | `crm:purge` | Purgar basura sin cadena (`crm_lead_purge`) |
 | `crm:import` | Importación histórica de un CRM anterior (`crm_lead_import`) |
+| `crm:join` | Entrar como admin a la organización de un lead (`crm_lead_workspace_join`, que sin él no aparece) y ligar organizaciones existentes: al abrir el espacio, al calificar, al importar, al crear una oportunidad o un lead con `organizationId`. Sin él, un lead solo se liga a la cuenta que sugiere el aviso de duplicados. Ningún rol predefinido lo trae; el staff sí |
 
-Sin `crm:revenue` los montos no llegan: no los inventes ni los estimes.
+Sin `crm:revenue` los montos no llegan, tampoco en el historial: no los inventes ni los estimes.
 
 ## Reglas que el servidor hace cumplir
 
@@ -96,7 +97,7 @@ Etapas: `new` → `contacted` → `qualified` (o `unqualified`) → `converted` 
 1. `crm_lead_organization_suggestions {leadId}`: organizaciones parecidas por dominio, miembros y nombre, con su origen (`self_service`, `client`, `prospect`) y qué campos llenaría. **Nunca liga sola.**
 2. Confirma con la persona: crear una nueva o ligar una existente.
 3. `crm_lead_workspace_open {workspace}` (o dentro de `crm_lead_qualify`): crea o liga la organización (solo llena campos vacíos) y abre el proyecto «Descubrimiento» en borrador. **No se re-liga después.**
-4. Ligar no te hace miembro. Para entrar: `crm_lead_workspace_join` («Entrar como staff», queda auditado).
+4. Ligar no te hace miembro. Para entrar: `crm_lead_workspace_join` («Entrar como staff», queda auditado; exige `crm:join`).
 
 ### Purgar
 
