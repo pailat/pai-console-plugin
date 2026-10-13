@@ -35,7 +35,7 @@ Un **`data_model`** agrupa **`entity`** (tablas). **Una entidad son sus columnas
    - `similar`: posible duplicado. Si es el mismo, para y fusiona.
 7. **Verifica con `knowledge_view {view:"erd", scope:"data_model/<slug>", format:"json"}`**: es la misma vista que dibuja el Portal.
    - `tables`: todas tus entidades, con sus columnas.
-   - `relations`: una por FK, con la `cardinality` (`n-1` o `1-1`), `identifying`, `optional` y `onDelete` que esperabas.
+   - `relations`: **una por columna FK**, también cuando varias apuntan a la misma tabla, con la `cardinality` (`n-1` o `1-1`), `identifying`, `optional` y `onDelete` que esperabas. Cuenta tus columnas con `referencesEntity`: deben ser tantas como relaciones.
    - **`unresolved` vacío.** Si trae FKs, su destino no existe o no es una `entity`. Corrige y vuelve a guardar la entidad.
 8. **Entrega** a la persona:
    - **el diagrama dibujado:** `view_render` con un `ErdDiagram` que recibe la respuesta de `knowledge_view` tal cual (skill `views`, «Diagramas de Conocimiento»);
@@ -43,7 +43,7 @@ Un **`data_model`** agrupa **`entity`** (tablas). **Una entidad son sus columnas
    - el Mermaid de la vista (`format:"mermaid"`) si lo pide;
    - el enlace del Portal: el `url` de la vista con el host del Portal delante (`https://app.pai.lat` en producción; en staging, el Portal de staging).
 
-Ejemplo completo y validado (modelo, 3 entidades, FK simple, FK identificante y enum): `${CLAUDE_PLUGIN_ROOT}/skills/erd/examples/sales-erd.json`.
+Ejemplo completo y validado (modelo, 5 entidades, FK simple, dos FK a la misma tabla, FK identificante, autorreferencia y enum): `${CLAUDE_PLUGIN_ROOT}/skills/erd/examples/sales-erd.json`.
 
 ## Columnas: el contrato exacto
 
@@ -89,8 +89,16 @@ Otras propiedades de la entidad:
 | Parte de la PK | Relación **identificante** |
 | `nullable: true` | Relación opcional |
 | Muchos a muchos | **Tabla puente** con dos FK en la PK (como `order_line` en el ejemplo) |
+| A su propia tabla (`parent_id → id`) | `n-1` sobre sí misma; ponla `nullable: true` (la raíz no tiene padre) |
 
 No existe `n-m` directo.
+
+### Varias FK a la misma tabla y autorreferencias
+
+Son modelado normal y el diagrama las dibuja todas:
+- **Varias FK a la misma tabla:** cada columna es su propia relación y su propia línea, con su cardinalidad. Por ejemplo `billing_address_id` y `shipping_address_id` → `address`, o `node_id`, `conflicting_node_id` y `resolution_node_id` → `knowledge_node`. No las juntes en una sola columna ni crees una tabla intermedia para evitarlas.
+- **Nombra cada FK por su papel** (`billing_address_id`, no `address_id_2`) y explica la diferencia en `description`: el diagrama distingue las líneas por el nombre de la columna.
+- **Autorreferencia** (un árbol: `category.parent_id → category.id`): va `nullable: true`, con `onDelete: "set_null"` o `"cascade"` según si los hijos sobreviven al padre. Se dibuja en el ERD y su `relation` sale en `knowledge_view`, pero no crea una arista `relates_to` (el grafo no admite aristas de un nodo a sí mismo).
 
 ## Nombres
 

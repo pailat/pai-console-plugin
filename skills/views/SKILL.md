@@ -22,7 +22,7 @@ Si un componente no está en la referencia o dudas de una prop, **pide su detall
 
 | Forma | Cuándo | Cómo |
 |---|---|---|
-| **Automática** | Toda tool de lectura (`timeline_get`, `payment_list`, `task_board`, `knowledge_view`…) | Solo en los hosts con MCP Apps, el resultado crudo de esa tool se dibuja solo. No sustituye un resumen: **si la persona pide ver, mostrar, graficar o comparar, compón la vista y dibújala con `view_render`**, aunque ya hayas leído los datos |
+| **Automática** | Solo las lecturas con vista propia (`project_summary`, `timeline_get`, `payment_list`, `task_board`, `knowledge_library`, `knowledge_view`…; lista en el skill `pai-console` §6). Detalles, búsquedas, validaciones y catálogos no traen vista | Solo en los hosts con MCP Apps, el resultado crudo de esa tool se dibuja solo. No sustituye un resumen: **si la persona pide ver, mostrar, graficar o comparar, compón la vista y dibújala con `view_render`**, aunque ya hayas leído los datos |
 | **En la conversación** | «Muéstrame», «compara», «resume visualmente», un dashboard para responder ahora | **`view_render {title, spec}`**: dibuja la vista que compones, la valida y no guarda nada. Es una lectura: no pide confirmación ni en producción |
 | **Guardada en Recursos** | Un tablero, mockup o reporte visual que el equipo o el cliente van a volver a abrir | Bloque `view` en una page `layout: "canvas"` (§ Guardar). Previsualízala antes con `view_render` |
 
