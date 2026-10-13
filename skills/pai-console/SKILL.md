@@ -142,6 +142,7 @@ Distingue hechos respaldados, inferencias y preguntas abiertas.
 | Propuestas (SOW), CFDI y pagos | `proposals-payments` |
 | CRM: leads, calificación, oportunidades y pronóstico (staff) | `crm` |
 | Productos: alta, aprovisionamiento, deploy, dominios, acceso | `products` |
+| Tema de marca de una organización: tokens, fuente, radio, logos y verificación en el Portal (staff) | `theme` |
 
 El inventario de tools, con lo que es lectura, escritura e irreversible, está en `${CLAUDE_PLUGIN_ROOT}/skills/pai-console/references/tools.md`.
 

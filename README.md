@@ -92,6 +92,7 @@ La guarda sabe qué es lectura por las anotaciones del propio servidor. Las lee 
 | `schedule` | Hitos, dependencias, tareas, línea base, tablero, cierre y reapertura del proyecto |
 | `proposals-payments` | SOW, estados, CFDI, pagos, anulación |
 | `crm` | CRM de Console (staff): permisos `crm:*` y roles (`crm.viewer`, `crm.sales`, `crm.closer`, `crm.admin`), leads sin duplicados, contacto, calificación, espacio de trabajo, oportunidades por etapa, pausa, pérdida, ganar, interlocutores, probabilidad, pronóstico por moneda y tareas (tablero, detalle en Markdown, prioridad, etiquetas) |
+| `theme` | Tema de marca de una organización (staff): tokens desde el producto real del cliente, OKLCH, mapa de tokens del Portal, reglas del validador AA, logos del tema y de la organización, y auditoría de contraste en el Portal en claro y oscuro |
 | `products` | Alta, estados, aprovisionamiento, deploys, variables, dominios, acceso |
 | `pai-env` | `/pai-console:pai-env [staging\|develop\|production]`: ver o cambiar el entorno (solo manual) |
 

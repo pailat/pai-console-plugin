@@ -19,7 +19,7 @@ Las tools declaran sus anotaciones, y la guarda las lee de `hooks/tools.json`, q
 | `organization_create` | E | Quien llama entra como admin; con `ownerEmail` envía una invitación |
 | `organization_slug_set` | E | Staff. Cambia el slug de la organización en las URLs del Portal; el anterior redirige y no se reutiliza |
 | `organization_update` | E | Requiere ser owner o admin de esa organización, como el resto de ajustes de la organización. Nombre visible o logo (`logo` = `fileKey` de `organization_logo_upload_url`, "" lo quita); el slug no cambia |
-| `organization_logo_upload_url` | E | URL firmada para el PUT del logo de la organización (PNG ≤10 MB); no es el logo del tema |
+| `organization_logo_upload_url` | E | URL firmada para el PUT del logo de la organización: **solo PNG** ≤10 MB. Es el avatar del selector y de Ajustes › General, no el logo del tema (que acepta SVG): sube los dos |
 | `organization_member_role_set` | E | owner, admin o member (`memberId` de `organization_get`); nunca deja la organización sin owner |
 | `organization_member_remove` | E | Quita al miembro y libera su asiento; no quita al último owner |
 | `organization_invitation_cancel` | E | El enlace del correo deja de servir |
@@ -46,7 +46,7 @@ Las tools declaran sus anotaciones, y la guarda las lee de `hooks/tools.json`, q
 
 ## Tema de la organización
 
-La marca que ven el Portal y las vistas del cliente. Flujo: `organization_theme_get` → `organization_theme_preview` → `organization_theme_save_draft` → `organization_theme_publish`.
+La marca que ven el Portal y las vistas del cliente. Solo staff en el MCP corp. Flujo: `organization_theme_get` → `organization_theme_preview` → `organization_theme_save_draft` → `organization_theme_publish`. Guía completa, mapa de tokens y verificación en el Portal: skill `theme`.
 
 | Tool | Tipo | Nota |
 |---|---|---|
@@ -56,7 +56,7 @@ La marca que ven el Portal y las vistas del cliente. Flujo: `organization_theme_
 | `organization_theme_publish` | E | El cliente lo ve en su siguiente carga. Se rechaza si no cumple AA, esquema o logos |
 | `organization_theme_revert` | E | Copia una versión como borrador y, salvo `publish: false`, la publica |
 | `organization_theme_logo_upload_url` | E | URL firmada (5 min) para el PUT del logo: PNG, WebP o SVG ≤512 KB, con el `contentType` y `size` declarados |
-| `organization_theme_logo_confirm` | E | Tras el PUT: valida el logo y devuelve la referencia para `theme.logo.light` o `theme.logo.dark` |
+| `organization_theme_logo_confirm` | E | Tras el PUT (`storageKey` = `fileKey`): valida el logo y devuelve el objeto `{storageKey, contentType, bytes}`. Va **completo** en `theme.logo.light` o `theme.logo.dark`; un string da «se esperaba objeto, recibido texto» |
 
 ## Recursos
 
