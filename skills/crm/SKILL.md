@@ -23,9 +23,20 @@ Inventario completo: `${CLAUDE_PLUGIN_ROOT}/skills/pai-console/references/tools.
 | `crm:revenue` | Montos, pronóstico ponderado, `crm_opportunity_list`, `crm_opportunity_event_list` y ajustar probabilidad |
 | `crm:purge` | Purgar basura sin cadena (`crm_lead_purge`) |
 | `crm:import` | Importación histórica de un CRM anterior (`crm_lead_import`) |
-| `crm:join` | Entrar como admin a la organización de un lead (`crm_lead_workspace_join`, que sin él no aparece) y ligar organizaciones existentes: al abrir el espacio, al calificar, al importar, al crear una oportunidad o un lead con `organizationId`. Sin él, un lead solo se liga a la cuenta que sugiere el aviso de duplicados. Ningún rol predefinido lo trae; el staff sí |
+| `crm:join` | Entrar a organizaciones de clientes: `crm_lead_workspace_join` (sin él no aparece), ligar el espacio a una organización **existente** (`link_existing`) y quedar como admin de la que se crea desde el lead. Ningún rol predefinido lo trae; el staff sí (§ Sin `crm:join`) |
 
 Sin `crm:revenue` los montos no llegan, tampoco en el historial: no los inventes ni los estimes.
+
+**Personas solo de CRM.** Quien no es staff pero tiene `crm:access` por un rol de Console recibe en el MCP corp **solo** las tools del CRM:
+- no hay `organization_list`, proyectos, propuestas, Conocimiento ni Recursos;
+- lo que pida eso (ligar una propuesta enviada para `proposal_sent`, ver el proyecto de Descubrimiento) lo hace alguien del staff: díselo, no lo rodees.
+
+### Sin `crm:join`
+
+- `link_existing` (en `crm_lead_workspace_open`, `crm_lead_qualify` o `crm_lead_import`) da `FORBIDDEN` «No tienes permiso para ligar el lead a una organización existente: crea la organización desde el lead». Usa `create_from_lead` o pide a quien tenga `crm:join` que lo ligue.
+- `create_from_lead` crea la organización, pero **no te hace miembro**.
+- `crm_opportunity_create` solo abre oportunidades en organizaciones que el CRM ya lleva (con un lead o una oportunidad suya).
+- No intentes entrar a la organización por otro camino.
 
 ## Reglas que el servidor hace cumplir
 
@@ -34,6 +45,7 @@ Sin `crm:revenue` los montos no llegan, tampoco en el historial: no los inventes
 - **Montos en centavos** (`4200000` = $42,000.00) y por moneda (`mxn`, `usd`). **MXN y USD nunca se suman**: reporta cada moneda aparte.
 - **Archivar no es borrar.** Leads y oportunidades se archivan y vuelven con `*_unarchive`. Solo `crm_lead_purge` borra, y solo basura sin cadena.
 - Todo cambio queda en el historial (`crm_lead_event_list`, `crm_opportunity_event_list`) marcado como vía MCP.
+- **Nombra a las personas del equipo por su nombre**, como lo dan las tools (actor, propietario, quién calificó). El servidor ya no muestra su correo: no lo busques ni lo escribas. El correo de los contactos del cliente (lead, interlocutores) sí es dato del CRM.
 
 ## Leer: qué está pasando
 
@@ -46,7 +58,7 @@ Sin `crm:revenue` los montos no llegan, tampoco en el historial: no los inventes
 | Un lead a fondo | `crm_lead_record` (calificación, envío, espacio, oportunidades, nodos sembrados, actividades) |
 | Una oportunidad a fondo | `crm_opportunity_get` (interlocutores, propuestas y versiones, actividades, historial) |
 | ¿De dónde vino y en qué terminó? | `crm_trace_get {opportunityId, asOf?}`: envío → lead → espacio → oportunidad → propuesta → proyecto → hitos → producto |
-| Propietarios posibles | `crm_owner_list` (ids para `ownerUserId`, `deliveryLeadUserId`) |
+| Propietarios posibles | `crm_owner_list`: quienes tienen `crm:edit`, también personas solo de CRM (ids para `ownerUserId`, `deliveryLeadUserId`). Elige de esa lista; nunca escribas un id a mano |
 
 Filtros de `crm_lead_list`: `query`, `source`, `owner` (`me`, `none` o id), `period` (`30d`, `90d`, `year`, `all`; sin `period`, todos), `waitingOn` (`attention` requiere atención, `pai` en espera de nosotros, `client` en espera del cliente, `overdue` vencido, `none` sin siguiente paso, `outsideSla` primer contacto vencido sin importados), `archived: "1"`. `crm_opportunity_list` acepta los mismos `waitingOn` salvo `outsideSla` y suma `serviceLine`, `offering`, `kind`, `currency`, `closeWindow` (`overdue`, `30d`, `90d`) y `organizationId`.
 
@@ -54,7 +66,7 @@ Para mostrarlo visual, compón con el skill `views` (`Stats`, `Kanban`, `DataTab
 
 ## Leads
 
-Etapas: `new` → `contacted` → `qualified` (o `unqualified`) → `converted` (al ganar la primera oportunidad de su organización). Orígenes: `form`, `onboarding`, `manual`, `referral`, `mcp`; **no se cambian después**.
+Etapas: `new` → `contacted` → `qualified` (o `unqualified`) → `converted` (al ganar la primera oportunidad de su organización). Orígenes: `form`, `onboarding`, `manual`, `referral`, `mcp` e `import` (los de `crm_lead_import`); **no se cambian después**.
 
 ### Crear
 
@@ -94,9 +106,9 @@ Etapas: `new` → `contacted` → `qualified` (o `unqualified`) → `converted` 
 
 ### Espacio de trabajo (organización + proyecto)
 
-1. `crm_lead_organization_suggestions {leadId}`: organizaciones parecidas por dominio, miembros y nombre, con su origen (`self_service`, `client`, `prospect`) y qué campos llenaría. **Nunca liga sola.**
+1. `crm_lead_organization_suggestions {leadId, query?}`: organizaciones parecidas por dominio, miembros y nombre (o las que coinciden con `query`, por nombre o dominio), con su origen (`self_service`, `client`, `prospect`) y qué campos llenaría. **Nunca liga sola.**
 2. Confirma con la persona: crear una nueva o ligar una existente.
-3. `crm_lead_workspace_open {workspace}` (o dentro de `crm_lead_qualify`): crea o liga la organización (solo llena campos vacíos) y abre el proyecto «Descubrimiento» en borrador. **No se re-liga después.**
+3. `crm_lead_workspace_open {workspace}` (o dentro de `crm_lead_qualify`): crea o liga la organización (solo llena campos vacíos) y abre el proyecto «Descubrimiento» en borrador. **No se re-liga después.** Ligar una existente exige `crm:join`.
 4. Ligar no te hace miembro. Para entrar: `crm_lead_workspace_join` («Entrar como staff», queda auditado; exige `crm:join`).
 
 ### Purgar
@@ -150,5 +162,5 @@ Efectos: la primera ganada de la organización convierte su lead y activa la cue
 - Sumar MXN y USD en un total.
 - Dar montos sin `crm:revenue` o inventar probabilidades.
 - Marcar spam con `crm_lead_disqualify` (es archivar o purgar).
-- Ligar una organización sin confirmar la sugerencia con la persona.
+- Ligar una organización sin confirmar la sugerencia con la persona, o intentar `link_existing` sin `crm:join`.
 - Ganar sin `decision_maker` o sin una versión de propuesta enviada o aceptada.
