@@ -1,0 +1,22 @@
+{
+  "name": "pai-console-plugin",
+  "owner": {
+    "name": "Pai",
+    "email": "alex.sanchez@pai.lat"
+  },
+  "description": "Marketplace del plugin Pai Console: instala pai-console desde este mismo repositorio.",
+  "plugins": [
+    {
+      "name": "pai-console",
+      "source": "./",
+      "description": "Trabaja con Pai Console (0.2.5+) por el MCP corp: UI generativa (pai-view@1 y view_render), Recursos, Conocimiento (ERD, C4, pantallas, de proyecto y de organización), Cronograma y tablero, Propuestas, Pagos/CFDI, Productos y CRM, con skills opinados y una guarda de escrituras en producción.",
+      "category": "productivity",
+      "tags": [
+        "pai",
+        "mcp",
+        "crm",
+        "knowledge"
+      ]
+    }
+  ]
+}

@@ -3,7 +3,7 @@
 Plugin de Claude Code para que el staff de Pai opere proyectos de clientes en **Pai Console** por su MCP corp. Incluye:
 
 - el MCP ya configurado;
-- skills opinados para Recursos, Conocimiento (ERD, C4, pantallas), Cronograma, Propuestas y Pagos, y Productos;
+- skills opinados para Recursos, vistas, Conocimiento (ERD, C4, pantallas), Cronograma, Propuestas y Pagos, Productos y CRM;
 - una guarda de escrituras en producción.
 
 ## Requisitos
@@ -18,13 +18,25 @@ Un entorno con una versión anterior no está soportado: el modelo lo dice y par
 
 ## Instalación
 
-Desde el marketplace de Pai (`pai-marketplace`, el del kit de marca):
+El repo es su propio marketplace (`.claude-plugin/marketplace.json`, marketplace `pai-console-plugin`). Es privado: Claude Code usa tus credenciales de git, así que antes deja `gh` como credencial de HTTPS (`gh auth login` y `gh auth setup-git`).
 
 ```
-/plugin install pai-console@pai-marketplace
+/plugin marketplace add pailat/pai-console-plugin
+/plugin install pai-console@pai-console-plugin
 ```
 
-Mientras el repo no tenga remoto, la entrada del marketplace apunta al repo local (`file://…/pai-console-plugin`, rama `main`), así que solo instala en esta máquina y toma lo que esté commiteado en `main`. Cuando exista el remoto, cambia la fuente a `{"source": "github", "repo": "<org>/pai-console-plugin"}`.
+O desde la terminal:
+
+```bash
+claude plugin marketplace add pailat/pai-console-plugin
+claude plugin install pai-console@pai-console-plugin
+```
+
+Después elige el entorno (`/pai-console:pai-env`) e inicia sesión en `/mcp`.
+
+**Actualizaciones:** `/plugin` detecta una versión nueva por el `version` de `.claude-plugin/plugin.json`; si no cambia, nadie se actualiza. Para un marketplace propio la actualización automática viene apagada: actívala en `/plugin` → Marketplaces, o actualiza con `claude plugin update pai-console@pai-console-plugin` y `/reload-plugins`.
+
+También está en el marketplace del kit de marca (`pai-marketplace`) como `pai-console@pai-marketplace`.
 
 Para probarlo en una sola sesión sin instalarlo:
 
@@ -89,7 +101,7 @@ Todos los skills de área se pueden invocar como comando (`/pai-console:erd`, `/
 
 ## Desarrollo
 
-Requiere un checkout de pai-portal con dependencias, por ejemplo un worktree detached de `release/0.2.5`.
+Requiere un checkout de pai-portal con dependencias, por ejemplo un worktree detached de la rama que sirve develop (hoy `feat/0.2.5/reui`).
 
 ```bash
 # Regenerar desde pai-portal: referencias (kinds, ontología, catálogo de vistas, tipos de page),
@@ -102,8 +114,11 @@ PAI_PORTAL=~/worktrees/pai-console-plugin-ref bun tools/validate-examples.ts
 # Tests de los hooks
 python3 -m unittest discover -s tests
 
-# Manifiesto y estructura del plugin
+# Marketplace, manifiesto, skills y agente
 claude plugin validate --strict .
+claude plugin validate --strict .claude-plugin/plugin.json
+claude plugin validate --strict skills
+claude plugin validate --strict agents
 
 # Evals del comportamiento contra el MCP simulado (evals/mocks/pai, con el tools/list real de 0.2.5)
 claude plugin eval . --allow-tools 'mcp__plugin_pai-console_pai__*' --trust-plugin --no-publish -j 4

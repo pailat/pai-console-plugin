@@ -1,6 +1,6 @@
 ---
 name: crm
-description: CRM de Pai en Console (solo staff, MCP corp): leads, calificación, espacio de trabajo, oportunidades, pronóstico y la cadena envío → lead → oportunidad → propuesta → proyecto. Cubre revisar el tablero y lo que te toca empujar, crear leads (desde Forms, referidos o a mano) sin duplicados, contactar, calificar, descartar o ligar duplicados, abrir la organización y el proyecto de Descubrimiento, mover oportunidades por etapa, pausar, perder o ganar, interlocutores y probabilidad. Úsalo cuando pidan CRM, lead, prospecto, envío de Forms, calificar, pipeline, embudo, oportunidad, trato, pronóstico, forecast, «qué me toca», ganar o perder un trato.
+description: "CRM de Pai en Console (solo staff, MCP corp): leads, calificación, espacio de trabajo, oportunidades, pronóstico y la cadena envío → lead → oportunidad → propuesta → proyecto. Cubre revisar el tablero y lo que te toca empujar, crear leads (desde Forms, referidos o a mano) sin duplicados, contactar, calificar, descartar o ligar duplicados, abrir la organización y el proyecto de Descubrimiento, mover oportunidades por etapa, pausar, perder o ganar, interlocutores y probabilidad. Úsalo cuando pidan CRM, lead, prospecto, envío de Forms, calificar, pipeline, embudo, oportunidad, trato, pronóstico, forecast, «qué me toca», ganar o perder un trato."
 argument-hint: "[lead, oportunidad u organización]"
 compatibility: "Pai 0.2.5+ (MCP corp, staff con permisos crm:*)"
 ---

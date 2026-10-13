@@ -1,6 +1,6 @@
 ---
 name: pai-console
-description: Método base para trabajar con Pai Console por su MCP (tools mcp__plugin_pai-console_pai__* o mcp__pai-console__*). Úsalo siempre antes de leer o escribir en Pai: entorno, descubrimiento de organización y proyecto, buscar antes de crear, CAS con expectedRevision, idempotencia, nombres en inglés, errores y citas. Los skills de área (resources, knowledge, erd, c4, screens, schedule, proposals-payments, products, crm) lo dan por leído.
+description: "Método base para trabajar con Pai Console por su MCP (tools mcp__plugin_pai-console_pai__* o mcp__pai-console__*). Úsalo siempre antes de leer o escribir en Pai: entorno, descubrimiento de organización y proyecto, buscar antes de crear, CAS con expectedRevision, idempotencia, nombres en inglés, errores y citas. Los skills de área (resources, knowledge, erd, c4, screens, schedule, proposals-payments, products, crm) lo dan por leído."
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
