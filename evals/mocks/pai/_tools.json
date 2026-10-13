@@ -3293,6 +3293,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -3325,6 +3331,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -3363,6 +3375,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -3395,6 +3413,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -3512,6 +3536,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -3631,6 +3661,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -3702,6 +3738,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -5372,6 +5414,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -6064,6 +6112,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -6265,6 +6319,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -6308,6 +6368,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -8413,6 +8479,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -8595,6 +8667,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/canvas.html"
+    },
+    "ui/resourceUri": "ui://pai/canvas.html"
    }
   },
   {
@@ -8729,6 +8807,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -14687,6 +14771,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -14976,6 +15066,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -15054,6 +15150,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -15070,6 +15172,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -15095,6 +15203,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -15120,6 +15234,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -15145,6 +15265,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -15186,6 +15312,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -15644,6 +15776,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -15674,6 +15812,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -16259,6 +16403,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -16275,6 +16425,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -16291,6 +16447,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -16316,6 +16478,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -17262,6 +17430,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -20117,6 +20291,12 @@
     "idempotentHint": true,
     "destructiveHint": false,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -20185,6 +20365,12 @@
     "idempotentHint": true,
     "destructiveHint": false,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/canvas.html"
+    },
+    "ui/resourceUri": "ui://pai/canvas.html"
    }
   },
   {
@@ -21970,6 +22156,12 @@
     "idempotentHint": true,
     "destructiveHint": false,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -22034,6 +22226,12 @@
     "idempotentHint": true,
     "destructiveHint": false,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -22065,7 +22263,7 @@
   {
    "name": "organization_theme_preview",
    "title": "Vista previa del tema",
-   "description": "Valida un tema propuesto (o el borrador si no das theme) sin guardar nada: devuelve sus problemas de contraste AA y de esquema, el CSS que se aplicaría y una muestra con los componentes de Pai.",
+   "description": "Valida un tema propuesto (o el borrador si no das theme) sin guardar nada: devuelve sus problemas de contraste AA y de esquema, el CSS que se aplicaría, los shells que puede elegir (shells; id null = el de Pai) y una muestra con los componentes de Pai.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -22082,7 +22280,7 @@
        "type": "string"
       },
       "additionalProperties": {},
-      "description": "Tema completo (organizationThemeSchema, versión 1): { schemaVersion: 1, light: {…}, dark: {…}, font, radius, shadow, logo: { light, dark } }. light/dark: colores \"#rrggbb\" u \"oklch(L C H)\" para estas claves (las que no pongas quedan de Pai): background, foreground, card, card-foreground, popover, popover-foreground, primary, primary-foreground, secondary, secondary-foreground, muted, muted-foreground, accent, accent-foreground, border, ring, brand, brand-foreground, brand-text, chart-1, chart-2, chart-3, chart-4, chart-5, sidebar, sidebar-foreground, sidebar-primary, sidebar-primary-foreground, sidebar-accent, sidebar-accent-foreground, sidebar-border, sidebar-ring. font: inter | dm-sans | manrope | plus-jakarta-sans | figtree | source-serif-4 | lora | null. radius: rem de 0 a 1.25 en pasos de 0.0625 | null (Pai: 0.5). shadow: none | soft | default | strong | null. logo.light / logo.dark: la referencia que devuelve organization_theme_logo_confirm, o null."
+      "description": "Tema completo (organizationThemeSchema, versión 1): { schemaVersion: 1, light: {…}, dark: {…}, font, radius, shadow, shell, logo: { light, dark } }. light/dark: colores \"#rrggbb\" u \"oklch(L C H)\" para estas claves (las que no pongas quedan de Pai): background, foreground, card, card-foreground, popover, popover-foreground, primary, primary-foreground, secondary, secondary-foreground, muted, muted-foreground, accent, accent-foreground, border, ring, brand, brand-foreground, brand-text, chart-1, chart-2, chart-3, chart-4, chart-5, sidebar, sidebar-foreground, sidebar-primary, sidebar-primary-foreground, sidebar-accent, sidebar-accent-foreground, sidebar-border, sidebar-ring. font: inter | dm-sans | manrope | plus-jakarta-sans | figtree | source-serif-4 | lora | null. radius: rem de 0 a 1.25 en pasos de 0.0625 | null (Pai: 0.5). shadow: none | soft | default | strong | null. shell: el app shell completo del Portal (estructura de un bloque app-shell de reUI) | null (el de Pai: barra lateral insertada). sidebar: Barra lateral, Barra lateral pegada al borde que se contrae a íconos con la flecha de su orilla; la página va sobre el fondo, sin tarjeta. floating: Flotante, Barra lateral flotante con borde y sombra, que se contrae a íconos; la página va sobre el fondo, sin tarjeta. header: Encabezado completo, Encabezado de ancho completo con la organización, la búsqueda y el usuario; debajo, la barra lateral con el menú, que se contrae a íconos. dual-rail: Riel y panel, Un riel de íconos con las áreas y el usuario, y al lado un panel con la organización, la búsqueda y el menú del área, que se oculta. section-tabs: Áreas arriba, Barra superior fija con la organización, las áreas como píldoras y la búsqueda; debajo, la barra lateral con el menú del área y el usuario. framed: Marco único, Las áreas como pestañas arriba y un solo panel redondeado que enmarca el menú y la página. topbar: Solo barra superior, Sin barra lateral: las áreas en la barra superior, el menú del área como pestañas sobre la página y el menú completo en un panel que se abre. icon-rail: Riel de íconos, Solo un riel angosto con el menú del área en íconos y sus nombres al pasar; la página ocupa el resto. logo.light / logo.dark: la referencia que devuelve organization_theme_logo_confirm, o null."
      }
     },
     "required": [
@@ -22094,6 +22292,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -22116,7 +22320,7 @@
        "type": "string"
       },
       "additionalProperties": {},
-      "description": "Tema completo (organizationThemeSchema, versión 1): { schemaVersion: 1, light: {…}, dark: {…}, font, radius, shadow, logo: { light, dark } }. light/dark: colores \"#rrggbb\" u \"oklch(L C H)\" para estas claves (las que no pongas quedan de Pai): background, foreground, card, card-foreground, popover, popover-foreground, primary, primary-foreground, secondary, secondary-foreground, muted, muted-foreground, accent, accent-foreground, border, ring, brand, brand-foreground, brand-text, chart-1, chart-2, chart-3, chart-4, chart-5, sidebar, sidebar-foreground, sidebar-primary, sidebar-primary-foreground, sidebar-accent, sidebar-accent-foreground, sidebar-border, sidebar-ring. font: inter | dm-sans | manrope | plus-jakarta-sans | figtree | source-serif-4 | lora | null. radius: rem de 0 a 1.25 en pasos de 0.0625 | null (Pai: 0.5). shadow: none | soft | default | strong | null. logo.light / logo.dark: la referencia que devuelve organization_theme_logo_confirm, o null."
+      "description": "Tema completo (organizationThemeSchema, versión 1): { schemaVersion: 1, light: {…}, dark: {…}, font, radius, shadow, shell, logo: { light, dark } }. light/dark: colores \"#rrggbb\" u \"oklch(L C H)\" para estas claves (las que no pongas quedan de Pai): background, foreground, card, card-foreground, popover, popover-foreground, primary, primary-foreground, secondary, secondary-foreground, muted, muted-foreground, accent, accent-foreground, border, ring, brand, brand-foreground, brand-text, chart-1, chart-2, chart-3, chart-4, chart-5, sidebar, sidebar-foreground, sidebar-primary, sidebar-primary-foreground, sidebar-accent, sidebar-accent-foreground, sidebar-border, sidebar-ring. font: inter | dm-sans | manrope | plus-jakarta-sans | figtree | source-serif-4 | lora | null. radius: rem de 0 a 1.25 en pasos de 0.0625 | null (Pai: 0.5). shadow: none | soft | default | strong | null. shell: el app shell completo del Portal (estructura de un bloque app-shell de reUI) | null (el de Pai: barra lateral insertada). sidebar: Barra lateral, Barra lateral pegada al borde que se contrae a íconos con la flecha de su orilla; la página va sobre el fondo, sin tarjeta. floating: Flotante, Barra lateral flotante con borde y sombra, que se contrae a íconos; la página va sobre el fondo, sin tarjeta. header: Encabezado completo, Encabezado de ancho completo con la organización, la búsqueda y el usuario; debajo, la barra lateral con el menú, que se contrae a íconos. dual-rail: Riel y panel, Un riel de íconos con las áreas y el usuario, y al lado un panel con la organización, la búsqueda y el menú del área, que se oculta. section-tabs: Áreas arriba, Barra superior fija con la organización, las áreas como píldoras y la búsqueda; debajo, la barra lateral con el menú del área y el usuario. framed: Marco único, Las áreas como pestañas arriba y un solo panel redondeado que enmarca el menú y la página. topbar: Solo barra superior, Sin barra lateral: las áreas en la barra superior, el menú del área como pestañas sobre la página y el menú completo en un panel que se abre. icon-rail: Riel de íconos, Solo un riel angosto con el menú del área en íconos y sus nombres al pasar; la página ocupa el resto. logo.light / logo.dark: la referencia que devuelve organization_theme_logo_confirm, o null."
      }
     },
     "required": [
@@ -28263,6 +28467,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -28445,7 +28655,8 @@
        "editable-table",
        "column-groups",
        "pinned-footer-table",
-       "chart-composed"
+       "chart-composed",
+       "questionnaire"
       ]
      },
      "recipeGroup": {
@@ -28509,6 +28720,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/canvas.html"
+    },
+    "ui/resourceUri": "ui://pai/canvas.html"
    }
   }
  ]

@@ -1,6 +1,6 @@
 # Tipos de page y bloques
 
-> Generado por `tools/gen-references.ts` desde pai-portal `59183d306` (2026-10-13 fix(resources): un cliente no borra subcarpetas ajenas ni descubre contenido interno), `packages/contracts/src/pages`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `6b63957cc` (2026-10-13 Merge remote-tracking branch 'origin/feat/0.2.5/reui' into feat/0.2.5/reui), `packages/contracts/src/pages`. No editar a mano: regenerar.
 
 ## Límites del contenido
 

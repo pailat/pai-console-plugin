@@ -1,6 +1,6 @@
 # Catálogo de vistas `pai-view@1`
 
-> Generado por `tools/gen-references.ts` desde pai-portal `59183d306` (2026-10-13 fix(resources): un cliente no borra subcarpetas ajenas ni descubre contenido interno), `packages/views/src/catalog.ts`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `6b63957cc` (2026-10-13 Merge remote-tracking branch 'origin/feat/0.2.5/reui' into feat/0.2.5/reui), `packages/views/src/catalog.ts`. No editar a mano: regenerar.
 
 Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props, children? } } }. Los hijos se referencian por id.
 
@@ -31,6 +31,7 @@ Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props,
 - tableRows: 200
 - chartCategories: 60
 - chartSeries: 6
+- chartPolarCategories: 12
 - gridColumns: 6
 - navItems: 12
 - erdTables: 120
@@ -39,6 +40,8 @@ Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props,
 - c4Relations: 400
 - graphNodes: 500
 - graphEdges: 1500
+- flowNodes: 60
+- flowEdges: 120
 
 ## Layouts: la raíz de la vista
 
@@ -59,15 +62,15 @@ Una pantalla completa empieza con uno de estos componentes como `root` (y solo a
 | Sitio web | Secciones de un sitio web (pai.lat o el de un cliente) dentro de SiteShell. | BlogList, ContactSection, CtaBand, HowItWorks, LogoGrid, SectionIntro, ServiceCards, SiteHero, Testimonials |
 | Patrones | Layouts de pantalla con regiones con nombre (encabezado, principal, lateral…): un hijo por región, en orden. Van dentro de un shell o en la raíz. | AuthLayout, BoardLayout, ChatLayout, DashboardLayout, DetailLayout, DocLayout, EmptyLayout, FilesLayout, FormLayout, PageLayout, SettingsLayout, SplitView, WizardLayout |
 | Estructura | Contenedores que ordenan la vista. | Accordion, Card, Collapsible, DetailSheet, DialogFrame, Frame, Grid, Section, Separator, Stack, Tabs, UnderlinedTabs |
-| Contenido | Títulos, texto, etiquetas, avisos, listas, enlaces y código. | Alert, Avatar, Badge, CodeBlock, CommentsPanel, FileType, Heading, HistoryPanel, HoverCard, IconStack, IconTile, Item, Kbd, Link, List, Rating, StatusBadge, StatusDot, Text, Tooltip |
+| Contenido | Títulos, texto, etiquetas, avisos, listas, enlaces y código. | Alert, Avatar, Badge, Carousel, CodeBlock, CommentsPanel, FileType, Heading, HistoryPanel, HoverCard, IconStack, IconTile, Image, Item, Kbd, Link, List, Rating, StatusBadge, StatusDot, Text, Tooltip |
 | Datos | Indicadores, tablas, gráficas y pares etiqueta–valor. | BarList, Chart, DataTable, FileList, Heatmap, KeyValue, Metric, Progress, ProgressRing, Stats, Table, Tree, TreeTable |
 | Controles | Botones, menús y campos de formulario. Responden dentro de la vista (abren, cambian, se marcan) pero nada se envía, guarda ni navega, salvo un botón con href. | ActionMenu, Autocomplete, Button, ButtonGroup, Calendar, Checkbox, Command, DateSelector, Dropzone, FilterBar, Input, Popover, RadioGroup, Select, Sortable, Switch, Textarea, ToggleGroup |
 | Formularios | Campos de formulario de maqueta: se ven como en Pai pero no se enfocan, no envían ni guardan nada, ni piden datos sensibles. | Cascader, ColorPicker, Combobox, EmojiPicker, InputOTP, NumberField, PhoneInput, SignaturePad, Slider, TimePicker |
 | Conversación | Maquetas de un chat con un agente: mensajes y el cuadro para escribir. No se conectan a ningún agente ni envían mensajes. | ChatComposer, ChatThread |
 | Navegación | Migas, paginación y piezas sueltas del chrome de Pai. | Breadcrumb, Menubar, NavigationMenu, OrgSwitcher, PageBar, PageHeader, Pagination, ProjectHeader, ProjectSwitcher, Scrollspy |
 | Estados | Vacío, error y carga de una sección, con el aspecto que usan Portal y Console. | EmptyState, ErrorState, LoadingState, Skeleton, Spinner |
-| Planeación | Cronologías, etapas, pasos, hitos, Tareas y Kanban. | Checklist, EventCalendar, Gantt, Kanban, MilestoneGanttLegend, MilestoneGanttSkeleton, MilestoneTimeline, Stages, Stepper, TaskBoard, Timeline |
-| Proyecto | Piezas de las pantallas de un proyecto en Portal y Console: propuestas, pagos, productos. Sólo muestran lo que la vista trae; nada se guarda. | ActivityFeed, OrganizationMembers, OrganizationsGrid, Payments, ProductDetail, ProductsList, ProjectsTable, ProposalLifecycle, ProposalSummary, Resources |
+| Planeación | Cronologías, etapas, pasos, hitos, Tareas y Kanban. | Checklist, EventCalendar, Flow, Gantt, Kanban, MilestoneGanttLegend, MilestoneGanttSkeleton, MilestoneTimeline, Stages, Stepper, TaskBoard, Timeline |
+| Proyecto | Piezas de las pantallas de un proyecto en Portal y Console: propuestas, pagos, productos. Sólo muestran lo que la vista trae; nada se guarda. | ActivityFeed, OrganizationMembers, OrganizationsGrid, Payments, ProductDetail, ProductsList, ProjectsTable, ProposalLifecycle, ProposalSummary, Resources, ShellPicker |
 | Comercio | Planes, comparativas y reseñas del cliente, sólo informativos: nada se compra, cobra ni envía, y los precios son del cliente, no de Pai. | ComparisonTable, PricingGrid, ReviewList |
 | Conocimiento | Diagramas del grafo (ERD, C4, nodos), la biblioteca y el badge de tipo. Los diagramas se mueven y acercan en la vista. | C4Diagram, ErdDiagram, KnowledgeGraph, KnowledgeKindBadge, KnowledgeTable |
 
@@ -82,9 +85,9 @@ Cada objeto de props es cerrado. `?` marca una prop opcional; las que aceptan `n
 App completa de un cliente, sólo raíz: marca, menú con iconos y badge opcional, usuario y contenido. layout sidebar (null) conserva la barra lateral; inset usa el lateral con contenido en SidebarInset; topbar muestra marca, menú horizontal y usuario (no admite secondaryNav: se ignora). En una página, la barra lateral se pliega a iconos con tooltip si la vista no es ancha, y en angosto el menú abre con un botón. breadcrumb muestra migas antes de title; sus href navegan. En Recursos se ve en un marco de dispositivos y puede abrirse a pantalla completa.
 
 - `brand`: { name: string (min 1, ≤160), detail?: string (≤80) (null = por defecto) }
-- `nav`: [{ label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap", active?: boolean (null = por defecto), badge?: string (min 1, ≤6) (null = por defecto) }] (min 1, máx 12)
+- `nav`: [{ label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette", active?: boolean (null = por defecto), badge?: string (min 1, ≤6) (null = por defecto) }] (min 1, máx 12)
 - `secondaryTitle`?: string (≤80) (null = por defecto)
-- `secondaryNav`?: [{ label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap", active?: boolean (null = por defecto), badge?: string (min 1, ≤6) (null = por defecto) }] (máx 12) (null = por defecto)
+- `secondaryNav`?: [{ label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette", active?: boolean (null = por defecto), badge?: string (min 1, ≤6) (null = por defecto) }] (máx 12) (null = por defecto)
 - `layout`?: "sidebar"|"inset"|"topbar"|null (null = por defecto)
 - `breadcrumb`?: [{ label: string (min 1, ≤160), href?: string (null = por defecto) }] (min 1, máx 4) (null = por defecto)
 - `title`: string (min 1, ≤160)
@@ -107,7 +110,7 @@ Pantalla de Console (el back office de Pai), idéntica a la real: selector «Con
 
 - `area`?: "admin"|"workforce"|"all"|null (null = por defecto)
 - `active`?: string (≤80) (null = por defecto)
-- `menu`?: [{ label?: string (min 1, ≤160) (null = por defecto), items: [{ key: string (min 1, ≤80), label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap" }] (min 1, máx 12) }] (min 1, máx 6) (null = por defecto)
+- `menu`?: [{ label?: string (min 1, ≤160) (null = por defecto), items: [{ key: string (min 1, ≤80), label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette" }] (min 1, máx 12) }] (min 1, máx 6) (null = por defecto)
 - `breadcrumb`?: [{ label: string (min 1, ≤160), href?: string (null = por defecto) }] (min 1, máx 6) (null = por defecto)
 - `title`?: string (min 1, ≤160) (null = por defecto)
 - `action`?: string (min 1, ≤160) (null = por defecto)
@@ -117,12 +120,12 @@ Ejemplo: `{"area":"admin","active":"admin.organizations","breadcrumb":[{"label":
 
 #### PortalShell (admite hijos)
 
-Pantalla del Portal de Pai, idéntica a la real: selector de organización, el menú real del área (home, organization, project o product) tal como lo ve un cliente o el staff de Pai (audience), usuario al pie y la barra con migas. Sus hijos son el contenido de la página. Va siempre como raíz de la vista. active es la clave del ítem activo del menú (projects, milestones, payments…). menu reemplaza el menú real sólo para pantallas que Portal aún no tiene. Nada navega.
+Pantalla del Portal de Pai, idéntica a la real: selector de organización, el menú real del área (home, organization, project o product) tal como lo ve un cliente o el staff de Pai (audience), usuario al pie y la barra con migas. Sus hijos son el contenido de la página. Va siempre como raíz de la vista. active es la clave del ítem activo del menú (projects, milestones, payments…). menu reemplaza el menú real sólo para pantallas que Portal aún no tiene. El marco es el app shell del tema publicado de la organización (o el del borrador en organization_theme_preview), igual que sus colores; sin tema, el de Pai. No hay prop para elegirlo: manda el tema. Nada navega.
 
 - `area`?: "home"|"organization"|"project"|"product"|null (null = por defecto)
 - `audience`?: "client"|"staff"|null (null = por defecto)
 - `active`?: string (≤80) (null = por defecto)
-- `menu`?: [{ label?: string (min 1, ≤160) (null = por defecto), items: [{ key: string (min 1, ≤80), label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap" }] (min 1, máx 12) }] (min 1, máx 6) (null = por defecto)
+- `menu`?: [{ label?: string (min 1, ≤160) (null = por defecto), items: [{ key: string (min 1, ≤80), label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette" }] (min 1, máx 12) }] (min 1, máx 6) (null = por defecto)
 - `organization`?: string (min 1, ≤160) (null = por defecto)
 - `organizations`?: [string (min 1, ≤160)] (máx 20) (null = por defecto)
 - `project`?: string (min 1, ≤160) (null = por defecto)
@@ -213,7 +216,7 @@ Ejemplo: `{"title":"El conocimiento y el método para construir con AI Agents","
 
 Tarjetas de servicios o capacidades del sitio (2 a 6), en 1, 2 o 3 columnas: icono, título, texto y una lista corta de lo que incluye.
 
-- `items`: [{ title: string (min 1, ≤160), body: string (≤2000), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), points?: [string (min 1, ≤160)] (máx 6) (null = por defecto) }] (min 2, máx 6)
+- `items`: [{ title: string (min 1, ≤160), body: string (≤2000), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), points?: [string (min 1, ≤160)] (máx 6) (null = por defecto) }] (min 2, máx 6)
 
 Ejemplo: `{"items":[{"title":"Diagnóstico","body":"Entendemos tu operación y lo que necesitas resolver.","icon":"search","points":["Entrevistas","Mapa de procesos"]},{"title":"Construcción por módulos","body":"Lo ves en pantallas y lo construimos por etapas.","icon":"layers","points":["Prototipos","Entregas quincenales"]},{"title":"Operación","body":"Operamos y mejoramos el producto con tu equipo.","icon":"settings"}]}`
 
@@ -378,8 +381,8 @@ Tarjeta con título y descripción opcionales que agrupa contenido relacionado. 
 - `description`?: string (null = por defecto)
 - `maxWidth`?: "sm"|"md"|"lg"|"full"|null (null = por defecto)
 - `centered`?: boolean (null = por defecto)
-- `action`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
-- `menu`?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), destructive?: boolean (null = por defecto), separatorBefore?: boolean (null = por defecto) }] (min 1, máx 20) (null = por defecto)
+- `action`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
+- `menu`?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), destructive?: boolean (null = por defecto), separatorBefore?: boolean (null = por defecto) }] (min 1, máx 20) (null = por defecto)
 
 Ejemplo: `{"title":"Ventas por cerrar","description":"Oportunidades con fecha de cierre este mes.","action":{"label":"Ver todas","href":"/organization/projects"},"menu":[{"label":"Exportar","icon":"download"}]}`
 
@@ -400,7 +403,7 @@ Detalle de un elemento (un pago, una tarea, un hito) con la anatomía del panel 
 - `title`: string (min 1, ≤160)
 - `description`?: string (≤2000) (null = por defecto)
 - `badges`?: [{ label: string (min 1, ≤160), tone: "neutral"|"info"|"progress"|"success"|"warning"|"danger" }] (máx 4) (null = por defecto)
-- `actions`?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), href?: string (null = por defecto) }] (máx 3) (null = por defecto)
+- `actions`?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), href?: string (null = por defecto) }] (máx 3) (null = por defecto)
 - `presentation`?: "inline"|"overlay"|null (null = por defecto)
 - `open`?: boolean (null = por defecto)
 - `triggerLabel`?: string (min 1, ≤160) (null = por defecto)
@@ -415,7 +418,7 @@ La maqueta de un diálogo o una confirmación, dibujada en su lugar de la vista:
 
 - `title`: string (min 1, ≤160)
 - `description`?: string (≤2000) (null = por defecto)
-- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto)
+- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto)
 - `tone`?: "default"|"destructive"|null (null = por defecto)
 - `actions`?: [{ label: string (min 1, ≤160) }] (min 1, máx 3) (null = por defecto)
 - `size`?: "sm"|"md"|"lg"|null (null = por defecto)
@@ -429,7 +432,7 @@ Marco de paneles: un panel por hijo; stacked los une (ficha por secciones). Un s
 - `title`?: string (min 1, ≤160) (null = por defecto)
 - `description`?: string (≤2000) (null = por defecto)
 - `stacked`?: boolean (null = por defecto)
-- `action`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
+- `action`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
 - `variant`?: "default"|"ghost"|null (null = por defecto)
 - `spacing`?: "sm"|"default"|"lg"|null (null = por defecto)
 - `dense`?: boolean (null = por defecto)
@@ -502,8 +505,8 @@ Aviso destacado: info, success, warning o error. Úsalo para conclusiones, riesg
 - `title`?: string (min 1) (null = por defecto)
 - `message`?: string (null = por defecto)
 - `type`?: "info"|"success"|"warning"|"error"|null (null = por defecto)
-- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto)
-- `actions`?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), href?: string (null = por defecto) }] (min 1, máx 2) (null = por defecto)
+- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto)
+- `actions`?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), href?: string (null = por defecto) }] (min 1, máx 2) (null = por defecto)
 
 Ejemplo: `{"title":"Enviar la propuesta de «Membresías con CFDI»","message":"Ana López · vence el 14 oct · después: esperar a Mariana Ruiz","type":"info","icon":"send","actions":[{"label":"Hecho y siguiente"},{"label":"Reprogramar"}]}`
 
@@ -528,6 +531,15 @@ Etiqueta corta de estado o categoría. tone (neutral, info, progress, success, w
 - `radius`?: "default"|"full"|null (null = por defecto)
 
 Ejemplo: `{"text":"En curso","variant":"secondary","tone":"progress"}`
+
+#### Carousel
+
+Imágenes subidas a esta misma page, una tras otra con flechas: cada slide trae su assetId (de page_asset_upload, nunca una URL), su alt (obligatorio) y un caption opcional. Hasta 12. ratio encuadra todas igual (16:9 por omisión). Sólo en vistas guardadas dentro de una page: view_render y otras vistas lo rechazan. Donde las imágenes no se pueden cargar (la vista del MCP) salen recuadros con su alt.
+
+- `slides`: [{ assetId: string, alt: string (min 1, ≤160), caption?: string (≤2000) (null = por defecto) }] (min 1, máx 12)
+- `ratio`?: "16:9"|"4:3"|"3:2"|"1:1"|"3:4"|"21:9"|null (null = por defecto)
+
+Ejemplo: `{"slides":[{"assetId":"4d2f7a8e-1c3b-4f5a-9e6d-7b8c9d0e1f2a","alt":"Pantalla de inicio","caption":"Inicio"},{"assetId":"5e3a8b9f-2d4c-4a6b-8f7e-8c9d0e1f2a3b","alt":"Detalle de un pedido"}],"ratio":"16:9"}`
 
 #### CodeBlock
 
@@ -598,7 +610,7 @@ Ejemplo: `{"label":"Ana López","title":"Ana López","text":"Arquitecta de Pai a
 
 Ilustración isométrica de capas con un icono del catálogo al frente (icon), para un primer uso, un paso de onboarding o una tarjeta de función. Es decorativa: el texto de al lado dice lo que significa; label la nombra sólo si el icono dice algo que el texto no. Para un estado vacío completo usa EmptyState con illustration stack.
 
-- `icon`: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"
+- `icon`: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"
 - `label`?: string (min 1, ≤160) (null = por defecto)
 
 Ejemplo: `{"icon":"sparkles"}`
@@ -607,7 +619,7 @@ Ejemplo: `{"icon":"sparkles"}`
 
 Icono en su cuadro (filas, tarjetas). label lo nombra; soft y solid toman el tone. variant frame lo pone en un marco como Frame; size va de xs a xl; radius full lo hace redondo.
 
-- `icon`: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"
+- `icon`: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"
 - `label`: string (min 1, ≤160)
 - `tone`?: "neutral"|"info"|"progress"|"success"|"warning"|"danger"|null (null = por defecto)
 - `variant`?: "outline"|"elevated"|"soft"|"solid"|"frame"|null (null = por defecto)
@@ -616,13 +628,25 @@ Icono en su cuadro (filas, tarjetas). label lo nombra; soft y solid toman el ton
 
 Ejemplo: `{"icon":"wallet","label":"Pagos","tone":"info","variant":"soft"}`
 
+#### Image
+
+Una imagen subida a esta misma page: assetId es el que devolvió page_asset_upload (nunca una URL; las imágenes externas no se aceptan). alt describe la imagen para quien no la ve (obligatorio); caption es el pie, o null. ratio la encuadra: 16:9, 4:3, 3:2, 1:1, 3:4 o 21:9 (null respeta su forma). fit: cover (llena el marco, por omisión) o contain (completa, con margen). Sólo en vistas guardadas dentro de una page: view_render y otras vistas la rechazan. Donde la imagen no se puede cargar (la vista del MCP) sale un recuadro con el alt.
+
+- `assetId`: string
+- `alt`: string (min 1, ≤160)
+- `caption`?: string (≤2000) (null = por defecto)
+- `ratio`?: "16:9"|"4:3"|"3:2"|"1:1"|"3:4"|"21:9"|null (null = por defecto)
+- `fit`?: "cover"|"contain"|null (null = por defecto)
+
+Ejemplo: `{"assetId":"4d2f7a8e-1c3b-4f5a-9e6d-7b8c9d0e1f2a","alt":"Pantalla de inicio de la app con el resumen de pedidos","caption":"Inicio de la app, versión 2","ratio":"16:9"}`
+
 #### Item
 
 Fila de una lista (archivo, persona, integración): icono, título, descripción y un dato a la derecha. Con href toda la fila es un enlace. Apila varios en un Stack con gap sm.
 
 - `title`: string (min 1, ≤160)
 - `description`?: string (≤2000) (null = por defecto)
-- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto)
+- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto)
 - `meta`?: string (min 1, ≤160) (null = por defecto)
 - `href`?: string (null = por defecto)
 - `variant`?: "default"|"outline"|"muted"|null (null = por defecto)
@@ -717,16 +741,18 @@ Ejemplo: `{"items":[{"label":"Norte","value":82,"display":"$4.1 M"},{"label":"Ce
 
 #### Chart
 
-Gráfica con los colores del tema: bar, line, area o pie. categories es el eje X (o las porciones de pie) y cada serie trae un valor por categoría. pie usa una sola serie. Con kind bar, orientation horizontal dibuja barras acostadas (rankings, etiquetas largas). stacked apila las series en bar y area (totales por categoría); null o false las pone lado a lado, y en line o pie no cambia nada. composed mezcla en una gráfica series de barras, líneas o áreas: cada serie dice su type (bar por omisión), p. ej. ventas en barras y meta en línea; stacked apila sus barras.
+Gráfica con los colores del tema: bar, line, area, pie, composed, radar o radial. categories es el eje X (o las porciones de pie) y cada serie trae un valor por categoría. pie usa una sola serie. Con kind bar, orientation horizontal dibuja barras acostadas (rankings, etiquetas largas). stacked apila las series en bar y area (totales por categoría); null o false las pone lado a lado, y en line o pie no cambia nada. composed mezcla en una gráfica series de barras, líneas o áreas: cada serie dice su type (bar por omisión), p. ej. ventas en barras y meta en línea; stacked apila sus barras. radar dibuja cada categoría como un eje (3 a 12) y cada serie como un polígono encima de las otras: puntajes por área, comparar perfiles. radial lleva una sola serie y dibuja una barra circular por categoría (hasta 12) sobre su pista: puntajes contra una meta. max es el tope de la escala de radar y radial (100 para un puntaje; sin max, radial usa 100 y radar se ajusta a los datos); sus valores van de 0 a max. center pone una cifra al centro de pie (dona) o radial: value («72 %», «$1.8 M») y label debajo («Completado»), o null.
 
 - `title`: string (min 1, ≤160)
 - `description`?: string (≤2000) (null = por defecto)
-- `kind`: "bar"|"line"|"area"|"pie"|"composed"
+- `kind`: "bar"|"line"|"area"|"pie"|"composed"|"radar"|"radial"
 - `categories`: [string (min 1, ≤80)] (min 1, máx 60)
 - `series`: [{ name: string (min 1, ≤80), values: [number], type?: "bar"|"line"|"area"|null (null = por defecto) }] (min 1, máx 6)
 - `unit`?: string (≤20) (null = por defecto)
 - `stacked`?: boolean (null = por defecto)
 - `orientation`?: "vertical"|"horizontal"|null (null = por defecto)
+- `max`?: number (null = por defecto)
+- `center`?: { value: string (min 1, ≤20), label: string (min 1, ≤40) (null = por defecto) } (null = por defecto)
 
 Ejemplo: `{"title":"Horas por mes","kind":"bar","categories":["Jul","Ago","Sep"],"series":[{"name":"Horas","values":[120,140,98]}],"unit":"h"}`
 
@@ -735,15 +761,15 @@ Ejemplo: `{"title":"Horas por mes","kind":"bar","categories":["Jul","Ago","Sep"]
 La tabla de datos de Portal y Console (DataTable): columnas tipadas (text, number, money en centavos alineado a la derecha, percent, date, badge, status con tono, link, person, progress), buscador, filtros «Etiqueta: valor» (filters[].key es la key de una columna o de cualquier celda que traen las filas, aunque no sea columna, p. ej. la de un secondaryKey), orden por columna (defaultSort.key, sólo columnas), paginación (pageSize; null la oculta y muestra todas las filas), selección (selectable añade casillas; selectionSummary deja sólo el pie «0 de N fila(s) seleccionada(s)», como la lista de proyectos), filas apagadas (muted) un menú «⋯» por fila, filas fijadas arriba (pinned, siguen en cada página) y celdas en edición de maqueta (editing: keys de la fila, un campo deshabilitado). footer es la fila de totales: label a la izquierda y cells por key de columna. columnGroups agrupa columnas contiguas bajo un encabezado. hiddenColumns oculta columnas al abrir y suma el menú «Columnas» para mostrarlas. Todo funciona dentro de la vista (filtra, ordena, pagina) y nada se guarda ni navega. Cada fila trae id y cells: { [key de columna]: valor }; una celda vacía es null.
 
 - `columns`: [{ key: string, header: string (min 1, ≤160), sortable?: boolean (null = por defecto), hideBelow?: "sm"|"md"|"lg"|null (null = por defecto), type: "text"|"number"|"money"|"percent"|"date"|"badge"|"status"|"link"|"person"|"progress", secondaryKey?: string (null = por defecto), decimals?: integer (≥0, ≤4) (null = por defecto), currency?: string (min 3, ≤3) (null = por defecto), plusTax?: boolean (null = por defecto), format?: "day"|"instant"|"relative"|null (null = por defecto) }] (min 1, máx 10)
-- `rows`: [{ id: string (min 1, ≤80), cells: object, muted?: boolean (null = por defecto), actions?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), destructive?: boolean (null = por defecto), separatorBefore?: boolean (null = por defecto) }] (min 1, máx 20) (null = por defecto), pinned?: boolean (null = por defecto), editing?: [string] (min 1, máx 10) (null = por defecto) }] (máx 200)
+- `rows`: [{ id: string (min 1, ≤80), cells: object, muted?: boolean (null = por defecto), actions?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), destructive?: boolean (null = por defecto), separatorBefore?: boolean (null = por defecto) }] (min 1, máx 20) (null = por defecto), pinned?: boolean (null = por defecto), editing?: [string] (min 1, máx 10) (null = por defecto) }] (máx 200)
 - `search`?: string (min 1, ≤160) (null = por defecto)
 - `filters`?: [{ key: string, title: string (min 1, ≤160), options?: [{ label: string (min 1, ≤160), value: string (min 1, ≤80) }] (máx 20) (null = por defecto) }] (máx 4) (null = por defecto)
 - `defaultSort`?: { key: string, desc: boolean } (null = por defecto)
 - `pageSize`?: number | number | number | number | number | number (null = por defecto)
 - `selectable`?: boolean (null = por defecto)
 - `selectionSummary`?: boolean (null = por defecto)
-- `empty`?: { title: string (min 1, ≤160), description?: string (≤2000) (null = por defecto), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto) } (null = por defecto)
-- `toolbarAction`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
+- `empty`?: { title: string (min 1, ≤160), description?: string (≤2000) (null = por defecto), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto) } (null = por defecto)
+- `toolbarAction`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
 - `footer`?: { label: string (min 1, ≤160), cells: object } (null = por defecto)
 - `columnGroups`?: [{ header: string (min 1, ≤160), keys: [string] (min 2, máx 10) }] (min 1, máx 6) (null = por defecto)
 - `hiddenColumns`?: [string] (máx 10) (null = por defecto)
@@ -786,7 +812,7 @@ Ejemplo: `{"items":[{"label":"Responsable","value":"Ana López"},{"label":"Inici
 Indicador (KPI): etiqueta, valor ya formateado («68 %», «$1.2 M»), unidad pequeña opcional («MXN») cambio opcional («+12 %», badge con trend) y detalle con su comparación o fecha de corte. tone colorea el valor: positive, warning, negative o info. icon añade un IconTile y trendLine una sparkline de 2–24 valores; trendKind la dibuja como line (por omisión), area o bar.
 
 - `label`: string (min 1, ≤160)
-- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto)
+- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto)
 - `trendLine`?: [number] (min 2, máx 24) (null = por defecto)
 - `trendKind`?: "line"|"area"|"bar"|null (null = por defecto)
 - `value`: string (min 1, ≤40)
@@ -824,7 +850,7 @@ Ejemplo: `{"label":"Avance del hito de pagos","value":68,"description":"Quedan l
 
 Fila de 1–6 KPIs: valor formateado, unidad, cambio con trend y tone y detalle. icon añade un IconTile; progress dibuja una barra de 0 a 100 con su etiqueta (label, «Avance» por omisión) y el porcentaje a la vista; trendLine dibuja una sparkline de 2–24 valores. variant elige row (fila dividida, por omisión) o cards (tarjetas en rejilla); dentro de Card siempre se usa row.
 
-- `items`: [{ label: string (min 1, ≤160), value: string (min 1, ≤40), unit?: string (min 1, ≤12) (null = por defecto), delta?: string (min 1, ≤12) (null = por defecto), trend?: "up"|"down"|"flat"|null (null = por defecto), tone?: "neutral"|"positive"|"warning"|"negative"|"info"|null (null = por defecto), detail?: string (≤160) (null = por defecto), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), progress?: { value: number (≥0, ≤100), label?: string (min 1, ≤160) (null = por defecto) } (null = por defecto), trendLine?: [number] (min 2, máx 24) (null = por defecto) }] (min 1, máx 6)
+- `items`: [{ label: string (min 1, ≤160), value: string (min 1, ≤40), unit?: string (min 1, ≤12) (null = por defecto), delta?: string (min 1, ≤12) (null = por defecto), trend?: "up"|"down"|"flat"|null (null = por defecto), tone?: "neutral"|"positive"|"warning"|"negative"|"info"|null (null = por defecto), detail?: string (≤160) (null = por defecto), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), progress?: { value: number (≥0, ≤100), label?: string (min 1, ≤160) (null = por defecto) } (null = por defecto), trendLine?: [number] (min 2, máx 24) (null = por defecto) }] (min 1, máx 6)
 - `variant`?: "row"|"cards"|null (null = por defecto)
 
 Ejemplo: `{"items":[{"label":"Avance","icon":"chart","value":"68 %","delta":"+12 pts","trend":"up","tone":"positive"},{"label":"Cobrado","value":"$1.2 M","unit":"MXN","detail":"de $2.0 M","progress":{"value":60,"label":"Meta de cobro"}},{"label":"Hitos vencidos","trendLine":[5,4,3,1,2],"value":"2","delta":"+1","trend":"up","tone":"negative"}]}`
@@ -870,7 +896,7 @@ Ejemplo: `{"columns":[{"key":"name","header":"Etapa / proyecto","type":"text"},{
 Menú de acciones que se abre al pulsar: sin label es el botón «⋯» de las filas y tarjetas; con label es un botón con flecha. Sus opciones son decorativas (no ejecutan nada).
 
 - `label`?: string (min 1, ≤160) (null = por defecto)
-- `items`: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), destructive?: boolean (null = por defecto), separatorBefore?: boolean (null = por defecto) }] (min 1, máx 20)
+- `items`: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), destructive?: boolean (null = por defecto), separatorBefore?: boolean (null = por defecto) }] (min 1, máx 20)
 - `align`?: "start"|"end"|null (null = por defecto)
 
 Ejemplo: `{"items":[{"label":"Editar","icon":"pencil"},{"label":"Duplicar","icon":"copy"},{"label":"Eliminar","icon":"trash","destructive":true,"separatorBefore":true}],"align":"end"}`
@@ -894,7 +920,7 @@ Botón con las variantes de Pai. Con href navega (ruta del Portal o https); sin 
 - `label`: string (min 1, ≤160)
 - `variant`?: "default"|"secondary"|"outline"|"ghost"|"destructive"|"link"|null (null = por defecto)
 - `size`?: "sm"|"default"|"lg"|null (null = por defecto)
-- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto)
+- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto)
 - `iconOnly`?: boolean (null = por defecto)
 - `href`?: string (null = por defecto)
 - `disabled`?: boolean (null = por defecto)
@@ -935,7 +961,7 @@ Ejemplo: `{"label":"Acepto los términos de la propuesta","checked":true}`
 Buscador de comandos (paleta tipo ⌘K) con grupos de opciones y atajos. Filtra al escribir dentro de la vista; las opciones no ejecutan nada.
 
 - `placeholder`?: string (min 1, ≤160) (null = por defecto)
-- `groups`: [{ heading?: string (min 1, ≤160) (null = por defecto), items: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), shortcut?: string (≤20) (null = por defecto) }] (min 1, máx 20) }] (min 1, máx 6)
+- `groups`: [{ heading?: string (min 1, ≤160) (null = por defecto), items: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), shortcut?: string (≤20) (null = por defecto) }] (min 1, máx 20) }] (min 1, máx 6)
 - `empty`?: string (min 1, ≤160) (null = por defecto)
 
 Ejemplo: `{"placeholder":"Busca un proyecto o una acción…","groups":[{"heading":"Acciones","items":[{"label":"Nueva propuesta","icon":"file-signature","shortcut":"⌘N"},{"label":"Subir archivo","icon":"upload"}]},{"heading":"Ir a","items":[{"label":"Cronograma","icon":"calendar"},{"label":"Pagos","icon":"wallet"}]}]}`
@@ -971,7 +997,7 @@ Barra de filtros sobre una tabla o tablero: buscador opcional, filtros «Etiquet
 
 - `search`?: string (min 1, ≤160) (null = por defecto)
 - `filters`: [{ label: string (min 1, ≤40), value: string (min 1, ≤80), options?: [string (min 1, ≤80)] (máx 20) (null = por defecto) }] (máx 6)
-- `action`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
+- `action`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
 - `variant`?: "basic"|"advanced"|null (null = por defecto)
 - `combinator`?: "and"|"or"|null (null = por defecto)
 - `groups`?: [{ combinator?: "and"|"or"|null (null = por defecto), filters: [{ label: string (min 1, ≤40), value: string (min 1, ≤80), options?: [string (min 1, ≤80)] (máx 20) (null = por defecto) }] (min 1, máx 6) }] (min 1, máx 4) (null = por defecto)
@@ -996,7 +1022,7 @@ Ejemplo: `{"label":"Correo del cliente","placeholder":"nombre@empresa.com","type
 Panel flotante que abre un botón con label e icon opcional. Sus hijos contienen filtros o detalles y title añade un título dentro del panel. side elige dónde abre (bottom por omisión). Los cambios quedan en la vista: nada se envía ni se guarda.
 
 - `label`: string (min 1, ≤160)
-- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto)
+- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto)
 - `title`?: string (≤80) (null = por defecto)
 - `side`?: "top"|"right"|"bottom"|"left"|null (null = por defecto)
 
@@ -1064,7 +1090,7 @@ Ejemplo: `{"label":"Notas para el equipo","placeholder":"Escribe un comentario�
 
 Botones segmentados para cambiar de modo (Lista | Tablero, Semana | Mes). Cambia dentro de la vista; no cambia el contenido ni navega.
 
-- `options`: [{ label: string (min 1, ≤160), value: string (min 1, ≤80), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto) }] (min 2, máx 6)
+- `options`: [{ label: string (min 1, ≤160), value: string (min 1, ≤80), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto) }] (min 2, máx 6)
 - `value`?: string (null = por defecto)
 - `variant`?: "default"|"outline"|null (null = por defecto)
 
@@ -1255,14 +1281,14 @@ Ejemplo: `{"breadcrumb":[{"label":"Proyectos","href":"/organization/projects"},{
 Encabezado de una página de producto, como los de Portal y Console: back (enlace de regreso, «← Todos los proyectos»), icon (en su cuadro), eyebrow (antetítulo), title, description, badges (estados con tono), meta (datos breves con icono: «Activo», «Por asignar», «Actualizado 6 oct») y hasta 3 actions a la derecha (la primera sólida, las demás con borde; con href navegan). level h2 lo usa como encabezado de una sección de la página. Úsalo en la región header de PageLayout o DetailLayout; para un proyecto de Portal, ProjectHeader.
 
 - `back`?: { label: string (min 1, ≤160), href?: string (null = por defecto) } (null = por defecto)
-- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto)
+- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto)
 - `eyebrow`?: string (min 1, ≤60) (null = por defecto)
 - `title`: string (min 1, ≤160)
 - `level`?: "h1"|"h2"|null (null = por defecto)
 - `description`?: string (≤2000) (null = por defecto)
 - `badges`?: [{ label: string (min 1, ≤160), tone: "neutral"|"info"|"progress"|"success"|"warning"|"danger" }] (min 1, máx 4) (null = por defecto)
-- `meta`?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto) }] (min 1, máx 4) (null = por defecto)
-- `actions`?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), href?: string (null = por defecto) }] (min 1, máx 3) (null = por defecto)
+- `meta`?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto) }] (min 1, máx 4) (null = por defecto)
+- `actions`?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), href?: string (null = por defecto) }] (min 1, máx 3) (null = por defecto)
 
 Ejemplo: `{"back":{"label":"Todos los proyectos","href":"/organization/projects"},"icon":"folder","title":"Pai Ecosystem","description":"Lo que se decidió en el proyecto, por qué y qué partes lo componen.","badges":[{"label":"Activo","tone":"success"}],"meta":[{"label":"Por asignar","icon":"user"},{"label":"Actualizado 6 oct 2026","icon":"calendar"}],"actions":[{"label":"Nuevo nodo","icon":"plus"},{"label":"Ver en toda la organización"}]}`
 
@@ -1313,10 +1339,10 @@ Estado vacío de una sección, como en Portal: icono, «Aún no hay {objetos}»,
 
 - `title`: string (min 1, ≤160)
 - `description`?: string (≤2000) (null = por defecto)
-- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto)
-- `action`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
+- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto)
+- `action`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
 - `illustration`?: "tile"|"stack"|null (null = por defecto)
-- `secondaryAction`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
+- `secondaryAction`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
 
 Ejemplo: `{"title":"Aún no hay propuestas","description":"Cuando el equipo envíe una propuesta, aparecerá aquí.","icon":"file-signature","action":{"label":"Nueva propuesta","icon":"plus"}}`
 
@@ -1377,6 +1403,19 @@ Calendario de eventos de reUI para la agenda de un cliente o un equipo: events c
 - `height`?: "sm"|"md"|"lg"|null (null = por defecto)
 
 Ejemplo: `{"events":[{"id":"e1","title":"Revisión de diseño","start":"2026-11-04T10:00:00-06:00","end":"2026-11-04T11:00:00-06:00"},{"id":"e2","title":"Entrega de wireframes","start":"2026-11-06","end":"2026-11-06","allDay":true},{"id":"e3","title":"Taller con el cliente","start":"2026-11-11","end":"2026-11-12","allDay":true}],"view":"month","date":"2026-11-01"}`
+
+#### Flow
+
+Un proceso, un flujo de aprobación o un mapa de dependencias como diagrama de nodos y flechas (los blocks flow y whiteboard de reUI, sin editar). nodes trae cada nodo con su id (único), label y, opcional, description (una línea), kind (start y end redondeados, step por omisión, decision en rombo, note punteado) y tone (color de estado). edges une source → target por id, con label opcional en la flecha («sí», «no», «aprobado»). direction: horizontal (izquierda a derecha, por omisión) o vertical. La vista acomoda los nodos sola (no lleva posiciones); se acerca y se mueve, pero no se edita. height: sm, md (por omisión) o lg. Hasta 60 nodos y 120 flechas. Para diagramas de Knowledge usa C4Diagram, ErdDiagram o KnowledgeGraph; para etapas en línea, Stages.
+
+- `title`: string (min 1, ≤160)
+- `description`?: string (≤2000) (null = por defecto)
+- `direction`?: "horizontal"|"vertical"|null (null = por defecto)
+- `nodes`: [{ id: string (min 1, ≤80), label: string (min 1, ≤80), description?: string (≤160) (null = por defecto), kind?: "start"|"step"|"decision"|"end"|"note"|null (null = por defecto), tone?: "neutral"|"info"|"progress"|"success"|"warning"|"danger"|null (null = por defecto) }] (min 1, máx 60)
+- `edges`: [{ source: string (min 1, ≤80), target: string (min 1, ≤80), label?: string (min 1, ≤40) (null = por defecto) }] (máx 120)
+- `height`?: "sm"|"md"|"lg"|null (null = por defecto)
+
+Ejemplo: `{"title":"Aprobación de una propuesta","direction":"horizontal","nodes":[{"id":"inicio","label":"Borrador","kind":"start"},{"id":"revision","label":"Revisión interna","description":"Pai revisa alcance y precio"},{"id":"decision","label":"¿Aprobada?","kind":"decision"},{"id":"fin","label":"Firmada","kind":"end","tone":"success"}],"edges":[{"source":"inicio","target":"revision"},{"source":"revision","target":"decision"},{"source":"decision","target":"fin","label":"sí"},{"source":"decision","target":"revision","label":"no"}]}`
 
 #### Gantt
 
@@ -1593,6 +1632,14 @@ Una carpeta de Recursos como la muestra el Portal: sus subcarpetas (con cuántas
 - `layout`?: "grid"|"list"|null (null = por defecto)
 
 Ejemplo: `{"folders":[{"name":"Entregables","pages":2,"files":1,"updatedAt":"2026-10-02T15:00:00Z","preview":["Alcance","Plan de pruebas"]}],"entries":[{"title":"Brief del proyecto","kind":"page","updatedAt":"2026-09-20T12:00:00Z"},{"title":"Contrato firmado.pdf","kind":"file","mimeType":"application/pdf","sizeBytes":482113,"updatedAt":"2026-09-25T18:00:00Z"}]}`
+
+#### ShellPicker
+
+Los app shells que un tema puede elegir, cada uno con su miniatura esquemática (barra lateral, encabezado, página) pintada con los colores del tema, su nombre, su descripción y su bloque de reUI (source). current marca el del tema; layout pai es el de Pai. Sólo muestra: no elige ni guarda nada. Usa los presets que devolvió organization_theme_preview.
+
+- `shells`: [{ layout: string, label: string (min 1, ≤160), description?: string (≤2000) (null = por defecto), source?: string (≤40) (null = por defecto), current?: boolean (null = por defecto) }] (min 1, máx 16)
+
+Ejemplo: `{"shells":[{"layout":"pai","label":"Pai","description":"Barra lateral insertada, página en una tarjeta.","source":"app-shell-3"},{"layout":"header","label":"Encabezado completo","description":"Encabezado de ancho completo sobre la barra lateral.","source":"app-shell-13","current":true}]}`
 
 ### Grupo: Comercio
 
@@ -2182,12 +2229,12 @@ Maqueta de un editor de texto: DocLayout con encabezado, índice (List) y en con
 
 ### flow
 
-Flujo de un proceso dibujado como etapas y notas, sin lienzo editable.
+Diagrama de un proceso con nodos y flechas, y sus notas, sin editar.
 
-Un proceso o una lluvia de ideas como maqueta estática (reUI flow y whiteboard son lienzos editables, que una vista no tiene): Stages con las etapas y un Grid de Card como notas. Para diagramas de Knowledge usa C4Diagram o ErdDiagram.
+Un proceso, una aprobación o una lluvia de ideas (reUI flow y whiteboard son lienzos editables; la vista los dibuja de solo lectura): Flow con los pasos (kind start, step, decision, end) y las flechas con su etiqueta, y abajo un Grid de Card con las notas. Para diagramas de Knowledge usa C4Diagram o ErdDiagram; para etapas en línea, Stages.
 
 ```json
-{"root":"flujo","elements":{"flujo":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["etapas","notas"]},"etapas":{"type":"Stages","props":{"items":[{"label":"Solicitud","status":"done"},{"label":"Aprobación","status":"current"},{"label":"Compra","status":"upcoming"},{"label":"Recepción","status":"upcoming"}]}},"notas":{"type":"Grid","props":{"columns":3,"gap":"sm"},"children":["n1","n2","n3"]},"n1":{"type":"Card","props":{"title":"¿Quién aprueba?","description":"Compras arriba de $50,000."}},"n2":{"type":"Card","props":{"title":"Proveedores","description":"Sólo del catálogo vigente."}},"n3":{"type":"Card","props":{"title":"Idea","description":"Avisar al solicitante en cada paso."}}}}
+{"root":"flujo","elements":{"flujo":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["diagrama","notas"]},"diagrama":{"type":"Flow","props":{"title":"Alta de un cliente","description":"Del primer contacto a la cuenta activa","direction":"horizontal","nodes":[{"id":"contacto","label":"Contacto","kind":"start"},{"id":"datos","label":"Datos fiscales","description":"RFC y razón social"},{"id":"revision","label":"¿Datos completos?","kind":"decision"},{"id":"contrato","label":"Contrato firmado","tone":"progress"},{"id":"activo","label":"Cuenta activa","kind":"end","tone":"success"}],"edges":[{"source":"contacto","target":"datos"},{"source":"datos","target":"revision"},{"source":"revision","target":"contrato","label":"sí"},{"source":"revision","target":"datos","label":"no"},{"source":"contrato","target":"activo"}],"height":"sm"}},"notas":{"type":"Grid","props":{"columns":3,"gap":"md"},"children":["n1","n2","n3"]},"n1":{"type":"Card","props":{"title":"Riesgo","description":"Los datos fiscales llegan incompletos en 1 de cada 4 altas."}},"n2":{"type":"Card","props":{"title":"Idea","description":"Pedir la constancia fiscal en el primer contacto."}},"n3":{"type":"Card","props":{"title":"Pendiente","description":"Definir quién firma el contrato del lado del cliente."}}}}
 ```
 
 ### gantt
@@ -2234,20 +2281,20 @@ Volumen en el tiempo: Chart kind area, stacked para ver el total y la parte de c
 
 Pastel: reparto de un total en pocas porciones, con su lista.
 
-Reparto de un total: Grid con Chart kind pie (una sola serie, 2 a 6 porciones) y BarList con los mismos datos para leer los valores.
+Reparto de un total: Grid con Chart kind pie (una sola serie, 2 a 6 porciones; center pone el total al centro de la dona) y BarList con los mismos datos para leer los valores.
 
 ```json
-{"root":"reparto","elements":{"reparto":{"type":"Grid","props":{"columns":2,"gap":"md"},"children":["pastel","lista"]},"pastel":{"type":"Chart","props":{"title":"Ingresos por canal","kind":"pie","categories":["Tienda","En línea","Mayoreo"],"series":[{"name":"Ingresos","values":[48,37,15]}],"unit":"%"}},"lista":{"type":"BarList","props":{"items":[{"label":"Tienda","value":48},{"label":"En línea","value":37},{"label":"Mayoreo","value":15}],"showPercent":true}}}}
+{"root":"reparto","elements":{"reparto":{"type":"Grid","props":{"columns":2,"gap":"md"},"children":["pastel","lista"]},"pastel":{"type":"Chart","props":{"title":"Ingresos por canal","kind":"pie","categories":["Tienda","En línea","Mayoreo"],"series":[{"name":"Ingresos","values":[48,37,15]}],"unit":"%","center":{"value":"$4.2 M","label":"Total del año"}}},"lista":{"type":"BarList","props":{"items":[{"label":"Tienda","value":48},{"label":"En línea","value":37},{"label":"Mayoreo","value":15}],"showPercent":true}}}}
 ```
 
 ### chart-radial
 
-Radiales: avance de metas en anillos, con descripción.
+Radiales y radar: puntajes contra una meta, perfil por áreas y anillos.
 
-Avance contra metas: Grid de ProgressRing (valor 0 a 100, etiqueta y descripción).
+Puntajes contra una meta: Chart kind radial (una barra circular por categoría, max 100, center con el promedio) junto a Chart kind radar (cada área un eje, una serie por perfil). Abajo, un Grid de ProgressRing para metas sueltas (un valor de 0 a 100 cada una).
 
 ```json
-{"root":"metas","elements":{"metas":{"type":"Grid","props":{"columns":3,"gap":"md"},"children":["r1","r2","r3"]},"r1":{"type":"ProgressRing","props":{"label":"Meta de ventas","value":72,"description":"$1.8 M de $2.5 M"}},"r2":{"type":"ProgressRing","props":{"label":"Cobranza","value":88,"description":"Al día"}},"r3":{"type":"ProgressRing","props":{"label":"Encuestas","value":41,"description":"Faltan 59 respuestas"}}}}
+{"root":"pantalla","elements":{"pantalla":{"type":"Stack","props":{"gap":"md"},"children":["graficas","metas"]},"graficas":{"type":"Grid","props":{"columns":2,"gap":"md"},"children":["radial","radar"]},"radial":{"type":"Chart","props":{"title":"Puntajes por plataforma","description":"Auditoría de rendimiento, de 0 a 100","kind":"radial","categories":["Móvil","Escritorio","API"],"series":[{"name":"Puntaje","values":[58,76,92]}],"max":100,"center":{"value":"75","label":"Promedio"}}},"radar":{"type":"Chart","props":{"title":"Perfil del equipo","description":"Dominio por área, de 0 a 100","kind":"radar","categories":["Frontend","Backend","DevOps","Diseño","Pruebas","Seguridad"],"series":[{"name":"Equipo A","values":[92,78,68,74,85,62]},{"name":"Equipo B","values":[70,88,80,60,72,77]}],"max":100}},"metas":{"type":"Grid","props":{"columns":3,"gap":"md"},"children":["r1","r2","r3"]},"r1":{"type":"ProgressRing","props":{"label":"Meta de ventas","value":72,"description":"$1.8 M de $2.5 M"}},"r2":{"type":"ProgressRing","props":{"label":"Cobranza","value":88,"description":"Al día"}},"r3":{"type":"ProgressRing","props":{"label":"Encuestas","value":41,"description":"Faltan 59 respuestas"}}}}
 ```
 
 ### status-tracker
@@ -2348,6 +2395,16 @@ Real contra meta: Chart kind composed con una serie en barras (type bar) y otra 
 
 ```json
 {"root":"compuesta","elements":{"compuesta":{"type":"Chart","props":{"title":"Ventas contra meta","kind":"composed","categories":["Jul","Ago","Sep","Oct"],"series":[{"name":"Ventas","type":"bar","values":[1.4,1.6,1.8,1.7]},{"name":"Meta","type":"line","values":[1.5,1.6,1.7,1.9]}],"unit":"M MXN"}}}}
+```
+
+### questionnaire
+
+Cuestionario de maqueta: pasos, una pregunta por paso y opciones deshabilitadas.
+
+Un cuestionario por pasos como maqueta (los ejemplos questionnaire de reUI): Stepper con un hijo por pregunta; cada paso trae su RadioGroup (una respuesta) o Checkbox (varias), todo con disabled true, y Text para lo ya respondido. No envía ni guarda: un cuestionario que la persona responde de verdad es quiz_respond, no una vista.
+
+```json
+{"root":"cuestionario","elements":{"cuestionario":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["titulo","pasos"]},"titulo":{"type":"Heading","props":{"text":"Configura tu espacio de trabajo","level":"h2"}},"pasos":{"type":"Stepper","props":{"steps":[{"title":"Equipo","description":"¿Cuántas personas?","completed":true},{"title":"Uso","description":"¿Para qué lo usarán?"},{"title":"Integraciones","description":"¿Qué conectarán?"}],"current":2,"orientation":"horizontal"},"children":["paso1","paso2","paso3"]},"paso1":{"type":"Text","props":{"text":"Respuesta: de 6 a 20 personas."}},"paso2":{"type":"RadioGroup","props":{"label":"¿Para qué usará el equipo este espacio?","description":"Elige la opción que más se parezca.","options":[{"label":"Seguimiento de proyectos","value":"projects"},{"label":"Documentación interna","value":"docs"},{"label":"Atención a clientes","value":"support"}],"value":"projects","disabled":true}},"paso3":{"type":"Stack","props":{"direction":"vertical","gap":"sm"},"children":["opcion1","opcion2"]},"opcion1":{"type":"Checkbox","props":{"label":"Calendario del equipo","checked":true,"disabled":true}},"opcion2":{"type":"Checkbox","props":{"label":"Correo","checked":false,"disabled":true}}}}
 ```
 
 ## Ejemplo del catálogo
