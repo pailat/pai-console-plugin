@@ -1,6 +1,6 @@
 ---
 name: views
-description: "UI generativa de Pai (catálogo pai-view@1, 140 componentes del sistema de diseño de Pai sobre ReUI: pantallas reales de Portal, Console y pai.lat, patrones de pantalla con regiones (tablero, detalle, lista, chat, formulario, wizard…), formularios, chat, comercio, las piezas de datos del Portal —Pagos, Cronograma, Tareas, Proyectos, Actividad, Biblioteca— y diagramas de Conocimiento). Dibuja vistas en la conversación con view_render (dashboards, comparativos, resúmenes visuales de datos ya obtenidos) o guárdalas en Recursos como bloque view de una page canvas (tableros, mockups de pantallas con AppShell, reportes visuales). Úsalo cuando pidan ver, mostrar, graficar o comparar datos de Pai de forma visual, un tablero, dashboard, mockup, wireframe o pantalla (de una app de cliente, del Portal, de Console o del sitio), dibujar un ERD, un C4 o el grafo, o editar una vista existente."
+description: "UI generativa de Pai (catálogo pai-view@1, 150 componentes del sistema de diseño de Pai sobre ReUI: pantallas reales de Portal, Console y pai.lat, patrones de pantalla con regiones (tablero, detalle, lista, chat, formulario, wizard…), formularios, chat, comercio, las piezas de datos del Portal —Pagos, Cronograma, Tareas, Proyectos, Actividad, Biblioteca— y diagramas de Conocimiento). Dibuja vistas en la conversación con view_render (dashboards, comparativos, resúmenes visuales de datos ya obtenidos) o guárdalas en Recursos como bloque view de una page canvas (tableros, mockups de pantallas con AppShell, reportes visuales). Úsalo cuando pidan ver, mostrar, graficar o comparar datos de Pai de forma visual, un tablero, dashboard, mockup, wireframe o pantalla (de una app de cliente, del Portal, de Console o del sitio), dibujar un ERD, un C4 o el grafo, o editar una vista existente."
 argument-hint: "[proyecto] [qué vista: tablero, pantalla, comparativo…]"
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
@@ -9,12 +9,13 @@ compatibility: "Pai 0.2.5+ (MCP corp)"
 
 Lee antes el skill `pai-console`: entorno, descubrimiento, buscar antes de crear, CAS.
 
-**Catálogo completo**, generado desde el código: `${CLAUDE_PLUGIN_ROOT}/skills/views/references/view-catalog.md`. Tiene los layouts de raíz, los 15 grupos, los 140 componentes con sus props, límites y un ejemplo de cada uno, y las 4 recetas del servidor completas.
+**Catálogo completo**, generado desde el código: `${CLAUDE_PLUGIN_ROOT}/skills/views/references/view-catalog.md`. Tiene los layouts de raíz, los 15 grupos, los 150 componentes con sus props, límites y un ejemplo de cada uno, y las 68 recetas del servidor completas.
 
 `view_catalog` es la fuente del servidor:
 - sin argumentos devuelve el **índice** (reglas, layouts y los componentes con sus props por nombre);
 - con `{types: [...]}` o `{group}` devuelve el **esquema completo y un ejemplo** de esos componentes;
-- con `{recipe}` (`dashboard`, `list-filters`, `record-detail`, `list-reading`) devuelve una **pantalla completa** lista para cambiarle los datos.
+- con `{recipeGroup}` (`application`, `data-grid`, `chart`, `solutions`, `ecommerce`, `marketing`, `ai-agents`) devuelve el resumen de las recetas de ese grupo, sin su vista;
+- con `{recipe}` (`dashboard`, `list-filters`, `record-detail`, `crm-pipeline`, `flow`, `questionnaire`…) devuelve una **pantalla completa** lista para cambiarle los datos.
 
 Si un componente no está en la referencia o dudas de una prop, **pide su detalle** con `view_catalog {types}` antes de usarlo. Si lo vas a hacer para muchos componentes, delégalo a `pai-explorer`.
 
@@ -57,14 +58,14 @@ Si dudas entre dibujar y guardar, dibuja y ofrece guardarla.
   - Tooltip lleva un solo hijo, no interactivo.
 - **Props estrictas:** cada objeto de props es cerrado y solo lleva las del catálogo. Nada de `className`, `style`, colores, HTML ni expresiones. Las props que admiten `null` se pueden omitir.
 - **Iconos:** solo los del catálogo, por ejemplo `home`, `users`, `calendar`, `wallet`, `receipt`, `reports`, `book-open`, `plus`, `download`, `check`. La lista completa está en la referencia.
-- Límites: ≤300 elementos y ≤12 niveles; `KnowledgeGraph` ≤1500 aristas; `Grid` de 1 a 6 columnas; `Table` ≤10 columnas y ≤200 filas; `Chart` ≤6 series y ≤60 categorías.
+- Límites: ≤300 elementos y ≤12 niveles; `KnowledgeGraph` ≤1500 aristas; `Flow` ≤60 nodos y ≤120 flechas; `Grid` de 1 a 6 columnas; `Table` ≤10 columnas y ≤200 filas; `Chart` ≤6 series y ≤60 categorías (radar y radial, ≤12).
 
 ## Layouts: la raíz
 
 | Raíz | Es | Úsala para |
 |---|---|---|
 | `Stack` | Contenido sin pantalla alrededor | Tableros, reportes, resúmenes, comparativos y todo `view_render` de datos |
-| `PortalShell` | **El Portal de Pai, idéntico al real.** `area` (home, organization, project, product), `audience` (client o staff), `active` (ítem del menú), `organization`, `project`, `breadcrumb`, `user` | Mockups de pantallas nuevas o cambios del Portal. `menu` reemplaza el menú real solo para secciones que el Portal aún no tiene |
+| `PortalShell` | **El Portal de Pai, idéntico al real.** `area` (home, organization, project, product), `audience` (client o staff), `active` (ítem del menú), `organization`, `project`, `breadcrumb`, `user`. El marco es el app shell del tema publicado de la organización (el de `organizationId` en `view_render`; en `organization_theme_preview`, el del borrador), como sus colores; sin tema, el de Pai. No hay prop para elegirlo | Mockups de pantallas nuevas o cambios del Portal. `menu` reemplaza el menú real solo para secciones que el Portal aún no tiene |
 | `ConsoleShell` | **Console, idéntico al real.** `area` (admin, workforce o all), `active` (`admin.users`, `workforce.payments`…), `breadcrumb`, `title`, `action`, `user` | Mockups del back office |
 | `SiteShell` | **pai.lat, idéntico al real.** `lang`, `page`, con hijos del grupo Sitio web: `SiteHero`, `LogoGrid`, `SectionIntro`, `ServiceCards`, `HowItWorks`, `Testimonials`, `BlogList`, `CtaBand`, `ContactSection` | Páginas o secciones del sitio |
 | `AuthFrame` | **Login, registro e invitación de Pai** | Pantallas de identidad, con `Input` y `Button` dentro |
@@ -113,6 +114,9 @@ Todos funcionan **dentro de la vista** (filtran, ordenan, arrastran, abren) y **
 | Detalle tabular | `Table` (simple, con `caption` del corte o del top N) o `DataTable` (tipada, con búsqueda, filtros y páginas) | |
 | Datos clave de una ficha | `KeyValue` (1–3 columnas) | |
 | Un proceso por etapas | **`Stages`** (done, current, upcoming) | `Timeline`, que es para fechas y eventos |
+| Un flujo con decisiones o un mapa de dependencias | **`Flow`** (nodos `start`, `step`, `decision`, `end`, `note` y flechas con etiqueta; ≤60 nodos) | Cajas con `Card` y flechas de texto |
+| Un perfil de varias dimensiones o un avance contra una meta | `Chart` `radar` o `radial` (≤12 categorías; `max`, y en radial `center` con la cifra) | `Progress` repetidos |
+| Una imagen o capturas en un reporte guardado | **`Image`** o **`Carousel`** con el `assetId` de `page_asset_upload` de **esa misma page** (skill `resources` §5) | Una URL: no se acepta. En `view_render` se rechazan |
 | Requisitos o entregables con estado | **`Checklist`** | `List` |
 | Hitos con fecha | `Timeline`; el Cronograma completo, `MilestoneTimeline` | |
 | Una lista de archivos, personas o integraciones | `Item` apilados en un `Stack` `gap: "sm"` | `List` |
@@ -179,7 +183,7 @@ Antes de usar un patrón pide su esquema con `view_catalog {types}`: las regione
 
 ## Recetas
 
-**Del servidor** (`view_catalog {recipe}`; también completas al final de la referencia): `dashboard` (AppShell + DashboardLayout), `list-filters` (encabezado, filtros y tabla), `record-detail` (detalle con pestañas y lateral) y `list-reading` (SplitView). Para la pantalla de una app de cliente, **parte de la receta más cercana** y cambia sus datos.
+**Del servidor** (68, en 7 grupos; `view_catalog {recipeGroup}` para el resumen de un grupo y `{recipe}` para la vista completa; también completas al final de la referencia). Por ejemplo `dashboard` (AppShell + DashboardLayout), `list-filters`, `record-detail`, `list-reading` (SplitView), `crm-pipeline`, `settings`, `wizard`, `flow`, `questionnaire`, las `site-*` del sitio y las `shop-*` de comercio. Para la pantalla de una app de cliente, **parte de la receta más cercana** y cambia sus datos.
 
 **Del plugin**: cada una tiene un ejemplo completo y validado en `${CLAUDE_PLUGIN_ROOT}/skills/views/examples/`. Parte de él.
 
@@ -230,5 +234,6 @@ Antes de usar un patrón pide su esquema con `view_catalog {types}`: las regione
 | `Tabs declara N pestaña(s) y tiene M hijo(s): pon uno por pestaña.` | `tabs` y `children` de distinto largo (también en UnderlinedTabs) |
 | `La serie «S» tiene N valor(es) y hay M categoría(s).` | Una serie de `Chart` sin un valor por categoría |
 | `bloque-no-permitido` | La page lleva `typeSlug`: quítalo |
+| `ASSET_OWNER_MISMATCH: …` | Un `Image` o `Carousel` con el `assetId` de otra page: sube la imagen a esta (`page_asset_upload`) |
 
 **Nunca inventes componentes, props ni iconos.** Si algo no está en el catálogo, compónlo con lo que hay o dilo. Si el servidor (`view_catalog`) ofrece algo que la referencia no tiene, manda el servidor.
