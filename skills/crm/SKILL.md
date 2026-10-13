@@ -18,10 +18,11 @@ Inventario completo: `${CLAUDE_PLUGIN_ROOT}/skills/pai-console/references/tools.
 | Permiso | Abre |
 |---|---|
 | `crm:access` | Ver el espacio: resumen, leads, envíos, fichas |
-| `crm:edit` | Crear y mover leads, oportunidades, tareas e interlocutores |
+| `crm:edit` | Crear y mover leads, oportunidades, tareas e interlocutores; escribir notas |
 | `crm:convert` | Ganar una oportunidad (`crm_opportunity_win`) |
 | `crm:revenue` | Montos, pronóstico ponderado, `crm_opportunity_list`, `crm_opportunity_event_list` y ajustar probabilidad |
 | `crm:purge` | Purgar basura sin cadena (`crm_lead_purge`) |
+| `crm:import` | Importación histórica de un CRM anterior (`crm_lead_import`) |
 
 Sin `crm:revenue` los montos no llegan: no los inventes ni los estimes.
 
@@ -57,7 +58,12 @@ Etapas: `new` → `contacted` → `qualified` (o `unqualified`) → `converted` 
 ### Crear
 
 1. **Desde un envío de Forms:** `crm_submission_get` → `crm_lead_create_from_submission {submissionId, ownerUserId, firstTask}`. Los datos vienen del envío; no los reescribas. Un envío basura sin lead: `crm_submission_spam` (lo archiva).
-2. **Referido, manual o MCP:** primero **`crm_lead_duplicates {email}`** (mismo correo, mismo dominio, organizaciones cliente con ese dominio). Si hay coincidencia, muéstrala y decide con la persona. Luego `crm_lead_create {fullName, email, company?, role?, source, ownerUserId?, referredBy?, need?, firstTask}`. Avisa por correo al responsable (o al equipo con `crm:edit` si no hay).
+2. **Referido, manual o MCP:** si tienes correo, primero **`crm_lead_duplicates {email}`** (mismo correo, mismo dominio, organizaciones cliente con ese dominio); sin correo, busca por nombre o empresa con `crm_lead_list {query}`. Si hay coincidencia, muéstrala y decide con la persona. Luego `crm_lead_create {fullName, ownerUserId, firstTask, email?, phone?, company?, role?, source?, referredBy?, need?}`: necesita **al menos un correo, un teléfono o la empresa**. Avisa por correo al responsable (o al equipo con `crm:edit` si no hay).
+3. **Importación histórica de un CRM anterior** (`crm_lead_import`, permiso `crm:import`): un registro por llamada, con su lead en su etapa **real** (también ganada o perdida) y sus fechas originales (`createdAt`, `firstContactedAt`), más `workspace`, `opportunity`, `notes` y `tasks` si los hay. `externalRef` (el id de origen) y `externalSystem` la hacen idempotente: repetirla responde `created: false` y no duplica. Con oportunidad, el lead va `qualified` (o `converted` si se ganó) y `workspace` es obligatorio. Pon el texto completo del origen en `notes`: nada se pierde. Solo para migrar un CRM anterior, nunca para un lead nuevo.
+
+### Notas
+
+`crm_lead_note_add {id, body}` y `crm_opportunity_note_add {id, body}` (≤20 000 caracteres) dejan una nota en el historial con autor y fecha. **No se editan:** para corregir, escribe otra. No mueven la etapa, el siguiente paso ni el último contacto: para registrar un contacto usa `crm_lead_update {stage: "contacted"}` o completa la tarea.
 
 ### Mover
 
@@ -136,7 +142,9 @@ Efectos: la primera ganada de la organización convierte su lead y activa la cue
 
 ## Errores frecuentes
 
-- Crear un lead sin revisar `crm_lead_duplicates`.
+- Crear un lead sin revisar `crm_lead_duplicates` (o `crm_lead_list` si no hay correo).
+- Usar `crm_lead_import` para un lead nuevo, o reimportar con otro `externalRef` el mismo registro.
+- Esperar que una nota (`*_note_add`) cuente como contacto o mueva la etapa.
 - Escribir sin `expectedRevision` o con una vieja.
 - Sumar MXN y USD en un total.
 - Dar montos sin `crm:revenue` o inventar probabilidades.

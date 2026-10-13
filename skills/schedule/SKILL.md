@@ -1,6 +1,6 @@
 ---
 name: schedule
-description: Planea y lleva el Cronograma de un proyecto de Pai Console. Cubre hitos (fechas, monto, criterios de aceptación, línea base), dependencias entre hitos y entre tareas, tareas (nodos task de Knowledge) y el tablero de Tareas. Úsalo cuando pidan plan de trabajo, cronograma, hitos, tareas, kanban, tablero, dependencias, línea base o el avance y los atrasos del proyecto.
+description: "Planea y lleva el Cronograma de un proyecto de Pai Console. Cubre hitos (fechas, monto, criterios de aceptación, línea base), dependencias entre hitos y entre tareas, tareas (nodos task de Knowledge), el tablero de Tareas y el cierre y la reapertura del proyecto. Úsalo cuando pidan plan de trabajo, cronograma, hitos, tareas, kanban, tablero, dependencias, línea base, el avance y los atrasos del proyecto, o cerrar o reabrir un proyecto."
 argument-hint: "[proyecto] [qué planear o actualizar]"
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
@@ -72,9 +72,17 @@ Notas:
 2. Resume: hitos por estado, tareas Atrasadas y bloqueadas (`blockedNow`), y lo próximo a vencer.
 3. Si la persona lo pide, publícalo con `status_update_publish {health, headline, body}`: `health` es `on_track`, `at_risk` u `off_track`; `headline` ≤120 y `body` ≤600 caracteres. **El cliente lo ve al momento:** muéstrale el texto antes de publicar.
 
+## Cerrar y reabrir un proyecto (staff)
+
+1. `project_close_review`: lo que queda pendiente (`openTasks`, `unresolved` —preguntas, supuestos, riesgos—, `pendingSuggestions`, `counts`), cada uno con la `action` que lo cierra (por ejemplo, una tarea con `knowledge_resolve` `done` o `wont_do`). No bloquea: muéstraselo a la persona y resuelvan lo que decidan.
+2. `project_close {status: "completed" | "cancelled", summary?}` (≤4000): deja el proyecto **en solo lectura**. Devuelve `merged[]`: cada producto que tocó registra `knowledge_merged`. `project_update` con `status` `completed` o `cancelled` también lo cierra. Confírmalo con la persona antes.
+3. Con el proyecto cerrado, **toda escritura de contenido** (Conocimiento, también en un producto desde ese proyecto; pages, notas, carpetas, archivos, comentarios) responde `CONFLICT` «El proyecto está cerrado y es de solo lectura. Un miembro del equipo de Pai puede reabrirlo.», sin `cause`. No es una revisión vieja: no releas ni reintentes. Siguen abiertas las lecturas, las propuestas, los pagos, los hitos, los status updates y los vínculos de producto. `project_summary` trae `project.readOnly: true`.
+4. `project_reopen {status?: "draft" | "planned" | "active" | "on_hold"}` (por defecto `active`): solo si la persona lo pide. Queda auditado. Un cliente no puede cerrar ni reabrir.
+
 ## Qué no hacer
 
 - **No** borres hitos con pagos o CFDI (`milestone_delete` los deja huérfanos). Si sobra un hito, pregunta qué hacer con su cobro.
 - **No** captures la línea base por iniciativa propia.
+- **No** cierres ni reabras un proyecto por iniciativa propia, ni reintentes una escritura que respondió «El proyecto está cerrado».
 - **No** crees tareas con kinds distintos de `task`, ni metas ni decisiones como tareas.
 - **No** pongas montos en pesos o dólares enteros: van en centavos (`150000` = 1 500.00).

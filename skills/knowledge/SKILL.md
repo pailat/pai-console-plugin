@@ -1,6 +1,6 @@
 ---
 name: knowledge
-description: Crea y mantiene el Conocimiento (grafo de nodos y aristas) de un proyecto de Pai Console. Cubre elegir el kind, plantillas, fuentes obligatorias, propuestas que confirma una persona, CAS con expectedRevision, enlaces según la ontología y el ciclo de vida (resolve, supersede, archive). Úsalo para registrar decisiones, reglas de negocio, riesgos, preguntas, supuestos, hechos, glosario, módulos o cualquier nodo. ERD, C4 y pantallas tienen skills propios (erd, c4, screens).
+description: "Crea y mantiene el Conocimiento (grafo de nodos y aristas) de un proyecto o de un producto de Pai Console. Cubre elegir el kind, plantillas, fuentes obligatorias, propuestas que confirma una persona, CAS con expectedRevision, enlaces según la ontología (incluido implemented_by módulo → componente), consultas estructuradas (knowledge_query), lotes atómicos (knowledge_batch) y el ciclo de vida (resolve, supersede, archive). Úsalo para registrar decisiones, reglas de negocio, riesgos, preguntas, supuestos, hechos, glosario, módulos o cualquier nodo, o para consultar el grafo. ERD, C4 y pantallas tienen skills propios (erd, c4, screens)."
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
@@ -79,7 +79,35 @@ Referencia completa, generada desde los contratos: `${CLAUDE_PLUGIN_ROOT}/skills
 | `contains` | Jerarquía estructural (módulo → pantalla, data_model → entidad, component → component) |
 | `relates_to` | Solo entre entidades del ERD, y se deriva de sus FK: no la crees a mano |
 
+**`implemented_by` (módulo → componente):** dice en qué componente C4 se implementa un módulo funcional. Solo va de `module` a `component` y **los dos nodos tienen que ser del mismo producto** (créalos y enlázalos con el mismo `productId`, ver abajo). Errores: kinds al revés u otros → `ONTOLOGY`; un nodo de proyecto o de organización → `cause.code: IMPLEMENTED_BY_NEEDS_PRODUCT`; productos distintos → `IMPLEMENTED_BY_ACROSS_PRODUCTS`. Mover fuera del producto un nodo con esa arista da `PRECONDITION_FAILED` `HAS_IMPLEMENTED_BY`.
+
 Si da `ONTOLOGY`, ese par no admite esa relación. Busca en `${CLAUDE_PLUGIN_ROOT}/skills/knowledge/references/ontology.md` una que sí lo admita; no fuerces otra parecida solo para que pase.
+
+## Conocimiento de un producto (`productId`)
+
+Las tools `knowledge_*` (y `knowledge_view`, `knowledge_query`, `knowledge_batch`, `task_board`) aceptan `productId`: entonces trabajan sobre el conocimiento **de ese producto** (su arquitectura y funcionamiento vigentes), no el del proyecto.
+- `projectId` sigue siendo obligatorio y el proyecto tiene que tocar el producto (`product_link_project`, skill `products`). Si no: `BAD_REQUEST` con `cause.code: PRODUCT_NOT_IN_SCOPE`; usa uno de los productos del proyecto (`product_get`).
+- `knowledge_create {productId}` hace nacer el nodo en el producto. Una `task` nunca: `TASK_NEEDS_PROJECT`.
+- Sin `productId`, `knowledge_query` ya incluye los nodos de los productos que toca el proyecto y los de la organización enlazados; con él, acota a ese producto.
+- Al cerrar un proyecto, cada producto que tocó registra `knowledge_merged`.
+
+## Consultar el grafo: `knowledge_query`
+
+Para preguntas estructuradas («los requisitos activos con prioridad alta», «las pantallas que contiene este módulo», «los riesgos que afectan a un componente»), mejor que una búsqueda por tema:
+- `kinds` (obligatorio), `status` (por defecto draft, proposed y active), `properties` `{clave: [valores]}` de la plantilla, `tags`;
+- `scope {nodeId, revision}`: descendientes por `contains`;
+- `related {node, rels, direction: in|out|both, depth 1-3}`: vecindad;
+- `pattern {steps}` (≤4 pasos): el primero sin `via`, los demás con `via {rel, direction}`;
+- `limit` ≤200; si viene `truncated`, acota.
+
+Errores: `BAD_REQUEST` con `cause.code: QUERY` e `issues` (propiedad que no es de la plantilla, paso sin `via`, arista que la ontología no admite); `TIMEOUT` `QUERY_TIMEOUT`: acota `kinds`, `scope`, `depth` o el patrón.
+
+## Muchas escrituras juntas: `knowledge_batch`
+
+Hasta 200 operaciones atómicas (`create` con ref local `$nombre`, `update`, `link`, `unlink`, `supersede`, `archive`, `resolve`, `set-status`) con un `idempotencyKey`, `changeSummary`, `sources` del lote y `productId?`.
+- **Revisa siempre `status` de la respuesta.** Un lote rechazado **no es un error del MCP**: llega con `status: "rejected"` y, por operación fallida, `results[i].error {code, message, allowedTargets?, suggestedRels?, currentRevision?}`. No se escribió nada (las operaciones `ok: true` anteriores se revirtieron).
+- **`set-status` lo decide una persona:** desde el MCP siempre eres un agente, así que un lote con `set-status` vuelve `rejected` con `HUMAN_CONFIRMS` (ATE-184). Quita esa operación y deja los nodos `proposed`.
+- La clave de un lote rechazado no se consume: corrige y reintenta con la misma. La misma clave con otra entrada da `IDEMPOTENCY_MISMATCH`; con la misma entrada, `replayed: true`.
 
 ## Actualizar (CAS)
 

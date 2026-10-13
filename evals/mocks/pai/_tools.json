@@ -2223,6 +2223,87 @@
                 "type": "string",
                 "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,79}$"
                },
+               "refs": {
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                 "type": "object",
+                 "properties": {
+                  "nodeId": {
+                   "type": "string",
+                   "format": "uuid",
+                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "revision": {
+                   "type": "integer",
+                   "minimum": 0,
+                   "maximum": 9007199254740991
+                  },
+                  "role": {
+                   "type": "string",
+                   "enum": [
+                    "cites",
+                    "grounds",
+                    "subject",
+                    "projects"
+                   ]
+                  }
+                 },
+                 "required": [
+                  "nodeId",
+                  "revision"
+                 ],
+                 "additionalProperties": false
+                }
+               },
+               "type": {
+                "type": "string",
+                "const": "html"
+               },
+               "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+               },
+               "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+               },
+               "html": {
+                "type": "string",
+                "minLength": 1
+               },
+               "height": {
+                "anyOf": [
+                 {
+                  "type": "string",
+                  "const": "auto"
+                 },
+                 {
+                  "type": "integer",
+                  "minimum": 120,
+                  "maximum": 4000
+                 }
+                ]
+               }
+              },
+              "required": [
+               "id",
+               "type",
+               "title",
+               "html",
+               "height"
+              ],
+              "additionalProperties": false
+             },
+             {
+              "type": "object",
+              "properties": {
+               "id": {
+                "type": "string",
+                "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,79}$"
+               },
                "type": {
                 "type": "string",
                 "const": "projection"
@@ -8170,7 +8251,7 @@
   },
   {
    "name": "page_validate",
-   "description": "Valida contenido sin persistir; devuelve errores por campo. Con typeSlug aplica además la estructura del tipo y sus checks de calidad. Comprueba también las refs y citas kb: contra el conocimiento del proyecto y avisa (warnings, KNOWLEDGE_NOT_CLIENT_VISIBLE) de los nodos que nombran sus refs y citas y el cliente no ve: con ellos la page no puede ser audience client. La query de un projection no bloquea: en una page client solo muestra los nodos visibles para el cliente, y un aviso KNOWLEDGE_QUERY_CLIENT_OMITTED dice cuántos deja fuera por bloque. Usa el catálogo para corregirlos. Con frontmatter valida además los atributos (date AAAA-MM-DD, owner un usuario del equipo de Pai o de la organización, status draft|in_review|approved|archived, labels hasta 10 de hasta 40 caracteres sin repetir) con el mismo esquema que el Portal; content se puede omitir para validar solo el frontmatter.",
+   "description": "Valida contenido sin persistir; devuelve errores por campo. Con typeSlug aplica además la estructura del tipo y sus checks de calidad. Comprueba también las refs y citas kb: contra el conocimiento del proyecto y avisa (warnings, KNOWLEDGE_NOT_CLIENT_VISIBLE) de los nodos que nombran sus refs y citas y el cliente no ve: con ellos la page no puede ser audience client. La query de un projection no bloquea: en una page client solo muestra los nodos visibles para el cliente, y un aviso KNOWLEDGE_QUERY_CLIENT_OMITTED dice cuántos deja fuera por bloque. Un bloque html avisa (html-network-blocked, html-sensitive-field) si llama a la red, que su marco bloquea, o pide contraseñas, tarjetas o códigos; page_create y page_update dan los mismos avisos y no impiden guardar. Usa el catálogo para corregirlos. Con frontmatter valida además los atributos (date AAAA-MM-DD, owner un usuario del equipo de Pai o de la organización, status draft|in_review|approved|archived, labels hasta 10 de hasta 40 caracteres sin repetir) con el mismo esquema que el Portal; content se puede omitir para validar solo el frontmatter.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -10974,6 +11055,87 @@
                 "type": "string",
                 "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,79}$"
                },
+               "refs": {
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                 "type": "object",
+                 "properties": {
+                  "nodeId": {
+                   "type": "string",
+                   "format": "uuid",
+                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "revision": {
+                   "type": "integer",
+                   "minimum": 0,
+                   "maximum": 9007199254740991
+                  },
+                  "role": {
+                   "type": "string",
+                   "enum": [
+                    "cites",
+                    "grounds",
+                    "subject",
+                    "projects"
+                   ]
+                  }
+                 },
+                 "required": [
+                  "nodeId",
+                  "revision"
+                 ],
+                 "additionalProperties": false
+                }
+               },
+               "type": {
+                "type": "string",
+                "const": "html"
+               },
+               "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+               },
+               "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+               },
+               "html": {
+                "type": "string",
+                "minLength": 1
+               },
+               "height": {
+                "anyOf": [
+                 {
+                  "type": "string",
+                  "const": "auto"
+                 },
+                 {
+                  "type": "integer",
+                  "minimum": 120,
+                  "maximum": 4000
+                 }
+                ]
+               }
+              },
+              "required": [
+               "id",
+               "type",
+               "title",
+               "html",
+               "height"
+              ],
+              "additionalProperties": false
+             },
+             {
+              "type": "object",
+              "properties": {
+               "id": {
+                "type": "string",
+                "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,79}$"
+               },
                "type": {
                 "type": "string",
                 "const": "projection"
@@ -13743,6 +13905,87 @@
                 "type": "string",
                 "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,79}$"
                },
+               "refs": {
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                 "type": "object",
+                 "properties": {
+                  "nodeId": {
+                   "type": "string",
+                   "format": "uuid",
+                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "revision": {
+                   "type": "integer",
+                   "minimum": 0,
+                   "maximum": 9007199254740991
+                  },
+                  "role": {
+                   "type": "string",
+                   "enum": [
+                    "cites",
+                    "grounds",
+                    "subject",
+                    "projects"
+                   ]
+                  }
+                 },
+                 "required": [
+                  "nodeId",
+                  "revision"
+                 ],
+                 "additionalProperties": false
+                }
+               },
+               "type": {
+                "type": "string",
+                "const": "html"
+               },
+               "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+               },
+               "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+               },
+               "html": {
+                "type": "string",
+                "minLength": 1
+               },
+               "height": {
+                "anyOf": [
+                 {
+                  "type": "string",
+                  "const": "auto"
+                 },
+                 {
+                  "type": "integer",
+                  "minimum": 120,
+                  "maximum": 4000
+                 }
+                ]
+               }
+              },
+              "required": [
+               "id",
+               "type",
+               "title",
+               "html",
+               "height"
+              ],
+              "additionalProperties": false
+             },
+             {
+              "type": "object",
+              "properties": {
+               "id": {
+                "type": "string",
+                "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,79}$"
+               },
                "type": {
                 "type": "string",
                 "const": "projection"
@@ -14770,7 +15013,8 @@
        "onboarding",
        "manual",
        "referral",
-       "mcp"
+       "mcp",
+       "import"
       ]
      },
      "owner": {
@@ -14945,7 +15189,7 @@
   {
    "name": "crm_lead_create",
    "title": "Crear un lead",
-   "description": "Crea un lead que no llega por Forms (referido, manual o MCP). El origen no se puede cambiar después. Ningún lead nace sin siguiente paso: firstTask es obligatoria. Revisa antes crm_lead_duplicates. Avisa por correo al responsable o, sin responsable, al equipo con crm:edit.",
+   "description": "Crea un lead que no llega por Forms (referido, manual o MCP). Necesita al menos un correo, un teléfono o la empresa. El origen no se puede cambiar después. Ningún lead nace sin siguiente paso: firstTask es obligatoria. Revisa antes crm_lead_duplicates. Avisa por correo al responsable o, sin responsable, al equipo con crm:edit.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -14956,9 +15200,28 @@
       "maxLength": 200
      },
      "email": {
-      "type": "string",
-      "format": "email",
-      "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "email",
+        "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "phone": {
+      "description": "Dígitos, espacios, +, paréntesis o guiones",
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40
+       },
+       {
+        "type": "null"
+       }
+      ]
      },
      "company": {
       "type": "string",
@@ -15031,7 +15294,6 @@
     },
     "required": [
      "fullName",
-     "email",
      "ownerUserId",
      "firstTask"
     ]
@@ -16994,6 +17256,562 @@
    },
    "annotations": {
     "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "crm_lead_note_add",
+   "title": "Agregar una nota al lead",
+   "description": "Escribe una nota en el lead (hasta 20000 caracteres): queda en su historial con autor y fecha, y no se puede editar (para corregir, escribe otra). No mueve la etapa, el siguiente paso ni el último contacto.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "leadId"
+     },
+     "body": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 20000
+     }
+    },
+    "required": [
+     "id",
+     "body"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "crm_opportunity_note_add",
+   "title": "Agregar una nota a la oportunidad",
+   "description": "Escribe una nota en la oportunidad (hasta 20000 caracteres): queda en su historial con autor y fecha, y no se puede editar (para corregir, escribe otra). No mueve la etapa, el siguiente paso ni el último contacto.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "opportunityId"
+     },
+     "body": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 20000
+     }
+    },
+    "required": [
+     "id",
+     "body"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "crm_lead_import",
+   "title": "Importar un lead de otro CRM",
+   "description": "Importación histórica (crm:import): un registro de un CRM anterior con su lead, organización, oportunidad, notas y tareas, en su etapa REAL (también ganada o perdida, sin propuesta ni contacto «Decide») y con sus fechas originales. externalRef es el id de origen: repetir la importación no duplica (responde created false). La Trazabilidad dice «Importado del CRM anterior». Con oportunidad, el lead está qualified (o converted si se ganó) y workspace es obligatorio. Pon el texto completo del origen en notes: nada se pierde.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "externalRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+     },
+     "externalSystem": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "El CRM de origen, p. ej. «CRM anterior»"
+     },
+     "lead": {
+      "type": "object",
+      "properties": {
+       "fullName": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+       },
+       "email": {
+        "anyOf": [
+         {
+          "type": "string",
+          "format": "email",
+          "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "phone": {
+        "anyOf": [
+         {
+          "type": "string",
+          "maxLength": 40
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "company": {
+        "anyOf": [
+         {
+          "type": "string",
+          "maxLength": 200
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "role": {
+        "anyOf": [
+         {
+          "type": "string",
+          "maxLength": 200
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "need": {
+        "anyOf": [
+         {
+          "type": "string",
+          "maxLength": 300
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "referredBy": {
+        "anyOf": [
+         {
+          "type": "string",
+          "maxLength": 200
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "stage": {
+        "type": "string",
+        "enum": [
+         "new",
+         "contacted",
+         "qualified",
+         "unqualified",
+         "converted"
+        ]
+       },
+       "lostReason": {
+        "type": "string",
+        "enum": [
+         "not_a_fit",
+         "no_budget",
+         "no_response",
+         "timing",
+         "competitor",
+         "spam",
+         "duplicate",
+         "other"
+        ]
+       },
+       "lostNote": {
+        "anyOf": [
+         {
+          "type": "string",
+          "maxLength": 1000
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "ownerUserId": {
+        "anyOf": [
+         {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "createdAt": {
+        "type": "string",
+        "description": "Fecha y hora ISO 8601 con zona (2026-10-14T10:00:00-06:00)"
+       },
+       "firstContactedAt": {
+        "anyOf": [
+         {
+          "type": "string",
+          "description": "Fecha y hora ISO 8601 con zona (2026-10-14T10:00:00-06:00)"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       }
+      },
+      "required": [
+       "fullName",
+       "stage",
+       "createdAt"
+      ]
+     },
+     "workspace": {
+      "type": "object",
+      "properties": {
+       "mode": {
+        "type": "string",
+        "enum": [
+         "create_from_lead",
+         "link_existing"
+        ],
+        "description": "create_from_lead: nueva organización con nombre, país y dominio del lead; link_existing: liga la organización organizationId (solo llena sus campos vacíos)"
+       },
+       "organizationId": {
+        "description": "Solo con link_existing: de crm_lead_organization_suggestions",
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+       },
+       "organizationName": {
+        "description": "Solo con create_from_lead; por omisión, la empresa del lead",
+        "type": "string",
+        "maxLength": 200
+       }
+      },
+      "required": [
+       "mode"
+      ],
+      "description": "El espacio de trabajo. Nunca se elige solo: confirma con la persona antes de ligar una sugerencia."
+     },
+     "projectId": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "opportunity": {
+      "type": "object",
+      "properties": {
+       "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+       },
+       "kind": {
+        "type": "string",
+        "enum": [
+         "new_business",
+         "expansion",
+         "renewal",
+         "change_order"
+        ]
+       },
+       "stage": {
+        "type": "string",
+        "enum": [
+         "discovery",
+         "scoping",
+         "proposal_sent",
+         "negotiation",
+         "won",
+         "lost",
+         "on_hold"
+        ]
+       },
+       "serviceLine": {
+        "anyOf": [
+         {
+          "type": "string",
+          "enum": [
+           "stripe",
+           "product_design",
+           "ai"
+          ]
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "offerings": {
+        "maxItems": 12,
+        "type": "array",
+        "items": {
+         "type": "string",
+         "enum": [
+          "billing",
+          "connect",
+          "payments",
+          "checkout",
+          "invoicing",
+          "tax",
+          "terminal",
+          "radar",
+          "identity",
+          "app",
+          "dashboard",
+          "website",
+          "mcp_connector",
+          "ai_app",
+          "implementation_plan"
+         ]
+        }
+       },
+       "currency": {
+        "type": "string",
+        "enum": [
+         "mxn",
+         "usd"
+        ]
+       },
+       "amountMin": {
+        "anyOf": [
+         {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "amountMax": {
+        "anyOf": [
+         {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "commercialModel": {
+        "anyOf": [
+         {
+          "type": "string",
+          "enum": [
+           "fixed_price",
+           "time_and_materials",
+           "retainer"
+          ]
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "ownerUserId": {
+        "anyOf": [
+         {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "createdAt": {
+        "type": "string",
+        "description": "Fecha y hora ISO 8601 con zona (2026-10-14T10:00:00-06:00)"
+       },
+       "stageChangedAt": {
+        "type": "string",
+        "description": "Fecha y hora ISO 8601 con zona (2026-10-14T10:00:00-06:00)"
+       },
+       "wonAt": {
+        "anyOf": [
+         {
+          "type": "string",
+          "description": "Fecha y hora ISO 8601 con zona (2026-10-14T10:00:00-06:00)"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "closedAt": {
+        "anyOf": [
+         {
+          "type": "string",
+          "description": "Fecha y hora ISO 8601 con zona (2026-10-14T10:00:00-06:00)"
+         },
+         {
+          "type": "null"
+         }
+        ]
+       },
+       "lostReason": {
+        "type": "string",
+        "enum": [
+         "price",
+         "timing",
+         "no_budget",
+         "competitor",
+         "no_response",
+         "no_decision",
+         "in_house",
+         "not_a_fit",
+         "other"
+        ]
+       },
+       "lostNote": {
+        "anyOf": [
+         {
+          "type": "string",
+          "maxLength": 1000
+         },
+         {
+          "type": "null"
+         }
+        ]
+       }
+      },
+      "required": [
+       "title",
+       "stage",
+       "currency",
+       "createdAt"
+      ]
+     },
+     "notes": {
+      "maxItems": 50,
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "subject": {
+         "type": "string",
+         "enum": [
+          "lead",
+          "opportunity"
+         ]
+        },
+        "body": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 20000
+        },
+        "occurredAt": {
+         "type": "string",
+         "description": "Cuándo se escribió en el CRM anterior"
+        }
+       },
+       "required": [
+        "subject",
+        "body",
+        "occurredAt"
+       ]
+      }
+     },
+     "tasks": {
+      "maxItems": 50,
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "body": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 500,
+         "description": "Qué hay que hacer"
+        },
+        "dueAt": {
+         "type": "string",
+         "description": "Cuándo vence la tarea"
+        },
+        "waitingOn": {
+         "type": "string",
+         "enum": [
+          "pai",
+          "client"
+         ],
+         "description": "A quién le toca: pai (Pai actúa) o client (esperamos al cliente)"
+        },
+        "subject": {
+         "type": "string",
+         "enum": [
+          "lead",
+          "opportunity"
+         ]
+        },
+        "doneAt": {
+         "description": "Vacío: sigue abierta",
+         "anyOf": [
+          {
+           "type": "string",
+           "description": "Fecha y hora ISO 8601 con zona (2026-10-14T10:00:00-06:00)"
+          },
+          {
+           "type": "null"
+          }
+         ]
+        },
+        "createdAt": {
+         "type": "string",
+         "description": "Cuándo se creó en el CRM anterior"
+        }
+       },
+       "required": [
+        "body",
+        "dueAt",
+        "waitingOn",
+        "subject",
+        "createdAt"
+       ]
+      }
+     }
+    },
+    "required": [
+     "externalRef",
+     "externalSystem",
+     "lead"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": false,
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
@@ -23919,6 +24737,87 @@
                "type": "string",
                "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,79}$"
               },
+              "refs": {
+               "maxItems": 200,
+               "type": "array",
+               "items": {
+                "type": "object",
+                "properties": {
+                 "nodeId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                 },
+                 "revision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                 },
+                 "role": {
+                  "type": "string",
+                  "enum": [
+                   "cites",
+                   "grounds",
+                   "subject",
+                   "projects"
+                  ]
+                 }
+                },
+                "required": [
+                 "nodeId",
+                 "revision"
+                ],
+                "additionalProperties": false
+               }
+              },
+              "type": {
+               "type": "string",
+               "const": "html"
+              },
+              "title": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 240
+              },
+              "description": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 240
+              },
+              "html": {
+               "type": "string",
+               "minLength": 1
+              },
+              "height": {
+               "anyOf": [
+                {
+                 "type": "string",
+                 "const": "auto"
+                },
+                {
+                 "type": "integer",
+                 "minimum": 120,
+                 "maximum": 4000
+                }
+               ]
+              }
+             },
+             "required": [
+              "id",
+              "type",
+              "title",
+              "html",
+              "height"
+             ],
+             "additionalProperties": false
+            },
+            {
+             "type": "object",
+             "properties": {
+              "id": {
+               "type": "string",
+               "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,79}$"
+              },
               "type": {
                "type": "string",
                "const": "projection"
@@ -26569,6 +27468,87 @@
               "type",
               "title",
               "spec"
+             ],
+             "additionalProperties": false
+            },
+            {
+             "type": "object",
+             "properties": {
+              "id": {
+               "type": "string",
+               "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,79}$"
+              },
+              "refs": {
+               "maxItems": 200,
+               "type": "array",
+               "items": {
+                "type": "object",
+                "properties": {
+                 "nodeId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                 },
+                 "revision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                 },
+                 "role": {
+                  "type": "string",
+                  "enum": [
+                   "cites",
+                   "grounds",
+                   "subject",
+                   "projects"
+                  ]
+                 }
+                },
+                "required": [
+                 "nodeId",
+                 "revision"
+                ],
+                "additionalProperties": false
+               }
+              },
+              "type": {
+               "type": "string",
+               "const": "html"
+              },
+              "title": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 240
+              },
+              "description": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 240
+              },
+              "html": {
+               "type": "string",
+               "minLength": 1
+              },
+              "height": {
+               "anyOf": [
+                {
+                 "type": "string",
+                 "const": "auto"
+                },
+                {
+                 "type": "integer",
+                 "minimum": 120,
+                 "maximum": 4000
+                }
+               ]
+              }
+             },
+             "required": [
+              "id",
+              "type",
+              "title",
+              "html",
+              "height"
              ],
              "additionalProperties": false
             },

@@ -13,6 +13,8 @@ Plugin de Claude Code para que el staff de Pai opere proyectos de clientes en **
 - `knowledge_view`, `knowledge_library`, `knowledge_graph` y `task_board`;
 - la UI generativa (`view_catalog`, `view_render` y vistas en las lecturas) y el conocimiento propio de la organización;
 - las anotaciones de las tools y los errores con `cause`.
+- en Recursos, el bloque `html`, los atributos de page con sus filtros, notas, carpetas, sugerencias y `page_projection`;
+- comentarios con audiencias (`agent`, `team`, `client`, `person`), el cierre de proyecto y el CRM.
 
 Un entorno con una versión anterior no está soportado: el modelo lo dice y para, sin improvisar. Producción queda soportada cuando corra 0.2.5.
 
@@ -72,7 +74,7 @@ El plugin trae un solo servidor MCP, `pai` (`plugin:pai-console:pai`). Su URL sa
 |---|---|
 | `SessionStart` (`hooks/session_start.py`) | Dice a la persona y al modelo en qué entorno está el MCP y qué tools usar. Si también existe el servidor de usuario `pai-console`, avisa a qué entorno apunta. Evita escribir en producción creyendo que es staging. |
 | `PreToolUse` · producción (`hooks/guard.py`) | En producción **cada escritura pide confirmación**; las lecturas pasan libres. Las irreversibles (`project_delete`, `page_delete`, `payment_void`, `product_deploy` a production…) lo dicen y nombran qué arrastran. No bloquea nada: decide la persona. En staging no pregunta. Cubre las tools del plugin y las del servidor de usuario `pai-console`, cuyo entorno se deduce de su URL. |
-| `PreToolUse` · buscar antes de crear (`hooks/guard.py`) | Rechaza `page_create`, `knowledge_create`, `milestone_create`, `project_create`, `organization_create`, `product_create` y `agent_create` si en la sesión no hubo antes una búsqueda o un listado de su área. El modelo lee el motivo, busca y reintenta. Evita duplicados, el error más caro de deshacer en el grafo. |
+| `PreToolUse` · buscar antes de crear (`hooks/guard.py`) | Rechaza `page_create`, `note_create`, `knowledge_create`, `milestone_create`, `project_create`, `organization_create`, `product_create` y `agent_create` si en la sesión no hubo antes una búsqueda o un listado de su área. El modelo lee el motivo, busca y reintenta. Evita duplicados, el error más caro de deshacer en el grafo. |
 
 La guarda sabe qué es lectura por las anotaciones del propio servidor. Las lee de `hooks/tools.json`, que `tools/gen-references.ts` genera construyendo el servidor MCP de pai-portal en memoria. Una tool que no está en ese archivo cuenta como escritura hasta que se regenere.
 
@@ -81,13 +83,13 @@ La guarda sabe qué es lectura por las anotaciones del propio servidor. Las lee 
 | Skill | Para |
 |---|---|
 | `pai-console` | El método base: entorno, descubrimiento, buscar antes de crear, CAS, idempotencia, nombres en inglés, errores, citas. Con el inventario de tools |
-| `resources` | Pages con tipo, imágenes, archivos, mover, restaurar y borrar |
+| `resources` | Pages con tipo, bloques `view`, `html` (mockups y prototipos interactivos) y `projection`, atributos (fecha, responsable, estatus, etiquetas) y filtros, notas, carpetas, sugerencias, comentarios con audiencias y anclas, imágenes, archivos, mover, restaurar y borrar |
 | `views` | UI generativa de Pai (`pai-view@1`, 140 componentes, patrones con regiones y recetas del servidor): `view_render` para dibujar en la conversación; layouts reales de Portal, Console, pai.lat y login; piezas de datos del Portal (Pagos, Cronograma, Tareas, Proyectos, Actividad, Biblioteca); diagramas ERD/C4 y grafo; tableros, mockups, reportes visuales y comparativos guardados en Recursos. Recetas validadas y catálogo generado |
-| `knowledge` | Kinds, fuentes, propuestas que confirma una persona, enlaces por ontología, ciclo de vida |
+| `knowledge` | Kinds, fuentes, propuestas que confirma una persona, enlaces por ontología (incluido `implemented_by`), conocimiento de producto (`productId`), `knowledge_query`, `knowledge_batch`, ciclo de vida |
 | `erd` | `data_model` + `entity`: columnas tipadas; las relaciones salen de las FK |
 | `c4` | `component` por nivel y `actor`; relaciones con descripción y tecnología |
 | `screens` | `screen`, `flow`, `actor` |
-| `schedule` | Hitos, dependencias, tareas, línea base, tablero |
+| `schedule` | Hitos, dependencias, tareas, línea base, tablero, cierre y reapertura del proyecto |
 | `proposals-payments` | SOW, estados, CFDI, pagos, anulación |
 | `crm` | CRM de Console (staff): leads sin duplicados, contacto, calificación, espacio de trabajo, oportunidades por etapa, pausa, pérdida, ganar, interlocutores, probabilidad y pronóstico por moneda |
 | `products` | Alta, estados, aprovisionamiento, deploys, variables, dominios, acceso |

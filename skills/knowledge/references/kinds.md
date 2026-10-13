@@ -1,6 +1,6 @@
 # Kinds de Conocimiento
 
-> Generado por `tools/gen-references.ts` desde pai-portal `af7f1ba7f` (2026-10-12 merge: origin/feat/0.2.5/reui (CRM-1..4 #171/#173/#174/#176 y drizzle-guards #177 del owner) antes de subir ATE-206/207), `packages/contracts/src/knowledge`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `db7700fef` (2026-10-12 merge: pages-html @45532cc4 (ATE-204: bloque «html» en pai-pages pintado como un artifact de Claude: iframe sandbox allow-scripts con CSP, altura auto/fija con tope, tema con tokens; validación en dominio y MCP; markdownToPage convierte el html preview)), `packages/contracts/src/knowledge`. No editar a mano: regenerar.
 
 Cada kind tiene una plantilla estricta: una clave que no aparece aquí se rechaza. `properties` lleva exactamente estas claves. Las secciones `refs` materializan aristas al guardar.
 

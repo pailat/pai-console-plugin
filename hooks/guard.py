@@ -55,6 +55,7 @@ READ_TOOLS = load_read_tools()
 # Create tool -> tools that count as "looked for what exists first".
 SEARCH_BEFORE_CREATE = {
     "page_create": ("page_search", "page_list", "page_read"),
+    "note_create": ("page_search", "page_list", "page_read"),
     "knowledge_create": (
         "knowledge_search",
         "knowledge_context",
@@ -106,6 +107,10 @@ ATTENTION = {
     "crm_lead_workspace_open": "Crea o liga la organización del lead y abre su proyecto; no se re-liga después.",
     "crm_lead_workspace_join": "Te agrega como admin de la organización del cliente; queda auditado.",
     "project_close": "Deja el proyecto en solo lectura para todos hasta que se reabra.",
+    "project_reopen": "Reabre un proyecto cerrado: vuelve a aceptar escrituras; queda auditado.",
+    "note_audience_set": "Con audience client publica la nota para la organización del cliente; internal se la quita.",
+    "page_suggestion_decide": "Acepta o rechaza las sugerencias del set; las aceptadas se aplican juntas a la page.",
+    "crm_lead_import": "Importa un registro histórico (lead, organización, oportunidad, notas y tareas) con su etapa y fechas reales.",
     "organization_member_remove": "Quita a la persona de la organización del cliente.",
     "organization_member_role_set": "Cambia el rol de una persona en la organización del cliente.",
     "organization_invitation_cancel": "Invalida el enlace de invitación que ya recibió la persona.",

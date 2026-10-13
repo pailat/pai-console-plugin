@@ -33,6 +33,7 @@ Si dudas entre dibujar y guardar, dibuja y ofrece guardarla.
 - **Solo datos que obtuviste de las tools**, en esta conversación o en la fuente que citas. Una vista no consulta nada ni inventa cifras. La excepción son los mockups, cuyos datos de ejemplo deben ser verosímiles y se marca que son mockup.
 - **Valores ya formateados** en español de México: `"1 240"`, `"$412,300"` con `unit: "MXN"`, `"68 %"`, `"3.4 s"`. `Metric.value` admite como máximo 40 caracteres y `unit` como máximo 12.
 - **Fecha de corte y origen siempre**, en la `description` de la `Section`, en el `detail` de una `Metric` o en el `caption` de una `Table`. Por ejemplo: «Datos de payment_list al 2026-10-06».
+- **Tema del cliente:** pasa `organizationId` a `view_render` cuando la vista es de un cliente: se pinta con el tema publicado de esa organización (si no eres miembro, con el de Pai). Sin él, se usa tu única organización, o Pai si tienes varias.
 - Una vista no cita fuentes formales. Si cada cifra debe ir citada, usa una page de documento con `facts` o `data-table` (skill `resources`).
 
 ## El spec
@@ -148,6 +149,8 @@ Los diagramas se dibujan con los datos del servidor, **nunca escritos a mano**.
 
 **C4:** igual, con `view: "c4"` y su `level`, en un `C4Diagram`.
 
+**El diagrama de una page:** si el ERD o el C4 ya está guardado en una page como bloque `projection`, dibújalo con `page_projection {path, blockId}` (el `blockId` sale de `page_read`): se ve como en el lector del Portal, con lo que quien lee puede ver, y también funciona en el MCP del cliente. No lo reconstruyas con `knowledge_view` + `view_render`.
+
 ## Patrones: pantallas con regiones
 
 Dentro de un shell (o en la raíz), un **patrón** reparte la pantalla en regiones con nombre: lleva **un hijo por región, en el orden de sus regiones**, y `regions` elige cuáles usa (en ese mismo orden). Cada región trae su marco, así que no envuelvas los hijos en `Card`.
@@ -198,6 +201,8 @@ Antes de usar un patrón pide su esquema con `view_catalog {types}`: las regione
 - Etiquetas cortas y en español. Sin ids ni jerga técnica en vistas para el cliente.
 
 ## Guardar en Recursos
+
+**¿`view` o `html`?** Una vista `pai-view@1` usa solo los componentes del catálogo, sin JavaScript, y es lo indicado para tableros, reportes, comparativos y mockups de pantallas de Pai o de apps de clientes. Si hace falta JavaScript libre (una simulación, un canvas, una maqueta pixel a pixel o una interacción que el catálogo no tiene), usa un bloque **`html`** en la page (skill `resources` §3): iframe aislado, sin red y con los tokens de Pai como variables CSS. `view_render` no dibuja HTML: el bloque `html` solo se ve guardado, en el Portal.
 
 1. Busca (`page_search`, `page_list`) si ya existe la vista; si existe, edítala.
 2. Compón el spec y **previsualízalo con `view_render`**. Si da errores, corrige lo que dice.

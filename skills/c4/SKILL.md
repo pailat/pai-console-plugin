@@ -45,8 +45,11 @@ Lee antes el skill `pai-console`.
 9. **Entrega** a la persona:
    - **el diagrama dibujado:** `view_render` con un `C4Diagram` que recibe la respuesta de `knowledge_view` tal cual (skill `views`, «Diagramas de Conocimiento»);
    - las citas `kb:`;
+   - si quieren el diagrama en un documento, un bloque `projection` `format: "c4"` en una page v2 (skill `resources` §3), que se dibuja vivo en vez de copiar los datos; uno ya guardado se muestra con `page_projection {path, blockId}`;
    - el Mermaid (`format:"mermaid"`) si lo pide;
    - el enlace del Portal: el `url` de la vista (ya trae `?level=`) con el host del Portal delante (`https://app.pai.lat` en producción; en staging, el Portal de staging).
+
+**Módulos y componentes de un producto:** para decir en qué componente se implementa un `module` funcional, enlázalos con `implemented_by` (módulo → componente), los dos en el mismo producto (`productId`). Detalle y errores en el skill `knowledge`.
 
 Ejemplo completo y validado: `${CLAUDE_PLUGIN_ROOT}/skills/c4/examples/shop-c4.json`. Incluye un actor, un sistema, un sistema externo, tres contenedores (uno de ellos BD ligada al ERD), un repository y un controller.
 

@@ -35,7 +35,7 @@ Lee antes el skill `pai-console`. Varias de estas tools tocan infraestructura re
    - `hosting`: `pai` (la operamos en Railway) o `external`;
    - `recipeKey` y `recipeVersion` van juntos o no van;
    - el slug va en inglés; si duplica, da `CONFLICT`.
-2. Liga el producto al proyecto: `product_link_project {productId, projectId}`.
+2. Liga el producto al proyecto: `product_link_project {productId, projectId, role?}` con `role` `creates`, `improves` (por defecto) o `maintains`; religar con otro `role` lo actualiza. Ese vínculo es el que deja usar `productId` en las tools `knowledge_*` desde el proyecto (skill `knowledge`).
 3. `product_request_status {status:"building"}`.
 4. **`product_provision`** (solo `hosting: pai`), una de dos:
    - `{productId, repositoryName}`: crea el repo privado desde el template;

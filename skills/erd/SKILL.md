@@ -40,6 +40,7 @@ Un **`data_model`** agrupa **`entity`** (tablas). **Una entidad son sus columnas
 8. **Entrega** a la persona:
    - **el diagrama dibujado:** `view_render` con un `ErdDiagram` que recibe la respuesta de `knowledge_view` tal cual (skill `views`, «Diagramas de Conocimiento»);
    - las citas `kb:` de cada nodo;
+   - si quieren el diagrama en un documento, un bloque `projection` `format: "erd"` en una page v2 (skill `resources` §3), que se dibuja vivo en vez de copiar los datos; uno ya guardado se muestra con `page_projection {path, blockId}`;
    - el Mermaid de la vista (`format:"mermaid"`) si lo pide;
    - el enlace del Portal: el `url` de la vista con el host del Portal delante (`https://app.pai.lat` en producción; en staging, el Portal de staging).
 

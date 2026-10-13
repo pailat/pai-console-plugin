@@ -1,8 +1,8 @@
 # Inventario de tools del MCP corp de Pai (0.2.5+)
 
-**Fuente:** pai-portal `feat/0.2.5/reui` (incluye CRM-1..4) (`apps/api/src/modules/mcp/tools/*.ts`).
+**Fuente:** pai-portal `feat/0.2.5/reui` @ db7700fe (incluye CRM-1..4, el bloque html de ATE-204 y CRM #178) (`apps/api/src/modules/mcp/tools/*.ts`).
 
-Las tools declaran sus anotaciones, y la guarda las lee de `hooks/tools.json`, que se genera desde el servidor. Todas las tools de proyecto reciben `organizationId` y `projectId`.
+Las tools declaran sus anotaciones, y la guarda las lee de `hooks/tools.json`, que se genera desde el servidor. Todas las tools de proyecto reciben `organizationId` y `projectId`. Las `knowledge_*`, `task_board` y `knowledge_view` aceptan además `productId` para trabajar sobre el conocimiento de un producto que el proyecto toca. Con el proyecto cerrado, toda escritura de contenido responde `CONFLICT` «El proyecto está cerrado…».
 
 **Leyenda:**
 - **L**: lectura. Pasa libre en cualquier entorno.
@@ -18,7 +18,7 @@ Las tools declaran sus anotaciones, y la guarda las lee de `hooks/tools.json`, q
 | `organization_get` | L | Miembros, invitaciones y proyectos |
 | `organization_create` | E | Quien llama entra como admin; con `ownerEmail` envía una invitación |
 | `organization_slug_set` | E | Staff. Cambia el slug de la organización en las URLs del Portal; el anterior redirige y no se reutiliza |
-| `organization_update` | E | Nombre visible o logo (`logo` = `fileKey` de `organization_logo_upload_url`, "" lo quita); el slug no cambia |
+| `organization_update` | E | Requiere ser owner o admin de esa organización, como el resto de ajustes de la organización. Nombre visible o logo (`logo` = `fileKey` de `organization_logo_upload_url`, "" lo quita); el slug no cambia |
 | `organization_logo_upload_url` | E | URL firmada para el PUT del logo de la organización (PNG ≤10 MB); no es el logo del tema |
 | `organization_member_role_set` | E | owner, admin o member (`memberId` de `organization_get`); nunca deja la organización sin owner |
 | `organization_member_remove` | E | Quita al miembro y libera su asiento; no quita al último owner |
@@ -73,14 +73,14 @@ La marca que ven el Portal y las vistas del cliente. Flujo: `organization_theme_
 | `quiz_respond` | E | Responde un bloque quiz en nombre de la persona; cada intento cuenta |
 | `page_catalog` | L | Unos 35 KB: bloques, reglas, JSON Schema y vistas. Prefiere las referencias de los skills `resources` y `views` |
 | `page_types` | L | Lista, o el detalle de un `slug` con su `authoringGuide` |
-| `page_validate` | L | Valida sin guardar; devuelve `issues` |
-| `page_list` | L | Pagina con `nextCursor` (= path) |
-| `page_search` | L | `limit` ≤50, sin cursor |
-| `page_read` | L | `view`: summary, content o full. Solo `full` sirve para escribir |
+| `page_validate` | L | Valida sin guardar `content` y/o `frontmatter` (atributos); devuelve `issues` y `warnings` (avisos del bloque `html`) |
+| `page_list` | L | Filtros `status`, `owner`, `labels`, `dateFrom`/`dateTo`, `audience`, `pathPrefix`; `sort` path, date o status; sigue `nextCursor` con el mismo `sort`. Trae `attributes` |
+| `page_search` | L | `limit` ≤50, sin cursor ni orden; mismos filtros que `page_list` (busca 50 y filtra: puede traer menos que `limit`) |
+| `page_read` | L | `view`: summary, content o full. Solo `full` sirve para escribir. Trae `attributes` tipados y las `projections` resueltas |
 | `page_versions` | L | Pagina con `nextCursor` |
 | `page_version` | L | |
 | `page_comprehension` | L | Antes de reescribir una page |
-| `page_create` | E | `summary` ≤80; `idempotencyKey` obligatoria; sin imágenes |
+| `page_create` | E | `summary` ≤80; `idempotencyKey` obligatoria; sin imágenes; `derivedFromPageId` liga la page a la nota de origen. Avisos en `warnings` |
 | `page_update` | E | Reemplazo completo, con CAS |
 | `page_restore` | E | Restaura una versión como revisión nueva |
 | `page_move` | E | Reescribe los enlaces; revisa los `warnings` |
@@ -175,7 +175,7 @@ La marca que ven el Portal y las vistas del cliente. Flujo: `organization_theme_
 | `product_domain_remove` | E | Solo registro: no desconecta en Railway |
 | `product_link_set` | E | |
 | `product_link_remove` | E | |
-| `product_link_project` | E | |
+| `product_link_project` | E | `role` creates, improves (por defecto) o maintains; habilita `productId` en `knowledge_*` desde el proyecto |
 | `product_unlink_project` | E | |
 | `product_member_add` | E | |
 | `product_member_update` | E | |
@@ -192,10 +192,10 @@ La marca que ven el Portal y las vistas del cliente. Flujo: `organization_theme_
 
 | Tool | Tipo | Nota |
 |---|---|---|
-| `view_catalog` | L | Catálogo `pai-view@1` (componentes, props, reglas, ejemplo). Prefiere la referencia del skill `views` |
-| `view_render` | L | Dibuja en la conversación una vista que compones (`{title, spec}`); la valida y no guarda nada |
+| `view_catalog` | L | Catálogo `pai-view@1` (componentes, props, reglas, ejemplo); con `types`/`group`, `recipe` o `recipeGroup`, uno a la vez. Prefiere la referencia del skill `views` |
+| `view_render` | L | Dibuja en la conversación una vista que compones (`{title, spec}`); la valida y no guarda nada. `organizationId` la pinta con el tema de esa organización |
 
-Además, en los hosts con MCP Apps, las lecturas con una vista propia se dibujan solas como una vista de Pai: `project_summary`, `project_list`, `project_activity`, `status_update_list`, `timeline_get`, `milestone_list`, `payment_list`, `proposal_list`, `task_board`, `file_list`, `page_list`, `page_suggestions`, `page_comprehension`, `page_knowledge_health`, `agent_inbox`, `knowledge_library`, `knowledge_graph`, `knowledge_view`, `organization_theme_preview` y `view_render`. Las demás lecturas (detalles, búsquedas, validaciones, catálogos) devuelven solo datos y texto (ATE-203).
+Además, en los hosts con MCP Apps, las lecturas con una vista propia se dibujan solas como una vista de Pai: `project_summary`, `project_list`, `project_activity`, `project_close_review`, `status_update_list`, `timeline_get`, `milestone_list`, `payment_list`, `proposal_list`, `task_board`, `file_list`, `page_list`, `page_suggestions`, `page_comprehension`, `page_knowledge_health`, `page_projection`, `agent_inbox`, `knowledge_library`, `knowledge_graph`, `knowledge_view`, `organization_theme_preview`, las lecturas del CRM (`crm_overview_get`, `crm_lead_list`, `crm_lead_summary`, `crm_lead_get`, `crm_lead_record`, `crm_lead_event_list`, `crm_lead_duplicates`, `crm_lead_organization_suggestions`, `crm_submission_get`, `crm_opportunity_list`, `crm_opportunity_summary`, `crm_opportunity_get`, `crm_opportunity_event_list`, `crm_trace_get`) y `view_render`. `knowledge_view` y `page_projection` se dibujan en el lienzo (`ui://pai/canvas.html`). Las demás lecturas (detalles, búsquedas, validaciones, catálogos) devuelven solo datos y texto (ATE-203).
 
 ## CRM (solo staff, permisos `crm:*`)
 
@@ -203,7 +203,7 @@ Detalle y reglas en el skill `crm`. Toda escritura de lead u oportunidad lleva `
 
 | Tool | Tipo | Nota |
 |---|---|---|
-| `crm_access_get` | L | Tus permisos: crm:access, edit, convert, revenue, purge |
+| `crm_access_get` | L | Tus permisos: crm:access, edit, convert, revenue, purge, import |
 | `crm_overview_get` | L | Portada de /crm: cifras, embudo, «Por atender», tus tareas, conversiones |
 | `crm_owner_list` | L | Responsables posibles (ids para `ownerUserId`) |
 | `crm_submission_get` | L | Un envío de Forms y el lead que generó |
@@ -215,7 +215,9 @@ Detalle y reglas en el skill `crm`. Toda escritura de lead u oportunidad lleva `
 | `crm_lead_event_list` | L | Historial del lead (≤200) |
 | `crm_lead_duplicates` | L | **Antes de crear:** mismo correo, mismo dominio, organizaciones cliente |
 | `crm_lead_organization_suggestions` | L | Organizaciones parecidas y qué campos llenaría; nunca liga |
-| `crm_lead_create` | E | Referido, manual o MCP; `firstTask` obligatoria; avisa por correo |
+| `crm_lead_create` | E | Referido, manual o MCP; `firstTask` obligatoria; `phone` opcional; avisa por correo |
+| `crm_lead_import` | E | `crm:import`. Importación histórica de un CRM anterior (lead, organización, oportunidad, notas y tareas en su etapa real y con sus fechas); `externalRef` la hace idempotente (`created: false` al repetir) |
+| `crm_lead_note_add` | E | Nota en el historial del lead (≤20 000 caracteres); no se edita: para corregir, escribe otra. No mueve etapa ni siguiente paso |
 | `crm_lead_create_from_submission` | E | Lead desde un envío de Forms |
 | `crm_lead_update` | E | Datos, responsable o `stage: contacted` (exige `nextTask`) |
 | `crm_lead_task_create` | E | Tarea con fecha y cancha |
@@ -240,6 +242,7 @@ Detalle y reglas en el skill `crm`. Toda escritura de lead u oportunidad lleva `
 | `crm_opportunity_hold` | E | En pausa; `task.dueAt` = fecha de retomar |
 | `crm_opportunity_lose` | E | Perdida con motivo de la lista |
 | `crm_opportunity_probability` | E | Ajuste 0–100 con motivo, o `reset`; `crm:revenue` |
+| `crm_opportunity_note_add` | E | Nota en el historial de la oportunidad (≤20 000 caracteres); no se edita ni mueve la etapa |
 | `crm_opportunity_contact_add` | E | Interlocutor por `leadId` o `userId` con su rol |
 | `crm_opportunity_contact_primary` | E | Marca el principal |
 | `crm_opportunity_contact_remove` | E | Lo quita (queda en la historia) |
@@ -254,12 +257,12 @@ Detalle y reglas en el skill `crm`. Toda escritura de lead u oportunidad lleva `
 | `comment_list` | L | Pagina con cursor |
 | `comment_history` | L | |
 | `comment_recipients` | L | |
-| `comment_create` | E | |
+| `comment_create` | E | `audience` agent, team (por omisión para staff), client o person (`audienceUserId`); `needsAgent`; una page exige `anchor` |
 | `comment_reply` | E | |
 | `comment_edit` | E | Solo comentarios propios; queda «(editado)» |
 | `comment_resolve` | E | Solo en hilos de page |
 | `comment_reopen` | E | Solo en hilos de page |
-| `comment_send_to_agent` | E | Solo en hilos de page |
+| `comment_send_to_agent` | E | Solo en hilos de page; abre un hilo `agent` nuevo (con `body` opcional) sin tocar el original |
 | `agent_list` | L | |
 | `agent_get` | L | |
 | `agent_create` | E | |
