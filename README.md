@@ -82,9 +82,9 @@ La guarda sabe qué es lectura por las anotaciones del propio servidor. Las lee 
 
 | Skill | Para |
 |---|---|
-| `pai-console` | El método base: entorno, descubrimiento, buscar antes de crear, CAS, idempotencia, nombres en inglés, errores, citas. Con el inventario de tools |
+| `pai-console` | El método base: entorno, descubrimiento, buscar antes de crear, CAS, idempotencia, nombres en inglés, errores, citas. Con el inventario de tools (también el tema de la organización, con su `shell`) |
 | `resources` | Pages con tipo, bloques `view`, `html` (mockups y prototipos interactivos) y `projection`, atributos (fecha, responsable, estatus, etiquetas) y filtros, notas, carpetas, sugerencias, comentarios con audiencias y anclas, imágenes, archivos, mover, restaurar y borrar |
-| `views` | UI generativa de Pai (`pai-view@1`, 140 componentes, patrones con regiones y recetas del servidor): `view_render` para dibujar en la conversación; layouts reales de Portal, Console, pai.lat y login; piezas de datos del Portal (Pagos, Cronograma, Tareas, Proyectos, Actividad, Biblioteca); diagramas ERD/C4 y grafo; tableros, mockups, reportes visuales y comparativos guardados en Recursos. Recetas validadas y catálogo generado |
+| `views` | UI generativa de Pai (`pai-view@1`, 150 componentes, patrones con regiones y 68 recetas del servidor): `view_render` para dibujar en la conversación; layouts reales de Portal, Console, pai.lat y login; piezas de datos del Portal (Pagos, Cronograma, Tareas, Proyectos, Actividad, Biblioteca); diagramas ERD/C4 y grafo; tableros, mockups, reportes visuales y comparativos guardados en Recursos. Recetas validadas y catálogo generado |
 | `knowledge` | Kinds, fuentes, propuestas que confirma una persona, enlaces por ontología (incluido `implemented_by`), conocimiento de producto (`productId`), `knowledge_query`, `knowledge_batch`, ciclo de vida |
 | `erd` | `data_model` + `entity`: columnas tipadas; las relaciones salen de las FK |
 | `c4` | `component` por nivel y `actor`; relaciones con descripción y tecnología |
