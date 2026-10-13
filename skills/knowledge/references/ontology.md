@@ -1,6 +1,6 @@
 # Ontología de Conocimiento
 
-> Generado por `tools/gen-references.ts` desde pai-portal `db7700fef` (2026-10-12 merge: pages-html @45532cc4 (ATE-204: bloque «html» en pai-pages pintado como un artifact de Claude: iframe sandbox allow-scripts con CSP, altura auto/fija con tope, tema con tokens; validación en dominio y MCP; markdownToPage convierte el html preview)), `packages/contracts/src/knowledge/ontology.ts`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `59183d306` (2026-10-13 fix(resources): un cliente no borra subcarpetas ajenas ni descubre contenido interno), `packages/contracts/src/knowledge/ontology.ts`. No editar a mano: regenerar.
 
 Un `knowledge_link` (o un link en `knowledge_create`) solo se acepta si el par source → target aparece aquí. Si no, el error es `ONTOLOGY`.
 

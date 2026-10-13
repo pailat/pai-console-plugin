@@ -104,7 +104,7 @@ class GuardTest(HookCase):
         self.assertEqual(decision, "ask")
         self.assertTrue(reason.startswith("IRREVERSIBLE"))
         self.assertIn("pagos y CFDI", reason)
-        for tool in ("page_delete", "payment_void", "milestone_delete"):
+        for tool in ("page_delete", "payment_void", "milestone_delete", "folder_delete"):
             decision, reason = self.decision(self.guard(PLUGIN + tool, PRODUCTION))
             self.assertEqual(decision, "ask")
             self.assertTrue(reason.startswith("IRREVERSIBLE"), tool)
