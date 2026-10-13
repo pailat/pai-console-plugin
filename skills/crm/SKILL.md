@@ -33,7 +33,7 @@ Sin `crm:revenue` los montos no llegan, tampoco en el historial: no los inventes
 
 ### Sin `crm:join`
 
-- `link_existing` (en `crm_lead_workspace_open`, `crm_lead_qualify` o `crm_lead_import`) da `FORBIDDEN` «No tienes permiso para ligar el lead a una organización existente: crea la organización desde el lead». Usa `create_from_lead` o pide a quien tenga `crm:join` que lo ligue.
+- `link_existing` (en `crm_lead_workspace_open`, `crm_lead_qualify` o `crm_lead_import`) da `FORBIDDEN` «No tienes permiso para ligar el lead a una organización existente: crea la organización desde el lead». Si la organización **ya existe** en Pai, no la dupliques con `create_from_lead`: para y pide a alguien con `crm:join` que la ligue (o que te den el permiso). `create_from_lead` es solo para una cuenta que aún no está en Pai.
 - `create_from_lead` crea la organización, pero **no te hace miembro**.
 - `crm_opportunity_create` solo abre oportunidades en organizaciones que el CRM ya lleva (con un lead o una oportunidad suya).
 - No intentes entrar a la organización por otro camino.
