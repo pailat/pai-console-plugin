@@ -3,7 +3,7 @@
 Plugin de Claude Code para que el staff de Pai opere proyectos de clientes en **Pai Console** por su MCP corp. Incluye:
 
 - el MCP ya configurado;
-- skills opinados para Recursos, vistas, Conocimiento (ERD, C4, pantallas), Cronograma, Propuestas y Pagos, Productos y CRM;
+- skills opinados para Recursos, vistas, Conocimiento (ERD, C4, pantallas), Cronograma, Propuestas y Pagos, Productos, CRM y el tema de marca;
 - una guarda de escrituras en producción.
 
 ## Requisitos
@@ -91,15 +91,17 @@ La guarda sabe qué es lectura por las anotaciones del propio servidor. Las lee 
 | `screens` | `screen`, `flow`, `actor` |
 | `schedule` | Hitos, dependencias, tareas, línea base, tablero, cierre y reapertura del proyecto |
 | `proposals-payments` | SOW, estados, CFDI, pagos, anulación |
-| `crm` | CRM de Console (staff): leads sin duplicados, contacto, calificación, espacio de trabajo, oportunidades por etapa, pausa, pérdida, ganar, interlocutores, probabilidad y pronóstico por moneda |
+| `theme` | Tema de marca de una organización (Ajustes › Apariencia, staff): colores claro y oscuro, fuente, radio, sombra, logos y el app shell del Portal; contraste AA, borrador, vista previa, publicar y volver |
+| `crm` | CRM de Console (staff o roles de CRM): leads sin duplicados, contacto, calificación, espacio de trabajo, oportunidades por etapa, pausa, pérdida, ganar, interlocutores, probabilidad y pronóstico por moneda |
 | `products` | Alta, estados, aprovisionamiento, deploys, variables, dominios, acceso |
 | `pai-env` | `/pai-console:pai-env [staging\|develop\|production]`: ver o cambiar el entorno (solo manual) |
 
 Todos los skills de área se pueden invocar como comando (`/pai-console:erd`, `/pai-console:c4`, `/pai-console:resources`, `/pai-console:views`…) o los carga el modelo cuando la tarea encaja.
 
-### Agente
+### Agentes
 
-`pai-explorer` es de solo lectura: hace búsquedas y lecturas pesadas (catálogos, inventarios, contexto) sin llenar el contexto principal.
+- `pai-explorer` es de solo lectura: hace búsquedas y lecturas pesadas (catálogos, inventarios, contexto, CRM) sin llenar el contexto principal.
+- `theme-designer` propone o corrige el tema de una organización desde una marca o un logo. Itera `organization_theme_preview` hasta pasar AA y devuelve el JSON. Solo lee y previsualiza: guardar y publicar los hace el agente principal con confirmación.
 
 ## Desarrollo
 

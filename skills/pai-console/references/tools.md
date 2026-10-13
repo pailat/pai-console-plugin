@@ -46,7 +46,7 @@ Las tools declaran sus anotaciones, y la guarda las lee de `hooks/tools.json`, q
 
 ## Tema de la organización
 
-La marca que ven el Portal y las vistas del cliente: colores, fuente, radio, sombra, logos y `shell`, el app shell del Portal (ATE-212). Es lo mismo que edita Ajustes › Apariencia en el Portal (área `organization:appearance`, solo staff). Flujo: `organization_theme_get` → `organization_theme_preview` → `organization_theme_save_draft` → `organization_theme_publish`.
+Detalle, flujo y errores en el skill `theme`. La marca que ven el Portal y las vistas del cliente: colores, fuente, radio, sombra, logos y `shell`, el app shell del Portal (ATE-212). Es lo mismo que edita Ajustes › Apariencia en el Portal (área `organization:appearance`, solo staff). Flujo: `organization_theme_get` → `organization_theme_preview` → `organization_theme_save_draft` → `organization_theme_publish`.
 
 `theme` va completo: `{schemaVersion: 1, light, dark, font, radius, shadow, shell, logo: {light, dark}}`. `shell` es un preset (`sidebar`, `floating`, `header`, `dual-rail`, `section-tabs`, `framed`, `topbar`, `icon-rail`) o `null` (el de Pai); otro valor da un problema `shell`. Las pantallas `PortalShell` de las vistas lo toman del tema publicado.
 

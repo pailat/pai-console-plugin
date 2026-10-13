@@ -3,7 +3,8 @@
  * contracts, so a skill never shows an input the server would reject.
  *
  * An example is `skills/<skill>/examples/*.json`:
- *   { "tool": "knowledge_create" | "page_create" | "page_update" | "view_render", "input": {...} }
+ *   { "tool": "knowledge_create" | "page_create" | "page_update" | "view_render" |
+ *             "organization_theme_*", "input": {...} }
  * or an array of those (a sequence of calls).
  *
  * Usage (pai-portal checkout with dependencies installed):
@@ -34,6 +35,9 @@ const { findBuiltinPageType } = await import(
 );
 const { validateViewSpec } = await import(
 	join(contracts, "views/spec.ts")
+);
+const { validateOrganizationTheme } = await import(
+	join(contracts, "theme/validate.ts")
 );
 
 type Call = { tool: string; input: Record<string, unknown> };
@@ -158,7 +162,7 @@ function pageWrite(input: Record<string, unknown>, allowed: Set<string>): string
 
 function viewRender(input: Record<string, unknown>): string[] {
 	const problems = Object.keys(input)
-		.filter((key) => key !== "title" && key !== "spec")
+		.filter((key) => !["title", "spec", "organizationId"].includes(key))
 		.map((key) => `${key}: clave no admitida por la tool`);
 	if (typeof input.title !== "string" || !input.title || input.title.length > 160)
 		problems.push("title: obligatorio, de 1 a 160 caracteres");
@@ -166,6 +170,19 @@ function viewRender(input: Record<string, unknown>): string[] {
 	for (const issue of result.issues ?? [])
 		problems.push(`spec.${issue.path ?? ""}: ${issue.message}`);
 	return problems;
+}
+
+/**
+ * A theme the skills teach must be publishable: schema, font, shell and
+ * every AA pair in light and dark (the server lets a draft through with
+ * contrast issues; an example never needs that).
+ */
+function themeWrite(input: Record<string, unknown>): string[] {
+	const result = validateOrganizationTheme(input.theme);
+	return result.issues.map(
+		(issue: { path: string; code: string; message: string }) =>
+			`theme.${issue.path} [${issue.code}]: ${issue.message}`,
+	);
 }
 
 function check(call: Call): string[] {
@@ -182,6 +199,13 @@ function checkContract(call: Call): string[] {
 			return pageWrite(call.input, PAGE_UPDATE_KEYS);
 		case "view_render":
 			return viewRender(call.input);
+		case "organization_theme_preview":
+		case "organization_theme_save_draft":
+			return themeWrite(call.input);
+		case "organization_theme_get":
+		case "organization_theme_publish":
+		case "organization_theme_revert":
+			return [];
 		default:
 			return [`tool ${call.tool}: el validador no la conoce`];
 	}
