@@ -14965,7 +14965,7 @@
   {
    "name": "crm_overview_get",
    "title": "Resumen del CRM",
-   "description": "Resumen del CRM, igual que la portada de /crm en Console (staff con crm:access): cifras (leads nuevos en 7 días contra los 7 anteriores, mediana del primer contacto contra el SLA, tasa de cierre a 90 días), embudo de 90 días, «Por atender» (envíos sin lead, leads fuera de SLA o sin responsable, tratos sin siguiente paso), tus tareas por día de CDMX y las conversiones recientes. El pipeline ponderado por moneda (MXN y USD nunca se suman) y los montos solo llegan con crm:revenue. empty = todavía no hay leads. Sin argumentos.",
+   "description": "Resumen del CRM, igual que la portada de /crm en Console (staff con crm:access): cifras (leads nuevos en 7 días contra los 7 anteriores, mediana del tiempo de respuesta (primer contacto) contra el SLA, tasa de cierre a 90 días), embudo de 90 días, «Por atender» (envíos sin lead, leads fuera del SLA de primer contacto o sin propietario, oportunidades sin siguiente paso), tus tareas por día de CDMX y las conversiones recientes. El pipeline ponderado por moneda (MXN y USD nunca se suman) y los montos solo llegan con crm:revenue. empty = todavía no hay leads. Sin argumentos.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -14997,7 +14997,7 @@
   {
    "name": "crm_lead_list",
    "title": "Listar leads del CRM",
-   "description": "Leads del CRM (staff con crm:access) con su etapa, responsable, siguiente paso (cancha) y cadena. Filtros: query (nombre, empresa o correo), source, owner (me, none o un id), period (30d, 90d, year), waitingOn (pai, client, overdue, push = «Me toca empujar») y archived ('1' para los archivados).",
+   "description": "Leads del CRM (staff con crm:access) con su etapa, propietario, siguiente paso (en espera de nosotros o del cliente) y cadena. Filtros: query (nombre, empresa o correo), source, owner (me, none o un id), period (30d, 90d, year o all; sin period, todos), waitingOn (siguiente paso: attention = «Requiere atención»: vencido, sin siguiente paso o en espera de nosotros hoy; pai = en espera de nosotros; client = en espera del cliente; overdue = vencido; none = sin siguiente paso; outsideSla = primer contacto vencido, sin importados) y archived ('1' para los archivados).",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -15032,10 +15032,12 @@
      "waitingOn": {
       "type": "string",
       "enum": [
+       "attention",
        "pai",
        "client",
        "overdue",
-       "push"
+       "none",
+       "outsideSla"
       ]
      },
      "archived": {
@@ -15057,7 +15059,7 @@
   {
    "name": "crm_lead_summary",
    "title": "Cifras de leads",
-   "description": "Las cuatro cifras del tablero de leads: lo que te toca empujar, la mediana de primer contacto (minutos hábiles, últimos 30 días), los nuevos fuera de SLA (1 h hábil) y los abiertos sin siguiente paso.",
+   "description": "Las cuatro cifras del tablero de leads: los tuyos que requieren atención, la mediana del tiempo de respuesta (primer contacto, minutos hábiles, últimos 30 días), los nuevos fuera del SLA de primer contacto (1 h hábil) y los abiertos sin siguiente paso.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -15147,8 +15149,8 @@
   },
   {
    "name": "crm_owner_list",
-   "title": "Responsables posibles",
-   "description": "Las personas del equipo que pueden ser responsables de un lead (tienen crm:edit): sus ids para ownerUserId.",
+   "title": "Propietarios posibles",
+   "description": "Las personas del equipo que pueden ser propietarias de un lead (tienen crm:edit): sus ids para ownerUserId.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -15189,7 +15191,7 @@
   {
    "name": "crm_lead_create",
    "title": "Crear un lead",
-   "description": "Crea un lead que no llega por Forms (referido, manual o MCP). Necesita al menos un correo, un teléfono o la empresa. El origen no se puede cambiar después. Ningún lead nace sin siguiente paso: firstTask es obligatoria. Revisa antes crm_lead_duplicates. Avisa por correo al responsable o, sin responsable, al equipo con crm:edit.",
+   "description": "Crea un lead que no llega por Forms (referido, manual o MCP). Necesita al menos un correo, un teléfono o la empresa. El origen no se puede cambiar después. Ningún lead nace sin siguiente paso: firstTask es obligatoria. Revisa antes crm_lead_duplicates. Avisa por correo al propietario o, sin propietario, al equipo con crm:edit.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -15251,7 +15253,7 @@
         "type": "null"
        }
       ],
-      "description": "null: sin responsable"
+      "description": "null: sin propietario"
      },
      "referredBy": {
       "description": "Quién lo refirió (solo con source referral)",
@@ -15282,7 +15284,7 @@
          "pai",
          "client"
         ],
-        "description": "A quién le toca: pai (Pai actúa) o client (esperamos al cliente)"
+        "description": "En espera de: pai (de nosotros) o client (del cliente)"
        }
       },
       "required": [
@@ -15308,7 +15310,7 @@
   {
    "name": "crm_lead_create_from_submission",
    "title": "Crear un lead desde un envío de Forms",
-   "description": "Convierte un envío de Forms en lead: los datos vienen del envío y no se escriben a mano; el envío no cambia y el lead guarda la referencia. Pide responsable y la primera tarea.",
+   "description": "Convierte un envío de Forms en lead: los datos vienen del envío y no se escriben a mano; el envío no cambia y el lead guarda la referencia. Pide propietario y la primera tarea.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -15349,7 +15351,7 @@
          "pai",
          "client"
         ],
-        "description": "A quién le toca: pai (Pai actúa) o client (esperamos al cliente)"
+        "description": "En espera de: pai (de nosotros) o client (del cliente)"
        }
       },
       "required": [
@@ -15400,7 +15402,7 @@
   {
    "name": "crm_lead_update",
    "title": "Actualizar un lead",
-   "description": "Cambia nombre, empresa, puesto, qué busca o el responsable, o mueve un lead nuevo a Contactado (stage contacted): eso fija el primer contacto, da por hecha su tarea abierta y exige nextTask, la siguiente tarea con su cancha. Calificar y descartar tienen sus tools (crm_lead_qualify, crm_lead_disqualify). CAS: expectedRevision.",
+   "description": "Cambia nombre, empresa, puesto, qué busca o el propietario, o mueve un lead nuevo a Contactado (stage contacted): eso fija el primer contacto, da por hecha su tarea abierta y exige nextTask, la siguiente tarea con su siguiente acción (nuestra o del cliente). Calificar y descalificar tienen sus tools (crm_lead_qualify, crm_lead_disqualify). CAS: expectedRevision.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -15491,7 +15493,7 @@
          "pai",
          "client"
         ],
-        "description": "A quién le toca: pai (Pai actúa) o client (esperamos al cliente)"
+        "description": "En espera de: pai (de nosotros) o client (del cliente)"
        }
       },
       "required": [
@@ -15622,7 +15624,7 @@
   {
    "name": "crm_lead_record",
    "title": "Ficha de un lead",
-   "description": "La ficha completa de un lead: calificación (necesidad, rango de presupuesto, plazo, quién decide), datos del envío, motivo de descarte, espacio de trabajo (organización, proyecto en borrador, conteos), oportunidades (montos solo con crm:revenue), nodos sembrados con su origen y actividades.",
+   "description": "La ficha completa de un lead: calificación (necesidad, rango de presupuesto, plazo, quién decide), datos del envío, motivo de descalificación, espacio de trabajo (organización, proyecto en borrador, conteos), oportunidades (montos solo con crm:revenue), nodos sembrados con su origen y actividades.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -15912,7 +15914,7 @@
            "pai",
            "client"
           ],
-          "description": "A quién le toca: pai (Pai actúa) o client (esperamos al cliente)"
+          "description": "En espera de: pai (de nosotros) o client (del cliente)"
          }
         },
         "required": [
@@ -15950,8 +15952,8 @@
   },
   {
    "name": "crm_lead_disqualify",
-   "title": "Descartar un lead",
-   "description": "Descarta un lead nuevo o contactado con un motivo comercial de la lista fija y lo archiva (no se borra: conserva su historia). other exige note. Spam no es un descarte (archívalo con crm_lead_archive o, si es basura sin cadena, purgalo con crm_lead_purge) y un duplicado se liga con crm_lead_mark_duplicate. Un lead calificado no se descarta. closeOpenTask cierra sus tareas abiertas (si no, se archivan con él). CAS: expectedRevision.",
+   "title": "Descalificar un lead",
+   "description": "Descalifica un lead nuevo o contactado con un motivo comercial de la lista fija y lo archiva (no se borra: conserva su historia). other exige note. Spam no es una descalificación (archívalo con crm_lead_archive o, si es basura sin cadena, purgalo con crm_lead_purge) y un duplicado se liga con crm_lead_mark_duplicate. Un lead calificado no se descalifica. closeOpenTask cierra sus tareas abiertas (si no, se archivan con él). CAS: expectedRevision.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -16004,7 +16006,7 @@
   {
    "name": "crm_lead_mark_duplicate",
    "title": "Marcar un lead como duplicado",
-   "description": "Liga un lead nuevo o contactado al lead que sobrevive (duplicateOfLeadId) y lo archiva con su etapa: no es un descarte y no cuenta como tal. El que sobrevive no puede ser duplicado de otro (usa el original). closeOpenTask cierra sus tareas abiertas (si no, se archivan con él). CAS: expectedRevision.",
+   "description": "Liga un lead nuevo o contactado al lead que sobrevive (duplicateOfLeadId) y lo archiva con su etapa: no es una descalificación y no cuenta como tal. El que sobrevive no puede ser duplicado de otro (usa el original). closeOpenTask cierra sus tareas abiertas (si no, se archivan con él). CAS: expectedRevision.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -16051,7 +16053,7 @@
   {
    "name": "crm_lead_task_create",
    "title": "Nueva tarea de un lead",
-   "description": "Agrega una tarea con fecha y cancha a un lead abierto (nuevo o contactado).",
+   "description": "Agrega una tarea con fecha y siguiente acción (nuestra o del cliente) a un lead abierto (nuevo o contactado).",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -16080,7 +16082,7 @@
          "pai",
          "client"
         ],
-        "description": "A quién le toca: pai (Pai actúa) o client (esperamos al cliente)"
+        "description": "En espera de: pai (de nosotros) o client (del cliente)"
        }
       },
       "required": [
@@ -16139,7 +16141,7 @@
          "pai",
          "client"
         ],
-        "description": "A quién le toca: pai (Pai actúa) o client (esperamos al cliente)"
+        "description": "En espera de: pai (de nosotros) o client (del cliente)"
        }
       },
       "required": [
@@ -16164,7 +16166,7 @@
   {
    "name": "crm_opportunity_list",
    "title": "Listar oportunidades del CRM",
-   "description": "Oportunidades (staff con crm:revenue) con etapa, probabilidad (la ajustada o la de su etapa), montos en centavos y moneda (MXN y USD nunca se suman), siguiente paso y su revision. Filtros: query (título u organización), owner (me, none o un id), waitingOn (pai, client, overdue, push), serviceLine, offering, kind, currency, closeWindow (overdue, 30d, 90d), archived ('1' para las archivadas) y organizationId.",
+   "description": "Oportunidades (staff con crm:revenue) con etapa, probabilidad (la ajustada o la de su etapa), montos en centavos y moneda (MXN y USD nunca se suman), siguiente paso y su revision. Filtros: query (título u organización), owner (propietario: me, none o un id), waitingOn (siguiente paso: attention = requiere atención, pai = en espera de nosotros, client = en espera del cliente, overdue = vencido, none = sin siguiente paso), serviceLine, offering, kind, currency, closeWindow (overdue, 30d, 90d), archived ('1' para las archivadas) y organizationId.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -16179,10 +16181,11 @@
      "waitingOn": {
       "type": "string",
       "enum": [
+       "attention",
        "pai",
        "client",
        "overdue",
-       "push"
+       "none"
       ]
      },
      "serviceLine": {
@@ -16277,7 +16280,7 @@
   {
    "name": "crm_opportunity_summary",
    "title": "Pronóstico de oportunidades",
-   "description": "El pronóstico por moneda (ponderado y sin ponderar; sin las pausadas ni archivadas), la tasa de cierre de 90 días, lo que te toca empujar y las pausadas.",
+   "description": "El pronóstico por moneda (ponderado y sin ponderar; sin las pausadas ni archivadas), la tasa de cierre de 90 días, las tuyas que requieren atención y las pausadas.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -16523,7 +16526,7 @@
          "pai",
          "client"
         ],
-        "description": "A quién le toca: pai (Pai actúa) o client (esperamos al cliente)"
+        "description": "En espera de: pai (de nosotros) o client (del cliente)"
        }
       },
       "required": [
@@ -16552,7 +16555,7 @@
   {
    "name": "crm_opportunity_update",
    "title": "Cambiar una oportunidad",
-   "description": "Cambia etapa abierta (discovery, scoping, proposal_sent, negotiation; desde on_hold la reanuda), campos del trato, responsable o la propuesta ligada (proposalId, del proyecto de la oportunidad). Cambiar de etapa exige nextTask y cierra la tarea abierta; una probabilidad ajustada vuelve a la de la nueva etapa. proposal_sent exige una propuesta enviada ligada. Ganar no se hace por MCP. CAS: expectedRevision.",
+   "description": "Cambia etapa abierta (discovery, scoping, proposal_sent, negotiation; desde on_hold la reanuda), campos de la oportunidad, propietario o la propuesta ligada (proposalId, del proyecto de la oportunidad). Cambiar de etapa exige nextTask y cierra la tarea abierta; una probabilidad ajustada vuelve a la de la nueva etapa. proposal_sent exige una propuesta enviada ligada. Ganar no se hace por MCP. CAS: expectedRevision.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -16710,7 +16713,7 @@
          "pai",
          "client"
         ],
-        "description": "A quién le toca: pai (Pai actúa) o client (esperamos al cliente)"
+        "description": "En espera de: pai (de nosotros) o client (del cliente)"
        }
       },
       "required": [
@@ -16958,7 +16961,7 @@
          "pai",
          "client"
         ],
-        "description": "A quién le toca: pai (Pai actúa) o client (esperamos al cliente)"
+        "description": "En espera de: pai (de nosotros) o client (del cliente)"
        }
       },
       "required": [
@@ -17768,7 +17771,7 @@
           "pai",
           "client"
          ],
-         "description": "A quién le toca: pai (Pai actúa) o client (esperamos al cliente)"
+         "description": "En espera de: pai (de nosotros) o client (del cliente)"
         },
         "subject": {
          "type": "string",
@@ -22503,6 +22506,50 @@
    "annotations": {
     "readOnlyHint": false,
     "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "folder_delete",
+   "title": "Eliminar carpeta",
+   "description": "Elimina una carpeta VACÍA de Recursos del proyecto (usa su path): sin páginas ni archivos dentro ni en sus subcarpetas, también los internos; sus subcarpetas vacías se eliminan con ella. «» (General) no se elimina. El staff elimina cualquiera; un miembro de la organización cliente solo las que creó su organización. Si tiene contenido falla con CONFLICT: mueve o elimina antes lo que contiene. La dirección corta de la carpeta deja de funcionar. Requiere `summary` (motivo; queda en la auditoría). Devuelve la carpeta eliminada, las rutas eliminadas (deleted) y la url de la carpeta padre.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "organizationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     },
+     "projectId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     },
+     "path": {
+      "description": "Path de la carpeta vacía, p. ej. «entregables/actas»",
+      "type": "string",
+      "maxLength": 512
+     },
+     "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "description": "Motivo de la eliminación (máx. 80 caracteres)"
+     }
+    },
+    "required": [
+     "organizationId",
+     "projectId",
+     "path",
+     "summary"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
     "idempotentHint": false,
     "openWorldHint": false
    }

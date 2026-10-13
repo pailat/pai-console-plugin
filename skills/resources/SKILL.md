@@ -1,6 +1,6 @@
 ---
 name: resources
-description: "Crea y mantiene Recursos de un proyecto de Pai Console. Cubre pages (pai-page) con tipo y bloques, vistas con layout canvas y bloque view (catálogo pai-view@1), mockups y prototipos HTML (bloque html), proyecciones de Conocimiento, atributos (fecha, responsable, estatus, etiquetas) y filtros, notas, carpetas, sugerencias, comentarios, imágenes (assets) y archivos. Úsalo cuando pidan una page, documento, nota, carpeta, reporte, guía, PRD, SOW, arquitectura, tablero, dashboard, vista, mockup o prototipo HTML, marcar una page como aprobada o asignarle responsable, filtrar pages por estatus, responsable o etiqueta, sugerir cambios, comentar, subir imágenes o documentos, o mover, restaurar o borrar una page."
+description: "Crea y mantiene Recursos de un proyecto de Pai Console. Cubre pages (pai-page) con tipo y bloques, vistas con layout canvas y bloque view (catálogo pai-view@1), mockups y prototipos HTML (bloque html), proyecciones de Conocimiento, atributos (fecha, responsable, estatus, etiquetas) y filtros, notas, carpetas, sugerencias, comentarios, imágenes (assets) y archivos. Úsalo cuando pidan una page, documento, nota, carpeta, reporte, guía, PRD, SOW, arquitectura, tablero, dashboard, vista, mockup o prototipo HTML, marcar una page como aprobada o asignarle responsable, filtrar pages por estatus, responsable o etiqueta, sugerir cambios, comentar, subir imágenes o documentos, o mover, restaurar o borrar una page o una carpeta vacía."
 argument-hint: "[proyecto] [tema o tipo de recurso]"
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
@@ -131,7 +131,7 @@ Las imágenes son privadas de su page:
 3. `file_create {projectId, name, fileKey, folder?, mimeType?, sizeBytes?, visibility}`. Sin `folder`, el archivo va a la raíz.
    - `visibility: "internal"` es solo para el staff;
    - `visibility: "shared"` la ve el cliente. Pregunta antes de compartir y manda siempre `visibility` explícita.
-4. `file_update` renombra o mueve; `file_delete` es definitivo.
+4. `file_update` renombra o mueve; `file_delete` es definitivo. Una carpeta vacía se borra con `folder_delete` (§9).
 
 ## 7. Mover, restaurar, borrar
 
@@ -181,7 +181,13 @@ Tipo, audiencia y descripción se cambian como antes:
 
 ## 9. Notas, carpetas y sugerencias
 
-**Carpetas:** `folder_create {parent, name}`: `parent` es `""` (General) o el `path` de una carpeta visible; `name` (1-120) en español, el segmento sale en slug («Actas de obra» → `actas-de-obra`). Del staff nace `internal` y en la ruta exacta (ocupada → `CONFLICT`). Devuelve el `path`: úsalo como carpeta de la nota. No hay renombrar, mover ni borrar carpetas.
+**Carpetas:** `folder_create {parent, name}`: `parent` es `""` (General) o el `path` de una carpeta visible; `name` (1-120) en español, el segmento sale en slug («Actas de obra» → `actas-de-obra`). Del staff nace `internal` y en la ruta exacta (ocupada → `CONFLICT`). Devuelve el `path`: úsalo como carpeta de la nota. No hay renombrar ni mover carpetas.
+
+**Borrar una carpeta** (`folder_delete {path, summary}`, irreversible): solo se borra **vacía a cualquier profundidad**, sin páginas ni archivos dentro ni en sus subcarpetas, también los internos; sus subcarpetas vacías se van con ella.
+1. Revisa qué contiene: `page_list {pathPrefix: "<path>/"}` y `file_list`. Mueve (`page_move`, `file_update`) o borra (`page_delete`, `file_delete`) antes lo que tenga, confirmándolo con la persona.
+2. Confirma el borrado y llama `folder_delete` con `summary` (motivo, ≤80; queda en la auditoría `folder.delete`).
+3. Errores: General (`""`) da `invalid_input`; si no la ves, `not_found`; con contenido visible para ti, `CONFLICT` (vacíala primero); «No puedes eliminar esta carpeta.» (`FORBIDDEN`) si no es tuya (un cliente solo borra carpetas que hizo un cliente, y todas sus subcarpetas también) o si la bloquea contenido que no ves: no reintentes, pide a Pai que la borre.
+4. Su dirección corta da 404 después; una dirección por ruta redirige a la carpeta existente más cercana. Devuelve las rutas borradas (`deleted`) y la url de la carpeta padre.
 
 **Notas** (Markdown, que también escribe el cliente):
 - `note_create {path, title, markdown?, audience?, summary?}`. Del staff nace `internal` salvo `audience: "client"`; la de un cliente es siempre `client` y su ruta lleva un sufijo aleatorio: usa el `path` que devuelve. No acepta atributos: ponlos después (§8).
@@ -236,3 +242,4 @@ Errores típicos: page sin `anchor` o con un `exact` que no coincide; `nodeId` s
 - **No** pongas rutas en español ni con mayúsculas o espacios.
 - **No** reescribas con `note_update` la nota de un cliente esperando que se guarde: queda como sugerencia.
 - **No** omitas `audience` en un comentario «para mi agente»: el servidor lo deja para el equipo.
+- **No** llames `folder_delete` sobre una carpeta con contenido esperando que se lo lleve: da `CONFLICT`. Vacíala antes.

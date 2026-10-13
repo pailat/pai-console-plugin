@@ -1,6 +1,6 @@
 # Tipos de page y bloques
 
-> Generado por `tools/gen-references.ts` desde pai-portal `db7700fef` (2026-10-12 merge: pages-html @45532cc4 (ATE-204: bloque «html» en pai-pages pintado como un artifact de Claude: iframe sandbox allow-scripts con CSP, altura auto/fija con tope, tema con tokens; validación en dominio y MCP; markdownToPage convierte el html preview)), `packages/contracts/src/pages`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `59183d306` (2026-10-13 fix(resources): un cliente no borra subcarpetas ajenas ni descubre contenido interno), `packages/contracts/src/pages`. No editar a mano: regenerar.
 
 ## Límites del contenido
 

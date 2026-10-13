@@ -1,6 +1,6 @@
 ---
 name: crm
-description: "CRM de Pai en Console (solo staff, MCP corp): leads, calificación, espacio de trabajo, oportunidades, pronóstico y la cadena envío → lead → oportunidad → propuesta → proyecto. Cubre revisar el tablero y lo que te toca empujar, crear leads (desde Forms, referidos o a mano) sin duplicados, contactar, calificar, descartar o ligar duplicados, abrir la organización y el proyecto de Descubrimiento, mover oportunidades por etapa, pausar, perder o ganar, interlocutores y probabilidad. Úsalo cuando pidan CRM, lead, prospecto, envío de Forms, calificar, pipeline, embudo, oportunidad, trato, pronóstico, forecast, «qué me toca», ganar o perder un trato."
+description: "CRM de Pai en Console (solo staff, MCP corp): leads, calificación, espacio de trabajo, oportunidades, pronóstico y la cadena envío → lead → oportunidad → propuesta → proyecto. Cubre revisar el tablero y lo que requiere atención, crear leads (desde Forms, referidos o a mano) sin duplicados, contactar, calificar, descalificar o ligar duplicados, abrir la organización y el proyecto de Descubrimiento, mover oportunidades por etapa, pausar, perder o ganar, interlocutores y probabilidad. Úsalo cuando pidan CRM, lead, prospecto, envío de Forms, calificar, pipeline, embudo, oportunidad, trato, pronóstico, forecast, «qué me toca», «requiere atención», ganar o perder un trato."
 argument-hint: "[lead, oportunidad u organización]"
 compatibility: "Pai 0.2.5+ (MCP corp, staff con permisos crm:*)"
 ---
@@ -28,7 +28,7 @@ Sin `crm:revenue` los montos no llegan: no los inventes ni los estimes.
 
 ## Reglas que el servidor hace cumplir
 
-- **Nadie se queda sin siguiente paso.** Todo lead abierto (`new`, `contacted`) y toda oportunidad abierta tiene una tarea con fecha y **cancha**: `{body, dueAt, waitingOn}` con `waitingOn` `pai` (nos toca) o `client` (esperamos al cliente). Crear exige `firstTask`/`task`; mover de etapa o completar la última tarea exige `nextTask`. Propón la tarea con la persona; no inventes fechas.
+- **Nadie se queda sin siguiente paso.** Todo lead abierto (`new`, `contacted`) y toda oportunidad abierta tiene una tarea con fecha y **en espera de quién**: `{body, dueAt, waitingOn}` con `waitingOn` `pai` (en espera de nosotros) o `client` (en espera del cliente). Crear exige `firstTask`/`task`; mover de etapa o completar la última tarea exige `nextTask`. Propón la tarea con la persona; no inventes fechas.
 - **CAS:** toda escritura de un lead u oportunidad lleva `expectedRevision` (de `crm_lead_get`, `crm_lead_record` o `crm_opportunity_get`). Ante CONFLICT relee y vuelve a decidir.
 - **Montos en centavos** (`4200000` = $42,000.00) y por moneda (`mxn`, `usd`). **MXN y USD nunca se suman**: reporta cada moneda aparte.
 - **Archivar no es borrar.** Leads y oportunidades se archivan y vuelven con `*_unarchive`. Solo `crm_lead_purge` borra, y solo basura sin cadena.
@@ -39,15 +39,15 @@ Sin `crm:revenue` los montos no llegan: no los inventes ni los estimes.
 | Pregunta | Tool |
 |---|---|
 | ¿Cómo va el CRM? | `crm_overview_get`: cifras, embudo de 90 días, «Por atender», tus tareas por día y conversiones |
-| ¿Qué me toca? | `crm_lead_list {waitingOn: "push", owner: "me"}` y `crm_opportunity_list {waitingOn: "push", owner: "me"}` |
-| Cifras del tablero de leads | `crm_lead_summary`: por empujar, mediana de primer contacto, nuevos fuera de SLA (1 h hábil), abiertos sin siguiente paso |
+| ¿Qué requiere atención? | `crm_lead_list {waitingOn: "attention", owner: "me"}` y `crm_opportunity_list {waitingOn: "attention", owner: "me"}`: vencido, sin siguiente paso o en espera de nosotros hoy |
+| Cifras del tablero de leads | `crm_lead_summary`: los tuyos que requieren atención, mediana del tiempo de respuesta (primer contacto), nuevos fuera de SLA (1 h hábil), abiertos sin siguiente paso |
 | Pronóstico | `crm_opportunity_summary`: por moneda, ponderado y sin ponderar, tasa de cierre a 90 días, pausadas |
 | Un lead a fondo | `crm_lead_record` (calificación, envío, espacio, oportunidades, nodos sembrados, actividades) |
 | Una oportunidad a fondo | `crm_opportunity_get` (interlocutores, propuestas y versiones, actividades, historial) |
 | ¿De dónde vino y en qué terminó? | `crm_trace_get {opportunityId, asOf?}`: envío → lead → espacio → oportunidad → propuesta → proyecto → hitos → producto |
-| Responsables posibles | `crm_owner_list` (ids para `ownerUserId`, `deliveryLeadUserId`) |
+| Propietarios posibles | `crm_owner_list` (ids para `ownerUserId`, `deliveryLeadUserId`) |
 
-Filtros de `crm_lead_list`: `query`, `source`, `owner` (`me`, `none` o id), `period` (`30d`, `90d`, `year`), `waitingOn` (`pai`, `client`, `overdue`, `push`), `archived: "1"`. `crm_opportunity_list` suma `serviceLine`, `offering`, `kind`, `currency`, `closeWindow` (`overdue`, `30d`, `90d`) y `organizationId`.
+Filtros de `crm_lead_list`: `query`, `source`, `owner` (`me`, `none` o id), `period` (`30d`, `90d`, `year`, `all`; sin `period`, todos), `waitingOn` (`attention` requiere atención, `pai` en espera de nosotros, `client` en espera del cliente, `overdue` vencido, `none` sin siguiente paso, `outsideSla` primer contacto vencido sin importados), `archived: "1"`. `crm_opportunity_list` acepta los mismos `waitingOn` salvo `outsideSla` y suma `serviceLine`, `offering`, `kind`, `currency`, `closeWindow` (`overdue`, `30d`, `90d`) y `organizationId`.
 
 Para mostrarlo visual, compón con el skill `views` (`Stats`, `Kanban`, `DataTable`, `BarList`) y `view_render`, con la fecha de corte.
 
@@ -58,7 +58,7 @@ Etapas: `new` → `contacted` → `qualified` (o `unqualified`) → `converted` 
 ### Crear
 
 1. **Desde un envío de Forms:** `crm_submission_get` → `crm_lead_create_from_submission {submissionId, ownerUserId, firstTask}`. Los datos vienen del envío; no los reescribas. Un envío basura sin lead: `crm_submission_spam` (lo archiva).
-2. **Referido, manual o MCP:** si tienes correo, primero **`crm_lead_duplicates {email}`** (mismo correo, mismo dominio, organizaciones cliente con ese dominio); sin correo, busca por nombre o empresa con `crm_lead_list {query}`. Si hay coincidencia, muéstrala y decide con la persona. Luego `crm_lead_create {fullName, ownerUserId, firstTask, email?, phone?, company?, role?, source?, referredBy?, need?}`: necesita **al menos un correo, un teléfono o la empresa**. Avisa por correo al responsable (o al equipo con `crm:edit` si no hay).
+2. **Referido, manual o MCP:** si tienes correo, primero **`crm_lead_duplicates {email}`** (mismo correo, mismo dominio, organizaciones cliente con ese dominio); sin correo, busca por nombre o empresa con `crm_lead_list {query}`. Si hay coincidencia, muéstrala y decide con la persona. Luego `crm_lead_create {fullName, ownerUserId, firstTask, email?, phone?, company?, role?, source?, referredBy?, need?}`: necesita **al menos un correo, un teléfono o la empresa**. Avisa por correo al propietario (o al equipo con `crm:edit` si no hay).
 3. **Importación histórica de un CRM anterior** (`crm_lead_import`, permiso `crm:import`): un registro por llamada, con su lead en su etapa **real** (también ganada o perdida) y sus fechas originales (`createdAt`, `firstContactedAt`), más `workspace`, `opportunity`, `notes` y `tasks` si los hay. `externalRef` (el id de origen) y `externalSystem` la hacen idempotente: repetirla responde `created: false` y no duplica. Con oportunidad, el lead va `qualified` (o `converted` si se ganó) y `workspace` es obligatorio. Pon el texto completo del origen en `notes`: nada se pierde. Solo para migrar un CRM anterior, nunca para un lead nuevo.
 
 ### Notas
@@ -70,10 +70,10 @@ Etapas: `new` → `contacted` → `qualified` (o `unqualified`) → `converted` 
 | Paso | Tool | Exige |
 |---|---|---|
 | Contactado | `crm_lead_update {stage: "contacted", nextTask}` | Fija el primer contacto y da por hecha la tarea abierta |
-| Editar datos o responsable | `crm_lead_update` | — |
+| Editar datos o propietario | `crm_lead_update` | — |
 | Tareas | `crm_lead_task_create {task}`, `crm_lead_task_complete {activityId, nextTask?}` | `nextTask` si es la última abierta |
 | **Calificar** | `crm_lead_qualify {qualification, workspace?, opportunity}` | Lead `contacted`, los cuatro criterios y espacio de trabajo |
-| Descartar | `crm_lead_disqualify {reason, note?, closeOpenTask?}` | Lead `new` o `contacted`; `other` exige `note` |
+| Descalificar | `crm_lead_disqualify {reason, note?, closeOpenTask?}` | Lead `new` o `contacted`; `other` exige `note` |
 | Duplicado | `crm_lead_mark_duplicate {duplicateOfLeadId}` | El que sobrevive no puede ser duplicado de otro |
 | Archivar / volver | `crm_lead_archive`, `crm_lead_unarchive` | — |
 
@@ -89,7 +89,7 @@ Etapas: `new` → `contacted` → `qualified` (o `unqualified`) → `converted` 
 
 `workspace` es `{mode: "create_from_lead", organizationName?}` o `{mode: "link_existing", organizationId}`; se omite si el lead ya tiene espacio.
 
-**Motivos de descarte:** `not_a_fit`, `no_budget`, `no_response`, `timing`, `competitor`, `other`. Spam no es descarte (archiva o purga) y un duplicado se liga. Un lead calificado ya no se descarta.
+**Motivos de descalificación:** `not_a_fit`, `no_budget`, `no_response`, `timing`, `competitor`, `other`. Spam no es una descalificación (archiva o purga) y un duplicado se liga. Un lead calificado ya no se descalifica.
 
 ### Espacio de trabajo (organización + proyecto)
 

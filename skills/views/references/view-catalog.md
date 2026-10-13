@@ -1,6 +1,6 @@
 # Catálogo de vistas `pai-view@1`
 
-> Generado por `tools/gen-references.ts` desde pai-portal `db7700fef` (2026-10-12 merge: pages-html @45532cc4 (ATE-204: bloque «html» en pai-pages pintado como un artifact de Claude: iframe sandbox allow-scripts con CSP, altura auto/fija con tope, tema con tokens; validación en dominio y MCP; markdownToPage convierte el html preview)), `packages/views/src/catalog.ts`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `59183d306` (2026-10-13 fix(resources): un cliente no borra subcarpetas ajenas ni descubre contenido interno), `packages/views/src/catalog.ts`. No editar a mano: regenerar.
 
 Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props, children? } } }. Los hijos se referencian por id.
 
@@ -1914,17 +1914,17 @@ Catálogo filtrable: SplitView con los filtros en list (Checkbox y RadioGroup; r
 
 Embudo de ventas: indicadores, filtros y tablero por etapa.
 
-Pipeline comercial: BoardLayout con FilterBar en toolbar, Kanban por etapa (tarjetas con responsable, vencimiento y badges) en board y Stats del embudo en aside. Mover tarjetas no guarda nada.
+Pipeline comercial: BoardLayout con FilterBar en toolbar, Kanban por etapa (tarjetas con propietario, vencimiento y badges) en board y Stats del embudo en aside. Mover tarjetas no guarda nada.
 
 ```json
-{"root":"embudo","elements":{"embudo":{"type":"BoardLayout","props":{"regions":["toolbar","board","aside"],"asideWidth":"medium"},"children":["filtros","tablero","cifras"]},"filtros":{"type":"FilterBar","props":{"search":"Buscar oportunidad…","filters":[{"label":"Responsable","value":"Todos","options":["Todos","Ana López","Luis Pérez"]}],"action":{"label":"Nueva oportunidad","icon":"plus"}}},"tablero":{"type":"Kanban","props":{"columns":[{"id":"lead","title":"Prospecto"},{"id":"proposal","title":"Propuesta","tone":"info"},{"id":"won","title":"Ganado","tone":"success"}],"cards":[{"id":"c1","column":"lead","title":"Distribuidora del Norte","description":"Pidió demo del portal de pedidos.","owner":"Ana López"},{"id":"c2","column":"proposal","title":"Clínica Santa Fe","badges":[{"label":"Esperando al cliente","tone":"warning"}],"owner":"Luis Pérez","due":"2026-10-16"},{"id":"c3","column":"won","title":"Grupo Altamira","badges":[{"label":"Firmado","tone":"success"}]}]}},"cifras":{"type":"Stats","props":{"items":[{"label":"En el embudo","value":"$2.4 M","unit":"MXN"},{"label":"Tasa de cierre","value":"28 %"}]}}}}
+{"root":"embudo","elements":{"embudo":{"type":"BoardLayout","props":{"regions":["toolbar","board","aside"],"asideWidth":"medium"},"children":["filtros","tablero","cifras"]},"filtros":{"type":"FilterBar","props":{"search":"Buscar oportunidad…","filters":[{"label":"Propietario","value":"Todos","options":["Todos","Ana López","Luis Pérez"]}],"action":{"label":"Nueva oportunidad","icon":"plus"}}},"tablero":{"type":"Kanban","props":{"columns":[{"id":"lead","title":"Prospecto"},{"id":"proposal","title":"Propuesta","tone":"info"},{"id":"won","title":"Ganado","tone":"success"}],"cards":[{"id":"c1","column":"lead","title":"Distribuidora del Norte","description":"Pidió demo del portal de pedidos.","owner":"Ana López"},{"id":"c2","column":"proposal","title":"Clínica Santa Fe","badges":[{"label":"En espera del cliente","tone":"warning"}],"owner":"Luis Pérez","due":"2026-10-16"},{"id":"c3","column":"won","title":"Grupo Altamira","badges":[{"label":"Firmado","tone":"success"}]}]}},"cifras":{"type":"Stats","props":{"items":[{"label":"En el embudo","value":"$2.4 M","unit":"MXN"},{"label":"Tasa de cierre","value":"28 %"}]}}}}
 ```
 
 ### crm-record
 
 Ficha de un lead u oportunidad: etapas, siguiente paso y actividad.
 
-Detalle comercial: DetailLayout con PageHeader, Stages (etapa actual), un Alert con el siguiente paso (type según la cancha: info le toca a Pai, warning esperamos al cliente, error vencido; actions: la primera la principal), KeyValue del registro y ActivityFeed en aside.
+Detalle comercial: DetailLayout con PageHeader, Stages (etapa actual), un Alert con el siguiente paso (type según la siguiente acción: info acción nuestra, warning en espera del cliente, error vencido; actions: la primera la principal), KeyValue del registro y ActivityFeed en aside.
 
 ```json
 {"root":"ficha","elements":{"ficha":{"type":"DetailLayout","props":{"regions":["header","summary","main","aside"]},"children":["encabezado","etapas","principal","actividad"]},"encabezado":{"type":"PageHeader","props":{"eyebrow":"Oportunidad","title":"Membresías con CFDI","description":"Clínica Santa Fe · $180,000 MXN","actions":[{"label":"Editar"},{"label":"Nueva tarea","icon":"plus"}]}},"etapas":{"type":"Stages","props":{"items":[{"label":"Prospecto","status":"done"},{"label":"Propuesta","status":"current"},{"label":"Negociación","status":"upcoming"},{"label":"Cierre","status":"upcoming"}]}},"principal":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["siguiente","datos"]},"siguiente":{"type":"Alert","props":{"title":"Enviar la propuesta de «Membresías con CFDI»","message":"Luis Pérez · vence el 14 oct · después: esperar a Mariana Ruiz","type":"info","icon":"send","actions":[{"label":"Hecho y siguiente"},{"label":"Reprogramar"}]}},"datos":{"type":"KeyValue","props":{"items":[{"label":"Contacto","value":"Mariana Ruiz"},{"label":"Monto","value":"$180,000 MXN"},{"label":"Cierre estimado","value":"30 oct 2026"}],"columns":3}},"actividad":{"type":"ActivityFeed","props":{"variant":"recent","today":"2026-10-11","events":[{"id":"a1","kind":"status_update","at":"2026-10-10T17:00:00Z","subject":"Llamada de descubrimiento","actor":"Luis Pérez"}]}}}}

@@ -63,6 +63,7 @@ La marca que ven el Portal y las vistas del cliente. Flujo: `organization_theme_
 | Tool | Tipo | Nota |
 |---|---|---|
 | `folder_create` | E | Carpeta vacía en Recursos (`parent` "" = General); devuelve su `path` para `note_create` |
+| `folder_delete` | E · IRR | Solo carpetas vacías a cualquier profundidad (páginas y archivos, internos incluidos); se lleva sus subcarpetas vacías. `summary` obligatorio (≤80, queda en la auditoría). General no se borra (`invalid_input`); con contenido → `CONFLICT`; no es tuya o la bloquea contenido que no ves → `FORBIDDEN` |
 | `note_create` | E | Nota Markdown; la del staff nace interna salvo `audience: client` |
 | `note_update` | E | Cuerpo y atributos con `expectedRevision`. En la nota de un cliente, un agente de Pai solo **propone** sugerencias (`{suggested: true}`) |
 | `note_audience_set` | E | `client` la publica para la organización; `internal` la deja al equipo de Pai |
@@ -205,11 +206,11 @@ Detalle y reglas en el skill `crm`. Toda escritura de lead u oportunidad lleva `
 |---|---|---|
 | `crm_access_get` | L | Tus permisos: crm:access, edit, convert, revenue, purge, import |
 | `crm_overview_get` | L | Portada de /crm: cifras, embudo, «Por atender», tus tareas, conversiones |
-| `crm_owner_list` | L | Responsables posibles (ids para `ownerUserId`) |
+| `crm_owner_list` | L | Propietarios posibles (ids para `ownerUserId`) |
 | `crm_submission_get` | L | Un envío de Forms y el lead que generó |
 | `crm_submission_spam` | E | Archiva el envío sin crear lead |
-| `crm_lead_list` | L | Filtros `query`, `source`, `owner`, `period`, `waitingOn` (`push` = me toca empujar), `archived` |
-| `crm_lead_summary` | L | Por empujar, primer contacto, fuera de SLA, sin siguiente paso |
+| `crm_lead_list` | L | Filtros `query`, `source`, `owner`, `period`, `waitingOn` (`attention` = requiere atención, `none`, `outsideSla`…), `archived` |
+| `crm_lead_summary` | L | Tuyos que requieren atención, tiempo de respuesta, fuera de SLA, sin siguiente paso |
 | `crm_lead_get` | L | El lead con su `revision`, siguiente paso y cadena |
 | `crm_lead_record` | L | Ficha completa: calificación, envío, espacio, oportunidades, nodos sembrados, actividades |
 | `crm_lead_event_list` | L | Historial del lead (≤200) |
@@ -219,8 +220,8 @@ Detalle y reglas en el skill `crm`. Toda escritura de lead u oportunidad lleva `
 | `crm_lead_import` | E | `crm:import`. Importación histórica de un CRM anterior (lead, organización, oportunidad, notas y tareas en su etapa real y con sus fechas); `externalRef` la hace idempotente (`created: false` al repetir) |
 | `crm_lead_note_add` | E | Nota en el historial del lead (≤20 000 caracteres); no se edita: para corregir, escribe otra. No mueve etapa ni siguiente paso |
 | `crm_lead_create_from_submission` | E | Lead desde un envío de Forms |
-| `crm_lead_update` | E | Datos, responsable o `stage: contacted` (exige `nextTask`) |
-| `crm_lead_task_create` | E | Tarea con fecha y cancha |
+| `crm_lead_update` | E | Datos, propietario o `stage: contacted` (exige `nextTask`) |
+| `crm_lead_task_create` | E | Tarea con fecha y en espera de quién (`pai` o `client`) |
 | `crm_lead_task_complete` | E | Cierra una tarea; `nextTask` si es la última |
 | `crm_lead_qualify` | E | Cuatro criterios + espacio; siembra nodos y crea la primera oportunidad (Descubrimiento) |
 | `crm_lead_disqualify` | E | Motivo de la lista; archiva |
@@ -232,13 +233,13 @@ Detalle y reglas en el skill `crm`. Toda escritura de lead u oportunidad lleva `
 | `crm_lead_purge` | E · IRR | Borrado duro de basura sin cadena (`spam`, `test`, `mistake`); `crm:purge` |
 | `crm_organization_list` | L | Organizaciones para abrir una oportunidad (≤20) |
 | `crm_organization_get` | L | Leads, personas del Portal, oportunidades abiertas y ganadas de la cuenta |
-| `crm_opportunity_list` | L | `crm:revenue`. Filtros de etapa, responsable, cancha, línea, oferta, tipo, moneda, cierre |
-| `crm_opportunity_summary` | L | Pronóstico por moneda, tasa de cierre, por empujar, pausadas |
+| `crm_opportunity_list` | L | `crm:revenue`. Filtros de etapa, propietario, siguiente paso (`waitingOn`), línea, oferta, tipo, moneda, cierre |
+| `crm_opportunity_summary` | L | Pronóstico por moneda, tasa de cierre, las tuyas que requieren atención, pausadas |
 | `crm_opportunity_get` | L | Con `revision`, interlocutores, propuestas y versiones, actividades, historial |
 | `crm_opportunity_event_list` | L | Cambios recientes de todas las oportunidades; `crm:revenue` |
 | `crm_trace_get` | L | La cadena envío → … → producto, con `asOf` |
 | `crm_opportunity_create` | E | `kind`, línea y ofertas, montos en centavos, `task` obligatoria |
-| `crm_opportunity_update` | E | Etapa abierta (exige `nextTask`), datos, responsable o propuesta ligada |
+| `crm_opportunity_update` | E | Etapa abierta (exige `nextTask`), datos, propietario o propuesta ligada |
 | `crm_opportunity_hold` | E | En pausa; `task.dueAt` = fecha de retomar |
 | `crm_opportunity_lose` | E | Perdida con motivo de la lista |
 | `crm_opportunity_probability` | E | Ajuste 0–100 con motivo, o `reset`; `crm:revenue` |
