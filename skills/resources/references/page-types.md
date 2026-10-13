@@ -1,6 +1,6 @@
 # Tipos de page y bloques
 
-> Generado por `tools/gen-references.ts` desde pai-portal `af7f1ba7f` (2026-10-12 merge: origin/feat/0.2.5/reui (CRM-1..4 #171/#173/#174/#176 y drizzle-guards #177 del owner) antes de subir ATE-206/207), `packages/contracts/src/pages`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `db7700fef` (2026-10-12 merge: pages-html @45532cc4 (ATE-204: bloque «html» en pai-pages pintado como un artifact de Claude: iframe sandbox allow-scripts con CSP, altura auto/fija con tope, tema con tokens; validación en dominio y MCP; markdownToPage convierte el html preview)), `packages/contracts/src/pages`. No editar a mano: regenerar.
 
 ## Límites del contenido
 
@@ -17,6 +17,8 @@
 - deliverables: 40
 - tableColumns: 8
 - tableRows: 200
+- htmlBytes: 524288
+- htmlTotalBytes: 1048576
 
 ## Reglas del catálogo
 
@@ -26,6 +28,7 @@
 - Cuestionarios: evalúa distinciones enseñadas; el resultado orienta repaso, no certifica.
 - Las respuestas del lector no forman parte del documento.
 - Imágenes privadas: crea primero la page, sube sus archivos y conserva sólo /api/pages/assets/{assetId}; el servicio valida pertenencia al documento.
+- HTML interactivo: para un mockup o prototipo HTML (canvas, simulación, maqueta con JS) usa un bloque html {id, type: html, title, description?, html, height}; el Portal lo dibuja como un artifact de Claude, en un iframe aislado sin cookies, storage ni red. html es el documento completo o un fragmento, de hasta 512 KB (1 MB entre todos los de la page); height es auto o px entre 120 y 4000. Scripts sólo inline o de html.scriptSources; sin fetch ni XHR (connect-src 'none'): los datos van dentro del HTML. Usa las variables de tokens de Pai (--background, --foreground, --border, --primary…) para verse en claro y oscuro. Un ```html preview nunca va en el Markdown.
 - Embeds: el bloque embed guarda sólo un enlace https (Figma, Google Slides, Miro, YouTube, Loom o cualquier sitio); nunca HTML ni código <iframe>.
 - Figuras: usa el bloque figure con assetId null mientras no exista el archivo; nunca inventes un assetId ni enlaces una imagen externa.
 - Fuentes: declara cada fuente una vez en un bloque sources con enlace y fecha ISO; facts, data-table, quote y figure la citan por sourceRef.
@@ -57,6 +60,7 @@
 - `risks`: Riesgo con probabilidad, impacto, mitigación, responsable y estado.
 - `deliverables`: Entregable con criterio de aceptación, responsable, fecha y requisitos.
 - `view`: Vista libre compuesta con el catálogo pai-view@1 (layout, métricas, gráficas, tablas, pestañas). Su spec se describe en views.
+- `html`: Mockup HTML con JS que se dibuja como un artifact de Claude, en un iframe aislado con pantalla completa.
 
 ## Tipos built-in
 

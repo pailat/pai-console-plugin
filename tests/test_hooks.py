@@ -164,6 +164,12 @@ class GuardTest(HookCase):
         searched = self.transcript(PLUGIN + "crm_lead_duplicates")
         self.assertIsNone(self.guard(PLUGIN + "crm_lead_create", STAGING, transcript=searched))
 
+    def test_note_create_needs_a_pages_search(self) -> None:
+        decision, _ = self.decision(self.guard(PLUGIN + "note_create", STAGING, transcript=self.transcript()))
+        self.assertEqual(decision, "deny")
+        searched = self.transcript(PLUGIN + "page_list")
+        self.assertIsNone(self.guard(PLUGIN + "note_create", STAGING, transcript=searched))
+
     def test_search_on_user_server_counts(self) -> None:
         searched = self.transcript(USER + "page_list")
         self.assertIsNone(self.guard(PLUGIN + "page_create", STAGING, transcript=searched))

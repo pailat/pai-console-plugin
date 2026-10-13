@@ -32,7 +32,7 @@ Un `*_create` se rechaza si en la sesión no buscaste antes en su área:
 
 | Para crear | Busca primero con |
 |---|---|
-| `page_create` | `page_search` y `page_list` (sigue `nextCursor`) |
+| `page_create` / `note_create` | `page_search` y `page_list` (sigue `nextCursor`) |
 | `knowledge_create` | `knowledge_search` (por tema), `knowledge_library` (inventario por `kinds` en el proyecto), `knowledge_context`, o `task_board` para tareas |
 | `milestone_create` | `timeline_get` o `milestone_list` |
 | `project_create` / `organization_create` / `product_create` / `agent_create` | su `*_list` |
@@ -95,16 +95,21 @@ El error llega con `isError` y `structuredContent.error = { code, message, cause
 | `FORBIDDEN` con `cause.code: HUMAN_CONFIRMS` | Intentaste activar o editar un objective, decision, adr, business_rule o constraint | Créalo como `proposed`; para cambiar uno activo, crea el nuevo y usa `knowledge_supersede` |
 | `cause.code: SOURCE_REQUIRED` | Escritura de un agente sin `sources` | Agrega al menos una fuente real (page, url con fecha, repo…) |
 | `cause.code: ONTOLOGY` | Ese par de kinds no admite esa `rel` | Usa `cause.suggestedRels` (relaciones válidas para ese par) o `cause.allowedTargets`; detalle en `${CLAUDE_PLUGIN_ROOT}/skills/knowledge/references/ontology.md` |
+| `CONFLICT` «El proyecto está cerrado y es de solo lectura…» | **Proyecto cerrado** (ATE-13). Llega sin `cause`: reconócelo por el texto | **No es CAS: no releas ni reintentes.** Dile a la persona que el proyecto está cerrado; reabrirlo (`project_reopen`) lo decide el staff (skill `schedule`) |
 | `CONFLICT` | Revisión vieja (`cause.current.revision`), duplicado (`cause.existingId`) o transición inválida | Relee y decide; no fuerces |
+| `cause.code: PRODUCT_NOT_IN_SCOPE` | `productId` de un producto que el proyecto no toca | Usa uno de los productos del proyecto (skill `knowledge`) |
+| `knowledge_batch` con `status: "rejected"` (sin `isError`) | Alguna operación falló; no se escribió nada. `set-status` siempre da `HUMAN_CONFIRMS` | Lee `results[i].error`, corrige y reintenta con la misma clave |
 | `NOT_FOUND` | Referencia o id que no existe en ese proyecto | Busca de nuevo; no adivines ids |
 | `TIMEOUT` con `cause.code: IMPACT_TIMEOUT` | `knowledge_impact` demasiado amplio | Reduce `maxDepth` o `fanout` y reintenta una vez |
 | `INTERNAL_SERVER_ERROR` «No se pudo completar la operación» | Fallo del servidor | Reintenta una vez; si sigue, avisa a la persona |
 
-Otros `cause.code` frecuentes: `C4_LEVEL` y `ALREADY_CONTAINED` (skill `c4`), `CLIENT_VISIBLE_REQUIRES_PERSON` y `MERMAID_NOT_ALLOWED` (skill `knowledge`).
+Otros `cause.code` frecuentes: `C4_LEVEL` y `ALREADY_CONTAINED` (skill `c4`), `CLIENT_VISIBLE_REQUIRES_PERSON`, `MERMAID_NOT_ALLOWED`, `QUERY`, `IMPLEMENTED_BY_NEEDS_PRODUCT`, `IMPLEMENTED_BY_ACROSS_PRODUCTS` y `TASK_NEEDS_PROJECT` (skill `knowledge`), y en pages los códigos del bloque `html` y `PAGE_ATTRIBUTE_INVALID` (skill `resources`).
+
+Algunos errores llegan **sin `cause`**, solo con código y mensaje: proyecto cerrado (arriba), «La organización no puede quedarse sin un owner» (`CONFLICT`), «para gestionar esta organización hace falta ser owner o admin» (`FORBIDDEN`). Ahí el texto es la única pista.
 
 ## 6. Qué lecturas ya se ven
 
-En los hosts con MCP Apps, solo las lecturas con una vista propia se dibujan solas (ATE-203): Inicio, cronograma, pagos, tablero, biblioteca, grafo, ERD/C4… Son estas: `project_summary`, `project_list`, `project_activity`, `status_update_list`, `timeline_get`, `milestone_list`, `payment_list`, `proposal_list`, `task_board`, `file_list`, `page_list`, `page_suggestions`, `page_comprehension`, `page_knowledge_health`, `agent_inbox`, `knowledge_library`, `knowledge_graph`, `knowledge_view`, `organization_theme_preview` y `view_render`.
+En los hosts con MCP Apps, solo las lecturas con una vista propia se dibujan solas (ATE-203): Inicio, cronograma, pagos, tablero, biblioteca, grafo, ERD/C4, la proyección de una page, el CRM… Son estas: `project_summary`, `project_list`, `project_activity`, `project_close_review`, `status_update_list`, `timeline_get`, `milestone_list`, `payment_list`, `proposal_list`, `task_board`, `file_list`, `page_list`, `page_suggestions`, `page_comprehension`, `page_knowledge_health`, `page_projection`, `agent_inbox`, `knowledge_library`, `knowledge_graph`, `knowledge_view`, `organization_theme_preview`, las lecturas del CRM (`crm_overview_get`, `crm_lead_list`, `crm_lead_summary`, `crm_lead_get`, `crm_lead_record`, `crm_lead_event_list`, `crm_lead_duplicates`, `crm_lead_organization_suggestions`, `crm_submission_get`, `crm_opportunity_list`, `crm_opportunity_summary`, `crm_opportunity_get`, `crm_opportunity_event_list`, `crm_trace_get`) y `view_render`.
 - **Las demás no traen vista:** detalles (`page_read`, `knowledge_get`, `proposal_get`…), búsquedas (`page_search`, `knowledge_search`), validaciones (`page_validate`), catálogos y `whoami`. Devuelven solo datos y texto. Úsalas como pasos intermedios; no esperes que la persona las vea.
 - Cuando una vista sí aparece, no la copies en tablas de texto: comenta lo importante, responde la pregunta y cita.
 - La vista automática es el resultado crudo y solo aparece en hosts con MCP Apps. **Si la persona pide ver, mostrar o graficar algo, dibuja tú la vista con `view_render`**, también con los datos de una tool sin vista.
