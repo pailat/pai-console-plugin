@@ -158,6 +158,12 @@ class GuardTest(HookCase):
         decision, _ = self.decision(self.guard(PLUGIN + "knowledge_create", PRODUCTION, transcript=searched))
         self.assertEqual(decision, "ask")
 
+    def test_crm_lead_create_needs_duplicates_check(self) -> None:
+        decision, _ = self.decision(self.guard(PLUGIN + "crm_lead_create", STAGING, transcript=self.transcript()))
+        self.assertEqual(decision, "deny")
+        searched = self.transcript(PLUGIN + "crm_lead_duplicates")
+        self.assertIsNone(self.guard(PLUGIN + "crm_lead_create", STAGING, transcript=searched))
+
     def test_search_on_user_server_counts(self) -> None:
         searched = self.transcript(USER + "page_list")
         self.assertIsNone(self.guard(PLUGIN + "page_create", STAGING, transcript=searched))
@@ -185,7 +191,7 @@ class InventoryTest(HookCase):
 
     def test_every_read_passes_and_every_write_asks_in_production(self) -> None:
         for name, hints in self.tools.items():
-            output = self.guard(PLUGIN + name, PRODUCTION, transcript=self.transcript(PLUGIN + "page_search", PLUGIN + "knowledge_search", PLUGIN + "timeline_get", PLUGIN + "project_list", PLUGIN + "organization_list", PLUGIN + "product_list", PLUGIN + "agent_list"))
+            output = self.guard(PLUGIN + name, PRODUCTION, transcript=self.transcript(PLUGIN + "page_search", PLUGIN + "knowledge_search", PLUGIN + "timeline_get", PLUGIN + "project_list", PLUGIN + "organization_list", PLUGIN + "product_list", PLUGIN + "agent_list", PLUGIN + "crm_lead_duplicates", PLUGIN + "crm_organization_get"))
             if hints["readOnly"]:
                 self.assertIsNone(output, name)
             else:

@@ -1,6 +1,6 @@
 # Catálogo de vistas `pai-view@1`
 
-> Generado por `tools/gen-references.ts` desde pai-portal `dfc02d78` (2026-10-11 merge: mcp-pages @45e2e4f0 (#169: page_update con título y descripción, page_move reescribe URLs absolutas del Portal, escrituras y page_list compactos, filtros de DataTable por celda)), `packages/views/src/catalog.ts`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `af7f1ba7f` (2026-10-12 merge: origin/feat/0.2.5/reui (CRM-1..4 #171/#173/#174/#176 y drizzle-guards #177 del owner) antes de subir ATE-206/207), `packages/views/src/catalog.ts`. No editar a mano: regenerar.
 
 Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props, children? } } }. Los hijos se referencian por id.
 
@@ -10,11 +10,11 @@ Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props,
 - Cada objeto de props es cerrado: sólo las props de su esquema; las demás se rechazan.
 - Los ids son únicos, empiezan con letra y se reutilizan al editar.
 - Las props omitidas que aceptan null toman su valor por defecto.
-- Sólo AppShell, AuthFrame, ConsoleShell, PortalShell, SiteShell, ContactSection, AuthLayout, BoardLayout, ChatLayout, DashboardLayout, DetailLayout, DocLayout, EmptyLayout, FilesLayout, FormLayout, PageLayout, SettingsLayout, SplitView, WizardLayout, Card, Collapsible, DetailSheet, DialogFrame, Frame, Grid, Section, Stack, Tabs, UnderlinedTabs, Tooltip, ButtonGroup, Popover, Stepper y ProposalSummary tienen hijos; Tabs y UnderlinedTabs llevan un hijo por pestaña, en orden.
+- Sólo AppShell, AuthFrame, ConsoleShell, PortalShell, SiteShell, ContactSection, AuthLayout, BoardLayout, ChatLayout, DashboardLayout, DetailLayout, DocLayout, EmptyLayout, FilesLayout, FormLayout, PageLayout, SettingsLayout, SplitView, WizardLayout, Card, Collapsible, DetailSheet, DialogFrame, Frame, Grid, Section, Stack, Tabs, UnderlinedTabs, Tooltip, ButtonGroup, Popover, Scrollspy, Stepper y ProposalSummary tienen hijos; Tabs y UnderlinedTabs llevan un hijo por pestaña, en orden.
 - Elige el layout con la raíz de la vista: AppShell, AuthFrame, ConsoleShell, PortalShell, SiteShell son pantallas completas (ver layouts) y van sólo en la raíz; un documento, reporte o tablero empieza con Stack. Nunca recrees una pantalla de Pai con AppShell: AppShell es para apps de clientes.
 - Antes de usar un componente, pide su descripción, su esquema y su ejemplo con view_catalog({ types: [...] }) o por grupo (view_catalog({ group })); aquí sólo están su resumen y, en los grupos con index props, sus props por nombre (nombre? es opcional). Los grupos con index names sólo traen el resumen: pide sus props por grupo.
 - Un patrón (grupo patterns) lleva un hijo por región, en el orden de sus regiones; regions elige cuáles usa, en ese mismo orden.
-- Para una pantalla completa puedes partir de una receta (recipes): pídela con view_catalog({ recipe }) y cambia sus datos por los tuyos. Es opcional.
+- Para una pantalla completa puedes partir de una receta (recipes, por grupo): view_catalog({ recipeGroup }) da los resúmenes de un grupo y view_catalog({ recipe }) la vista completa, que adaptas con tus datos. Es opcional.
 - Datos estáticos: escribe valores ya formateados, con su fecha de corte en el detalle o la descripción.
 - Enlaces sólo a rutas del Portal (/…) o a https.
 - Máximo 300 elementos y 12 niveles de anidamiento.
@@ -59,12 +59,12 @@ Una pantalla completa empieza con uno de estos componentes como `root` (y solo a
 | Sitio web | Secciones de un sitio web (pai.lat o el de un cliente) dentro de SiteShell. | BlogList, ContactSection, CtaBand, HowItWorks, LogoGrid, SectionIntro, ServiceCards, SiteHero, Testimonials |
 | Patrones | Layouts de pantalla con regiones con nombre (encabezado, principal, lateral…): un hijo por región, en orden. Van dentro de un shell o en la raíz. | AuthLayout, BoardLayout, ChatLayout, DashboardLayout, DetailLayout, DocLayout, EmptyLayout, FilesLayout, FormLayout, PageLayout, SettingsLayout, SplitView, WizardLayout |
 | Estructura | Contenedores que ordenan la vista. | Accordion, Card, Collapsible, DetailSheet, DialogFrame, Frame, Grid, Section, Separator, Stack, Tabs, UnderlinedTabs |
-| Contenido | Títulos, texto, etiquetas, avisos, listas, enlaces y código. | Alert, Avatar, Badge, CodeBlock, CommentsPanel, Heading, HistoryPanel, HoverCard, IconTile, Item, Kbd, Link, List, Rating, StatusBadge, StatusDot, Text, Tooltip |
+| Contenido | Títulos, texto, etiquetas, avisos, listas, enlaces y código. | Alert, Avatar, Badge, CodeBlock, CommentsPanel, FileType, Heading, HistoryPanel, HoverCard, IconStack, IconTile, Item, Kbd, Link, List, Rating, StatusBadge, StatusDot, Text, Tooltip |
 | Datos | Indicadores, tablas, gráficas y pares etiqueta–valor. | BarList, Chart, DataTable, FileList, Heatmap, KeyValue, Metric, Progress, ProgressRing, Stats, Table, Tree, TreeTable |
-| Controles | Botones, menús y campos de formulario. Responden dentro de la vista (abren, cambian, se marcan) pero nada se envía, guarda ni navega, salvo un botón con href. | ActionMenu, Autocomplete, Button, ButtonGroup, Calendar, Checkbox, Command, DateSelector, Dropzone, FilterBar, Input, Popover, RadioGroup, Select, Switch, Textarea, ToggleGroup |
-| Formularios | Campos de formulario de maqueta: se ven como en Pai pero no se enfocan, no envían ni guardan nada, ni piden datos sensibles. | Cascader, Combobox, InputOTP, NumberField, PhoneInput, SignaturePad, Slider, TimePicker |
+| Controles | Botones, menús y campos de formulario. Responden dentro de la vista (abren, cambian, se marcan) pero nada se envía, guarda ni navega, salvo un botón con href. | ActionMenu, Autocomplete, Button, ButtonGroup, Calendar, Checkbox, Command, DateSelector, Dropzone, FilterBar, Input, Popover, RadioGroup, Select, Sortable, Switch, Textarea, ToggleGroup |
+| Formularios | Campos de formulario de maqueta: se ven como en Pai pero no se enfocan, no envían ni guardan nada, ni piden datos sensibles. | Cascader, ColorPicker, Combobox, EmojiPicker, InputOTP, NumberField, PhoneInput, SignaturePad, Slider, TimePicker |
 | Conversación | Maquetas de un chat con un agente: mensajes y el cuadro para escribir. No se conectan a ningún agente ni envían mensajes. | ChatComposer, ChatThread |
-| Navegación | Migas, paginación y piezas sueltas del chrome de Pai. | Breadcrumb, Menubar, NavigationMenu, OrgSwitcher, PageBar, PageHeader, Pagination, ProjectHeader, ProjectSwitcher |
+| Navegación | Migas, paginación y piezas sueltas del chrome de Pai. | Breadcrumb, Menubar, NavigationMenu, OrgSwitcher, PageBar, PageHeader, Pagination, ProjectHeader, ProjectSwitcher, Scrollspy |
 | Estados | Vacío, error y carga de una sección, con el aspecto que usan Portal y Console. | EmptyState, ErrorState, LoadingState, Skeleton, Spinner |
 | Planeación | Cronologías, etapas, pasos, hitos, Tareas y Kanban. | Checklist, EventCalendar, Gantt, Kanban, MilestoneGanttLegend, MilestoneGanttSkeleton, MilestoneTimeline, Stages, Stepper, TaskBoard, Timeline |
 | Proyecto | Piezas de las pantallas de un proyecto en Portal y Console: propuestas, pagos, productos. Sólo muestran lo que la vista trae; nada se guarda. | ActivityFeed, OrganizationMembers, OrganizationsGrid, Payments, ProductDetail, ProductsList, ProjectsTable, ProposalLifecycle, ProposalSummary, Resources |
@@ -424,12 +424,16 @@ Ejemplo: `{"title":"¿Archivar el proyecto?","description":"El equipo dejará de
 
 #### Frame (admite hijos)
 
-Marco de paneles: un panel por hijo; stacked los une (ficha por secciones). Un solo bloque: Card.
+Marco de paneles: un panel por hijo; stacked los une (ficha por secciones). Un solo bloque: Card. variant ghost quita el borde exterior; spacing (sm, default, lg) ajusta el aire; dense pega los paneles al borde; footer es una línea al pie.
 
 - `title`?: string (min 1, ≤160) (null = por defecto)
 - `description`?: string (≤2000) (null = por defecto)
 - `stacked`?: boolean (null = por defecto)
 - `action`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
+- `variant`?: "default"|"ghost"|null (null = por defecto)
+- `spacing`?: "sm"|"default"|"lg"|null (null = por defecto)
+- `dense`?: boolean (null = por defecto)
+- `footer`?: string (min 1, ≤2000) (null = por defecto)
 
 Ejemplo: `{"title":"Producto","description":"Ambientes y dominios.","stacked":true}`
 
@@ -493,13 +497,15 @@ Ejemplo: `{"tabs":[{"label":"Resumen","value":"summary"},{"label":"Pagos","value
 
 #### Alert
 
-Aviso destacado: info, success, warning o error. Úsalo para conclusiones, riesgos o advertencias. Sin title es un solo párrafo (message).
+Aviso destacado: info, success, warning o error. Úsalo para conclusiones, riesgos, advertencias o el siguiente paso de un registro. Sin title es un solo párrafo (message). icon cambia el icono del type. actions son hasta 2 botones a la derecha (AlertAction de reUI): el primero sólido, el otro con borde; con href navegan, sin href no hacen nada.
 
 - `title`?: string (min 1) (null = por defecto)
 - `message`?: string (null = por defecto)
 - `type`?: "info"|"success"|"warning"|"error"|null (null = por defecto)
+- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto)
+- `actions`?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), href?: string (null = por defecto) }] (min 1, máx 2) (null = por defecto)
 
-Ejemplo: `{"title":"Riesgo de retraso","message":"La integración con el ERP depende de credenciales del cliente.","type":"warning"}`
+Ejemplo: `{"title":"Enviar la propuesta de «Membresías con CFDI»","message":"Ana López · vence el 14 oct · después: esperar a Mariana Ruiz","type":"info","icon":"send","actions":[{"label":"Hecho y siguiente"},{"label":"Reprogramar"}]}`
 
 #### Avatar
 
@@ -512,22 +518,28 @@ Ejemplo: `{"name":"Julio César Vega","size":"md"}`
 
 #### Badge
 
-Etiqueta corta de estado o categoría. tone (neutral, info, progress, success, warning, danger) la colorea y manda sobre variant.
+Etiqueta corta de estado o categoría. tone (neutral, info, progress, success, warning, danger) la colorea y manda sobre variant. appearance pinta el tono sólido (solid), suave (light, por omisión) o con borde (outline); sin tone no hace nada. size va de xs a xl (default por omisión) y radius full la vuelve píldora.
 
 - `text`: string
 - `variant`?: "default"|"secondary"|"destructive"|"outline"|null (null = por defecto)
 - `tone`?: "neutral"|"info"|"progress"|"success"|"warning"|"danger"|null (null = por defecto)
+- `appearance`?: "solid"|"light"|"outline"|null (null = por defecto)
+- `size`?: "xs"|"sm"|"default"|"lg"|"xl"|null (null = por defecto)
+- `radius`?: "default"|"full"|null (null = por defecto)
 
 Ejemplo: `{"text":"En curso","variant":"secondary","tone":"progress"}`
 
 #### CodeBlock
 
-Código resaltado con copiar; sólo texto, no se ejecuta. title: archivo o comando.
+Código resaltado con copiar; sólo texto, no se ejecuta. title: archivo o comando. highlightedLines marca líneas (desde 1); diff pinta las agregadas (+) y quitadas (-); maxLines lo pliega a esa altura con «Ver más».
 
 - `code`: string (min 1, ≤8000)
 - `language`: "text"|"ts"|"tsx"|"js"|"json"|"sql"|"bash"|"yaml"|"md"|"html"|"css"
 - `title`?: string (min 1, ≤160) (null = por defecto)
 - `lineNumbers`?: boolean (null = por defecto)
+- `highlightedLines`?: [integer (≥1, ≤2000)] (min 1, máx 200) (null = por defecto)
+- `diff`?: { added?: [integer (≥1, ≤2000)] (min 1, máx 200) (null = por defecto), removed?: [integer (≥1, ≤2000)] (min 1, máx 200) (null = por defecto) } (null = por defecto)
+- `maxLines`?: integer (≥3, ≤200) (null = por defecto)
 
 Ejemplo: `{"code":"const total = pagos.reduce((suma, p) => suma + p.monto, 0);","language":"ts","title":"totales.ts"}`
 
@@ -540,6 +552,17 @@ Comentarios de un documento (el panel del riel de Portal y Console): hilos del m
 - `canComment`?: boolean (null = por defecto)
 
 Ejemplo: `{"threads":[{"id":"h1","visibility":"client","quote":"El anticipo se paga al firmar.","comments":[{"id":"c1","body":"¿Puede ser al iniciar la construcción?","author":"Marta Ruiz","at":"2026-10-02T16:20:00Z"},{"id":"c2","body":"Sí: lo movemos al hito 2.","author":"Luis Pérez","at":"2026-10-02T17:05:00Z"}]}]}`
+
+#### FileType
+
+Icono de un tipo de archivo con el color de su formato, para una leyenda de formatos, un adjunto o una fila de archivo. type es la extensión («pdf», «docx», «xlsx», «png», «zip») o la familia («document», «spreadsheet», «presentation», «image», «video», «audio», «code», «archive», «design», «folder», que dibujan su glifo); una extensión desconocida sale en gris con su texto. variant: outline (por omisión), solid, light o mono (todo en gris). size: mini, xs, sm, default, lg o xl (18 a 56 px). label cambia el texto de la etiqueta por uno corto («V3»). No abre ni descarga nada; para los archivos de una carpeta usa FileList.
+
+- `type`: string
+- `variant`?: "outline"|"solid"|"light"|"mono"|null (null = por defecto)
+- `size`?: "mini"|"xs"|"sm"|"default"|"lg"|"xl"|null (null = por defecto)
+- `label`?: string (min 1, ≤8) (null = por defecto)
+
+Ejemplo: `{"type":"pdf","variant":"outline","size":"lg"}`
 
 #### Heading
 
@@ -571,15 +594,25 @@ Un dato (label, subrayado punteado) que al pasar el cursor o enfocarlo con el te
 
 Ejemplo: `{"label":"Ana López","title":"Ana López","text":"Arquitecta de Pai a cargo del proyecto.","items":[{"label":"Región","value":"Norte"},{"label":"Proyectos activos","value":"3"}]}`
 
+#### IconStack
+
+Ilustración isométrica de capas con un icono del catálogo al frente (icon), para un primer uso, un paso de onboarding o una tarjeta de función. Es decorativa: el texto de al lado dice lo que significa; label la nombra sólo si el icono dice algo que el texto no. Para un estado vacío completo usa EmptyState con illustration stack.
+
+- `icon`: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"
+- `label`?: string (min 1, ≤160) (null = por defecto)
+
+Ejemplo: `{"icon":"sparkles"}`
+
 #### IconTile
 
-Icono en su cuadro (filas, tarjetas). label lo nombra; soft y solid toman el tone.
+Icono en su cuadro (filas, tarjetas). label lo nombra; soft y solid toman el tone. variant frame lo pone en un marco como Frame; size va de xs a xl; radius full lo hace redondo.
 
 - `icon`: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"
 - `label`: string (min 1, ≤160)
 - `tone`?: "neutral"|"info"|"progress"|"success"|"warning"|"danger"|null (null = por defecto)
-- `variant`?: "outline"|"elevated"|"soft"|"solid"|null (null = por defecto)
-- `size`?: "sm"|"default"|"lg"|null (null = por defecto)
+- `variant`?: "outline"|"elevated"|"soft"|"solid"|"frame"|null (null = por defecto)
+- `size`?: "xs"|"sm"|"default"|"lg"|"xl"|null (null = por defecto)
+- `radius`?: "default"|"full"|null (null = por defecto)
 
 Ejemplo: `{"icon":"wallet","label":"Pagos","tone":"info","variant":"soft"}`
 
@@ -684,13 +717,13 @@ Ejemplo: `{"items":[{"label":"Norte","value":82,"display":"$4.1 M"},{"label":"Ce
 
 #### Chart
 
-Gráfica con los colores del tema: bar, line, area o pie. categories es el eje X (o las porciones de pie) y cada serie trae un valor por categoría. pie usa una sola serie. Con kind bar, orientation horizontal dibuja barras acostadas (rankings, etiquetas largas). stacked apila las series en bar y area (totales por categoría); null o false las pone lado a lado, y en line o pie no cambia nada.
+Gráfica con los colores del tema: bar, line, area o pie. categories es el eje X (o las porciones de pie) y cada serie trae un valor por categoría. pie usa una sola serie. Con kind bar, orientation horizontal dibuja barras acostadas (rankings, etiquetas largas). stacked apila las series en bar y area (totales por categoría); null o false las pone lado a lado, y en line o pie no cambia nada. composed mezcla en una gráfica series de barras, líneas o áreas: cada serie dice su type (bar por omisión), p. ej. ventas en barras y meta en línea; stacked apila sus barras.
 
 - `title`: string (min 1, ≤160)
 - `description`?: string (≤2000) (null = por defecto)
-- `kind`: "bar"|"line"|"area"|"pie"
+- `kind`: "bar"|"line"|"area"|"pie"|"composed"
 - `categories`: [string (min 1, ≤80)] (min 1, máx 60)
-- `series`: [{ name: string (min 1, ≤80), values: [number] }] (min 1, máx 6)
+- `series`: [{ name: string (min 1, ≤80), values: [number], type?: "bar"|"line"|"area"|null (null = por defecto) }] (min 1, máx 6)
 - `unit`?: string (≤20) (null = por defecto)
 - `stacked`?: boolean (null = por defecto)
 - `orientation`?: "vertical"|"horizontal"|null (null = por defecto)
@@ -699,10 +732,10 @@ Ejemplo: `{"title":"Horas por mes","kind":"bar","categories":["Jul","Ago","Sep"]
 
 #### DataTable
 
-La tabla de datos de Portal y Console (DataTable): columnas tipadas (text, number, money en centavos alineado a la derecha, percent, date, badge, status con tono, link, person, progress), buscador, filtros «Etiqueta: valor» (filters[].key es la key de una columna o de cualquier celda que traen las filas, aunque no sea columna, p. ej. la de un secondaryKey), orden por columna (defaultSort.key, sólo columnas), paginación (pageSize; null la oculta y muestra todas las filas), selección (selectable añade casillas; selectionSummary deja sólo el pie «0 de N fila(s) seleccionada(s)», como la lista de proyectos), filas apagadas (muted) y un menú «⋯» por fila. Todo funciona dentro de la vista (filtra, ordena, pagina) y nada se guarda ni navega. Cada fila trae id y cells: { [key de columna]: valor }; una celda vacía es null.
+La tabla de datos de Portal y Console (DataTable): columnas tipadas (text, number, money en centavos alineado a la derecha, percent, date, badge, status con tono, link, person, progress), buscador, filtros «Etiqueta: valor» (filters[].key es la key de una columna o de cualquier celda que traen las filas, aunque no sea columna, p. ej. la de un secondaryKey), orden por columna (defaultSort.key, sólo columnas), paginación (pageSize; null la oculta y muestra todas las filas), selección (selectable añade casillas; selectionSummary deja sólo el pie «0 de N fila(s) seleccionada(s)», como la lista de proyectos), filas apagadas (muted) un menú «⋯» por fila, filas fijadas arriba (pinned, siguen en cada página) y celdas en edición de maqueta (editing: keys de la fila, un campo deshabilitado). footer es la fila de totales: label a la izquierda y cells por key de columna. columnGroups agrupa columnas contiguas bajo un encabezado. hiddenColumns oculta columnas al abrir y suma el menú «Columnas» para mostrarlas. Todo funciona dentro de la vista (filtra, ordena, pagina) y nada se guarda ni navega. Cada fila trae id y cells: { [key de columna]: valor }; una celda vacía es null.
 
 - `columns`: [{ key: string, header: string (min 1, ≤160), sortable?: boolean (null = por defecto), hideBelow?: "sm"|"md"|"lg"|null (null = por defecto), type: "text"|"number"|"money"|"percent"|"date"|"badge"|"status"|"link"|"person"|"progress", secondaryKey?: string (null = por defecto), decimals?: integer (≥0, ≤4) (null = por defecto), currency?: string (min 3, ≤3) (null = por defecto), plusTax?: boolean (null = por defecto), format?: "day"|"instant"|"relative"|null (null = por defecto) }] (min 1, máx 10)
-- `rows`: [{ id: string (min 1, ≤80), cells: object, muted?: boolean (null = por defecto), actions?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), destructive?: boolean (null = por defecto), separatorBefore?: boolean (null = por defecto) }] (min 1, máx 20) (null = por defecto) }] (máx 200)
+- `rows`: [{ id: string (min 1, ≤80), cells: object, muted?: boolean (null = por defecto), actions?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), destructive?: boolean (null = por defecto), separatorBefore?: boolean (null = por defecto) }] (min 1, máx 20) (null = por defecto), pinned?: boolean (null = por defecto), editing?: [string] (min 1, máx 10) (null = por defecto) }] (máx 200)
 - `search`?: string (min 1, ≤160) (null = por defecto)
 - `filters`?: [{ key: string, title: string (min 1, ≤160), options?: [{ label: string (min 1, ≤160), value: string (min 1, ≤80) }] (máx 20) (null = por defecto) }] (máx 4) (null = por defecto)
 - `defaultSort`?: { key: string, desc: boolean } (null = por defecto)
@@ -711,6 +744,9 @@ La tabla de datos de Portal y Console (DataTable): columnas tipadas (text, numbe
 - `selectionSummary`?: boolean (null = por defecto)
 - `empty`?: { title: string (min 1, ≤160), description?: string (≤2000) (null = por defecto), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto) } (null = por defecto)
 - `toolbarAction`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
+- `footer`?: { label: string (min 1, ≤160), cells: object } (null = por defecto)
+- `columnGroups`?: [{ header: string (min 1, ≤160), keys: [string] (min 2, máx 10) }] (min 1, máx 6) (null = por defecto)
+- `hiddenColumns`?: [string] (máx 10) (null = por defecto)
 
 Ejemplo: `{"columns":[{"key":"client","header":"Cliente","type":"text","secondaryKey":"city","sortable":true},{"key":"seller","header":"Vendedor","type":"person","hideBelow":"md"},{"key":"stage","header":"Etapa","type":"status","sortable":true},{"key":"amount","header":"Monto","type":"money","currency":"MXN","sortable":true},{"key":"close","header":"Cierre","type":"date","hideBelow":"sm","sortable":true}],"rows":[{"id":"v1","cells":{"client":"Grupo Lumen","city":"Monterrey","seller":{"name":"Ana López","secondary":"Norte"},"stage":{"label":"Negociación","tone":"progress"},"amount":42000000,"close":"2026-10-28"},"actions":[{"label":"Ver detalle"},{"label":"Marcar como ganada","icon":"check"}]},{"id":"v2","cells":{"client":"Ñandú Logística","city":"Querétaro","seller":{"name":"Luis Pérez","secondary":"Centro"},"stage":{"label":"Propuesta enviada","tone":"info"},"amount":18500000,"close":"2026-11-15"}},{"id":"v3","cells":{"client":"Constructora Alba","city":"Puebla","seller":{"name":"Ana López","secondary":"Norte"},"stage":{"label":"Perdida","tone":"danger"},"amount":9900000,"close":"2026-09-30"},"muted":true}],"search":"Buscar cliente…","filters":[{"key":"stage","title":"Etapa"}],"defaultSort":{"key":"amount","desc":true},"pageSize":10,"selectable":false,"empty":{"title":"Aún no hay ventas","icon":"receipt"},"toolbarAction":{"label":"Nueva venta","icon":"plus"}}`
 
@@ -747,11 +783,12 @@ Ejemplo: `{"items":[{"label":"Responsable","value":"Ana López"},{"label":"Inici
 
 #### Metric
 
-Indicador (KPI): etiqueta, valor ya formateado («68 %», «$1.2 M»), unidad pequeña opcional («MXN») cambio opcional («+12 %», badge con trend) y detalle con su comparación o fecha de corte. tone colorea el valor: positive, warning, negative o info. icon añade un IconTile y trendLine una sparkline de 2–24 valores.
+Indicador (KPI): etiqueta, valor ya formateado («68 %», «$1.2 M»), unidad pequeña opcional («MXN») cambio opcional («+12 %», badge con trend) y detalle con su comparación o fecha de corte. tone colorea el valor: positive, warning, negative o info. icon añade un IconTile y trendLine una sparkline de 2–24 valores; trendKind la dibuja como line (por omisión), area o bar.
 
 - `label`: string (min 1, ≤160)
 - `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto)
 - `trendLine`?: [number] (min 2, máx 24) (null = por defecto)
+- `trendKind`?: "line"|"area"|"bar"|null (null = por defecto)
 - `value`: string (min 1, ≤40)
 - `detail`?: string (≤160) (null = por defecto)
 - `trend`?: "up"|"down"|"flat"|null (null = por defecto)
@@ -804,11 +841,13 @@ Ejemplo: `{"columns":["Hito","Responsable","Fecha"],"rows":[["Diseño","Ana Lóp
 
 #### Tree
 
-Árbol plegable (carpetas, módulos): nodos con id único y children, hasta 4 niveles y 200 nodos; expanded: ids abiertos; label: su nombre.
+Árbol plegable (carpetas, módulos): nodos con id único y children, hasta 4 niveles y 200 nodos; expanded: ids abiertos; label: su nombre. toggleIconType: chevron (por omisión) o plus-minus; indent: sangría por nivel en px (20 por omisión).
 
 - `items`: [any] (min 1, máx 60)
 - `expanded`?: [string (min 1, ≤60)] (máx 200) (null = por defecto)
 - `label`?: string (min 1, ≤160) (null = por defecto)
+- `toggleIconType`?: "chevron"|"plus-minus"|null (null = por defecto)
+- `indent`?: integer (≥8, ≤40) (null = por defecto)
 
 Ejemplo: `{"items":[{"id":"docs","label":"Documentos","icon":"folder","children":[{"id":"sow","label":"SOW firmado","icon":"file-signature","badge":"v2"},{"id":"prd","label":"PRD","icon":"file"}]},{"id":"designs","label":"Diseños","icon":"folder"}],"expanded":["docs"],"label":"Carpetas del proyecto"}`
 
@@ -928,11 +967,14 @@ Ejemplo: `{"title":"Arrastra aquí la factura","description":"O elígela desde t
 
 #### FilterBar
 
-Barra de filtros sobre una tabla o tablero: buscador opcional, filtros «Etiqueta: valor» (listas que cambian dentro de la vista, sin filtrar nada) y un botón principal a la derecha.
+Barra de filtros sobre una tabla o tablero: buscador opcional, filtros «Etiqueta: valor» (listas que cambian dentro de la vista, sin filtrar nada) y un botón principal a la derecha. variant advanced dibuja el constructor de condiciones de reUI en solo lectura: los filters unidos por combinator (and por omisión) y groups, subgrupos con su propio combinator; es una maqueta y no filtra nada.
 
 - `search`?: string (min 1, ≤160) (null = por defecto)
 - `filters`: [{ label: string (min 1, ≤40), value: string (min 1, ≤80), options?: [string (min 1, ≤80)] (máx 20) (null = por defecto) }] (máx 6)
 - `action`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
+- `variant`?: "basic"|"advanced"|null (null = por defecto)
+- `combinator`?: "and"|"or"|null (null = por defecto)
+- `groups`?: [{ combinator?: "and"|"or"|null (null = por defecto), filters: [{ label: string (min 1, ≤40), value: string (min 1, ≤80), options?: [string (min 1, ≤80)] (máx 20) (null = por defecto) }] (min 1, máx 6) }] (min 1, máx 4) (null = por defecto)
 
 Ejemplo: `{"search":"Buscar cliente…","filters":[{"label":"Vendedor","value":"Todos","options":["Todos","Ana López","Luis Pérez"]},{"label":"Periodo","value":"Octubre 2026"}],"action":{"label":"Nueva venta","icon":"plus"}}`
 
@@ -985,6 +1027,15 @@ Lista desplegable para elegir una opción. Se abre y cambia dentro de la vista; 
 
 Ejemplo: `{"label":"Etapa","options":[{"label":"Prospecto","value":"prospect"},{"label":"Negociación","value":"negotiation"},{"label":"Cerrada","value":"closed"}],"value":"negotiation"}`
 
+#### Sortable
+
+Elementos que la persona reordena arrastrando su asa (o con el teclado): prioridades, el orden de un menú, los pasos de un proceso. items lleva id único, label y description opcional; strategy elige vertical (lista, por omisión), horizontal o grid (tarjetas). El nuevo orden vive sólo en la vista: no se guarda ni se envía.
+
+- `items`: [{ id: string (min 1, ≤80), label: string (min 1, ≤160), description?: string (min 1, ≤120) (null = por defecto) }] (min 2, máx 30)
+- `strategy`?: "vertical"|"horizontal"|"grid"|null (null = por defecto)
+
+Ejemplo: `{"items":[{"id":"a","label":"Conciliar pagos","description":"Finanzas"},{"id":"b","label":"Revisar la propuesta","description":"Comercial"},{"id":"c","label":"Publicar el sitio","description":"Producto"}],"strategy":"vertical"}`
+
 #### Switch
 
 Interruptor de encendido/apagado con su etiqueta (preferencias, avisos). Cambia dentro de la vista; nada se guarda.
@@ -1032,6 +1083,16 @@ Selector de maqueta para un valor dentro de un árbol de hasta 3 niveles, con su
 
 Ejemplo: `{"label":"Sede del proyecto","placeholder":"Elige una ciudad","value":"gdl","items":[{"value":"mx","label":"México","children":[{"value":"jal","label":"Jalisco","children":[{"value":"gdl","label":"Guadalajara"},{"value":"zap","label":"Zapopan"}]},{"value":"nl","label":"Nuevo León","children":[{"value":"mty","label":"Monterrey"}]}]},{"value":"co","label":"Colombia","children":[{"value":"ant","label":"Antioquia","children":[{"value":"med","label":"Medellín"}]}]}]}`
 
+#### ColorPicker
+
+Selector de color de maqueta con su etiqueta: el botón con la muestra y el valor en hex (value, #RRGGBB), y debajo las muestras de la paleta (swatches, hasta 16), con la del valor marcada. Para el color de una marca, una etiqueta o un tema. Se ve como en Pai pero está deshabilitado: no abre, no tiene cuentagotas ni campos que se escriban, y nada se copia, envía ni guarda.
+
+- `label`: string (min 1, ≤160)
+- `value`?: string (null = por defecto)
+- `swatches`?: [string] (min 1, máx 16) (null = por defecto)
+
+Ejemplo: `{"label":"Color de la marca","value":"#2563EB","swatches":["#2563EB","#16A34A","#DC2626","#D97706","#7C3AED","#0F172A"]}`
+
 #### Combobox
 
 Campo de maqueta que en Pai se escribe para filtrar una lista y elegir una opción, con su etiqueta: responsable, cliente, servicio. options son las opciones (2 a 50, { label, value }); value es el value de la elegida (su texto aparece en el campo); placeholder, el texto mientras no hay valor. Se ve como en Pai pero está deshabilitado: no se abre y nada se envía ni se guarda.
@@ -1042,6 +1103,16 @@ Campo de maqueta que en Pai se escribe para filtrar una lista y elegir una opci�
 - `placeholder`?: string (min 1, ≤80) (null = por defecto)
 
 Ejemplo: `{"label":"Responsable","placeholder":"Busca a una persona…","value":"lucia","options":[{"label":"Lucía Herrera","value":"lucia"},{"label":"Mateo Ríos","value":"mateo"},{"label":"Valeria Campos","value":"valeria"}]}`
+
+#### EmojiPicker
+
+Selector de emoji de maqueta con su etiqueta: la búsqueda y las categorías deshabilitadas y un panel con un juego fijo de 32 emoji en texto (caras, gestos, objetos y símbolos), con el elegido marcado. value es uno de ellos (😀 😄 😊 😉 😍 🤔 😎 🥳 👍 👏 🙌 🙏 👋 💪 🤝 ✌️ 📌 📎 📅 📈 💡 🔔 🚀 🎯 ✅ ❌ ⚠️ ❤️ ⭐ 🔥 ✨ 🎉) o null; size elige sm, default o lg. Para una reacción, el icono de una página o el estado de una persona. No busca, no carga emoji de ningún sitio y nada se envía ni se guarda.
+
+- `label`: string (min 1, ≤160)
+- `value`?: string (null = por defecto)
+- `size`?: "sm"|"default"|"lg"|null (null = por defecto)
+
+Ejemplo: `{"label":"Reacción","value":"👍","size":null}`
 
 #### InputOTP
 
@@ -1068,12 +1139,13 @@ Ejemplo: `{"label":"Horas estimadas","value":24,"min":0,"max":200,"step":4,"unit
 
 #### PhoneInput
 
-Campo de teléfono de maqueta con su etiqueta: el prefijo del país (country: MX, US, CO, AR, CL, PE, GT, ES; MX por omisión) y el número ya formateado («55 1234 5678»). Es una maqueta: no valida el número ni lo envía, y está deshabilitado. No escribas el número real de una persona; usa uno de ejemplo o déjalo vacío con placeholder.
+Campo de teléfono de maqueta con su etiqueta: el prefijo del país (country: MX, US, CO, AR, CL, PE, GT, ES; MX por omisión) y el número ya formateado («55 1234 5678»); variant elige la altura (sm, default, lg). Es una maqueta: no valida el número ni lo envía, y está deshabilitado. No escribas el número real de una persona; usa uno de ejemplo o déjalo vacío con placeholder.
 
 - `label`: string (min 1, ≤160)
 - `country`?: "MX"|"US"|"CO"|"AR"|"CL"|"PE"|"GT"|"ES"|null (null = por defecto)
 - `value`?: string (≤20) (null = por defecto)
 - `placeholder`?: string (min 1, ≤40) (null = por defecto)
+- `variant`?: "sm"|"default"|"lg"|null (null = por defecto)
 
 Ejemplo: `{"label":"Teléfono de contacto","country":"MX","placeholder":"55 0000 0000"}`
 
@@ -1225,6 +1297,14 @@ El selector de proyecto de las migas de Portal: el nombre del proyecto con ⌃�
 
 Ejemplo: `{"project":"CRM comercial","projects":["CRM comercial","Portal de distribuidores","App de ventas"]}`
 
+#### Scrollspy (admite hijos)
+
+Contenido largo en un recuadro que se desplaza, con su índice al lado (arriba en pantallas angostas): al desplazar se marca la sección visible y un clic en el índice lleva a su sección, dentro de la vista. sections nombra las secciones; pon un hijo por sección, en el mismo orden (normalmente un Stack con su Heading). No cambia la URL ni usa anclas #.
+
+- `sections`: [string (min 1, ≤160)] (min 2, máx 12)
+
+Ejemplo: `{"sections":["Alcance","Entregables","Calendario"]}`
+
 ### Grupo: Estados
 
 #### EmptyState
@@ -1312,13 +1392,13 @@ Ejemplo: `{"resources":[{"id":"diseno","title":"Diseño","children":[{"id":"wire
 
 #### Kanban
 
-Tablero Kanban genérico (el de Tareas de Pai, sin su dominio): columnas con su contador y tarjetas con título, descripción, etiquetas, responsable y fecha. Con interactive (por omisión true) las tarjetas se arrastran entre columnas dentro de la vista; nada se guarda. Para las tareas de un proyecto usa TaskBoard.
+Tablero Kanban genérico (el de Tareas de Pai, sin su dominio): columnas con su contador y tarjetas con título, descripción, etiquetas, responsable y fecha. progress (0 a 100) pone una barra de avance en la tarjeta. Con interactive (por omisión true) las tarjetas se arrastran entre columnas y las columnas se reordenan por su asa, dentro de la vista; nada se guarda. Para las tareas de un proyecto usa TaskBoard.
 
 - `columns`: [{ id: string (min 1, ≤80), title: string (min 1, ≤160), tone?: "neutral"|"info"|"progress"|"success"|"warning"|"danger"|null (null = por defecto) }] (min 1, máx 8)
-- `cards`: [{ id: string (min 1, ≤80), column: string (min 1, ≤80), title: string (min 1, ≤160), description?: string (≤2000) (null = por defecto), badges?: [{ label: string (min 1, ≤160), tone?: "neutral"|"info"|"progress"|"success"|"warning"|"danger"|null (null = por defecto) }] (máx 4) (null = por defecto), owner?: string (min 1, ≤160) (null = por defecto), due?: string (null = por defecto) }] (máx 200)
+- `cards`: [{ id: string (min 1, ≤80), column: string (min 1, ≤80), title: string (min 1, ≤160), description?: string (≤2000) (null = por defecto), badges?: [{ label: string (min 1, ≤160), tone?: "neutral"|"info"|"progress"|"success"|"warning"|"danger"|null (null = por defecto) }] (máx 4) (null = por defecto), owner?: string (min 1, ≤160) (null = por defecto), due?: string (null = por defecto), progress?: number (≥0, ≤100) (null = por defecto) }] (máx 200)
 - `interactive`?: boolean (null = por defecto)
 
-Ejemplo: `{"columns":[{"id":"lead","title":"Prospecto"},{"id":"proposal","title":"Propuesta","tone":"info"},{"id":"won","title":"Ganado","tone":"success"}],"cards":[{"id":"c1","column":"lead","title":"Distribuidora del Norte","description":"Pidió demo del portal de pedidos.","owner":"Ana López"},{"id":"c2","column":"proposal","title":"Clínica Santa Fe","badges":[{"label":"Prioridad","tone":"warning"}],"owner":"Luis Pérez","due":"2026-10-16"},{"id":"c3","column":"won","title":"Grupo Altamira","badges":[{"label":"Firmado","tone":"success"}]}]}`
+Ejemplo: `{"columns":[{"id":"lead","title":"Prospecto"},{"id":"proposal","title":"Propuesta","tone":"info"},{"id":"won","title":"Ganado","tone":"success"}],"cards":[{"id":"c1","column":"lead","title":"Distribuidora del Norte","description":"Pidió demo del portal de pedidos.","owner":"Ana López"},{"id":"c2","column":"proposal","title":"Clínica Santa Fe","badges":[{"label":"Prioridad","tone":"warning"}],"owner":"Luis Pérez","progress":60,"due":"2026-10-16"},{"id":"c3","column":"won","title":"Grupo Altamira","badges":[{"label":"Firmado","tone":"success"}]}]}`
 
 #### MilestoneGanttLegend
 
@@ -1365,13 +1445,13 @@ Ejemplo: `{"items":[{"label":"Prospecto","status":"done","detail":"2 sep"},{"lab
 
 #### Stepper (admite hijos)
 
-Pasos navegables: un hijo por paso, en orden; current (desde 1) abre uno. Sin contenido usa Stages.
+Pasos navegables: un hijo por paso, en orden; current (desde 1) abre uno. Sin contenido usa Stages. Por paso: completed lo marca hecho aunque esté después de current, loading pone un indicador de carga en el paso actual y disabled no se puede abrir.
 
-- `steps`: [{ title: string (min 1, ≤160), description?: string (≤80) (null = por defecto) }] (min 2, máx 8)
+- `steps`: [{ title: string (min 1, ≤160), description?: string (≤80) (null = por defecto), completed?: boolean (null = por defecto), loading?: boolean (null = por defecto), disabled?: boolean (null = por defecto) }] (min 2, máx 8)
 - `current`?: integer (≥1, ≤8) (null = por defecto)
 - `orientation`?: "horizontal"|"vertical"|null (null = por defecto)
 
-Ejemplo: `{"steps":[{"title":"Datos","description":"Empresa y contacto"},{"title":"Alcance"},{"title":"Confirmar"}],"current":2}`
+Ejemplo: `{"steps":[{"title":"Datos","description":"Empresa y contacto"},{"title":"Alcance","loading":true},{"title":"Confirmar"}],"current":2}`
 
 #### TaskBoard
 
@@ -1389,9 +1469,11 @@ Ejemplo: `{"today":"2026-10-07","interactive":true,"milestones":[{"id":"m1","nam
 
 #### Timeline
 
-Cronología de hitos o eventos con fecha, título, descripción y estado (done, current, upcoming).
+Cronología de hitos o eventos con fecha, título, descripción y estado (done, current, upcoming). orientation horizontal la pone en fila (hasta 6 items se leen bien; vertical por omisión). value (desde 1) marca hasta qué item se llegó; sin value cuenta hasta el último done o current.
 
 - `items`: [{ date: string (min 1, ≤40), title: string (min 1, ≤160), description?: string (≤2000) (null = por defecto), status?: "done"|"current"|"upcoming"|null (null = por defecto) }] (min 1, máx 60)
+- `orientation`?: "horizontal"|"vertical"|null (null = por defecto)
+- `value`?: integer (≥0, ≤60) (null = por defecto)
 
 Ejemplo: `{"items":[{"date":"1 sep","title":"Arranque","status":"done"},{"date":"30 sep","title":"Diseño aprobado","description":"Revisión con dirección comercial.","status":"current"},{"date":"30 oct","title":"Salida a producción","status":"upcoming"}]}`
 
@@ -1568,7 +1650,7 @@ Ejemplo: `{"view":"‹resultado de knowledge_view›","focus":"venta","height":"
 
 Grafo de Conocimiento, el mismo de Portal (WebGL): un punto por nodo, coloreado por su kind, y una línea por relación. Se arrastra, se acerca y al elegir un punto se resaltan sus vecinos y su título. Con href, el nodo elegido enlaza a su página ({id}). Usa los nodos y relaciones que devolvieron knowledge_list, knowledge_get o knowledge_context.
 
-- `nodes`: [{ id: string (min 1, ≤200), title: string (min 1, ≤200), kind: "objective"|"decision"|"adr"|"business_rule"|"constraint"|"risk"|"question"|"assumption"|"task"|"pattern"|"runbook"|"gotcha"|"antipattern"|"note"|"concept"|"fact"|"reference"|"module"|"screen"|"flow"|"data_model"|"entity"|"component"|"actor"|"glossary_term" }] (min 1, máx 500)
+- `nodes`: [{ id: string (min 1, ≤200), title: string (min 1, ≤200), kind: "objective"|"decision"|"adr"|"business_rule"|"constraint"|"risk"|"question"|"assumption"|"task"|"pattern"|"runbook"|"gotcha"|"antipattern"|"note"|"concept"|"fact"|"reference"|"module"|"screen"|"flow"|"data_model"|"entity"|"component"|"actor"|"glossary_term"|"use_case" }] (min 1, máx 500)
 - `edges`: [{ source: string (min 1, ≤200), target: string (min 1, ≤200), rel: string (min 1, ≤40) }] (máx 1500)
 - `href`?: string (≤500) (null = por defecto)
 - `height`?: "sm"|"md"|"lg"|null (null = por defecto)
@@ -1579,7 +1661,7 @@ Ejemplo: `{"nodes":[{"id":"dec-stack","title":"API monolítica en NestJS","kind"
 
 El tipo de un nodo de Conocimiento como lo pinta Pai: badge con su punto de color y su nombre («• Componente (C4)»).
 
-- `kind`: "objective"|"decision"|"adr"|"business_rule"|"constraint"|"risk"|"question"|"assumption"|"task"|"pattern"|"runbook"|"gotcha"|"antipattern"|"note"|"concept"|"fact"|"reference"|"module"|"screen"|"flow"|"data_model"|"entity"|"component"|"actor"|"glossary_term"
+- `kind`: "objective"|"decision"|"adr"|"business_rule"|"constraint"|"risk"|"question"|"assumption"|"task"|"pattern"|"runbook"|"gotcha"|"antipattern"|"note"|"concept"|"fact"|"reference"|"module"|"screen"|"flow"|"data_model"|"entity"|"component"|"actor"|"glossary_term"|"use_case"
 
 Ejemplo: `{"kind":"decision"}`
 
@@ -1587,7 +1669,7 @@ Ejemplo: `{"kind":"decision"}`
 
 La biblioteca de Conocimiento de Portal y Console: tabla de nodos con tipo, estado, proyecto (project; sin él, «Organización»), visibilidad y fecha, con búsqueda, filtros, orden y páginas dentro de la vista. showProject:false es la biblioteca de un proyecto: sin columna de proyecto, y sólo los nodos con organization:true llevan «Organización» bajo el título. Con href (plantilla con {id}) el título enlaza a la página del nodo. Usa los nodos que devolvió knowledge_search o knowledge_list.
 
-- `items`: [{ id: string (min 1, ≤80), title: string (min 1, ≤200), kind: "objective"|"decision"|"adr"|"business_rule"|"constraint"|"risk"|"question"|"assumption"|"task"|"pattern"|"runbook"|"gotcha"|"antipattern"|"note"|"concept"|"fact"|"reference"|"module"|"screen"|"flow"|"data_model"|"entity"|"component"|"actor"|"glossary_term", status: "draft"|"proposed"|"active"|"resolved"|"superseded"|"archived"|"rejected", visibility?: "internal"|"client"|null (null = por defecto), summary?: string (≤400) (null = por defecto), project?: string (min 1, ≤160) (null = por defecto), organization?: boolean (null = por defecto), updatedAt: string }] (máx 200)
+- `items`: [{ id: string (min 1, ≤80), title: string (min 1, ≤200), kind: "objective"|"decision"|"adr"|"business_rule"|"constraint"|"risk"|"question"|"assumption"|"task"|"pattern"|"runbook"|"gotcha"|"antipattern"|"note"|"concept"|"fact"|"reference"|"module"|"screen"|"flow"|"data_model"|"entity"|"component"|"actor"|"glossary_term"|"use_case", status: "draft"|"proposed"|"active"|"resolved"|"superseded"|"archived"|"rejected", visibility?: "internal"|"client"|null (null = por defecto), summary?: string (≤400) (null = por defecto), project?: string (min 1, ≤160) (null = por defecto), organization?: boolean (null = por defecto), updatedAt: string }] (máx 200)
 - `showProject`?: boolean (null = por defecto)
 - `href`?: string (≤500) (null = por defecto)
 - `search`?: string (≤120) (null = por defecto)
@@ -1636,6 +1718,636 @@ Bandeja o revisión (solicitudes, mensajes, incidencias): SplitView con un Stack
 
 ```json
 {"root":"bandeja","elements":{"bandeja":{"type":"SplitView","props":{"listWidth":"medium"},"children":["lista","lectura"]},"lista":{"type":"Stack","props":{"direction":"vertical","gap":"sm"},"children":["s1","s2"]},"s1":{"type":"Item","props":{"title":"Cambio de alcance","description":"Grupo Lumen","meta":"hoy"}},"s2":{"type":"Item","props":{"title":"Factura pendiente","description":"Ñandú Logística","meta":"ayer"}},"lectura":{"type":"DetailSheet","props":{"eyebrow":"Solicitud","title":"Cambio de alcance","badges":[{"label":"En revisión","tone":"progress"}]},"children":["texto"]},"texto":{"type":"Text","props":{"text":"El cliente pide sumar el módulo de reportes a la fase 2."}}}}
+```
+
+### site-hero
+
+Portada de un sitio de cliente: hero, logos de clientes y servicios.
+
+Primera pantalla del sitio de un cliente: SiteHero variant plain (titular, intro y dos llamadas), LogoGrid con los clientes que el cliente nombra y ServiceCards con lo que ofrece. Cambia textos y logos por los del cliente; nada navega. Para pai.lat usa SiteShell como raíz.
+
+```json
+{"root":"sitio","elements":{"sitio":{"type":"Stack","props":{"direction":"vertical","gap":"lg"},"children":["hero","logos","servicios"]},"hero":{"type":"SiteHero","props":{"variant":"plain","badge":"Nuevo: agenda en línea","title":"Tu clínica, siempre con la agenda llena","highlight":null,"intro":"Citas en línea, recordatorios y lista de espera para clínicas dentales en Puebla.","primary":"Agenda una demostración","secondary":"Ver precios"}},"logos":{"type":"LogoGrid","props":{"kicker":"Clínicas que ya lo usan","logos":["Sonrisa Norte","Dental Atlixco","Clínica Cholula","OrtoPuebla"]}},"servicios":{"type":"ServiceCards","props":{"items":[{"title":"Agenda en línea","body":"Tus pacientes eligen el horario libre desde el celular.","icon":"calendar"},{"title":"Recordatorios","body":"Un correo un día antes reduce las citas perdidas.","icon":"bell"},{"title":"Reportes","body":"Ocupación por sillón y por doctor, cada mes.","icon":"chart"}]}}}}
+```
+
+### site-cta
+
+Cierre de una página: introducción breve y banda de llamada a la acción.
+
+Final de una página de sitio: SectionIntro con la promesa y CtaBand centrada con una llamada principal y una secundaria. Los botones son inertes. Úsala al pie de una portada o de una página de servicio.
+
+```json
+{"root":"cierre","elements":{"cierre":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["intro","banda"]},"intro":{"type":"SectionIntro","props":{"kicker":"Empieza hoy","title":"Configura tu agenda en una tarde","body":"Te ayudamos a cargar sucursales, horarios y doctores en la primera llamada."}},"banda":{"type":"CtaBand","props":{"headline":"Agenda una demostración","description":"Treinta minutos con alguien del equipo, sin compromiso.","primary":"Agendar","secondary":"Escríbenos","centered":true}}}}
+```
+
+### site-pricing
+
+Página de precios: planes, tabla comparativa y preguntas frecuentes.
+
+Precios de un producto del cliente: SectionIntro, PricingGrid con sus planes (los precios son contenido del cliente, nunca de Pai; los botones no hacen nada), ComparisonTable con lo que incluye cada uno y Accordion con dudas de facturación.
+
+```json
+{"root":"precios","elements":{"precios":{"type":"Stack","props":{"direction":"vertical","gap":"lg"},"children":["intro","planes","tabla","dudas"]},"intro":{"type":"SectionIntro","props":{"kicker":"Precios","title":"Un plan para cada tamaño de clínica","body":"Precios en pesos, más IVA. Cambia de plan cuando quieras."}},"planes":{"type":"PricingGrid","props":{"plans":[{"name":"Básico","price":"$490 MXN","period":"al mes","description":"Una sucursal.","features":["Agenda en línea","Recordatorios por correo"],"cta":"Elegir Básico"},{"name":"Clínica","price":"$1,490 MXN","period":"al mes","description":"Hasta 5 sucursales.","features":["Todo lo de Básico","Reportes mensuales"],"highlighted":true,"cta":"Elegir Clínica"}]}},"tabla":{"type":"ComparisonTable","props":{"caption":"Qué incluye cada plan","plans":["Básico","Clínica"],"highlighted":"Clínica","rows":[{"feature":"Sucursales","values":["1","Hasta 5"]},{"feature":"Reportes mensuales","values":[false,true]}]}},"dudas":{"type":"Accordion","props":{"type":"single","items":[{"title":"¿Emiten factura?","content":"Sí, CFDI 4.0 cada mes."},{"title":"¿Hay plazo forzoso?","content":"No, cancelas cuando quieras."}]}}}}
+```
+
+### site-blog
+
+Blog de un sitio: encabezado y lista de artículos con fecha y categoría.
+
+Índice del blog de un cliente: SectionIntro y BlogList con sus artículos (título, extracto, fecha ISO y categoría). Los href sólo a https o a rutas del Portal.
+
+```json
+{"root":"blog","elements":{"blog":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["intro","lista"]},"intro":{"type":"SectionIntro","props":{"kicker":"Blog","title":"Ideas para llenar tu agenda","body":"Lo que aprendemos con las clínicas que atendemos."}},"lista":{"type":"BlogList","props":{"title":null,"posts":[{"title":"Cinco formas de reducir las citas perdidas","excerpt":"Recordatorios, confirmación en un clic y lista de espera.","date":"2026-09-18","category":"Operación"},{"title":"Cómo elegir horarios que sí se llenan","excerpt":"Un año de agenda en línea en clínicas dentales.","date":"2026-08-30","category":"Agenda"}]}}}}
+```
+
+### site-contact
+
+Contacto: qué pasa después de escribir y la llamada para hablar.
+
+Página o sección de contacto: ContactSection con los pasos que siguen al mensaje y su llamada. No lleva formulario que envíe: si hace falta uno, va como maqueta (FormLayout, todo deshabilitado) y sin pedir datos sensibles.
+
+```json
+{"root":"contacto","elements":{"contacto":{"type":"ContactSection","props":{"variant":"close","eyebrow":"Contacto","title":"Cuéntanos de tu clínica","body":"Respondemos en un día hábil.","next":"Qué pasa después","steps":[{"title":"Leemos tu mensaje","body":"Una persona del equipo lo revisa."},{"title":"Te llamamos","body":"Veinte minutos para entender tu agenda."}],"cta":"Escríbenos","note":"Sin compromiso."}}}}
+```
+
+### site-faq
+
+Preguntas frecuentes: introducción y acordeón de preguntas y respuestas.
+
+FAQ de un sitio o producto: SectionIntro y Accordion type single con las preguntas del cliente. Respuestas cortas; para pasos usa HowItWorks.
+
+```json
+{"root":"faq","elements":{"faq":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["intro","preguntas"]},"intro":{"type":"SectionIntro","props":{"kicker":"Ayuda","title":"Preguntas frecuentes","body":"Lo que más nos preguntan las clínicas antes de empezar."}},"preguntas":{"type":"Accordion","props":{"type":"single","items":[{"title":"¿Necesito instalar algo?","content":"No, funciona en el navegador."},{"title":"¿Mis pacientes necesitan cuenta?","content":"No, agendan con su nombre y correo."},{"title":"¿Puedo importar mi agenda actual?","content":"Sí, desde una hoja de cálculo."}]}}}}
+```
+
+### site-how-it-works
+
+Cómo funciona: pasos numerados y banda de llamada a la acción.
+
+Explica un proceso en pasos: HowItWorks (título, intro y pasos) seguido de CtaBand. Tres o cuatro pasos, cada uno con una frase.
+
+```json
+{"root":"pasos","elements":{"pasos":{"type":"Stack","props":{"direction":"vertical","gap":"lg"},"children":["como","banda"]},"como":{"type":"HowItWorks","props":{"title":"Cómo empiezas","intro":null,"steps":[{"title":"Cargas tus sucursales","body":"Horarios, sillones y doctores."},{"title":"Compartes tu enlace","body":"En redes, Google y WhatsApp."},{"title":"Recibes citas","body":"Con recordatorio automático."}]}},"banda":{"type":"CtaBand","props":{"headline":"¿Lo probamos con tu clínica?","description":null,"primary":"Agendar demostración","secondary":null,"centered":true}}}}
+```
+
+### site-compare
+
+Comparativa: el producto del cliente frente a otras opciones.
+
+Compara opciones en una tabla: SectionIntro y ComparisonTable con la opción del cliente destacada. Sólo afirmaciones que el cliente pueda sostener; nada de datos de terceros inventados.
+
+```json
+{"root":"comparar","elements":{"comparar":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["intro","tabla"]},"intro":{"type":"SectionIntro","props":{"kicker":"Comparativa","title":"Agenda en línea frente a la agenda de papel","body":"Lo que cambia en la operación diaria de una clínica."}},"tabla":{"type":"ComparisonTable","props":{"caption":"Qué cambia","plans":["Papel","Agenda en línea"],"highlighted":"Agenda en línea","rows":[{"feature":"Citas fuera de horario","values":[false,true]},{"feature":"Recordatorios","values":["Por teléfono","Automáticos"]},{"feature":"Reportes de ocupación","values":[false,true]}]}}}}
+```
+
+### ai-chat
+
+Chat con un agente: conversación, cuadro para escribir y contexto al lado.
+
+Maqueta de un chat con un agente: ChatLayout con ChatThread (mensajes con pasos del agente y adjuntos), ChatComposer (no envía nada) y en aside una Card con el contexto que el agente usa. No se conecta a ningún agente.
+
+```json
+{"root":"chat","elements":{"chat":{"type":"ChatLayout","props":{"regions":["thread","composer","aside"]},"children":["hilo","escribir","contexto"]},"hilo":{"type":"ChatThread","props":{"messages":[{"id":"m1","role":"user","author":"Ana Torres","at":"2026-10-06T16:02:00Z","text":"¿Cuántas citas se perdieron en septiembre?"},{"id":"m2","role":"assistant","at":"2026-10-06T16:02:10Z","text":"En septiembre se perdieron 42 citas de 1,180 (3.6 %), 11 menos que en agosto.","steps":[{"label":"Leí la agenda de septiembre","status":"done"},{"label":"Comparé con agosto","status":"done"}]}]}},"escribir":{"type":"ChatComposer","props":{"placeholder":"Pregunta sobre tu agenda…","value":null,"attachments":null}},"contexto":{"type":"Card","props":{"title":"Contexto","description":"Agenda de la sucursal Centro, septiembre de 2026."}}}}
+```
+
+### agent-activity
+
+Actividad de un agente: encabezado, indicadores y cronología de lo que hizo.
+
+Qué hizo un agente: PageHeader, Stats (tareas, tiempo, errores) y Timeline con sus pasos más recientes. Sólo datos que obtuviste con otras herramientas, con su fecha de corte.
+
+```json
+{"root":"actividad","elements":{"actividad":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["encabezado","cifras","pasos"]},"encabezado":{"type":"PageHeader","props":{"icon":"sparkles","title":"Agente de seguimiento","description":"Actividad de la última semana, al 7 oct 2026.","badges":[{"label":"Activo","tone":"success"}]}},"cifras":{"type":"Stats","props":{"items":[{"label":"Tareas resueltas","value":"128"},{"label":"Tiempo medio","value":"42 s"},{"label":"Errores","value":"2","tone":"negative"}]}},"pasos":{"type":"Timeline","props":{"items":[{"date":"7 oct","title":"Envió 14 recordatorios","status":"done"},{"date":"7 oct","title":"Actualizó el tablero semanal","status":"done"},{"date":"8 oct","title":"Revisará las citas de mañana","status":"upcoming"}]}}}}
+```
+
+### shop-storefront
+
+Tienda de un cliente: hero, categorías y cuadrícula de productos.
+
+Portada de una tienda: SiteHero variant plain, Grid de Card por categoría y Grid de Card por producto (nombre, precio y un botón inerte). Precios y productos son contenido del cliente; nada se agrega a un carrito real.
+
+```json
+{"root":"tienda","elements":{"tienda":{"type":"Stack","props":{"direction":"vertical","gap":"lg"},"children":["hero","categorias","productos"]},"hero":{"type":"SiteHero","props":{"variant":"plain","badge":null,"title":"Café de especialidad de Veracruz","highlight":null,"intro":"Tostado cada semana y enviado a todo México.","primary":"Ver cafés","secondary":"Suscripción mensual"}},"categorias":{"type":"Grid","props":{"columns":3,"gap":"md"},"children":["c1","c2","c3"]},"c1":{"type":"Card","props":{"title":"Grano entero","description":"12 cafés de origen"}},"c2":{"type":"Card","props":{"title":"Molido","description":"Para prensa, goteo o espresso"}},"c3":{"type":"Card","props":{"title":"Accesorios","description":"Molinos, filtros y tazas"}},"productos":{"type":"Grid","props":{"columns":3,"gap":"md"},"children":["p1","p2","p3"]},"p1":{"type":"Card","props":{"title":"Coatepec 250 g","description":"Notas de chocolate y nuez"},"children":["p1precio","p1boton"]},"p1precio":{"type":"Text","props":{"text":"$220 MXN","variant":"lead"}},"p1boton":{"type":"Button","props":{"label":"Agregar","variant":"default","icon":"plus"}},"p2":{"type":"Card","props":{"title":"Huatusco 250 g","description":"Notas de frutos rojos"},"children":["p2precio","p2boton"]},"p2precio":{"type":"Text","props":{"text":"$240 MXN","variant":"lead"}},"p2boton":{"type":"Button","props":{"label":"Agregar","variant":"default","icon":"plus"}},"p3":{"type":"Card","props":{"title":"Prensa francesa","description":"350 ml, vidrio y acero"},"children":["p3precio","p3boton"]},"p3precio":{"type":"Text","props":{"text":"$590 MXN","variant":"lead"}},"p3boton":{"type":"Button","props":{"label":"Agregar","variant":"default","icon":"plus"}}}}
+```
+
+### shop-product
+
+Ficha de producto: datos, calificación, opciones y reseñas.
+
+Página de un producto: DetailLayout con encabezado (PageHeader), en main la calificación (Rating), el precio y las opciones (Select de maqueta, Button inerte) y Tabs con descripción y reseñas (ReviewList con source). Las reseñas vienen del cliente; sin source llevan la marca «Ejemplo».
+
+```json
+{"root":"ficha","elements":{"ficha":{"type":"DetailLayout","props":{"regions":["header","main","aside"]},"children":["encabezado","principal","lateral"]},"encabezado":{"type":"PageHeader","props":{"eyebrow":"Grano entero","title":"Coatepec 250 g","description":"Tueste medio, notas de chocolate y nuez."}},"principal":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["calificacion","pestanas"]},"calificacion":{"type":"Rating","props":{"rating":4.6,"showValue":true}},"pestanas":{"type":"Tabs","props":{"tabs":[{"label":"Descripción","value":"desc"},{"label":"Reseñas","value":"resenas"}],"defaultValue":"desc"},"children":["descripcion","resenas"]},"descripcion":{"type":"Text","props":{"text":"Cultivado a 1,200 m en Coatepec, Veracruz. Lavado y secado al sol."}},"resenas":{"type":"ReviewList","props":{"reviews":[{"author":"Laura Gómez","rating":5,"text":"Llegó en dos días y huele increíble.","at":"2026-09-20","source":"Reseñas de la tienda"}]}},"lateral":{"type":"Card","props":{"title":"$220 MXN","description":"Envío gratis desde $600"},"children":["molienda","agregar"]},"molienda":{"type":"Select","props":{"label":"Molienda","options":[{"label":"Grano entero","value":"whole"},{"label":"Para prensa","value":"press"}],"value":"whole"}},"agregar":{"type":"Button","props":{"label":"Agregar al carrito","variant":"default","icon":"plus"}}}}
+```
+
+### shop-cart
+
+Carrito: productos, cupón y resumen del pedido.
+
+Carrito de una tienda: Table con los productos, Card con un cupón (Input) y el resumen (KeyValue: subtotal, envío, total) y un Button inerte para pagar. Nada se cobra ni se guarda.
+
+```json
+{"root":"carrito","elements":{"carrito":{"type":"Grid","props":{"columns":2,"gap":"md"},"children":["lineas","resumen"]},"lineas":{"type":"Table","props":{"columns":["Producto","Cantidad","Precio"],"rows":[["Coatepec 250 g","2","$440 MXN"],["Prensa francesa","1","$590 MXN"]],"caption":"Tu carrito"}},"resumen":{"type":"Card","props":{"title":"Resumen"},"children":["cupon","totales","pagar"]},"cupon":{"type":"Input","props":{"label":"Cupón","placeholder":"OTONO10","type":"text"}},"totales":{"type":"KeyValue","props":{"items":[{"label":"Subtotal","value":"$1,030 MXN"},{"label":"Envío","value":"Gratis"},{"label":"Total","value":"$1,030 MXN"}],"columns":1}},"pagar":{"type":"Button","props":{"label":"Continuar al pago","variant":"default"}}}}
+```
+
+### shop-checkout
+
+Checkout de maqueta: envío y forma de pago, sin datos de tarjeta.
+
+Pago de un pedido como maqueta: FormLayout (todo deshabilitado, no envía nada) con la dirección de envío y la forma de pago elegida en un RadioGroup. Nunca pidas número de tarjeta, CVV, «MM/AA», CLABE ni cuenta: el pago real ocurre en la pasarela del cliente.
+
+```json
+{"root":"pago","elements":{"pago":{"type":"FormLayout","props":{"regions":["intro","fields","actions"],"columns":1},"children":["titulo","campos","acciones"]},"titulo":{"type":"Heading","props":{"text":"Envío y pago","level":"h2"}},"campos":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["nombre","calle","ciudad","forma"]},"nombre":{"type":"Input","props":{"label":"Nombre de quien recibe","placeholder":"Laura Gómez","type":"text"}},"calle":{"type":"Input","props":{"label":"Calle y número","placeholder":"Av. Juárez 120","type":"text"}},"ciudad":{"type":"Input","props":{"label":"Ciudad","placeholder":"Xalapa","type":"text"}},"forma":{"type":"RadioGroup","props":{"label":"Forma de pago","options":[{"label":"Pasarela de pago","value":"gateway"},{"label":"Pago en tienda","value":"store"}],"value":"gateway"}},"acciones":{"type":"Button","props":{"label":"Ir a pagar","variant":"default"}}}}
+```
+
+### shop-wishlist
+
+Lista de deseos: productos guardados con precio y botón inerte.
+
+Productos guardados: Heading y un Stack de Item (nombre, nota y precio en meta) con un Button inerte para agregar al carrito.
+
+```json
+{"root":"deseos","elements":{"deseos":{"type":"Stack","props":{"direction":"vertical","gap":"sm"},"children":["titulo","d1","d2","mover"]},"titulo":{"type":"Heading","props":{"text":"Tu lista de deseos","level":"h2"}},"d1":{"type":"Item","props":{"title":"Molino manual","description":"Disponible","meta":"$890 MXN","variant":"outline"}},"d2":{"type":"Item","props":{"title":"Huatusco 1 kg","description":"Vuelve el 20 oct","meta":"$850 MXN","variant":"outline"}},"mover":{"type":"Button","props":{"label":"Agregar todo al carrito","variant":"outline"}}}}
+```
+
+### shop-receipt
+
+Recibo de un pedido: datos, productos y total, marcado como ejemplo.
+
+Confirmación de un pedido: Card con Badge «Ejemplo» (quítalo sólo con datos reales del cliente), KeyValue del pedido y Table con los productos. No es un comprobante fiscal ni prueba de pago; sin datos bancarios.
+
+```json
+{"root":"recibo","elements":{"recibo":{"type":"Card","props":{"title":"Pedido confirmado","description":"Te enviamos el detalle por correo."},"children":["marca","datos","productos"]},"marca":{"type":"Badge","props":{"text":"Ejemplo","variant":"outline","tone":"neutral"}},"datos":{"type":"KeyValue","props":{"items":[{"label":"Pedido","value":"#1042"},{"label":"Fecha","value":"11 oct 2026"},{"label":"Total","value":"$1,030 MXN"}],"columns":3}},"productos":{"type":"Table","props":{"columns":["Producto","Cantidad","Precio"],"rows":[["Coatepec 250 g","2","$440 MXN"],["Prensa francesa","1","$590 MXN"]],"caption":null}}}}
+```
+
+### shop-compare
+
+Comparar productos: tabla con características y el recomendado.
+
+Compara productos de la tienda: Heading y ComparisonTable con el recomendado destacado. Los datos son del catálogo del cliente.
+
+```json
+{"root":"comparar","elements":{"comparar":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["titulo","tabla"]},"titulo":{"type":"Heading","props":{"text":"Compara molinos","level":"h2"}},"tabla":{"type":"ComparisonTable","props":{"caption":"Molinos disponibles","plans":["Manual","Eléctrico","Profesional"],"highlighted":"Eléctrico","rows":[{"feature":"Ajustes de molienda","values":["8","18","40"]},{"feature":"Para espresso","values":[false,true,true]},{"feature":"Precio","values":["$890 MXN","$2,400 MXN","$7,900 MXN"]}]}}}}
+```
+
+### shop-reviews
+
+Reseñas de un producto: calificación media y lista de opiniones con fuente.
+
+Opiniones de clientes: Rating con la media y ReviewList con citas y su source. Sin datos del cliente o de una herramienta, ReviewList muestra la marca «Ejemplo».
+
+```json
+{"root":"resenas","elements":{"resenas":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["media","lista"]},"media":{"type":"Rating","props":{"rating":4.6,"showValue":true}},"lista":{"type":"ReviewList","props":{"reviews":[{"author":"Laura Gómez","rating":5,"text":"Llegó en dos días y huele increíble.","at":"2026-09-20","source":"Reseñas de la tienda"},{"author":"Pedro Ruiz","rating":4,"text":"Muy bueno; me gustaría una bolsa más grande.","at":"2026-09-11","source":"Reseñas de la tienda"}]}}}}
+```
+
+### shop-facets
+
+Catálogo con filtros laterales: casillas, orden y productos.
+
+Catálogo filtrable: SplitView con los filtros en list (Checkbox y RadioGroup; responden dentro de la vista y no filtran datos reales) y en detail un Grid de Card de productos.
+
+```json
+{"root":"catalogo","elements":{"catalogo":{"type":"SplitView","props":{"listWidth":"narrow"},"children":["filtros","resultados"]},"filtros":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["f1","f2","orden"]},"f1":{"type":"Checkbox","props":{"label":"Grano entero","checked":true}},"f2":{"type":"Checkbox","props":{"label":"Molido","checked":false}},"orden":{"type":"RadioGroup","props":{"label":"Ordenar por","options":[{"label":"Más vendidos","value":"top"},{"label":"Precio","value":"price"}],"value":"top"}},"resultados":{"type":"Grid","props":{"columns":2,"gap":"md"},"children":["r1","r2"]},"r1":{"type":"Card","props":{"title":"Coatepec 250 g","description":"$220 MXN"}},"r2":{"type":"Card","props":{"title":"Huatusco 250 g","description":"$240 MXN"}}}}
+```
+
+### crm-pipeline
+
+Embudo de ventas: indicadores, filtros y tablero por etapa.
+
+Pipeline comercial: BoardLayout con FilterBar en toolbar, Kanban por etapa (tarjetas con responsable, vencimiento y badges) en board y Stats del embudo en aside. Mover tarjetas no guarda nada.
+
+```json
+{"root":"embudo","elements":{"embudo":{"type":"BoardLayout","props":{"regions":["toolbar","board","aside"],"asideWidth":"medium"},"children":["filtros","tablero","cifras"]},"filtros":{"type":"FilterBar","props":{"search":"Buscar oportunidad…","filters":[{"label":"Responsable","value":"Todos","options":["Todos","Ana López","Luis Pérez"]}],"action":{"label":"Nueva oportunidad","icon":"plus"}}},"tablero":{"type":"Kanban","props":{"columns":[{"id":"lead","title":"Prospecto"},{"id":"proposal","title":"Propuesta","tone":"info"},{"id":"won","title":"Ganado","tone":"success"}],"cards":[{"id":"c1","column":"lead","title":"Distribuidora del Norte","description":"Pidió demo del portal de pedidos.","owner":"Ana López"},{"id":"c2","column":"proposal","title":"Clínica Santa Fe","badges":[{"label":"Esperando al cliente","tone":"warning"}],"owner":"Luis Pérez","due":"2026-10-16"},{"id":"c3","column":"won","title":"Grupo Altamira","badges":[{"label":"Firmado","tone":"success"}]}]}},"cifras":{"type":"Stats","props":{"items":[{"label":"En el embudo","value":"$2.4 M","unit":"MXN"},{"label":"Tasa de cierre","value":"28 %"}]}}}}
+```
+
+### crm-record
+
+Ficha de un lead u oportunidad: etapas, siguiente paso y actividad.
+
+Detalle comercial: DetailLayout con PageHeader, Stages (etapa actual), un Alert con el siguiente paso (type según la cancha: info le toca a Pai, warning esperamos al cliente, error vencido; actions: la primera la principal), KeyValue del registro y ActivityFeed en aside.
+
+```json
+{"root":"ficha","elements":{"ficha":{"type":"DetailLayout","props":{"regions":["header","summary","main","aside"]},"children":["encabezado","etapas","principal","actividad"]},"encabezado":{"type":"PageHeader","props":{"eyebrow":"Oportunidad","title":"Membresías con CFDI","description":"Clínica Santa Fe · $180,000 MXN","actions":[{"label":"Editar"},{"label":"Nueva tarea","icon":"plus"}]}},"etapas":{"type":"Stages","props":{"items":[{"label":"Prospecto","status":"done"},{"label":"Propuesta","status":"current"},{"label":"Negociación","status":"upcoming"},{"label":"Cierre","status":"upcoming"}]}},"principal":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["siguiente","datos"]},"siguiente":{"type":"Alert","props":{"title":"Enviar la propuesta de «Membresías con CFDI»","message":"Luis Pérez · vence el 14 oct · después: esperar a Mariana Ruiz","type":"info","icon":"send","actions":[{"label":"Hecho y siguiente"},{"label":"Reprogramar"}]}},"datos":{"type":"KeyValue","props":{"items":[{"label":"Contacto","value":"Mariana Ruiz"},{"label":"Monto","value":"$180,000 MXN"},{"label":"Cierre estimado","value":"30 oct 2026"}],"columns":3}},"actividad":{"type":"ActivityFeed","props":{"variant":"recent","today":"2026-10-11","events":[{"id":"a1","kind":"status_update","at":"2026-10-10T17:00:00Z","subject":"Llamada de descubrimiento","actor":"Luis Pérez"}]}}}}
+```
+
+### inventory
+
+Inventario: existencias clave y tabla de productos con su estado.
+
+Inventario de un negocio: Stats (artículos, bajo mínimo, valor) y DataTable de productos con existencias, estado (status) y almacén. Los datos son del cliente, con su fecha de corte.
+
+```json
+{"root":"inventario","elements":{"inventario":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["cifras","tabla"]},"cifras":{"type":"Stats","props":{"items":[{"label":"Artículos","value":"1,284"},{"label":"Bajo mínimo","value":"37","tone":"negative"},{"label":"Valor","value":"$3.1 M","unit":"MXN"}]}},"tabla":{"type":"DataTable","props":{"columns":[{"key":"sku","header":"SKU","type":"text","secondaryKey":"name"},{"key":"stock","header":"Existencias","type":"number","sortable":true},{"key":"status","header":"Estado","type":"status"},{"key":"warehouse","header":"Almacén","type":"text","hideBelow":"md"}],"rows":[{"id":"i1","cells":{"sku":"CAF-250","name":"Coatepec 250 g","stock":420,"status":{"label":"Suficiente","tone":"success"},"warehouse":"Xalapa"}},{"id":"i2","cells":{"sku":"MOL-01","name":"Molino manual","stock":6,"status":{"label":"Bajo mínimo","tone":"warning"},"warehouse":"CDMX"}}],"search":"Buscar SKU…","pageSize":10}}}}
+```
+
+### agents-fleet
+
+Agentes de una operación: estado, tareas del día y última actividad.
+
+Panel de agentes: Stats de la flota y DataTable con cada agente (estado, tareas de hoy, última ejecución). No ejecuta ni detiene agentes: es una vista.
+
+```json
+{"root":"flota","elements":{"flota":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["cifras","agentes"]},"cifras":{"type":"Stats","props":{"items":[{"label":"Agentes activos","value":"6"},{"label":"Tareas hoy","value":"312"},{"label":"Fallas","value":"1","tone":"negative"}]}},"agentes":{"type":"DataTable","props":{"columns":[{"key":"name","header":"Agente","type":"text","secondaryKey":"role"},{"key":"status","header":"Estado","type":"status"},{"key":"tasks","header":"Tareas hoy","type":"number","sortable":true},{"key":"last","header":"Última ejecución","type":"date","hideBelow":"md"}],"rows":[{"id":"g1","cells":{"name":"Seguimiento","role":"Recordatorios a clientes","status":{"label":"Activo","tone":"success"},"tasks":128,"last":"2026-10-11"}},{"id":"g2","cells":{"name":"Conciliación","role":"Pagos contra facturas","status":{"label":"Con falla","tone":"danger"},"tasks":4,"last":"2026-10-10"}}],"pageSize":10}}}}
+```
+
+### ai-ops
+
+Operación de IA: uso, latencia y costo por día.
+
+Métricas de un producto con IA: Stats (solicitudes, latencia, costo) y Chart line por día. Sólo cifras que obtuviste, con su fecha de corte.
+
+```json
+{"root":"ops","elements":{"ops":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["cifras","uso"]},"cifras":{"type":"Stats","props":{"items":[{"label":"Solicitudes","value":"48,210","delta":"+9 %","trend":"up","tone":"positive"},{"label":"Latencia p95","value":"1.8 s"},{"label":"Costo","value":"$612","unit":"USD"}]}},"uso":{"type":"Chart","props":{"title":"Solicitudes por día","kind":"line","categories":["5 oct","6 oct","7 oct","8 oct","9 oct"],"series":[{"name":"Solicitudes","values":[8200,9100,9800,10400,10710]}],"unit":null}}}}
+```
+
+### analytics
+
+Analítica de producto: KPIs, tendencia, fuentes y páginas principales.
+
+Tablero de analítica: DashboardLayout con Stats en kpis, Chart area en main, BarList de fuentes en side y Table de páginas en footer.
+
+```json
+{"root":"tablero","elements":{"tablero":{"type":"DashboardLayout","props":{"regions":["kpis","main","side","footer"],"side":"narrow"},"children":["kpis","tendencia","fuentes","paginas"]},"kpis":{"type":"Stats","props":{"items":[{"label":"Visitas","value":"82,400"},{"label":"Conversión","value":"3.4 %"},{"label":"Rebote","value":"41 %"}]}},"tendencia":{"type":"Chart","props":{"title":"Visitas por semana","kind":"area","categories":["S1","S2","S3","S4"],"series":[{"name":"Visitas","values":[18200,19800,21400,23000]}]}},"fuentes":{"type":"BarList","props":{"items":[{"label":"Google","value":54},{"label":"Directo","value":28},{"label":"Redes","value":18}],"showPercent":true}},"paginas":{"type":"Table","props":{"columns":["Página","Visitas","Conversión"],"rows":[["/precios","12,400","6.1 %"],["/blog","9,800","1.2 %"]],"caption":"Páginas principales"}}}}
+```
+
+### billing
+
+Facturación de un SaaS del cliente: plan, consumo y facturas.
+
+Facturación de la app de un cliente: Card del plan con Progress de consumo y DataTable de facturas con su estado. Nunca datos bancarios para pagar, CLABE ni tarjetas (sólo Pai asegura los de Pai); para la facturación de Pai usa Payments.
+
+```json
+{"root":"facturacion","elements":{"facturacion":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["plan","facturas"]},"plan":{"type":"Card","props":{"title":"Plan Clínica","description":"$1,490 MXN al mes · renueva el 1 nov"},"children":["consumo"]},"consumo":{"type":"Progress","props":{"value":72,"label":"Citas del mes: 720 de 1,000"}},"facturas":{"type":"DataTable","props":{"columns":[{"key":"folio","header":"Folio","type":"text"},{"key":"date","header":"Fecha","type":"date","sortable":true},{"key":"amount","header":"Monto","type":"money","currency":"MXN"},{"key":"status","header":"Estado","type":"status"}],"rows":[{"id":"b1","cells":{"folio":"A-210","date":"2026-10-01","amount":149000,"status":{"label":"Pagada","tone":"success"}}},{"id":"b2","cells":{"folio":"A-198","date":"2026-09-01","amount":149000,"status":{"label":"Pagada","tone":"success"}}}],"pageSize":10}}}}
+```
+
+### users-admin
+
+Usuarios de una app: filtros, tabla de personas con rol y estado.
+
+Administración de usuarios de la app de un cliente: FilterBar y DataTable con persona, rol (status) y último acceso. Los botones no invitan ni cambian roles. Para los miembros de una organización de Pai usa OrganizationMembers.
+
+```json
+{"root":"usuarios","elements":{"usuarios":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["filtros","tabla"]},"filtros":{"type":"FilterBar","props":{"search":"Buscar persona…","filters":[{"label":"Rol","value":"Todos","options":["Todos","Administrador","Recepción"]}],"action":{"label":"Invitar","icon":"plus"}}},"tabla":{"type":"DataTable","props":{"columns":[{"key":"person","header":"Persona","type":"person"},{"key":"role","header":"Rol","type":"status"},{"key":"last","header":"Último acceso","type":"date","hideBelow":"md"}],"rows":[{"id":"u1","cells":{"person":{"name":"Marta Ruiz","secondary":"Dirección"},"role":{"label":"Administrador","tone":"info"},"last":"2026-10-11"}},{"id":"u2","cells":{"person":{"name":"Jorge Ramírez","secondary":"Sucursal Centro"},"role":{"label":"Recepción","tone":"neutral"},"last":"2026-10-09"}}],"pageSize":10}}}}
+```
+
+### dev-ops
+
+Despliegues: estado de ambientes, historial y registro de la última salida.
+
+Consola de releases: Stats por ambiente, Timeline de despliegues y CodeBlock con el registro (texto, sin secretos ni tokens).
+
+```json
+{"root":"despliegues","elements":{"despliegues":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["ambientes","historial","registro"]},"ambientes":{"type":"Stats","props":{"items":[{"label":"Producción","value":"v2.4.1"},{"label":"Staging","value":"v2.5.0-rc.2"},{"label":"Fallas esta semana","value":"0","tone":"positive"}]}},"historial":{"type":"Timeline","props":{"items":[{"date":"10 oct","title":"v2.4.1 en producción","status":"done"},{"date":"11 oct","title":"v2.5.0-rc.2 en staging","status":"current"},{"date":"14 oct","title":"v2.5.0 en producción","status":"upcoming"}]}},"registro":{"type":"CodeBlock","props":{"code":"✓ build 2m 14s\n✓ migraciones 3 aplicadas\n✓ health check 200","language":"text","title":"Despliegue v2.4.1"}}}}
+```
+
+### bookings
+
+Reservas: calendario de la semana y lista de citas del día.
+
+Agenda de reservas: SplitView con las citas del día (Item con hora y paciente) y EventCalendar en vista week. Mover citas no guarda nada.
+
+```json
+{"root":"reservas","elements":{"reservas":{"type":"SplitView","props":{"listWidth":"narrow"},"children":["hoy","calendario"]},"hoy":{"type":"Stack","props":{"direction":"vertical","gap":"sm"},"children":["r1","r2"]},"r1":{"type":"Item","props":{"title":"Limpieza dental","description":"Laura Gómez","meta":"10:00","variant":"outline"}},"r2":{"type":"Item","props":{"title":"Ortodoncia","description":"Pedro Ruiz","meta":"11:30","variant":"outline"}},"calendario":{"type":"EventCalendar","props":{"view":"week","date":"2026-10-12","events":[{"id":"e1","title":"Limpieza dental","start":"2026-10-12T10:00:00-06:00","end":"2026-10-12T11:00:00-06:00"},{"id":"e2","title":"Ortodoncia","start":"2026-10-12T11:30:00-06:00","end":"2026-10-12T12:30:00-06:00"}]}}}}
+```
+
+### files-drive
+
+Archivos: carpetas, lista de archivos y vista previa del elegido.
+
+Unidad de archivos: FilesLayout con Tree de carpetas, FileList y DetailSheet del archivo elegido. Nada se sube, descarga ni mueve.
+
+```json
+{"root":"archivos","elements":{"archivos":{"type":"FilesLayout","props":{"regions":["tree","list","preview"],"treeWidth":"medium"},"children":["carpetas","lista","previa"]},"carpetas":{"type":"Tree","props":{"items":[{"id":"docs","label":"Contratos","icon":"folder","children":[{"id":"c1","label":"2026","icon":"folder"}]},{"id":"fac","label":"Facturas","icon":"folder"}],"expanded":["docs"],"label":"Carpetas"}},"lista":{"type":"FileList","props":{"files":[{"id":"f1","name":"Contrato marco.pdf","kind":"pdf","size":"1.2 MB","owner":"Ana López","updated":"2026-10-02"},{"id":"f2","name":"Anexo técnico.docx","kind":"document","size":"320 KB","updated":"2026-09-28"}],"layout":"list"}},"previa":{"type":"DetailSheet","props":{"eyebrow":"PDF · 1.2 MB","title":"Contrato marco.pdf","description":"Subido por Ana López el 2 oct 2026","badges":[{"label":"Firmado","tone":"success"}]}}}}
+```
+
+### kpi-cards
+
+Tarjetas de KPI: cuadrícula de Card con métrica, tendencia y acción.
+
+Tarjetas sueltas de un tablero: Grid de Card, cada una con un Metric (valor, delta, trendLine) y una action. Para una fila compacta usa Stats.
+
+```json
+{"root":"tarjetas","elements":{"tarjetas":{"type":"Grid","props":{"columns":3,"gap":"md"},"children":["t1","t2","t3"]},"t1":{"type":"Card","props":{"title":"Ventas del mes","action":{"label":"Ver detalle"}},"children":["m1"]},"m1":{"type":"Metric","props":{"label":"Total","value":"$1.8 M","delta":"+12 %","trend":"up","tone":"positive","trendLine":[1.2,1.4,1.5,1.8]}},"t2":{"type":"Card","props":{"title":"Clientes nuevos"},"children":["m2"]},"m2":{"type":"Metric","props":{"label":"Este mes","value":"46","delta":"-3","trend":"down","tone":"negative"}},"t3":{"type":"Card","props":{"title":"Ticket promedio"},"children":["m3"]},"m3":{"type":"Metric","props":{"label":"MXN","value":"$39,100","detail":"vs. $36,800 en septiembre"}}}}
+```
+
+### app-shell
+
+Marco de la app de un cliente: barra lateral, título, usuario y contenido.
+
+La app de un cliente: AppShell (marca, navegación con la sección activa, título y usuario) con el contenido de la sección como hijo. Nada navega. Para pantallas de Pai usa PortalShell o ConsoleShell.
+
+```json
+{"root":"app","elements":{"app":{"type":"AppShell","props":{"brand":{"name":"Portenta","detail":"Ciclo de venta"},"nav":[{"label":"Dashboard","icon":"dashboard","active":true},{"label":"Ventas","icon":"file"},{"label":"Clientes","icon":"users"},{"label":"Ajustes","icon":"settings"}],"title":"Dashboard comercial","user":{"name":"Julio César Vega","detail":"Dirección Comercial"}},"children":["contenido"]},"contenido":{"type":"Stats","props":{"items":[{"label":"Ventas","value":"$1.8 M"},{"label":"Clientes","value":"312"},{"label":"Cierre","value":"28 %"}]}}}}
+```
+
+### auth-sign-in
+
+Acceso de maqueta: correo y enlace de acceso, sin contraseñas ni códigos.
+
+Pantalla de acceso a la app de un cliente: AuthLayout con la marca, un Stack con título y el campo de correo (maqueta deshabilitada: no envía nada) y un aside con una frase. Nunca pidas contraseña, PIN ni código de verificación; el acceso real es de la app.
+
+```json
+{"root":"acceso","elements":{"acceso":{"type":"AuthLayout","props":{"regions":["brand","form","aside"],"asideSide":"end"},"children":["marca","formulario","lado"]},"marca":{"type":"Heading","props":{"text":"Portenta","level":"h2"}},"formulario":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["titulo","detalle","correo","entrar"]},"correo":{"type":"Input","props":{"label":"Correo","placeholder":"nombre@empresa.com","type":"email"}},"entrar":{"type":"Button","props":{"label":"Enviar enlace","variant":"default"}},"lado":{"type":"Text","props":{"text":"Tu ciclo de venta en un solo lugar.","variant":"lead"}},"titulo":{"type":"Heading","props":{"text":"Entra a Portenta","level":"h2"}},"detalle":{"type":"Text","props":{"text":"Te enviamos un enlace de acceso a tu correo."}}}}
+```
+
+### settings
+
+Ajustes: secciones a la izquierda y formulario de maqueta a la derecha.
+
+Ajustes de una app: SettingsLayout con la lista de secciones (Item, la activa en variant muted) en nav y un FormLayout de maqueta en main (todo deshabilitado, no guarda nada).
+
+```json
+{"root":"ajustes","elements":{"ajustes":{"type":"SettingsLayout","props":{"regions":["nav","main"],"navWidth":"medium"},"children":["secciones","formulario"]},"secciones":{"type":"Stack","props":{"direction":"vertical","gap":"sm"},"children":["s1","s2","s3"]},"s1":{"type":"Item","props":{"title":"General","icon":"settings","variant":"muted"}},"s2":{"type":"Item","props":{"title":"Notificaciones","icon":"bell"}},"s3":{"type":"Item","props":{"title":"Equipo","icon":"users"}},"formulario":{"type":"FormLayout","props":{"regions":["intro","fields","actions"],"columns":1},"children":["titulo","campos","guardar"]},"titulo":{"type":"Heading","props":{"text":"General","level":"h2"}},"campos":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["nombre","zona"]},"nombre":{"type":"Input","props":{"label":"Nombre de la empresa","placeholder":"Portenta","type":"text"}},"zona":{"type":"Select","props":{"label":"Zona horaria","options":[{"label":"Ciudad de México","value":"mx"},{"label":"Bogotá","value":"co"}],"value":"mx"}},"guardar":{"type":"Button","props":{"label":"Guardar cambios","variant":"default"}}}}
+```
+
+### confirm-dialog
+
+Diálogo de confirmación dibujado en su lugar, con lo que cambia.
+
+Maqueta de una confirmación: DialogFrame (tone destructive para borrar) con un KeyValue de lo que se afecta y sus actions decorativas. No se abre encima de la página.
+
+```json
+{"root":"dialogo","elements":{"dialogo":{"type":"DialogFrame","props":{"title":"¿Cancelar la suscripción?","description":"La clínica deja de recibir citas en línea al terminar el periodo.","tone":"destructive","actions":[{"label":"Cancelar suscripción"},{"label":"Volver"}],"size":"md"},"children":["efecto"]},"efecto":{"type":"KeyValue","props":{"items":[{"label":"Último día","value":"31 oct 2026"},{"label":"Citas futuras","value":"84"}],"columns":2}}}}
+```
+
+### empty-state
+
+Vacío de una sección: icono, mensaje, acciones y una muestra de lo que vendrá.
+
+Primera vez en una sección: EmptyLayout con IconTile en visual, Heading y Text en message, Button en actions y un Skeleton en preview. Para un vacío simple usa EmptyState.
+
+```json
+{"root":"vacio","elements":{"vacio":{"type":"EmptyLayout","props":{"regions":["visual","message","actions","preview"],"layout":"centered"},"children":["icono","mensaje","accion","muestra"]},"icono":{"type":"IconTile","props":{"icon":"receipt","tone":"info","variant":"soft","label":"Facturas"}},"mensaje":{"type":"Stack","props":{"direction":"vertical","gap":"sm","align":"center"},"children":["titulo","texto"]},"titulo":{"type":"Heading","props":{"text":"Aún no hay facturas","level":"h2"}},"texto":{"type":"Text","props":{"text":"Cuando emitas la primera, aparecerá aquí con su estado."}},"accion":{"type":"Button","props":{"label":"Emitir factura","variant":"default","icon":"plus"}},"muestra":{"type":"Skeleton","props":{"shape":"list","rows":3}}}}
+```
+
+### navbar
+
+Barra superior: migas, menú de navegación y acciones de la página.
+
+Chrome superior de una pantalla: PageBar (migas y acciones) y NavigationMenu con submenús. Los href sólo a rutas del Portal o https; nada navega fuera de ellos.
+
+```json
+{"root":"barra","elements":{"barra":{"type":"Stack","props":{"direction":"vertical","gap":"sm"},"children":["migas","menu"]},"migas":{"type":"PageBar","props":{"breadcrumb":[{"label":"Clientes"},{"label":"Grupo Lumen"}],"actions":["Exportar"]}},"menu":{"type":"NavigationMenu","props":{"items":[{"label":"Resumen","href":"/organization/projects"},{"label":"Ventas","items":[{"label":"Oportunidades","description":"Lo que está en negociación."},{"label":"Cerradas","description":"Ganadas y perdidas."}]}]}}}}
+```
+
+### form
+
+Formulario de maqueta: introducción, campos en dos columnas y acciones.
+
+Captura de datos como maqueta: FormLayout columns 2 (todo deshabilitado, no envía ni guarda) con Heading y Text en intro, campos (Input, Select, Textarea, Checkbox) y Button en actions. Sin campos sensibles.
+
+```json
+{"root":"formulario","elements":{"formulario":{"type":"FormLayout","props":{"regions":["intro","fields","actions"],"columns":2},"children":["intro","campos","acciones"]},"intro":{"type":"Heading","props":{"text":"Nuevo cliente","level":"h2"}},"campos":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["nombre","giro","notas","aviso"]},"nombre":{"type":"Input","props":{"label":"Razón social","placeholder":"Grupo Lumen S.A. de C.V.","type":"text"}},"giro":{"type":"Select","props":{"label":"Giro","options":[{"label":"Salud","value":"health"},{"label":"Comercio","value":"retail"}],"value":"health"}},"notas":{"type":"Textarea","props":{"label":"Notas","placeholder":"Cómo nos conoció…"}},"aviso":{"type":"Checkbox","props":{"label":"Acepta recibir novedades","checked":false}},"acciones":{"type":"Button","props":{"label":"Guardar cliente","variant":"default"}}}}
+```
+
+### board
+
+Tablero de trabajo: columnas por estado con tarjetas y filtros.
+
+Tablero de tickets o tareas: BoardLayout con FilterBar en toolbar y Kanban en board (columnas por estado, tarjetas con responsable, badges y vencimiento). Para las tareas de un proyecto de Pai usa TaskBoard.
+
+```json
+{"root":"tablero","elements":{"tablero":{"type":"BoardLayout","props":{"regions":["toolbar","board"]},"children":["filtros","columnas"]},"filtros":{"type":"FilterBar","props":{"search":"Buscar ticket…","filters":[{"label":"Prioridad","value":"Todas","options":["Todas","Alta","Media"]}],"action":{"label":"Nuevo ticket","icon":"plus"}}},"columnas":{"type":"Kanban","props":{"columns":[{"id":"todo","title":"Por hacer"},{"id":"doing","title":"En curso","tone":"info"},{"id":"done","title":"Hecho","tone":"success"}],"cards":[{"id":"k1","column":"todo","title":"Error al exportar CSV","badges":[{"label":"Alta","tone":"danger"}],"owner":"Luis Pérez"},{"id":"k2","column":"doing","title":"Filtro por sucursal","owner":"Ana López","due":"2026-10-15"},{"id":"k3","column":"done","title":"Recordatorio por correo"}]}}}}
+```
+
+### profile
+
+Perfil de una persona: encabezado, datos de contacto y actividad.
+
+Perfil en la app de un cliente: DetailLayout con PageHeader (nombre, puesto, estado), KeyValue de datos en main y ActivityFeed en aside. Sin datos sensibles (identificaciones, cuentas).
+
+```json
+{"root":"perfil","elements":{"perfil":{"type":"DetailLayout","props":{"regions":["header","main","aside"]},"children":["encabezado","datos","actividad"]},"encabezado":{"type":"PageHeader","props":{"icon":"user","title":"Mariana Ruiz","description":"Coordinadora de compras · Clínica Santa Fe","badges":[{"label":"Cliente activo","tone":"success"}]}},"datos":{"type":"KeyValue","props":{"items":[{"label":"Correo","value":"mariana@santafe.mx"},{"label":"Teléfono","value":"+52 222 555 0142"},{"label":"Ciudad","value":"Puebla"}],"columns":3}},"actividad":{"type":"ActivityFeed","props":{"variant":"recent","today":"2026-10-11","events":[{"id":"a1","kind":"status_update","at":"2026-10-10T17:00:00Z","subject":"Revisó la propuesta","actor":"Mariana Ruiz"}]}}}}
+```
+
+### schedule
+
+Agenda del día: calendario en vista de día y pendientes al lado.
+
+Agenda personal o de equipo: SplitView con un Checklist de pendientes y EventCalendar view day. Nada se agenda de verdad.
+
+```json
+{"root":"agenda","elements":{"agenda":{"type":"SplitView","props":{"listWidth":"narrow"},"children":["pendientes","dia"]},"pendientes":{"type":"Checklist","props":{"items":[{"label":"Confirmar reunión con Lumen","status":"done"},{"label":"Enviar propuesta a Santa Fe","status":"pending"}]}},"dia":{"type":"EventCalendar","props":{"view":"day","date":"2026-10-12","events":[{"id":"e1","title":"Reunión con Grupo Lumen","start":"2026-10-12T10:00:00-06:00","end":"2026-10-12T11:00:00-06:00"},{"id":"e2","title":"Revisión semanal","start":"2026-10-12T16:00:00-06:00","end":"2026-10-12T17:00:00-06:00"}]}}}}
+```
+
+### onboarding
+
+Primeros pasos: avance de la configuración y lista de tareas.
+
+Bienvenida a una app: Card con Progress del avance y un Checklist de lo que falta configurar (con detalle), más un Button inerte para seguir.
+
+```json
+{"root":"bienvenida","elements":{"bienvenida":{"type":"Card","props":{"title":"Bienvenida, Marta","description":"Te faltan 2 pasos para recibir citas en línea."},"children":["avance","pasos","seguir"]},"avance":{"type":"Progress","props":{"value":60,"label":"Configuración"}},"pasos":{"type":"Checklist","props":{"items":[{"label":"Crear la cuenta","status":"done"},{"label":"Agregar sucursales","status":"done"},{"label":"Cargar horarios","status":"pending","detail":"Horario de cada doctor."},{"label":"Compartir el enlace","status":"pending"}]}},"seguir":{"type":"Button","props":{"label":"Cargar horarios","variant":"default"}}}}
+```
+
+### activity-timeline
+
+Cronología de un registro: hitos con fecha, estado y descripción.
+
+Historia de un pedido, proyecto o cuenta: Card con Timeline (fecha, título, descripción y estado done, current o upcoming). Para la actividad reciente de Pai usa ActivityFeed.
+
+```json
+{"root":"historia","elements":{"historia":{"type":"Card","props":{"title":"Historia del pedido #1042"},"children":["linea"]},"linea":{"type":"Timeline","props":{"items":[{"date":"9 oct","title":"Pedido recibido","status":"done"},{"date":"10 oct","title":"Enviado","description":"Paquetería Estafeta.","status":"done"},{"date":"12 oct","title":"En reparto","status":"current"},{"date":"13 oct","title":"Entregado","status":"upcoming"}]}}}}
+```
+
+### wizard
+
+Asistente por pasos de maqueta: etapas arriba, campos y acciones.
+
+Tarea en pasos (alta, facturación, proveedor) como maqueta: WizardLayout con Stages (el paso actual) en steps, los campos en un Stack en main (deshabilitados) y Button en actions. No avanza ni envía nada.
+
+```json
+{"root":"asistente","elements":{"asistente":{"type":"WizardLayout","props":{"regions":["steps","main","actions"],"orientation":"top"},"children":["pasos","paso","acciones"]},"pasos":{"type":"Stages","props":{"items":[{"label":"Datos","status":"done"},{"label":"Alcance","status":"current"},{"label":"Confirmar","status":"upcoming"}]}},"paso":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["modulos","fecha"]},"modulos":{"type":"Select","props":{"label":"Módulos","options":[{"label":"Agenda","value":"agenda"},{"label":"Agenda y reportes","value":"full"}],"value":"full"}},"fecha":{"type":"Input","props":{"label":"Fecha de arranque","placeholder":"3 nov 2026","type":"text"}},"acciones":{"type":"Button","props":{"label":"Siguiente","variant":"default"}}}}
+```
+
+### calendar
+
+Calendario del mes con eventos de día completo y con horario.
+
+Calendario de un equipo o proyecto: PageHeader y EventCalendar view month. Mover o crear eventos no guarda nada.
+
+```json
+{"root":"calendario","elements":{"calendario":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["encabezado","mes"]},"encabezado":{"type":"PageHeader","props":{"title":"Calendario de noviembre","description":"Revisiones y entregas del equipo.","level":"h2"}},"mes":{"type":"EventCalendar","props":{"view":"month","date":"2026-11-01","events":[{"id":"e1","title":"Revisión de diseño","start":"2026-11-04T10:00:00-06:00","end":"2026-11-04T11:00:00-06:00"},{"id":"e2","title":"Entrega de wireframes","start":"2026-11-06","end":"2026-11-06","allDay":true}]}}}}
+```
+
+### editor
+
+Editor de documentos de maqueta: barra de formato inerte e índice.
+
+Maqueta de un editor de texto: DocLayout con encabezado, índice (List) y en content una ButtonGroup de formato con botones deshabilitados y el texto del documento. No se edita ni guarda nada.
+
+```json
+{"root":"editor","elements":{"editor":{"type":"DocLayout","props":{"regions":["header","toc","content"],"tocWidth":"narrow"},"children":["titulo","indice","contenido"]},"titulo":{"type":"Heading","props":{"text":"Política de devoluciones","level":"h1"}},"indice":{"type":"List","props":{"items":["Plazos","Condiciones","Reembolsos"],"ordered":false}},"contenido":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["formato","cuerpo"]},"formato":{"type":"ButtonGroup","props":{"orientation":"horizontal"},"children":["b1","b2","b3"]},"b1":{"type":"Button","props":{"label":"Negritas","variant":"outline","size":"sm","disabled":true}},"b2":{"type":"Button","props":{"label":"Cursivas","variant":"outline","size":"sm","disabled":true}},"b3":{"type":"Button","props":{"label":"Lista","variant":"outline","size":"sm","disabled":true}},"cuerpo":{"type":"Text","props":{"text":"Aceptamos devoluciones dentro de los 30 días siguientes a la entrega, con el empaque original."}}}}
+```
+
+### flow
+
+Flujo de un proceso dibujado como etapas y notas, sin lienzo editable.
+
+Un proceso o una lluvia de ideas como maqueta estática (reUI flow y whiteboard son lienzos editables, que una vista no tiene): Stages con las etapas y un Grid de Card como notas. Para diagramas de Knowledge usa C4Diagram o ErdDiagram.
+
+```json
+{"root":"flujo","elements":{"flujo":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["etapas","notas"]},"etapas":{"type":"Stages","props":{"items":[{"label":"Solicitud","status":"done"},{"label":"Aprobación","status":"current"},{"label":"Compra","status":"upcoming"},{"label":"Recepción","status":"upcoming"}]}},"notas":{"type":"Grid","props":{"columns":3,"gap":"sm"},"children":["n1","n2","n3"]},"n1":{"type":"Card","props":{"title":"¿Quién aprueba?","description":"Compras arriba de $50,000."}},"n2":{"type":"Card","props":{"title":"Proveedores","description":"Sólo del catálogo vigente."}},"n3":{"type":"Card","props":{"title":"Idea","description":"Avisar al solicitante en cada paso."}}}}
+```
+
+### gantt
+
+Plan en Gantt: fases, tareas con avance, dependencias e hito.
+
+Cronograma de un proyecto: PageHeader y Gantt (recursos agrupados, barras con progress, dependencies y un milestone). Mover barras no guarda nada; para un proyecto de Pai usa MilestoneTimeline.
+
+```json
+{"root":"plan","elements":{"plan":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["encabezado","cronograma"]},"encabezado":{"type":"PageHeader","props":{"title":"Plan de implementación","description":"Noviembre y diciembre de 2026.","level":"h2"}},"cronograma":{"type":"Gantt","props":{"resources":[{"id":"diseno","title":"Diseño","children":[{"id":"wireframes","title":"Wireframes"}]},{"id":"desarrollo","title":"Desarrollo","children":[{"id":"api","title":"API de pedidos"}]}],"events":[{"id":"e1","title":"Wireframes","resourceId":"wireframes","start":"2026-11-02","end":"2026-11-13","progress":100},{"id":"e2","title":"API de pedidos","resourceId":"api","start":"2026-11-16","end":"2026-12-11","progress":20,"dependencies":["e1"]},{"id":"e3","title":"Entrega","resourceId":"api","start":"2026-12-14","end":"2026-12-14","milestone":true}],"scale":"month","date":"2026-11-02"}}}}
+```
+
+### chart-bar
+
+Barras: comparación por categoría, agrupadas o apiladas, con su KPI.
+
+Panel de barras: Card con un Metric del total y Chart kind bar (series lado a lado o stacked; orientation horizontal para rankings).
+
+```json
+{"root":"panel","elements":{"panel":{"type":"Card","props":{"title":"Ventas por región"},"children":["total","barras"]},"total":{"type":"Metric","props":{"label":"Total del trimestre","value":"$8.9 M","unit":"MXN"}},"barras":{"type":"Chart","props":{"kind":"bar","categories":["Jul","Ago","Sep"],"series":[{"name":"Norte","values":[1.2,1.4,1.5]},{"name":"Centro","values":[0.9,1.1,1]}],"stacked":true,"unit":"M MXN","title":"Ventas por mes"}}}}
+```
+
+### chart-line
+
+Líneas: tendencia de una o varias series en el tiempo.
+
+Tendencia en el tiempo: Chart kind line con una serie por línea, título y unidad. Escribe la fecha de corte en description.
+
+```json
+{"root":"linea","elements":{"linea":{"type":"Chart","props":{"title":"Citas por semana","description":"Al 11 oct 2026.","kind":"line","categories":["S36","S37","S38","S39","S40"],"series":[{"name":"Centro","values":[210,224,231,240,252]},{"name":"Norte","values":[150,149,160,171,168]}]}}}}
+```
+
+### chart-area
+
+Áreas: volumen acumulado por serie, apilado.
+
+Volumen en el tiempo: Chart kind area, stacked para ver el total y la parte de cada serie.
+
+```json
+{"root":"area","elements":{"area":{"type":"Chart","props":{"title":"Usuarios activos por plan","kind":"area","categories":["Jun","Jul","Ago","Sep"],"series":[{"name":"Básico","values":[320,340,360,380]},{"name":"Clínica","values":[120,150,170,210]}],"stacked":true}}}}
+```
+
+### chart-pie
+
+Pastel: reparto de un total en pocas porciones, con su lista.
+
+Reparto de un total: Grid con Chart kind pie (una sola serie, 2 a 6 porciones) y BarList con los mismos datos para leer los valores.
+
+```json
+{"root":"reparto","elements":{"reparto":{"type":"Grid","props":{"columns":2,"gap":"md"},"children":["pastel","lista"]},"pastel":{"type":"Chart","props":{"title":"Ingresos por canal","kind":"pie","categories":["Tienda","En línea","Mayoreo"],"series":[{"name":"Ingresos","values":[48,37,15]}],"unit":"%"}},"lista":{"type":"BarList","props":{"items":[{"label":"Tienda","value":48},{"label":"En línea","value":37},{"label":"Mayoreo","value":15}],"showPercent":true}}}}
+```
+
+### chart-radial
+
+Radiales: avance de metas en anillos, con descripción.
+
+Avance contra metas: Grid de ProgressRing (valor 0 a 100, etiqueta y descripción).
+
+```json
+{"root":"metas","elements":{"metas":{"type":"Grid","props":{"columns":3,"gap":"md"},"children":["r1","r2","r3"]},"r1":{"type":"ProgressRing","props":{"label":"Meta de ventas","value":72,"description":"$1.8 M de $2.5 M"}},"r2":{"type":"ProgressRing","props":{"label":"Cobranza","value":88,"description":"Al día"}},"r3":{"type":"ProgressRing","props":{"label":"Encuestas","value":41,"description":"Faltan 59 respuestas"}}}}
+```
+
+### status-tracker
+
+Disponibilidad: servicios por día en un mapa de calor y su KPI.
+
+Estado de servicios: Metric de disponibilidad y Heatmap con un servicio por fila y un día por columna (porcentaje de disponibilidad).
+
+```json
+{"root":"estado","elements":{"estado":{"type":"Stack","props":{"direction":"vertical","gap":"md"},"children":["disponibilidad","mapa"]},"disponibilidad":{"type":"Metric","props":{"label":"Disponibilidad de 7 días","value":"99.92 %","tone":"positive"}},"mapa":{"type":"Heatmap","props":{"title":"Disponibilidad por día","rows":["API","Portal","Pagos"],"columns":["5","6","7","8","9","10","11"],"values":[[100,100,99,100,100,100,100],[100,100,100,100,98,100,100],[100,100,100,100,100,100,99]],"unit":"%"}}}}
+```
+
+### sparklines
+
+Miniaturas de tendencia: métricas con su trendLine en fila.
+
+KPIs con su tendencia breve: Stats con trendLine por elemento (5 a 12 puntos). Para una sola cifra, Metric con trendLine.
+
+```json
+{"root":"mini","elements":{"mini":{"type":"Stats","props":{"items":[{"label":"Ventas","value":"$1.8 M","trendLine":[1.1,1.3,1.2,1.5,1.8],"trend":"up","tone":"positive","delta":"+12 %"},{"label":"Devoluciones","value":"2.1 %","trendLine":[3,2.8,2.6,2.4,2.1],"trend":"down","tone":"positive","delta":"-0.3 pts"},{"label":"Tiempo de entrega","value":"2.4 días","trendLine":[2.1,2.2,2.6,2.5,2.4]}]}}}}
+```
+
+### grouped-table
+
+Tabla agrupada: filas por grupo con subtotales, expandibles.
+
+Datos agrupados (por etapa, región o cuenta): TreeTable con una fila por grupo (su subtotal) y sus filas hijas, expanded top o all, search y totals. Expandir no cambia datos.
+
+```json
+{"root":"agrupada","elements":{"agrupada":{"type":"TreeTable","props":{"columns":[{"key":"name","header":"Región / cliente","type":"text"},{"key":"owner","header":"Responsable","type":"person","hideBelow":"md"},{"key":"amount","header":"Monto","type":"money","currency":"MXN","sortable":true}],"rows":[{"id":"norte","cells":{"name":"Norte","amount":60500000},"children":[{"id":"lumen","cells":{"name":"Grupo Lumen","owner":{"name":"Ana López"},"amount":42000000}},{"id":"alba","cells":{"name":"Constructora Alba","owner":{"name":"Ana López"},"amount":18500000}}]},{"id":"centro","cells":{"name":"Centro","amount":9900000},"children":[{"id":"nandu","cells":{"name":"Ñandú Logística","owner":{"name":"Luis Pérez"},"amount":9900000}}]}],"expanded":"top","search":"Buscar cliente…","totals":{"label":"Total","cells":{"amount":70400000}}}}}}
+```
+
+### filtered-table
+
+Tabla con filtros: búsqueda, filtros por columna y vacío al filtrar.
+
+Registros filtrables: DataTable con search, filters por columnas de status y un empty propio. Filtrar ocurre dentro de la vista, sobre las filas que escribiste.
+
+```json
+{"root":"tabla","elements":{"tabla":{"type":"DataTable","props":{"columns":[{"key":"ticket","header":"Ticket","type":"text","secondaryKey":"client"},{"key":"priority","header":"Prioridad","type":"status","sortable":true},{"key":"status","header":"Estado","type":"status"},{"key":"opened","header":"Abierto","type":"date","sortable":true,"hideBelow":"sm"}],"rows":[{"id":"t1","cells":{"ticket":"Error al exportar CSV","client":"Grupo Lumen","priority":{"label":"Alta","tone":"danger"},"status":{"label":"Abierto","tone":"info"},"opened":"2026-10-09"}},{"id":"t2","cells":{"ticket":"Cambio de logotipo","client":"Ñandú Logística","priority":{"label":"Baja","tone":"neutral"},"status":{"label":"En curso","tone":"progress"},"opened":"2026-10-07"}}],"search":"Buscar ticket…","filters":[{"key":"priority","title":"Prioridad"},{"key":"status","title":"Estado"}],"defaultSort":{"key":"opened","desc":true},"pageSize":10,"empty":{"title":"Ningún ticket con esos filtros","icon":"filter"}}}}}
+```
+
+### paged-table
+
+Tabla larga: paginada y con selección, en lugar de virtualizada.
+
+Muchos registros: una vista no virtualiza (sus filas son las que escribes), así que muestra una página representativa con DataTable pageSize, selectable y selectionSummary, y escribe el total real en un Text.
+
+```json
+{"root":"larga","elements":{"larga":{"type":"Stack","props":{"direction":"vertical","gap":"sm"},"children":["total","tabla"]},"total":{"type":"Text","props":{"text":"12,480 movimientos al 11 oct 2026; se muestran los primeros.","variant":"muted"}},"tabla":{"type":"DataTable","props":{"columns":[{"key":"ref","header":"Referencia","type":"text"},{"key":"date","header":"Fecha","type":"date","sortable":true},{"key":"amount","header":"Monto","type":"money","currency":"MXN","sortable":true}],"rows":[{"id":"m1","cells":{"ref":"MOV-12480","date":"2026-10-11","amount":125000}},{"id":"m2","cells":{"ref":"MOV-12479","date":"2026-10-11","amount":89000}},{"id":"m3","cells":{"ref":"MOV-12478","date":"2026-10-10","amount":240000}}],"pageSize":25,"selectable":true,"selectionSummary":true}}}}
+```
+
+### reorder-list
+
+Prioridades reordenables: lista con asas y su contexto.
+
+Ordenar por arrastre (prioridades, cola, pasos): Card con Sortable strategy vertical (id, label y description por elemento). El orden cambia sólo dentro de la vista; nada se guarda.
+
+```json
+{"root":"prioridades","elements":{"prioridades":{"type":"Card","props":{"title":"Prioridades del sprint","description":"Arrastra para ordenar; el primero va primero."},"children":["lista"]},"lista":{"type":"Sortable","props":{"strategy":"vertical","items":[{"id":"a","label":"Exportar a CSV","description":"Grupo Lumen lo pidió"},{"id":"b","label":"Filtro por sucursal","description":"Recepción"},{"id":"c","label":"Recordatorio por WhatsApp","description":"Comercial"}]}}}}
+```
+
+### editable-table
+
+Tabla en edición de maqueta: una fila con sus celdas como campos.
+
+Cómo se vería editar en línea: DataTable con una fila editing (las keys de sus celdas en edición, cada una un campo deshabilitado) y el resto de lectura. Nada se edita ni guarda.
+
+```json
+{"root":"edicion","elements":{"edicion":{"type":"DataTable","props":{"columns":[{"key":"product","header":"Producto","type":"text"},{"key":"price","header":"Precio","type":"money","currency":"MXN"},{"key":"stock","header":"Existencias","type":"number"}],"rows":[{"id":"e1","cells":{"product":"Coatepec 250 g","price":22000,"stock":420},"editing":["price","stock"]},{"id":"e2","cells":{"product":"Huatusco 250 g","price":24000,"stock":180}}],"search":null,"filters":null,"defaultSort":null,"pageSize":null,"selectable":null,"empty":null,"toolbarAction":null}}}}
+```
+
+### column-groups
+
+Columnas agrupadas y ocultables: encabezados por grupo y menú «Columnas».
+
+Tabla ancha: DataTable con columnGroups (columnas contiguas bajo un encabezado) y hiddenColumns (ocultas al abrir; el menú «Columnas» las muestra).
+
+```json
+{"root":"columnas","elements":{"columnas":{"type":"DataTable","props":{"columns":[{"key":"branch","header":"Sucursal","type":"text"},{"key":"q3","header":"T3","type":"money","currency":"MXN"},{"key":"q4","header":"T4","type":"money","currency":"MXN"},{"key":"visits","header":"Visitas","type":"number"},{"key":"conv","header":"Conversión","type":"percent"}],"rows":[{"id":"b1","cells":{"branch":"Centro","q3":120000000,"q4":134000000,"visits":4200,"conv":3.4}},{"id":"b2","cells":{"branch":"Norte","q3":98000000,"q4":101000000,"visits":3100,"conv":2.9}}],"columnGroups":[{"header":"Ventas","keys":["q3","q4"]},{"header":"Tráfico","keys":["visits","conv"]}],"hiddenColumns":["conv"],"search":null,"filters":null,"defaultSort":null,"pageSize":null,"selectable":null,"empty":null,"toolbarAction":null}}}}
+```
+
+### pinned-footer-table
+
+Tabla avanzada: filas fijadas arriba y fila de totales al pie.
+
+Seguimiento con referencias fijas: DataTable con rows pinned (siguen en cada página), footer con los totales por columna y paginación.
+
+```json
+{"root":"avanzada","elements":{"avanzada":{"type":"DataTable","props":{"columns":[{"key":"client","header":"Cliente","type":"text"},{"key":"status","header":"Estado","type":"status"},{"key":"amount","header":"Monto","type":"money","currency":"MXN","sortable":true}],"rows":[{"id":"p1","cells":{"client":"Meta del mes","status":{"label":"Referencia","tone":"info"},"amount":250000000},"pinned":true},{"id":"r1","cells":{"client":"Grupo Lumen","status":{"label":"Ganada","tone":"success"},"amount":42000000}},{"id":"r2","cells":{"client":"Ñandú Logística","status":{"label":"Negociación","tone":"progress"},"amount":18500000}}],"footer":{"label":"Total cerrado","cells":{"amount":42000000}},"search":null,"filters":null,"defaultSort":null,"pageSize":10,"selectable":null,"empty":null,"toolbarAction":null}}}}
+```
+
+### chart-composed
+
+Gráfica compuesta: barras de un valor y línea de su meta.
+
+Real contra meta: Chart kind composed con una serie en barras (type bar) y otra en línea (type line). stacked apila sólo las barras.
+
+```json
+{"root":"compuesta","elements":{"compuesta":{"type":"Chart","props":{"title":"Ventas contra meta","kind":"composed","categories":["Jul","Ago","Sep","Oct"],"series":[{"name":"Ventas","type":"bar","values":[1.4,1.6,1.8,1.7]},{"name":"Meta","type":"line","values":[1.5,1.6,1.7,1.9]}],"unit":"M MXN"}}}}
 ```
 
 ## Ejemplo del catálogo

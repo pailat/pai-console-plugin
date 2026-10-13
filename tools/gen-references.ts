@@ -259,7 +259,10 @@ function schemaType(schema: JsonSchema): string {
 	return `${Array.isArray(schema.type) ? schema.type.join("|") : (schema.type ?? "any")}${suffix}`;
 }
 
-const views = PAGE_CATALOG.views;
+// The catalog prose left PAGE_CATALOG (ATE-162/163); describeViewCatalog is the source.
+const views =
+	PAGE_CATALOG.views ??
+	(await import(join(contracts, "views/catalog.ts"))).describeViewCatalog();
 const viewLines: string[] = [
 	header(`Catálogo de vistas \`${views.catalog}\``, "packages/views/src/catalog.ts"),
 	`Formato: ${views.format}`,

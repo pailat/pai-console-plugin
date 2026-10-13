@@ -66,6 +66,8 @@ SEARCH_BEFORE_CREATE = {
     "organization_create": ("organization_list",),
     "product_create": ("product_list",),
     "agent_create": ("agent_list",),
+    "crm_lead_create": ("crm_lead_duplicates", "crm_lead_list"),
+    "crm_opportunity_create": ("crm_organization_get", "crm_opportunity_list"),
 }
 
 # Irreversible writes: what the confirmation must say they drag along.
@@ -87,6 +89,8 @@ IRREVERSIBLE = {
     "agent_delete": "Borra el agente del proyecto para siempre (para retirarlo usa status archived).",
     "knowledge_unlink": "Borra la arista entre los nodos.",
     "file_delete": "Borra el archivo de Recursos.",
+    "crm_lead_purge": "Borra en duro el lead con sus tareas e historial; solo queda una lápida en la auditoría.",
+    "crm_opportunity_win": "Gana la oportunidad: fija la propuesta aceptada, convierte el lead, activa la cuenta y pasa el proyecto a planeado.",
 }
 
 # High-impact but reversible (or outward-facing) writes.
@@ -97,6 +101,14 @@ ATTENTION = {
     "knowledge_archive": "Archiva el nodo (reversible con knowledge_revive).",
     "organization_create": "Crea una organización nueva (con ownerEmail envía una invitación).",
     "project_invite_client": "Envía una invitación por correo a la persona del cliente.",
+    "crm_lead_create": "Crea el lead y avisa por correo al responsable o al equipo.",
+    "crm_lead_qualify": "Califica el lead: siembra nodos en Conocimiento y crea la primera oportunidad.",
+    "crm_lead_workspace_open": "Crea o liga la organización del lead y abre su proyecto; no se re-liga después.",
+    "crm_lead_workspace_join": "Te agrega como admin de la organización del cliente; queda auditado.",
+    "project_close": "Deja el proyecto en solo lectura para todos hasta que se reabra.",
+    "organization_member_remove": "Quita a la persona de la organización del cliente.",
+    "organization_member_role_set": "Cambia el rol de una persona en la organización del cliente.",
+    "organization_invitation_cancel": "Invalida el enlace de invitación que ya recibió la persona.",
     "organization_slug_set": "Cambia la URL de la organización en el Portal; la anterior redirige y no se puede reutilizar.",
     "project_slug_set": "Cambia la URL del proyecto en el Portal; la anterior redirige.",
     "organization_theme_publish": "Publica el tema de marca; el cliente lo ve en Portal y vistas desde su siguiente carga.",

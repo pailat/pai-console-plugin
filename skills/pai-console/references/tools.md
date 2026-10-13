@@ -1,6 +1,6 @@
 # Inventario de tools del MCP corp de Pai (0.2.5+)
 
-**Fuente:** pai-portal `feat/0.2.5/reui` (`apps/api/src/modules/mcp/tools/*.ts`).
+**Fuente:** pai-portal `feat/0.2.5/reui` (incluye CRM-1..4) (`apps/api/src/modules/mcp/tools/*.ts`).
 
 Las tools declaran sus anotaciones, y la guarda las lee de `hooks/tools.json`, que se genera desde el servidor. Todas las tools de proyecto reciben `organizationId` y `projectId`.
 
@@ -18,6 +18,13 @@ Las tools declaran sus anotaciones, y la guarda las lee de `hooks/tools.json`, q
 | `organization_get` | L | Miembros, invitaciones y proyectos |
 | `organization_create` | E | Quien llama entra como admin; con `ownerEmail` envía una invitación |
 | `organization_slug_set` | E | Staff. Cambia el slug de la organización en las URLs del Portal; el anterior redirige y no se reutiliza |
+| `organization_update` | E | Nombre visible o logo (`logo` = `fileKey` de `organization_logo_upload_url`, "" lo quita); el slug no cambia |
+| `organization_logo_upload_url` | E | URL firmada para el PUT del logo de la organización (PNG ≤10 MB); no es el logo del tema |
+| `organization_member_role_set` | E | owner, admin o member (`memberId` de `organization_get`); nunca deja la organización sin owner |
+| `organization_member_remove` | E | Quita al miembro y libera su asiento; no quita al último owner |
+| `organization_invitation_cancel` | E | El enlace del correo deja de servir |
+| `me_profile_update` | E | Tu nombre visible o tu foto (`image` = `fileKey` de `me_avatar_upload_url`) |
+| `me_avatar_upload_url` | E | URL firmada para el PUT de tu foto (PNG ≤10 MB) |
 | `project_list` | L | |
 | `project_summary` | L | |
 | `project_status` | L | |
@@ -27,6 +34,9 @@ Las tools declaran sus anotaciones, y la guarda las lee de `hooks/tools.json`, q
 | `project_slug_set` | E | Staff. Cambia el slug del proyecto en las URLs del Portal; el anterior redirige |
 | `project_invite_client` | E | Envía un correo con la invitación |
 | `project_delete` | E · IRR | **Borra en cascada los pagos y los CFDI** |
+| `project_close_review` | L | Lo pendiente antes de cerrar (tareas, preguntas, riesgos, sugerencias), con la acción que lo cierra; no bloquea |
+| `project_close` | E | Deja el proyecto en solo lectura (`completed` o `cancelled`); cada producto registra `knowledge_merged` |
+| `project_reopen` | E | Reabre un proyecto cerrado; queda auditado |
 | `status_update_list` | L | |
 | `status_update_publish` | E | El cliente lo ve al momento |
 | `brief_list` | L | |
@@ -52,6 +62,15 @@ La marca que ven el Portal y las vistas del cliente. Flujo: `organization_theme_
 
 | Tool | Tipo | Nota |
 |---|---|---|
+| `folder_create` | E | Carpeta vacía en Recursos (`parent` "" = General); devuelve su `path` para `note_create` |
+| `note_create` | E | Nota Markdown; la del staff nace interna salvo `audience: client` |
+| `note_update` | E | Cuerpo y atributos con `expectedRevision`. En la nota de un cliente, un agente de Pai solo **propone** sugerencias (`{suggested: true}`) |
+| `note_audience_set` | E | `client` la publica para la organización; `internal` la deja al equipo de Pai |
+| `page_frontmatter_update` | E | Merge-patch del frontmatter: audiencia y atributos (date, owner, status, labels) con `expectedRevision` |
+| `page_projection` | L | Dibuja un bloque `projection` de una page (C4, ERD, pantalla, flujo) como el lector del Portal |
+| `page_suggest` | E | Propone cambios revisables («Antes / Después») a una page o nota en vez de escribirlos; `baseRevision` de `page_read` |
+| `page_suggestion_decide` | E | Acepta o rechaza las sugerencias de un set; las aceptadas se aplican juntas |
+| `quiz_respond` | E | Responde un bloque quiz en nombre de la persona; cada intento cuenta |
 | `page_catalog` | L | Unos 35 KB: bloques, reglas, JSON Schema y vistas. Prefiere las referencias de los skills `resources` y `views` |
 | `page_types` | L | Lista, o el detalle de un `slug` con su `authoringGuide` |
 | `page_validate` | L | Valida sin guardar; devuelve `issues` |
@@ -81,6 +100,8 @@ La marca que ven el Portal y las vistas del cliente. Flujo: `organization_theme_
 
 | Tool | Tipo | Nota |
 |---|---|---|
+| `knowledge_query` | L | Consulta el grafo por propiedad, etiqueta, contención (`scope`), vecindad (`related`) o camino tipado (`pattern`, ≤4 pasos); `limit` ≤200 |
+| `knowledge_batch` | E | Hasta 200 operaciones atómicas (create, update, link, unlink, supersede, archive, resolve) con refs `$nombre` e `idempotencyKey`; `set-status` lo decide una persona y un agente recibe `HUMAN_CONFIRMS` |
 | `knowledge_kinds` | L | Catálogo de kinds, plantillas y ontología. Referencia local: `skills/knowledge/references/` |
 | `knowledge_search` | L | Búsqueda por tema; `limit` ≤25, sin cursor |
 | `knowledge_library` | L | **Inventario y tabla de la organización:** `projectId` + `kinds`, paginado con `limit`/`offset` hasta `total`; búsqueda híbrida con `query` |
@@ -176,6 +197,56 @@ La marca que ven el Portal y las vistas del cliente. Flujo: `organization_theme_
 
 Además, en los hosts con MCP Apps, las lecturas con una vista propia se dibujan solas como una vista de Pai: `project_summary`, `project_list`, `project_activity`, `status_update_list`, `timeline_get`, `milestone_list`, `payment_list`, `proposal_list`, `task_board`, `file_list`, `page_list`, `page_suggestions`, `page_comprehension`, `page_knowledge_health`, `agent_inbox`, `knowledge_library`, `knowledge_graph`, `knowledge_view`, `organization_theme_preview` y `view_render`. Las demás lecturas (detalles, búsquedas, validaciones, catálogos) devuelven solo datos y texto (ATE-203).
 
+## CRM (solo staff, permisos `crm:*`)
+
+Detalle y reglas en el skill `crm`. Toda escritura de lead u oportunidad lleva `expectedRevision`; montos en centavos, MXN y USD nunca se suman.
+
+| Tool | Tipo | Nota |
+|---|---|---|
+| `crm_access_get` | L | Tus permisos: crm:access, edit, convert, revenue, purge |
+| `crm_overview_get` | L | Portada de /crm: cifras, embudo, «Por atender», tus tareas, conversiones |
+| `crm_owner_list` | L | Responsables posibles (ids para `ownerUserId`) |
+| `crm_submission_get` | L | Un envío de Forms y el lead que generó |
+| `crm_submission_spam` | E | Archiva el envío sin crear lead |
+| `crm_lead_list` | L | Filtros `query`, `source`, `owner`, `period`, `waitingOn` (`push` = me toca empujar), `archived` |
+| `crm_lead_summary` | L | Por empujar, primer contacto, fuera de SLA, sin siguiente paso |
+| `crm_lead_get` | L | El lead con su `revision`, siguiente paso y cadena |
+| `crm_lead_record` | L | Ficha completa: calificación, envío, espacio, oportunidades, nodos sembrados, actividades |
+| `crm_lead_event_list` | L | Historial del lead (≤200) |
+| `crm_lead_duplicates` | L | **Antes de crear:** mismo correo, mismo dominio, organizaciones cliente |
+| `crm_lead_organization_suggestions` | L | Organizaciones parecidas y qué campos llenaría; nunca liga |
+| `crm_lead_create` | E | Referido, manual o MCP; `firstTask` obligatoria; avisa por correo |
+| `crm_lead_create_from_submission` | E | Lead desde un envío de Forms |
+| `crm_lead_update` | E | Datos, responsable o `stage: contacted` (exige `nextTask`) |
+| `crm_lead_task_create` | E | Tarea con fecha y cancha |
+| `crm_lead_task_complete` | E | Cierra una tarea; `nextTask` si es la última |
+| `crm_lead_qualify` | E | Cuatro criterios + espacio; siembra nodos y crea la primera oportunidad (Descubrimiento) |
+| `crm_lead_disqualify` | E | Motivo de la lista; archiva |
+| `crm_lead_mark_duplicate` | E | Liga al lead que sobrevive y archiva |
+| `crm_lead_workspace_open` | E | Crea o liga la organización y abre el proyecto «Descubrimiento»; no se re-liga |
+| `crm_lead_workspace_join` | E | Te agrega como admin de la organización del lead; auditado |
+| `crm_lead_archive` | E | Sale del tablero sin borrarse |
+| `crm_lead_unarchive` | E | |
+| `crm_lead_purge` | E · IRR | Borrado duro de basura sin cadena (`spam`, `test`, `mistake`); `crm:purge` |
+| `crm_organization_list` | L | Organizaciones para abrir una oportunidad (≤20) |
+| `crm_organization_get` | L | Leads, personas del Portal, oportunidades abiertas y ganadas de la cuenta |
+| `crm_opportunity_list` | L | `crm:revenue`. Filtros de etapa, responsable, cancha, línea, oferta, tipo, moneda, cierre |
+| `crm_opportunity_summary` | L | Pronóstico por moneda, tasa de cierre, por empujar, pausadas |
+| `crm_opportunity_get` | L | Con `revision`, interlocutores, propuestas y versiones, actividades, historial |
+| `crm_opportunity_event_list` | L | Cambios recientes de todas las oportunidades; `crm:revenue` |
+| `crm_trace_get` | L | La cadena envío → … → producto, con `asOf` |
+| `crm_opportunity_create` | E | `kind`, línea y ofertas, montos en centavos, `task` obligatoria |
+| `crm_opportunity_update` | E | Etapa abierta (exige `nextTask`), datos, responsable o propuesta ligada |
+| `crm_opportunity_hold` | E | En pausa; `task.dueAt` = fecha de retomar |
+| `crm_opportunity_lose` | E | Perdida con motivo de la lista |
+| `crm_opportunity_probability` | E | Ajuste 0–100 con motivo, o `reset`; `crm:revenue` |
+| `crm_opportunity_contact_add` | E | Interlocutor por `leadId` o `userId` con su rol |
+| `crm_opportunity_contact_primary` | E | Marca el principal |
+| `crm_opportunity_contact_remove` | E | Lo quita (queda en la historia) |
+| `crm_opportunity_archive` | E | Sale del tablero y del pronóstico |
+| `crm_opportunity_unarchive` | E | |
+| `crm_opportunity_win` | E · IRR | Gana con versión de propuesta aceptada, responsable de entrega, inicio y `decision_maker`; `crm:convert` |
+
 ## Otros
 
 | Tool | Tipo | Nota |
@@ -185,6 +256,7 @@ Además, en los hosts con MCP Apps, las lecturas con una vista propia se dibujan
 | `comment_recipients` | L | |
 | `comment_create` | E | |
 | `comment_reply` | E | |
+| `comment_edit` | E | Solo comentarios propios; queda «(editado)» |
 | `comment_resolve` | E | Solo en hilos de page |
 | `comment_reopen` | E | Solo en hilos de page |
 | `comment_send_to_agent` | E | Solo en hilos de page |
