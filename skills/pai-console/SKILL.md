@@ -1,6 +1,6 @@
 ---
 name: pai-console
-description: Método base para trabajar con Pai Console por su MCP (tools mcp__plugin_pai-console_pai__* o mcp__pai-console__*). Úsalo siempre antes de leer o escribir en Pai: entorno, descubrimiento de organización y proyecto, buscar antes de crear, CAS con expectedRevision, idempotencia, nombres en inglés, errores y citas. Los skills de área (resources, knowledge, erd, c4, screens, schedule, proposals-payments, products) lo dan por leído.
+description: Método base para trabajar con Pai Console por su MCP (tools mcp__plugin_pai-console_pai__* o mcp__pai-console__*). Úsalo siempre antes de leer o escribir en Pai: entorno, descubrimiento de organización y proyecto, buscar antes de crear, CAS con expectedRevision, idempotencia, nombres en inglés, errores y citas. Los skills de área (resources, knowledge, erd, c4, screens, schedule, proposals-payments, products, crm) lo dan por leído.
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
@@ -36,6 +36,8 @@ Un `*_create` se rechaza si en la sesión no buscaste antes en su área:
 | `knowledge_create` | `knowledge_search` (por tema), `knowledge_library` (inventario por `kinds` en el proyecto), `knowledge_context`, o `task_board` para tareas |
 | `milestone_create` | `timeline_get` o `milestone_list` |
 | `project_create` / `organization_create` / `product_create` / `agent_create` | su `*_list` |
+| `crm_lead_create` | `crm_lead_duplicates` (o `crm_lead_list`) |
+| `crm_opportunity_create` | `crm_organization_get` (o `crm_opportunity_list`) |
 
 La búsqueda tiene que haber **terminado** antes del create: no los lances en paralelo, porque el hook todavía no ve la búsqueda y rechaza el create.
 
@@ -132,6 +134,7 @@ Distingue hechos respaldados, inferencias y preguntas abiertas.
 | Pantallas y flujos: `screen`, `flow`, `actor` | `screens` |
 | Hitos, tareas, dependencias, línea base, tablero | `schedule` |
 | Propuestas (SOW), CFDI y pagos | `proposals-payments` |
+| CRM: leads, calificación, oportunidades y pronóstico (staff) | `crm` |
 | Productos: alta, aprovisionamiento, deploy, dominios, acceso | `products` |
 
 El inventario de tools, con lo que es lectura, escritura e irreversible, está en `${CLAUDE_PLUGIN_ROOT}/skills/pai-console/references/tools.md`.

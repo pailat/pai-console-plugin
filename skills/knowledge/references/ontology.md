@@ -1,6 +1,6 @@
 # Ontología de Conocimiento
 
-> Generado por `tools/gen-references.ts` desde pai-portal `dfc02d78` (2026-10-11 merge: mcp-pages @45e2e4f0 (#169: page_update con título y descripción, page_move reescribe URLs absolutas del Portal, escrituras y page_list compactos, filtros de DataTable por celda)), `packages/contracts/src/knowledge/ontology.ts`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `af7f1ba7f` (2026-10-12 merge: origin/feat/0.2.5/reui (CRM-1..4 #171/#173/#174/#176 y drizzle-guards #177 del owner) antes de subir ATE-206/207), `packages/contracts/src/knowledge/ontology.ts`. No editar a mano: regenerar.
 
 Un `knowledge_link` (o un link en `knowledge_create`) solo se acepta si el par source → target aparece aquí. Si no, el error es `ONTOLOGY`.
 
@@ -10,37 +10,37 @@ Un `knowledge_link` (o un link en `knowledge_create`) solo se acepta si el par s
 
 Grounds (Toulmin): el source es el dato o afirmación en el que se apoya el claim destino.
 
-- de *todos menos* `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`
+- de *todos menos* `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`
 
 ### `warrant` (justifica)
 
 Warrant (Toulmin): el source es la regla o principio que conecta los grounds con el claim destino.
 
-- de `business_rule`, `constraint`, `objective`, `pattern`, `concept`, `decision`, `adr` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`
+- de `business_rule`, `constraint`, `objective`, `pattern`, `concept`, `decision`, `adr` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`
 
 ### `supports` (respalda)
 
 Backing (Toulmin): el source es evidencia positiva del claim destino.
 
-- de *todos menos* `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`
+- de *todos menos* `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`
 
 ### `opposes` (se opone a)
 
 Contra-backing (Toulmin): el source es evidencia contraria al claim destino.
 
-- de *todos menos* `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`
+- de *todos menos* `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`
 
 ### `rebuttal` (refutaría)
 
 Rebuttal (Toulmin): el source describe la condición que invalidaría el claim destino.
 
-- de *todos menos* `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`
+- de *todos menos* `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`
 
 ### `alternative_to` (fue alternativa a) — mismo kind en ambos extremos
 
 El source fue una opción considerada y no elegida frente al claim destino (mismo kind).
 
-- de *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`
+- de *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`
 
 ## lifecycle
 
@@ -48,13 +48,13 @@ El source fue una opción considerada y no elegida frente al claim destino (mism
 
 El source reemplaza al destino (mismo kind); al activarse marca el destino como superseded.
 
-- de *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`
+- de *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`
 
 ### `contradicts` (contradice a)
 
 Dos claims incompatibles entre sí; señal de conflicto abierto.
 
-- de *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`
+- de *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`
 
 ## structural
 
@@ -62,7 +62,7 @@ Dos claims incompatibles entre sí; señal de conflicto abierto.
 
 Contención estructural: módulo → partes, modelo de datos → entidades, componente C4 → componente del nivel inmediatamente inferior, ADR → decisión, flujo → subflujo. Fija container_id del destino.
 
-- de `module` → a `module`, `screen`, `flow`, `data_model`, `entity`, `component`
+- de `module` → a `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `use_case`
 - de `data_model` → a `entity`
 - de `component` → a `component`
 - de `adr` → a `decision`
@@ -72,26 +72,34 @@ Contención estructural: módulo → partes, modelo de datos → entidades, comp
 
 El source necesita al destino para funcionar.
 
-- de `module`, `component`, `entity`, `screen`, `flow` → a `module`, `component`, `entity`
+- de `module`, `component`, `entity`, `screen`, `flow`, `use_case` → a `module`, `component`, `entity`
 - de `task` → a `task`
 
 ### `uses` (usa)
 
-Pantalla, flujo o componente que usa una entidad, un modelo de datos o un componente (en C4, properties.description y technology describen la relación).
+Pantalla, flujo, componente o caso de uso que usa una entidad, un modelo de datos o un componente (en C4, properties.description y technology describen la relación).
 
 - de `screen`, `flow`, `component` → a `entity`, `data_model`, `component`
+- de `use_case` → a `entity`, `data_model`
 
 ### `implements` (implementa)
 
-El source materializa una regla, decisión, ADR, objetivo, patrón o runbook.
+El source materializa una regla, decisión, ADR, objetivo, patrón o runbook; un flujo o una pantalla, un caso de uso.
 
 - de `component`, `module`, `flow`, `screen`, `task` → a `business_rule`, `decision`, `adr`, `objective`, `pattern`, `runbook`
+- de `flow`, `screen` → a `use_case`
+
+### `implemented_by` (se implementa en)
+
+Une lo funcional con lo técnico: el módulo (lo que el producto hace) lo realiza el componente C4 (contenedor o componente) que lo sostiene. Los dos nodos son del mismo producto.
+
+- de `module` → a `component`
 
 ### `constrains` (restringe a)
 
 Regla o restricción que limita al destino.
 
-- de `business_rule`, `constraint` → a `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `decision`, `adr`
+- de `business_rule`, `constraint` → a `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `decision`, `adr`, `use_case`
 
 ### `affects` (impacta a)
 
@@ -103,7 +111,7 @@ Decisión, ADR, riesgo o tarea que impacta al destino.
 
 El source sirve a un objetivo de negocio.
 
-- de `decision`, `adr`, `business_rule`, `module`, `flow`, `screen`, `component`, `task` → a `objective`
+- de `decision`, `adr`, `business_rule`, `module`, `flow`, `screen`, `component`, `task`, `use_case` → a `objective`
 
 ### `mitigates` (mitiga)
 
@@ -119,9 +127,9 @@ Riesgo que amenaza un objetivo o una parte de la estructura.
 
 ### `performs` (ejecuta)
 
-Actor que ejecuta un flujo, usa una pantalla o usa un elemento C4 (la persona del diagrama C4).
+Actor que ejecuta un flujo o un caso de uso, usa una pantalla o usa un elemento C4 (la persona del diagrama C4).
 
-- de `actor` → a `flow`, `screen`, `component`
+- de `actor` → a `flow`, `screen`, `component`, `use_case`
 
 ### `navigates_to` (navega a)
 

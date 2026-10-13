@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "pai-portal dfc02d78 (2026-10-11 merge: mcp-pages @45e2e4f0 (#169: page_update con título y descripción, page_move reescribe URLs absolutas del Portal, escrituras y page_list compactos, filtros de DataTable por celda))",
+  "generatedFrom": "pai-portal af7f1ba7f (2026-10-12 merge: origin/feat/0.2.5/reui (CRM-1..4 #171/#173/#174/#176 y drizzle-guards #177 del owner) antes de subir ATE-206/207)",
   "tools": {
     "agent_create": {
       "readOnly": false,
@@ -10,6 +10,10 @@
       "destructive": true
     },
     "agent_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "agent_inbox": {
       "readOnly": true,
       "destructive": false
     },
@@ -38,6 +42,10 @@
       "destructive": true
     },
     "comment_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "comment_edit": {
       "readOnly": false,
       "destructive": false
     },
@@ -77,6 +85,178 @@
       "readOnly": true,
       "destructive": false
     },
+    "crm_access_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_lead_archive": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_lead_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_lead_create_from_submission": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_lead_disqualify": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_lead_duplicates": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_lead_event_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_lead_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_lead_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_lead_mark_duplicate": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_lead_organization_suggestions": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_lead_purge": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "crm_lead_qualify": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_lead_record": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_lead_summary": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_lead_task_complete": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_lead_task_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_lead_unarchive": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_lead_update": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_lead_workspace_join": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_lead_workspace_open": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_opportunity_archive": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_opportunity_contact_add": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_opportunity_contact_primary": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_opportunity_contact_remove": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_opportunity_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_opportunity_event_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_opportunity_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_opportunity_hold": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_opportunity_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_opportunity_lose": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_opportunity_probability": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_opportunity_summary": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_opportunity_unarchive": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_opportunity_update": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_opportunity_win": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "crm_organization_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_organization_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_overview_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_owner_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_submission_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_submission_spam": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_trace_get": {
+      "readOnly": true,
+      "destructive": false
+    },
     "file_create": {
       "readOnly": false,
       "destructive": false
@@ -105,6 +285,10 @@
       "readOnly": false,
       "destructive": false
     },
+    "folder_create": {
+      "readOnly": false,
+      "destructive": false
+    },
     "knowledge_archive": {
       "readOnly": false,
       "destructive": true
@@ -112,6 +296,10 @@
     "knowledge_audit": {
       "readOnly": true,
       "destructive": false
+    },
+    "knowledge_batch": {
+      "readOnly": false,
+      "destructive": true
     },
     "knowledge_context": {
       "readOnly": true,
@@ -149,6 +337,10 @@
       "readOnly": false,
       "destructive": false
     },
+    "knowledge_query": {
+      "readOnly": true,
+      "destructive": false
+    },
     "knowledge_resolve": {
       "readOnly": false,
       "destructive": true
@@ -176,6 +368,14 @@
     "knowledge_view": {
       "readOnly": true,
       "destructive": false
+    },
+    "me_avatar_upload_url": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "me_profile_update": {
+      "readOnly": false,
+      "destructive": true
     },
     "milestone_baseline_capture": {
       "readOnly": false,
@@ -225,6 +425,18 @@
       "readOnly": false,
       "destructive": true
     },
+    "note_audience_set": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "note_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "note_update": {
+      "readOnly": false,
+      "destructive": true
+    },
     "organization_create": {
       "readOnly": false,
       "destructive": false
@@ -233,9 +445,25 @@
       "readOnly": true,
       "destructive": false
     },
+    "organization_invitation_cancel": {
+      "readOnly": false,
+      "destructive": true
+    },
     "organization_list": {
       "readOnly": true,
       "destructive": false
+    },
+    "organization_logo_upload_url": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "organization_member_remove": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "organization_member_role_set": {
+      "readOnly": false,
+      "destructive": true
     },
     "organization_slug_set": {
       "readOnly": false,
@@ -269,6 +497,10 @@
       "readOnly": false,
       "destructive": false
     },
+    "organization_update": {
+      "readOnly": false,
+      "destructive": true
+    },
     "page_asset_upload": {
       "readOnly": false,
       "destructive": false
@@ -293,6 +525,14 @@
       "readOnly": false,
       "destructive": true
     },
+    "page_frontmatter_update": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "page_knowledge_health": {
+      "readOnly": true,
+      "destructive": false
+    },
     "page_list": {
       "readOnly": true,
       "destructive": false
@@ -305,6 +545,10 @@
       "readOnly": false,
       "destructive": true
     },
+    "page_projection": {
+      "readOnly": true,
+      "destructive": false
+    },
     "page_read": {
       "readOnly": true,
       "destructive": false
@@ -314,6 +558,18 @@
       "destructive": true
     },
     "page_search": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "page_suggest": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "page_suggestion_decide": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "page_suggestions": {
       "readOnly": true,
       "destructive": false
     },
@@ -465,6 +721,14 @@
       "readOnly": true,
       "destructive": false
     },
+    "project_close": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "project_close_review": {
+      "readOnly": true,
+      "destructive": false
+    },
     "project_create": {
       "readOnly": false,
       "destructive": false
@@ -479,6 +743,10 @@
     },
     "project_list": {
       "readOnly": true,
+      "destructive": false
+    },
+    "project_reopen": {
+      "readOnly": false,
       "destructive": false
     },
     "project_slug_set": {
@@ -512,6 +780,10 @@
     "proposal_set_status": {
       "readOnly": false,
       "destructive": true
+    },
+    "quiz_respond": {
+      "readOnly": false,
+      "destructive": false
     },
     "status_update_list": {
       "readOnly": true,

@@ -1,6 +1,6 @@
 # Tipos de page y bloques
 
-> Generado por `tools/gen-references.ts` desde pai-portal `dfc02d78` (2026-10-11 merge: mcp-pages @45e2e4f0 (#169: page_update con título y descripción, page_move reescribe URLs absolutas del Portal, escrituras y page_list compactos, filtros de DataTable por celda)), `packages/contracts/src/pages`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `af7f1ba7f` (2026-10-12 merge: origin/feat/0.2.5/reui (CRM-1..4 #171/#173/#174/#176 y drizzle-guards #177 del owner) antes de subir ATE-206/207), `packages/contracts/src/pages`. No editar a mano: regenerar.
 
 ## Límites del contenido
 
@@ -32,6 +32,8 @@
 - Datos: una cifra vive en facts o data-table con su fecha de corte; no repitas la misma cifra en prosa sin su fuente.
 - Requisitos y entregables: el entregable referencia requisitos por id; un requisito sin criterio de aceptación no es un requisito.
 - Vistas: para un tablero, reporte visual o página libre usa un bloque view (ocupa el ancho que necesita; no hace falta layout); compón su spec sólo con los componentes de views.groups (layout, métricas, gráficas, tablas) y valídalo con page_validate antes de guardar. Ningún tipo built-in admite el bloque view: una page con vista va sin typeSlug, o con un tipo propio de la organización o del proyecto cuyas secciones lo permitan.
+- Conocimiento (schemaVersion 2): un bloque cita nodos del proyecto o de su organización con refs [{nodeId, revision, role}] (role cites, grounds o subject), o en línea con [texto](kb:kind/slug@rN) en text, callout, cards y comparison; al guardar, el servidor agrega cada cita en línea a refs del bloque (sin @rN toma la revisión vigente). Una page para el cliente (audience client) sólo cita nodos visibles para el cliente: page_validate los lista.
+- Proyecciones (schemaVersion 2): para mostrar en la page lo que ya vive en Conocimiento (diagrama C4 o ERD, pantallas, casos de uso, flujos, listas de decisiones, requisitos, riesgos, glosario…) usa un bloque projection {id, type: projection, format, selection, params?, title?, caption?} en vez de copiar los datos: no guarda datos propios, se dibuja al leer con lo que el lector puede ver. format es uno de projection.formats; selection es {refs: [{nodeId, revision}]} o {query: KnowledgeQuery} (la misma de knowledge_query), según lo que acepte el formato; los kinds deben ser los del formato y params cumple su esquema. caption es una línea de Markdown sin citas kb:. Valida con page_validate antes de guardar; una page para el cliente sólo proyecta nodos visibles para el cliente.
 
 ## Bloques
 

@@ -1,6 +1,6 @@
 # Kinds de Conocimiento
 
-> Generado por `tools/gen-references.ts` desde pai-portal `dfc02d78` (2026-10-11 merge: mcp-pages @45e2e4f0 (#169: page_update con título y descripción, page_move reescribe URLs absolutas del Portal, escrituras y page_list compactos, filtros de DataTable por celda)), `packages/contracts/src/knowledge`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `af7f1ba7f` (2026-10-12 merge: origin/feat/0.2.5/reui (CRM-1..4 #171/#173/#174/#176 y drizzle-guards #177 del owner) antes de subir ATE-206/207), `packages/contracts/src/knowledge`. No editar a mano: regenerar.
 
 Cada kind tiene una plantilla estricta: una clave que no aparece aquí se rechaza. `properties` lleva exactamente estas claves. Las secciones `refs` materializan aristas al guardar.
 
@@ -11,7 +11,7 @@ Cada kind tiene una plantilla estricta: una clave que no aparece aquí se rechaz
 3. ¿Es un aviso de fallo? → risk, gotcha, antipattern.
 4. ¿Es intención futura o pregunta abierta? → task, question, assumption.
 Si nada encaja: note (afirmación suelta), concept (definición), reference (fuente externa).
-Los kinds estructurales (module, screen, flow, data_model, entity, component, actor, glossary_term) se eligen por lo que describen, no por estas preguntas.
+Los kinds estructurales (module, screen, flow, use_case, data_model, entity, component, actor, glossary_term) se eligen por lo que describen, no por estas preguntas.
 
 Formato de cita: kb:<kind>/<slug>@r<revision>
 
@@ -54,6 +54,7 @@ Formato de cita: kb:<kind>/<slug>@r<revision>
 | `component` | Componente (C4) | estructura | no | no | — |
 | `actor` | Actor | estructura | no | no | — |
 | `glossary_term` | Término | estructura | no | no | — |
+| `use_case` | Caso de uso | estructura | no | no | `^UC-\d{2,3}$` |
 
 ## `objective` — Objetivo (plantilla v1)
 
@@ -676,7 +677,7 @@ Ejemplo de `properties`:
 }
 ```
 
-## `screen` — Pantalla (plantilla v1)
+## `screen` — Pantalla (plantilla v2)
 
 Pantalla del producto: ruta, propósito, actores, estados, bloques de contenido, acciones, reglas que la restringen y navegación.
 
@@ -728,7 +729,33 @@ Ejemplo de `properties`:
  ],
  "navigatesTo": [
   "screen/knowledge-detalle"
- ]
+ ],
+ "view": {
+  "root": "title",
+  "elements": {
+   "title": {
+    "type": "Heading",
+    "props": {
+     "text": "Conocimiento",
+     "level": "h1"
+    }
+   }
+  }
+ },
+ "views": {
+  "vacío": {
+   "root": "empty",
+   "elements": {
+    "empty": {
+     "type": "Heading",
+     "props": {
+      "text": "Aún no hay nodos",
+      "level": "h2"
+     }
+    }
+   }
+  }
+ }
 }
 ```
 
@@ -995,5 +1022,62 @@ Ejemplo de `properties`:
   "artifact"
  ],
  "example": "La decisión vive en Knowledge y se comunica en una Page."
+}
+```
+
+## `use_case` — Caso de uso (plantilla v1)
+
+Caso de uso del producto: objetivo del actor, precondiciones, flujo principal (al menos dos pasos), alternativas y postcondiciones. Los actores, reglas, flujos y pantallas se enlazan como aristas hacia el caso de uso; los objetivos de negocio a los que contribuye, como aristas de salida.
+
+Estados: `draft`, `active`, `superseded`, `archived`.
+
+- `goal` (**obligatorio**; markdown; ≤1500): Qué logra el actor al completarlo.
+- `actors` (**obligatorio**; refs; → arista `performs` a actor): Quién lo ejecuta (al menos uno).
+- `preconditions` (opcional; list): Qué tiene que ser cierto antes de empezar.
+- `mainFlow` (**obligatorio**; list): Pasos en orden (al menos dos).
+- `alternatives` (opcional; table; columnas: at, condition, outcome): Desvíos del flujo principal: en qué paso, cuándo y qué pasa.
+- `postconditions` (opcional; list): Qué queda cierto al terminar.
+- `flows` (opcional; refs; → arista `implements` a flow): Flujos que lo implementan.
+- `screens` (opcional; refs; → arista `implements` a screen): Pantallas que lo implementan.
+- `rules` (opcional; refs; → arista `constrains` a business_rule/constraint): Reglas y restricciones aplicables.
+- `objectives` (opcional; refs; → arista `contributes_to` a objective): Objetivos de negocio a los que contribuye.
+- `notes` (opcional; markdown; ≤2000): Observaciones adicionales que no encajan en otra sección.
+
+Ejemplo de `properties`:
+
+```json
+{
+ "identifier": "UC-01",
+ "goal": "El staff registra una decisión a partir de un hilo de comentarios de una Page.",
+ "actors": [
+  "actor/staff-pai"
+ ],
+ "preconditions": [
+  "El hilo de comentarios existe y está abierto."
+ ],
+ "mainFlow": [
+  "El staff pulsa «Registrar como decisión» en el hilo.",
+  "Completa contexto, decisión y consecuencias.",
+  "El sistema crea el nodo enlazado a la Page."
+ ],
+ "alternatives": [
+  {
+   "at": 3,
+   "condition": "La plantilla falla",
+   "outcome": "Se muestran los issues junto a cada campo."
+  }
+ ],
+ "postconditions": [
+  "Existe un nodo decision con la fuente del comentario."
+ ],
+ "flows": [
+  "flow/registrar-decision"
+ ],
+ "screens": [
+  "screen/knowledge-editor"
+ ],
+ "rules": [
+  "business_rule/rn-02-solo-staff-escribe"
+ ]
 }
 ```
