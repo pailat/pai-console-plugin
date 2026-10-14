@@ -111,7 +111,7 @@ Algunos errores llegan **sin `cause`**, solo con código y mensaje: proyecto cer
 
 ## 6. Qué lecturas ya se ven
 
-En los hosts con MCP Apps, solo las lecturas con una vista propia se dibujan solas (ATE-203): Inicio, cronograma, pagos, tablero, biblioteca, grafo, ERD/C4, la proyección de una page, el CRM… Son estas: `project_summary`, `project_list`, `project_activity`, `project_close_review`, `status_update_list`, `timeline_get`, `milestone_list`, `payment_list`, `proposal_list`, `task_board`, `file_list`, `page_list`, `page_suggestions`, `page_comprehension`, `page_knowledge_health`, `page_projection`, `agent_inbox`, `knowledge_library`, `knowledge_graph`, `knowledge_view`, `organization_theme_preview`, las lecturas del CRM (`crm_overview_get`, `crm_lead_list`, `crm_lead_summary`, `crm_lead_get`, `crm_lead_record`, `crm_lead_event_list`, `crm_lead_duplicates`, `crm_lead_organization_suggestions`, `crm_submission_get`, `crm_opportunity_list`, `crm_opportunity_summary`, `crm_opportunity_get`, `crm_opportunity_event_list`, `crm_trace_get`) y `view_render`.
+En los hosts con MCP Apps, solo las lecturas con una vista propia se dibujan solas (ATE-203): Inicio, cronograma, pagos, tablero, biblioteca, grafo, ERD/C4, la proyección de una page, el CRM… Son estas: `project_summary`, `project_list`, `project_activity`, `project_close_review`, `status_update_list`, `timeline_get`, `milestone_list`, `payment_list`, `proposal_list`, `task_board`, `file_list`, `page_list`, `page_suggestions`, `page_comprehension`, `page_knowledge_health`, `page_projection`, `whiteboard_read`, `asset_list`, `agent_inbox`, `knowledge_library`, `knowledge_graph`, `knowledge_view`, `organization_theme_preview`, las lecturas del CRM (`crm_overview_get`, `crm_lead_list`, `crm_lead_summary`, `crm_lead_get`, `crm_lead_record`, `crm_lead_event_list`, `crm_lead_duplicates`, `crm_lead_organization_suggestions`, `crm_submission_get`, `crm_opportunity_list`, `crm_opportunity_summary`, `crm_opportunity_get`, `crm_opportunity_event_list`, `crm_trace_get`) y `view_render`.
 - **Las demás no traen vista:** detalles (`page_read`, `knowledge_get`, `proposal_get`…), búsquedas (`page_search`, `knowledge_search`), validaciones (`page_validate`), catálogos y `whoami`. Devuelven solo datos y texto. Úsalas como pasos intermedios; no esperes que la persona las vea.
 - Cuando una vista sí aparece, no la copies en tablas de texto: comenta lo importante, responde la pregunta y cita.
 - La vista automática es el resultado crudo y solo aparece en hosts con MCP Apps. **Si la persona pide ver, mostrar o graficar algo, dibuja tú la vista con `view_render`**, también con los datos de una tool sin vista.
@@ -133,7 +133,7 @@ Distingue hechos respaldados, inferencias y preguntas abiertas.
 
 | Tarea | Skill |
 |---|---|
-| Pages, tipos de page, imágenes, archivos | `resources` |
+| Pages, tipos de page, pizarras, imágenes y videos (assets), archivos | `resources` |
 | UI generativa: `view_render` en la conversación, tableros, mockups con AppShell, reportes visuales y comparativos guardados en Recursos | `views` |
 | Nodos de Knowledge: kinds, fuentes, propuestas, ciclo de vida, enlaces | `knowledge` |
 | Modelo de datos: `data_model` + `entity`, columnas y FK | `erd` |

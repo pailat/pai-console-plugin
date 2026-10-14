@@ -1,6 +1,6 @@
 # Ontología de Conocimiento
 
-> Generado por `tools/gen-references.ts` desde pai-portal `04278b49d` (2026-10-14 Merge feat/0.2.5/resources-assets (ATE-229 parte A: assets del proyecto, modelo, API y serving)), `packages/contracts/src/knowledge/ontology.ts`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `e8a077100` (2026-10-14 Merge feat/0.2.5/resources-assets (ATE-229 partes B y C: medios en los editores, galería de Assets y tools del MCP)), `packages/contracts/src/knowledge/ontology.ts`. No editar a mano: regenerar.
 
 Un `knowledge_link` (o un link en `knowledge_create`) solo se acepta si el par source → target aparece aquí. Si no, el error es `ONTOLOGY`.
 

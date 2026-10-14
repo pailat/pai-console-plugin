@@ -1,6 +1,6 @@
 # Catálogo de vistas `pai-view@1`
 
-> Generado por `tools/gen-references.ts` desde pai-portal `04278b49d` (2026-10-14 Merge feat/0.2.5/resources-assets (ATE-229 parte A: assets del proyecto, modelo, API y serving)), `packages/views/src/catalog.ts`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `e8a077100` (2026-10-14 Merge feat/0.2.5/resources-assets (ATE-229 partes B y C: medios en los editores, galería de Assets y tools del MCP)), `packages/views/src/catalog.ts`. No editar a mano: regenerar.
 
 Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props, children? } } }. Los hijos se referencian por id.
 
@@ -62,7 +62,7 @@ Una pantalla completa empieza con uno de estos componentes como `root` (y solo a
 | Sitio web | Secciones de un sitio web (pai.lat o el de un cliente) dentro de SiteShell. | BlogList, ContactSection, CtaBand, HowItWorks, LogoGrid, SectionIntro, ServiceCards, SiteHero, Testimonials |
 | Patrones | Layouts de pantalla con regiones con nombre (encabezado, principal, lateral…): un hijo por región, en orden. Van dentro de un shell o en la raíz. | AuthLayout, BoardLayout, ChatLayout, DashboardLayout, DetailLayout, DocLayout, EmptyLayout, FilesLayout, FormLayout, PageLayout, SettingsLayout, SplitView, WizardLayout |
 | Estructura | Contenedores que ordenan la vista. | Accordion, Card, Collapsible, DetailSheet, DialogFrame, Frame, Grid, Section, Separator, Stack, Tabs, UnderlinedTabs |
-| Contenido | Títulos, texto, etiquetas, avisos, listas, enlaces y código. | Alert, Avatar, Badge, Carousel, CodeBlock, CommentsPanel, FileType, Heading, HistoryPanel, HoverCard, IconStack, IconTile, Image, Item, Kbd, Link, List, Rating, StatusBadge, StatusDot, Text, Tooltip |
+| Contenido | Títulos, texto, etiquetas, avisos, listas, enlaces y código. | Alert, Avatar, Badge, Carousel, CodeBlock, CommentsPanel, FileType, Heading, HistoryPanel, HoverCard, IconStack, IconTile, Image, Item, Kbd, Link, List, Rating, StatusBadge, StatusDot, Text, Tooltip, Video |
 | Datos | Indicadores, tablas, gráficas y pares etiqueta–valor. | BarList, Chart, DataTable, FileList, Heatmap, KeyValue, Metric, Progress, ProgressRing, Stats, Table, Tree, TreeTable |
 | Controles | Botones, menús y campos de formulario. Responden dentro de la vista (abren, cambian, se marcan) pero nada se envía, guarda ni navega, salvo un botón con href. | ActionMenu, Autocomplete, Button, ButtonGroup, Calendar, Checkbox, Command, DateSelector, Dropzone, FilterBar, Input, Popover, RadioGroup, Select, Sortable, Switch, Textarea, ToggleGroup |
 | Formularios | Campos de formulario de maqueta: se ven como en Pai pero no se enfocan, no envían ni guardan nada, ni piden datos sensibles. | Cascader, ColorPicker, Combobox, EmojiPicker, InputOTP, NumberField, PhoneInput, SignaturePad, Slider, TimePicker |
@@ -726,6 +726,17 @@ Muestra un texto breve al pasar el cursor o enfocar su único hijo, que no debe 
 - `text`: string (min 1, ≤160)
 
 Ejemplo: `{"text":"Monto con IVA incluido"}`
+
+#### Video
+
+Un video (MP4 o WebM) subido al proyecto: assetId es el que devolvió la subida de assets (nunca una URL; los videos externos van en un embed). title nombra el video para quien usa lector de pantalla (obligatorio); caption es el pie, o null. ratio lo encuadra: 16:9, 4:3, 3:2, 1:1, 3:4 o 21:9 (null respeta su forma). Sólo en vistas guardadas dentro de una page: view_render y otras vistas lo rechazan. Donde el video no se puede cargar (la vista del MCP) sale un recuadro con el título.
+
+- `assetId`: string
+- `title`: string (min 1, ≤160)
+- `caption`?: string (≤2000) (null = por defecto)
+- `ratio`?: "16:9"|"4:3"|"3:2"|"1:1"|"3:4"|"21:9"|null (null = por defecto)
+
+Ejemplo: `{"assetId":"4d2f7a8e-1c3b-4f5a-9e6d-7b8c9d0e1f2a","title":"Recorrido por el flujo de pedidos","caption":"Demo grabada en la revisión del sprint 4","ratio":"16:9"}`
 
 ### Grupo: Datos
 

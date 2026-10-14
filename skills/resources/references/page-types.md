@@ -1,6 +1,6 @@
 # Tipos de page y bloques
 
-> Generado por `tools/gen-references.ts` desde pai-portal `04278b49d` (2026-10-14 Merge feat/0.2.5/resources-assets (ATE-229 parte A: assets del proyecto, modelo, API y serving)), `packages/contracts/src/pages`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `e8a077100` (2026-10-14 Merge feat/0.2.5/resources-assets (ATE-229 partes B y C: medios en los editores, galería de Assets y tools del MCP)), `packages/contracts/src/pages`. No editar a mano: regenerar.
 
 ## Límites del contenido
 
@@ -27,7 +27,7 @@
 - Mapas: expresa una pregunta, proposiciones, evidencia y límites; no dupliques la prosa.
 - Cuestionarios: evalúa distinciones enseñadas; el resultado orienta repaso, no certifica.
 - Las respuestas del lector no forman parte del documento.
-- Imágenes privadas: crea primero la page, sube sus archivos y conserva sólo /api/pages/assets/{assetId}; el servicio valida pertenencia al documento.
+- Imágenes y videos: son assets del proyecto (asset_list para reutilizar uno, asset_upload + PUT + asset_confirm para subir); guarda sólo el assetId (figure, video) o /api/pages/assets/{assetId}; el servicio valida que el asset sea del proyecto, esté listo y lo veas.
 - HTML interactivo: para un mockup o prototipo HTML (canvas, simulación, maqueta con JS) usa un bloque html {id, type: html, title, description?, html, height}; el Portal lo dibuja como un artifact de Claude, en un iframe aislado sin cookies, storage ni red. html es el documento completo o un fragmento, de hasta 512 KB (1 MB entre todos los de la page); height es auto o px entre 120 y 4000. Scripts sólo inline o de html.scriptSources; sin fetch ni XHR (connect-src 'none'): los datos van dentro del HTML. Usa las variables de tokens de Pai (--background, --foreground, --border, --primary…) para verse en claro y oscuro. Un ```html preview nunca va en el Markdown.
 - Pizarras: para mostrar en la page una pizarra del proyecto usa un bloque whiteboard {id, type: whiteboard, page, title?}; page es el id de una page de formato whiteboard del mismo proyecto (créala con whiteboard_create). Se dibuja su vista previa con «Abrir» y, para quien puede editarla, «Editar aquí». Una page para el cliente sólo embebe pizarras visibles para el cliente.
 - Embeds: el bloque embed guarda sólo un enlace https (Figma, Google Slides, Miro, YouTube, Loom o cualquier sitio); nunca HTML ni código <iframe>.
@@ -55,6 +55,7 @@
 - `requirements`: Enunciado, prioridad, justificación y criterio de aceptación por requisito.
 - `sources`: Catálogo citable: título, enlace, tipo, editor y fecha de consulta.
 - `figure`: Imagen privada del documento con texto alternativo, pie y crédito.
+- `video`: Video del proyecto (MP4 o WebM) con reproductor, pie y póster opcional.
 - `embed`: Iframe de Figma, Google Slides, Miro, YouTube, Loom o cualquier enlace https, con título y pie.
 - `data-table`: Columnas declaradas y filas posicionales, con nota y fuente citada.
 - `quote`: Voz textual con atribución, rol, contexto y fuente citada.

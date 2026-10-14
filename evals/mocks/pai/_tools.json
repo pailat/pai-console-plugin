@@ -1669,6 +1669,73 @@
                },
                "type": {
                 "type": "string",
+                "const": "video"
+               },
+               "assetId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+               },
+               "caption": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000
+               },
+               "poster": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+               }
+              },
+              "required": [
+               "id",
+               "type",
+               "assetId"
+              ],
+              "additionalProperties": false
+             },
+             {
+              "type": "object",
+              "properties": {
+               "id": {
+                "type": "string",
+                "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,79}$"
+               },
+               "refs": {
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                 "type": "object",
+                 "properties": {
+                  "nodeId": {
+                   "type": "string",
+                   "format": "uuid",
+                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "revision": {
+                   "type": "integer",
+                   "minimum": 0,
+                   "maximum": 9007199254740991
+                  },
+                  "role": {
+                   "type": "string",
+                   "enum": [
+                    "cites",
+                    "grounds",
+                    "subject",
+                    "projects"
+                   ]
+                  }
+                 },
+                 "required": [
+                  "nodeId",
+                  "revision"
+                 ],
+                 "additionalProperties": false
+                }
+               },
+               "type": {
+                "type": "string",
                 "const": "embed"
                },
                "url": {
@@ -3355,6 +3422,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -3387,6 +3460,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -3425,6 +3504,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -3457,6 +3542,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -3574,6 +3665,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -3693,6 +3790,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -3764,6 +3867,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -5434,6 +5543,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -6126,6 +6241,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -6327,6 +6448,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -6370,6 +6497,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -8475,6 +8608,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -8657,6 +8796,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/canvas.html"
+    },
+    "ui/resourceUri": "ui://pai/canvas.html"
    }
   },
   {
@@ -8791,6 +8936,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -10518,6 +10669,73 @@
                "assetId",
                "alt",
                "caption"
+              ],
+              "additionalProperties": false
+             },
+             {
+              "type": "object",
+              "properties": {
+               "id": {
+                "type": "string",
+                "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,79}$"
+               },
+               "refs": {
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                 "type": "object",
+                 "properties": {
+                  "nodeId": {
+                   "type": "string",
+                   "format": "uuid",
+                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "revision": {
+                   "type": "integer",
+                   "minimum": 0,
+                   "maximum": 9007199254740991
+                  },
+                  "role": {
+                   "type": "string",
+                   "enum": [
+                    "cites",
+                    "grounds",
+                    "subject",
+                    "projects"
+                   ]
+                  }
+                 },
+                 "required": [
+                  "nodeId",
+                  "revision"
+                 ],
+                 "additionalProperties": false
+                }
+               },
+               "type": {
+                "type": "string",
+                "const": "video"
+               },
+               "assetId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+               },
+               "caption": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000
+               },
+               "poster": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+               }
+              },
+              "required": [
+               "id",
+               "type",
+               "assetId"
               ],
               "additionalProperties": false
              },
@@ -13475,6 +13693,73 @@
                },
                "type": {
                 "type": "string",
+                "const": "video"
+               },
+               "assetId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+               },
+               "caption": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000
+               },
+               "poster": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+               }
+              },
+              "required": [
+               "id",
+               "type",
+               "assetId"
+              ],
+              "additionalProperties": false
+             },
+             {
+              "type": "object",
+              "properties": {
+               "id": {
+                "type": "string",
+                "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,79}$"
+               },
+               "refs": {
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                 "type": "object",
+                 "properties": {
+                  "nodeId": {
+                   "type": "string",
+                   "format": "uuid",
+                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "revision": {
+                   "type": "integer",
+                   "minimum": 0,
+                   "maximum": 9007199254740991
+                  },
+                  "role": {
+                   "type": "string",
+                   "enum": [
+                    "cites",
+                    "grounds",
+                    "subject",
+                    "projects"
+                   ]
+                  }
+                 },
+                 "required": [
+                  "nodeId",
+                  "revision"
+                 ],
+                 "additionalProperties": false
+                }
+               },
+               "type": {
+                "type": "string",
                 "const": "embed"
                },
                "url": {
@@ -14873,6 +15158,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -15171,6 +15462,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -15249,6 +15546,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -15265,6 +15568,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -15290,6 +15599,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -15315,6 +15630,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -15340,6 +15661,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -15381,6 +15708,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -15938,6 +16271,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -15968,6 +16307,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -17057,6 +17402,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -17073,6 +17424,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -17089,6 +17446,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -17114,6 +17477,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -18091,6 +18460,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -20979,6 +21354,12 @@
     "idempotentHint": true,
     "destructiveHint": false,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -21047,6 +21428,12 @@
     "idempotentHint": true,
     "destructiveHint": false,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/canvas.html"
+    },
+    "ui/resourceUri": "ui://pai/canvas.html"
    }
   },
   {
@@ -22832,6 +23219,12 @@
     "idempotentHint": true,
     "destructiveHint": false,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -22896,6 +23289,12 @@
     "idempotentHint": true,
     "destructiveHint": false,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -22956,6 +23355,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -23419,7 +23824,7 @@
   {
    "name": "whiteboard_create",
    "title": "Crear pizarra",
-   "description": "Crea una Pizarra (Excalidraw) en Recursos del proyecto, vacía o con un diagrama. La crea el staff o un miembro de la organización cliente, como una nota: la de un cliente la ve toda su organización y el equipo de Pai; la del staff nace solo para el equipo salvo audience=client. path es la ruta completa (carpeta/nombre). content es { graph } o { mermaid }. graph: { direction?: \"TB\"|\"LR\"|\"RL\"|\"BT\", nodes: [{ id, label, shape?: \"rectangle\"|\"ellipse\"|\"diamond\"|\"note\"|\"text\", group?, tone?: \"default\"|\"info\"|\"success\"|\"warning\"|\"destructive\"|\"muted\" }], edges?: [{ from, to, label?, dashed? }], groups?: [{ id, label }] }; ids con letras, números, _ . : o -. mermaid: un flowchart (flowchart LR, nodos A[texto], A(texto), A([texto]), A{texto}, A((texto)), A>texto], aristas -->, ---, -.->, ==>, -->|texto|, subgraph … end). Nunca escribas coordenadas: el servidor acomoda los nodos. Devuelve la pizarra con su path, revision, url y lo que dice (summary); para editarla usa whiteboard_update con ese path y esa revision.",
+   "description": "Crea una Pizarra (Excalidraw) en Recursos del proyecto, vacía o con un diagrama. La crea el staff o un miembro de la organización cliente, como una nota: la de un cliente la ve toda su organización y el equipo de Pai; la del staff nace solo para el equipo salvo audience=client. path es la ruta completa (carpeta/nombre). content es { graph } o { mermaid }. graph: { direction?: \"TB\"|\"LR\"|\"RL\"|\"BT\", nodes: [{ id, label, shape?: \"rectangle\"|\"ellipse\"|\"diamond\"|\"note\"|\"text\", group?, tone?: \"default\"|\"info\"|\"success\"|\"warning\"|\"destructive\"|\"muted\", image?: assetId de una imagen del proyecto (asset_list con kind image; el nodo es la imagen con su texto debajo) }], edges?: [{ from, to, label?, dashed? }], groups?: [{ id, label }] }; ids con letras, números, _ . : o -. mermaid: un flowchart (flowchart LR, nodos A[texto], A(texto), A([texto]), A{texto}, A((texto)), A>texto], aristas -->, ---, -.->, ==>, -->|texto|, subgraph … end). Nunca escribas coordenadas: el servidor acomoda los nodos. Devuelve la pizarra con su path, revision, url y lo que dice (summary); para editarla usa whiteboard_update con ese path y esa revision.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -23510,6 +23915,11 @@
                 "destructive",
                 "muted"
                ]
+              },
+              "image": {
+               "type": "string",
+               "format": "uuid",
+               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
               }
              },
              "required": [
@@ -23674,12 +24084,18 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
    "name": "whiteboard_update",
    "title": "Editar pizarra",
-   "description": "Escribe en una Pizarra con expectedRevision = revision de whiteboard_read o de la última escritura. mode append agrega el contenido a la derecha de lo que hay, y sus aristas pueden apuntar a nodos de la pizarra por id o por texto (los ids nuevos no pueden repetir los de la pizarra); mode replace cambia la pizarra entera por el contenido (borra lo que dibujaron las personas: úsalo solo si te lo piden). content es { graph } o { mermaid }. graph: { direction?: \"TB\"|\"LR\"|\"RL\"|\"BT\", nodes: [{ id, label, shape?: \"rectangle\"|\"ellipse\"|\"diamond\"|\"note\"|\"text\", group?, tone?: \"default\"|\"info\"|\"success\"|\"warning\"|\"destructive\"|\"muted\" }], edges?: [{ from, to, label?, dashed? }], groups?: [{ id, label }] }; ids con letras, números, _ . : o -. mermaid: un flowchart (flowchart LR, nodos A[texto], A(texto), A([texto]), A{texto}, A((texto)), A>texto], aristas -->, ---, -.->, ==>, -->|texto|, subgraph … end). Nunca escribas coordenadas: el servidor acomoda los nodos. Ante CONFLICT vuelve a leer con whiteboard_read e integra los cambios; quien tenga la pizarra abierta ve tu edición en vivo. idempotencyKey hace seguro el reintento: la misma clave con el mismo contenido responde la primera escritura. summary describe la versión; versionName la nombra como «Guardar versión». Un cliente edita las pizarras creadas por su organización.",
+   "description": "Escribe en una Pizarra con expectedRevision = revision de whiteboard_read o de la última escritura. mode append agrega el contenido a la derecha de lo que hay, y sus aristas pueden apuntar a nodos de la pizarra por id o por texto (los ids nuevos no pueden repetir los de la pizarra); mode replace cambia la pizarra entera por el contenido (borra lo que dibujaron las personas: úsalo solo si te lo piden). content es { graph } o { mermaid }. graph: { direction?: \"TB\"|\"LR\"|\"RL\"|\"BT\", nodes: [{ id, label, shape?: \"rectangle\"|\"ellipse\"|\"diamond\"|\"note\"|\"text\", group?, tone?: \"default\"|\"info\"|\"success\"|\"warning\"|\"destructive\"|\"muted\", image?: assetId de una imagen del proyecto (asset_list con kind image; el nodo es la imagen con su texto debajo) }], edges?: [{ from, to, label?, dashed? }], groups?: [{ id, label }] }; ids con letras, números, _ . : o -. mermaid: un flowchart (flowchart LR, nodos A[texto], A(texto), A([texto]), A{texto}, A((texto)), A>texto], aristas -->, ---, -.->, ==>, -->|texto|, subgraph … end). Nunca escribas coordenadas: el servidor acomoda los nodos. Ante CONFLICT vuelve a leer con whiteboard_read e integra los cambios; quien tenga la pizarra abierta ve tu edición en vivo. idempotencyKey hace seguro el reintento: la misma clave con el mismo contenido responde la primera escritura. summary describe la versión; versionName la nombra como «Guardar versión». Un cliente edita las pizarras creadas por su organización.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -23777,6 +24193,11 @@
                 "destructive",
                 "muted"
                ]
+              },
+              "image": {
+               "type": "string",
+               "format": "uuid",
+               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
               }
              },
              "required": [
@@ -23904,6 +24325,245 @@
     "readOnlyHint": false,
     "destructiveHint": true,
     "idempotentHint": true,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "asset_list",
+   "title": "Listar assets",
+   "description": "Lista los assets del proyecto (imágenes y videos que usan las páginas, notas y pizarras) que ves: id, nombre, tipo, tamaño, href y usedIn (dónde se usa, solo lo que puedes ver). Filtra por kind (image, video u other) y por q (texto del nombre); pagina con cursor = nextCursor. Un cliente ve los assets usados en algo que ve y los que subió él y aún no usa.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "organizationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     },
+     "projectId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     },
+     "kind": {
+      "description": "image, video u other; todos si se omite",
+      "type": "string",
+      "enum": [
+       "image",
+       "video",
+       "other"
+      ]
+     },
+     "q": {
+      "description": "Texto del nombre del archivo",
+      "type": "string",
+      "maxLength": 200
+     },
+     "cursor": {
+      "description": "nextCursor de la llamada anterior",
+      "type": "string",
+      "maxLength": 200
+     },
+     "limit": {
+      "description": "Cuántos por página (máx. 100)",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+     }
+    },
+    "required": [
+     "organizationId",
+     "projectId"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
+   }
+  },
+  {
+   "name": "asset_get",
+   "title": "Leer asset",
+   "description": "Lee un asset del proyecto por id: nombre, tipo, tamaño, medidas o duración si se conocen, quién lo subió, href, usedIn (dónde se usa) y canDelete (si puedes borrarlo ahora).",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "organizationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     },
+     "projectId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     },
+     "assetId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     }
+    },
+    "required": [
+     "organizationId",
+     "projectId",
+     "assetId"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "asset_upload",
+   "title": "Preparar subida de asset",
+   "description": "Prepara la subida de una imagen (PNG, JPEG, WebP o GIF hasta 10 MB; SVG hasta 1 MB) o un video (MP4 o WebM hasta 200 MB). size es el tamaño exacto en bytes: la URL firmada solo admite ese tamaño y ese Content-Type. Envía los bytes con PUT a signedUrl, con los headers devueltos, antes de expiresIn segundos, y luego llama asset_confirm con el assetId. documentId es el documento desde el que se sube (una página, nota o pizarra que puedas editar); sin él, la subida es de la galería y solo la hace el equipo de Pai. Nunca guardes signedUrl: usa el assetId (figure o video de una página, image de un nodo de pizarra) o el href en una nota (![alt](href)).",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "organizationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     },
+     "projectId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     },
+     "filename": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Nombre del archivo, p. ej. «fachada.png»"
+     },
+     "contentType": {
+      "type": "string",
+      "enum": [
+       "image/png",
+       "image/jpeg",
+       "image/webp",
+       "image/gif",
+       "image/svg+xml",
+       "video/mp4",
+       "video/webm"
+      ],
+      "description": "image/png, image/jpeg, image/webp, image/gif, image/svg+xml, video/mp4 o video/webm"
+     },
+     "size": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991,
+      "description": "Tamaño exacto en bytes"
+     },
+     "documentId": {
+      "description": "Página, nota o pizarra desde la que se sube; sin él, la galería (solo staff)",
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     }
+    },
+    "required": [
+     "organizationId",
+     "projectId",
+     "filename",
+     "contentType",
+     "size"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "asset_confirm",
+   "title": "Confirmar subida de asset",
+   "description": "Confirma una subida de asset_upload después del PUT: el servidor lee los primeros bytes y comprueba que el contenido es del tipo declarado (si no, borra el archivo y responde invalid_input), sanea un SVG y deja el asset listo para usarse. Devuelve el asset.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "organizationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     },
+     "projectId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     },
+     "assetId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+      "description": "assetId de asset_upload"
+     }
+    },
+    "required": [
+     "organizationId",
+     "projectId",
+     "assetId"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "asset_delete",
+   "title": "Borrar asset",
+   "description": "Borra un asset del proyecto para siempre. Solo si no se usa en ninguna página, nota o pizarra vigente (si se usa responde conflict: quítalo primero de usedIn), y solo el equipo de Pai o quien lo subió.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "organizationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     },
+     "projectId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     },
+     "assetId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     }
+    },
+    "required": [
+     "organizationId",
+     "projectId",
+     "assetId"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": false,
     "openWorldHint": false
    }
   },
@@ -25538,6 +26198,73 @@
               "assetId",
               "alt",
               "caption"
+             ],
+             "additionalProperties": false
+            },
+            {
+             "type": "object",
+             "properties": {
+              "id": {
+               "type": "string",
+               "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,79}$"
+              },
+              "refs": {
+               "maxItems": 200,
+               "type": "array",
+               "items": {
+                "type": "object",
+                "properties": {
+                 "nodeId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                 },
+                 "revision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                 },
+                 "role": {
+                  "type": "string",
+                  "enum": [
+                   "cites",
+                   "grounds",
+                   "subject",
+                   "projects"
+                  ]
+                 }
+                },
+                "required": [
+                 "nodeId",
+                 "revision"
+                ],
+                "additionalProperties": false
+               }
+              },
+              "type": {
+               "type": "string",
+               "const": "video"
+              },
+              "assetId": {
+               "type": "string",
+               "format": "uuid",
+               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "caption": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 4000
+              },
+              "poster": {
+               "type": "string",
+               "format": "uuid",
+               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              }
+             },
+             "required": [
+              "id",
+              "type",
+              "assetId"
              ],
              "additionalProperties": false
             },
@@ -28386,6 +29113,73 @@
               },
               "type": {
                "type": "string",
+               "const": "video"
+              },
+              "assetId": {
+               "type": "string",
+               "format": "uuid",
+               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "caption": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 4000
+              },
+              "poster": {
+               "type": "string",
+               "format": "uuid",
+               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              }
+             },
+             "required": [
+              "id",
+              "type",
+              "assetId"
+             ],
+             "additionalProperties": false
+            },
+            {
+             "type": "object",
+             "properties": {
+              "id": {
+               "type": "string",
+               "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,79}$"
+              },
+              "refs": {
+               "maxItems": 200,
+               "type": "array",
+               "items": {
+                "type": "object",
+                "properties": {
+                 "nodeId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                 },
+                 "revision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                 },
+                 "role": {
+                  "type": "string",
+                  "enum": [
+                   "cites",
+                   "grounds",
+                   "subject",
+                   "projects"
+                  ]
+                 }
+                },
+                "required": [
+                 "nodeId",
+                 "revision"
+                ],
+                "additionalProperties": false
+               }
+              },
+              "type": {
+               "type": "string",
                "const": "embed"
               },
               "url": {
@@ -29740,6 +30534,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/view.html"
+    },
+    "ui/resourceUri": "ui://pai/view.html"
    }
   },
   {
@@ -29987,6 +30787,12 @@
     "destructiveHint": false,
     "idempotentHint": true,
     "openWorldHint": false
+   },
+   "_meta": {
+    "ui": {
+     "resourceUri": "ui://pai/canvas.html"
+    },
+    "ui/resourceUri": "ui://pai/canvas.html"
    }
   }
  ]

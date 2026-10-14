@@ -1,6 +1,6 @@
 # Kinds de Conocimiento
 
-> Generado por `tools/gen-references.ts` desde pai-portal `04278b49d` (2026-10-14 Merge feat/0.2.5/resources-assets (ATE-229 parte A: assets del proyecto, modelo, API y serving)), `packages/contracts/src/knowledge`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `e8a077100` (2026-10-14 Merge feat/0.2.5/resources-assets (ATE-229 partes B y C: medios en los editores, galería de Assets y tools del MCP)), `packages/contracts/src/knowledge`. No editar a mano: regenerar.
 
 Cada kind tiene una plantilla estricta: una clave que no aparece aquí se rechaza. `properties` lleva exactamente estas claves. Las secciones `refs` materializan aristas al guardar.
 

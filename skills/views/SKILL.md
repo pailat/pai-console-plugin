@@ -1,6 +1,6 @@
 ---
 name: views
-description: "UI generativa de Pai (catálogo pai-view@1, 150 componentes del sistema de diseño de Pai sobre ReUI: pantallas reales de Portal, Console y pai.lat, patrones de pantalla con regiones (tablero, detalle, lista, chat, formulario, wizard…), formularios, chat, comercio, las piezas de datos del Portal —Pagos, Cronograma, Tareas, Proyectos, Actividad, Biblioteca— y diagramas de Conocimiento). Dibuja vistas en la conversación con view_render (dashboards, comparativos, resúmenes visuales de datos ya obtenidos) o guárdalas en Recursos como bloque view de una page canvas (tableros, mockups de pantallas con AppShell, reportes visuales). Úsalo cuando pidan ver, mostrar, graficar o comparar datos de Pai de forma visual, un tablero, dashboard, mockup, wireframe o pantalla (de una app de cliente, del Portal, de Console o del sitio), dibujar un ERD, un C4 o el grafo, o editar una vista existente."
+description: "UI generativa de Pai (catálogo pai-view@1, 152 componentes del sistema de diseño de Pai sobre ReUI: pantallas reales de Portal, Console y pai.lat, patrones de pantalla con regiones (tablero, detalle, lista, chat, formulario, wizard…), formularios, chat, comercio, las piezas de datos del Portal —Pagos, Cronograma, Tareas, Proyectos, Actividad, Biblioteca— y diagramas de Conocimiento). Dibuja vistas en la conversación con view_render (dashboards, comparativos, resúmenes visuales de datos ya obtenidos) o guárdalas en Recursos como bloque view de una page canvas (tableros, mockups de pantallas con AppShell, reportes visuales). Úsalo cuando pidan ver, mostrar, graficar o comparar datos de Pai de forma visual, un tablero, dashboard, mockup, wireframe o pantalla (de una app de cliente, del Portal, de Console o del sitio), dibujar un ERD, un C4 o el grafo, o editar una vista existente."
 argument-hint: "[proyecto] [qué vista: tablero, pantalla, comparativo…]"
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
@@ -9,7 +9,7 @@ compatibility: "Pai 0.2.5+ (MCP corp)"
 
 Lee antes el skill `pai-console`: entorno, descubrimiento, buscar antes de crear, CAS.
 
-**Catálogo completo**, generado desde el código: `${CLAUDE_PLUGIN_ROOT}/skills/views/references/view-catalog.md`. Tiene los layouts de raíz, los 15 grupos, los 150 componentes con sus props, límites y un ejemplo de cada uno, y las 68 recetas del servidor completas.
+**Catálogo completo**, generado desde el código: `${CLAUDE_PLUGIN_ROOT}/skills/views/references/view-catalog.md`. Tiene los layouts de raíz, los 15 grupos, los 152 componentes con sus props, límites y un ejemplo de cada uno, y las 68 recetas del servidor completas.
 
 `view_catalog` es la fuente del servidor:
 - sin argumentos devuelve el **índice** (reglas, layouts y los componentes con sus props por nombre);
@@ -116,7 +116,7 @@ Todos funcionan **dentro de la vista** (filtran, ordenan, arrastran, abren) y **
 | Un proceso por etapas | **`Stages`** (done, current, upcoming) | `Timeline`, que es para fechas y eventos |
 | Un flujo con decisiones o un mapa de dependencias | **`Flow`** (nodos `start`, `step`, `decision`, `end`, `note` y flechas con etiqueta; ≤60 nodos) | Cajas con `Card` y flechas de texto. Si la van a seguir editando a mano, una **Pizarra** (`whiteboard_create`, skill `resources`) |
 | Un perfil de varias dimensiones o un avance contra una meta | `Chart` `radar` o `radial` (≤12 categorías; `max`, y en radial `center` con la cifra) | `Progress` repetidos |
-| Una imagen o capturas en un reporte guardado | **`Image`** o **`Carousel`** con el `assetId` de `page_asset_upload` de **esa misma page** (skill `resources` §5) | Una URL: no se acepta. En `view_render` se rechazan |
+| Una imagen, capturas o un video en un reporte guardado | **`Image`**, **`Carousel`** o **`Video`** con el `assetId` de un asset `ready` del proyecto (`asset_list` para reutilizar, `asset_upload` + `asset_confirm` para subir; skill `resources` §5) | Una URL: no se acepta. En `view_render` se rechazan |
 | Requisitos o entregables con estado | **`Checklist`** | `List` |
 | Hitos con fecha | `Timeline`; el Cronograma completo, `MilestoneTimeline` | |
 | Una lista de archivos, personas o integraciones | `Item` apilados en un `Stack` `gap: "sm"` | `List` |
@@ -186,7 +186,7 @@ Antes de usar un patrón pide su esquema con `view_catalog {types}`: las regione
 **Del servidor** (68, en 7 grupos; `view_catalog {recipeGroup}` para el resumen de un grupo y `{recipe}` para la vista completa; también completas al final de la referencia). Por ejemplo `dashboard` (AppShell + DashboardLayout), `list-filters`, `record-detail`, `list-reading` (SplitView), `crm-pipeline`, `settings`, `wizard`, `flow`, `questionnaire`, las `site-*` del sitio y las `shop-*` de comercio. Para la pantalla de una app de cliente, **parte de la receta más cercana** y cambia sus datos.
 
 **Componentes nuevos que conviene conocer:**
-- `Image` y `Carousel` (≤12 slides) muestran imágenes **subidas a esa misma page**: `assetId` de `page_asset_upload`, nunca una URL, y `alt` obligatorio. **Solo en vistas guardadas dentro de una page**: `view_render` los rechaza.
+- `Image` y `Carousel` (≤12 slides) muestran imágenes y `Video` un MP4 o WebM, siempre **assets del proyecto** por `assetId` (nunca una URL): `alt` obligatorio en las imágenes y `title` en el video. Desde ATE-229 el asset puede venir de cualquier page, nota o de la galería del mismo proyecto, si está `ready` y lo ves; la descripción del catálogo todavía dice «de esta misma page». **Solo en vistas guardadas dentro de una page**: `view_render` los rechaza.
 - `Flow` dibuja procesos, aprobaciones o dependencias como nodos (`start`, `end`, `step`, `decision`, `note`) y flechas con etiqueta, en horizontal o vertical (≤60 nodos, ≤120 flechas).
 - `ShellPicker` muestra los app shells que puede elegir un tema (los presets de `organization_theme_preview`); solo muestra, no guarda.
 
@@ -239,6 +239,7 @@ Antes de usar un patrón pide su esquema con `view_catalog {types}`: las regione
 | `Tabs declara N pestaña(s) y tiene M hijo(s): pon uno por pestaña.` | `tabs` y `children` de distinto largo (también en UnderlinedTabs) |
 | `La serie «S» tiene N valor(es) y hay M categoría(s).` | Una serie de `Chart` sin un valor por categoría |
 | `bloque-no-permitido` | La page lleva `typeSlug`: quítalo |
-| `ASSET_OWNER_MISMATCH: …` | Un `Image` o `Carousel` con el `assetId` de otra page: sube la imagen a esta (`page_asset_upload`) |
+| `ASSET_ADAPTATION_REQUIRED: …` | Una URL (`/storage`, firmada o externa) donde va un `assetId`: sube el archivo como asset (skill `resources` §5) |
+| `NOT_FOUND` en un `assetId` | El asset no es del proyecto, no está confirmado (`pending`) o no lo ves: búscalo con `asset_list` o confírmalo con `asset_confirm` |
 
 **Nunca inventes componentes, props ni iconos.** Si algo no está en el catálogo, compónlo con lo que hay o dilo. Si el servidor (`view_catalog`) ofrece algo que la referencia no tiene, manda el servidor.
