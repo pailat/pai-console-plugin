@@ -1,6 +1,6 @@
 # Inventario de tools del MCP corp de Pai (0.2.5+)
 
-**Fuente:** pai-portal `feat/0.2.5/reui` @ db7700fe (incluye CRM-1..4, el bloque html de ATE-204 y CRM #178) (`apps/api/src/modules/mcp/tools/*.ts`).
+**Fuente:** pai-portal `feat/0.2.5/reui` @ 04278b49d (incluye CRM-1..4, el bloque html de ATE-204, CRM #178 y la Pizarra de ATE-224..227) (`apps/api/src/modules/mcp/tools/*.ts`).
 
 Las tools declaran sus anotaciones, y la guarda las lee de `hooks/tools.json`, que se genera desde el servidor. Todas las tools de proyecto reciben `organizationId` y `projectId`. Las `knowledge_*`, `task_board` y `knowledge_view` aceptan además `productId` para trabajar sobre el conocimiento de un producto que el proyecto toca. Con el proyecto cerrado, toda escritura de contenido responde `CONFLICT` «El proyecto está cerrado…».
 
@@ -64,11 +64,14 @@ Detalle, flujo, errores, mapa de tokens y verificación en el Portal en el skill
 
 | Tool | Tipo | Nota |
 |---|---|---|
-| `folder_create` | E | Carpeta vacía en Recursos (`parent` "" = General); devuelve su `path` para `note_create` |
-| `folder_delete` | E · IRR | Solo carpetas vacías a cualquier profundidad (páginas y archivos, internos incluidos); se lleva sus subcarpetas vacías. `summary` obligatorio (≤80, queda en la auditoría). General no se borra (`invalid_input`); con contenido → `CONFLICT`; no es tuya o la bloquea contenido que no ves → `FORBIDDEN` |
+| `folder_create` | E | Carpeta vacía en Recursos (`parent` "" = la raíz de Recursos, «Recursos (raíz)» en el selector); devuelve su `path` para `note_create` |
+| `folder_delete` | E · IRR | Solo carpetas vacías a cualquier profundidad (páginas y archivos, internos incluidos); se lleva sus subcarpetas vacías. `summary` obligatorio (≤80, queda en la auditoría). La raíz (`""`) no se borra (`invalid_input`); con contenido → `CONFLICT`; no es tuya o la bloquea contenido que no ves → `FORBIDDEN` |
 | `note_create` | E | Nota Markdown; la del staff nace interna salvo `audience: client` |
 | `note_update` | E | Cuerpo y atributos con `expectedRevision`. En la nota de un cliente, un agente de Pai solo **propone** sugerencias (`{suggested: true}`) |
 | `note_audience_set` | E | `client` la publica para la organización; `internal` la deja al equipo de Pai |
+| `whiteboard_create` | E | Pizarra (Excalidraw) en Recursos, vacía o con `content` `{graph}` o `{mermaid}`; nunca coordenadas. Regla de las notas: la del staff nace interna salvo `audience: client`. Skill `resources` §3 |
+| `whiteboard_read` | L | Lo que dice (nodos con id, conexiones, grupos, `otherCount`), `revision` y `preview` (vista `WhiteboardSketch`) |
+| `whiteboard_update` | E | `expectedRevision` e `idempotencyKey` obligatorias; `mode: append` agrega a la derecha (aristas a nodos existentes por id o texto); `mode: replace` **borra lo dibujado por las personas**: solo si te lo piden. Las personas con la pizarra abierta lo ven en vivo |
 | `page_frontmatter_update` | E | Merge-patch del frontmatter: audiencia y atributos (date, owner, status, labels) con `expectedRevision` |
 | `page_projection` | L | Dibuja un bloque `projection` de una page (C4, ERD, pantalla, flujo) como el lector del Portal |
 | `page_suggest` | E | Propone cambios revisables («Antes / Después») a una page o nota en vez de escribirlos; `baseRevision` de `page_read` |
@@ -76,10 +79,10 @@ Detalle, flujo, errores, mapa de tokens y verificación en el Portal en el skill
 | `quiz_respond` | E | Responde un bloque quiz en nombre de la persona; cada intento cuenta |
 | `page_catalog` | L | Unos 35 KB: bloques, reglas, JSON Schema y vistas. Prefiere las referencias de los skills `resources` y `views` |
 | `page_types` | L | Lista, o el detalle de un `slug` con su `authoringGuide` |
-| `page_validate` | L | Valida sin guardar `content` y/o `frontmatter` (atributos); devuelve `issues` y `warnings` (avisos del bloque `html`) |
+| `page_validate` | L | Valida sin guardar `content` y/o `frontmatter` (atributos); devuelve `issues` y `warnings` (avisos del bloque `html`; del bloque `whiteboard`, `WHITEBOARD_NOT_FOUND`, `WHITEBOARD_NOT_A_BOARD` y `WHITEBOARD_NOT_CLIENT_VISIBLE`) |
 | `page_list` | L | Filtros `status`, `owner`, `labels`, `dateFrom`/`dateTo`, `audience`, `pathPrefix`; `sort` path, date o status; sigue `nextCursor` con el mismo `sort`. Trae `attributes` |
 | `page_search` | L | `limit` ≤50, sin cursor ni orden; mismos filtros que `page_list` (busca 50 y filtra: puede traer menos que `limit`) |
-| `page_read` | L | `view`: summary, content o full. Solo `full` sirve para escribir. Trae `attributes` tipados y las `projections` resueltas |
+| `page_read` | L | `view`: summary, content o full. Solo `full` sirve para escribir. Trae `attributes` tipados, las `projections` resueltas y `whiteboards` (título y resumen de cada pizarra embebida, o `hidden`) |
 | `page_versions` | L | Pagina con `nextCursor` |
 | `page_version` | L | |
 | `page_comprehension` | L | Antes de reescribir una page |
@@ -198,7 +201,7 @@ Detalle, flujo, errores, mapa de tokens y verificación en el Portal en el skill
 | `view_catalog` | L | Catálogo `pai-view@1` (componentes, props, reglas, ejemplo); con `types`/`group`, `recipe` o `recipeGroup`, uno a la vez. Prefiere la referencia del skill `views` |
 | `view_render` | L | Dibuja en la conversación una vista que compones (`{title, spec}`); la valida y no guarda nada. `organizationId` la pinta con el tema de esa organización |
 
-Además, en los hosts con MCP Apps, las lecturas con una vista propia se dibujan solas como una vista de Pai: `project_summary`, `project_list`, `project_activity`, `project_close_review`, `status_update_list`, `timeline_get`, `milestone_list`, `payment_list`, `proposal_list`, `task_board`, `file_list`, `page_list`, `page_suggestions`, `page_comprehension`, `page_knowledge_health`, `page_projection`, `agent_inbox`, `knowledge_library`, `knowledge_graph`, `knowledge_view`, `organization_theme_preview`, las lecturas del CRM (`crm_overview_get`, `crm_lead_list`, `crm_lead_summary`, `crm_lead_get`, `crm_lead_record`, `crm_lead_event_list`, `crm_lead_duplicates`, `crm_lead_organization_suggestions`, `crm_submission_get`, `crm_opportunity_list`, `crm_opportunity_summary`, `crm_opportunity_get`, `crm_opportunity_event_list`, `crm_trace_get`) y `view_render`. `knowledge_view` y `page_projection` se dibujan en el lienzo (`ui://pai/canvas.html`). Las demás lecturas (detalles, búsquedas, validaciones, catálogos) devuelven solo datos y texto (ATE-203).
+Además, en los hosts con MCP Apps, las lecturas con una vista propia se dibujan solas como una vista de Pai: `project_summary`, `project_list`, `project_activity`, `project_close_review`, `status_update_list`, `timeline_get`, `milestone_list`, `payment_list`, `proposal_list`, `task_board`, `file_list`, `page_list`, `page_suggestions`, `page_comprehension`, `page_knowledge_health`, `page_projection`, `whiteboard_read`, `agent_inbox`, `knowledge_library`, `knowledge_graph`, `knowledge_view`, `organization_theme_preview`, las lecturas del CRM (`crm_overview_get`, `crm_lead_list`, `crm_lead_summary`, `crm_lead_get`, `crm_lead_record`, `crm_lead_event_list`, `crm_lead_duplicates`, `crm_lead_organization_suggestions`, `crm_submission_get`, `crm_opportunity_list`, `crm_opportunity_summary`, `crm_opportunity_get`, `crm_opportunity_event_list`, `crm_trace_get`) y `view_render`. `knowledge_view` y `page_projection` se dibujan en el lienzo (`ui://pai/canvas.html`). Las demás lecturas (detalles, búsquedas, validaciones, catálogos) devuelven solo datos y texto (ATE-203).
 
 ## CRM (staff, o roles de Console con `crm:access`; permisos `crm:*`)
 

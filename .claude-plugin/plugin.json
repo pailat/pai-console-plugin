@@ -1,7 +1,7 @@
 {
   "name": "pai-console",
   "displayName": "Pai Console",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Trabaja con Pai Console (0.2.5+) por el MCP corp: UI generativa (pai-view@1 y view_render), Recursos, Conocimiento (ERD, C4, pantallas, de proyecto y de organización), Cronograma y tablero, Propuestas, Pagos/CFDI, Productos, CRM y el tema de marca, con skills opinados y una guarda de escrituras en producción.",
   "author": {
     "name": "Pai",
