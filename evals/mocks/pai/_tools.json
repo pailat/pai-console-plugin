@@ -2304,6 +2304,68 @@
                 "type": "string",
                 "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,79}$"
                },
+               "refs": {
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                 "type": "object",
+                 "properties": {
+                  "nodeId": {
+                   "type": "string",
+                   "format": "uuid",
+                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "revision": {
+                   "type": "integer",
+                   "minimum": 0,
+                   "maximum": 9007199254740991
+                  },
+                  "role": {
+                   "type": "string",
+                   "enum": [
+                    "cites",
+                    "grounds",
+                    "subject",
+                    "projects"
+                   ]
+                  }
+                 },
+                 "required": [
+                  "nodeId",
+                  "revision"
+                 ],
+                 "additionalProperties": false
+                }
+               },
+               "type": {
+                "type": "string",
+                "const": "whiteboard"
+               },
+               "page": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+               },
+               "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+               }
+              },
+              "required": [
+               "id",
+               "type",
+               "page"
+              ],
+              "additionalProperties": false
+             },
+             {
+              "type": "object",
+              "properties": {
+               "id": {
+                "type": "string",
+                "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,79}$"
+               },
                "type": {
                 "type": "string",
                 "const": "projection"
@@ -8251,7 +8313,7 @@
   },
   {
    "name": "page_validate",
-   "description": "Valida contenido sin persistir; devuelve errores por campo. Con typeSlug aplica además la estructura del tipo y sus checks de calidad. Comprueba también las refs y citas kb: contra el conocimiento del proyecto y avisa (warnings, KNOWLEDGE_NOT_CLIENT_VISIBLE) de los nodos que nombran sus refs y citas y el cliente no ve: con ellos la page no puede ser audience client. La query de un projection no bloquea: en una page client solo muestra los nodos visibles para el cliente, y un aviso KNOWLEDGE_QUERY_CLIENT_OMITTED dice cuántos deja fuera por bloque. Un bloque html avisa (html-network-blocked, html-sensitive-field) si llama a la red, que su marco bloquea, o pide contraseñas, tarjetas o códigos; page_create y page_update dan los mismos avisos y no impiden guardar. Usa el catálogo para corregirlos. Con frontmatter valida además los atributos (date AAAA-MM-DD, owner un usuario del equipo de Pai o de la organización, status draft|in_review|approved|archived, labels hasta 10 de hasta 40 caracteres sin repetir) con el mismo esquema que el Portal; content se puede omitir para validar solo el frontmatter.",
+   "description": "Valida contenido sin persistir; devuelve errores por campo. Con typeSlug aplica además la estructura del tipo y sus checks de calidad. Comprueba también las refs y citas kb: contra el conocimiento del proyecto y avisa (warnings, KNOWLEDGE_NOT_CLIENT_VISIBLE) de los nodos que nombran sus refs y citas y el cliente no ve: con ellos la page no puede ser audience client. La query de un projection no bloquea: en una page client solo muestra los nodos visibles para el cliente, y un aviso KNOWLEDGE_QUERY_CLIENT_OMITTED dice cuántos deja fuera por bloque. Un bloque html avisa (html-network-blocked, html-sensitive-field) si llama a la red, que su marco bloquea, o pide contraseñas, tarjetas o códigos; page_create y page_update dan los mismos avisos y no impiden guardar. Usa el catálogo para corregirlos. Un bloque whiteboard nombra una pizarra del proyecto (WHITEBOARD_NOT_FOUND, WHITEBOARD_NOT_A_BOARD) y avisa (WHITEBOARD_NOT_CLIENT_VISIBLE) de las pizarras solo del equipo, que una page client no puede mostrar. Con frontmatter valida además los atributos (date AAAA-MM-DD, owner un usuario del equipo de Pai o de la organización, status draft|in_review|approved|archived, labels hasta 10 de hasta 40 caracteres sin repetir) con el mismo esquema que el Portal; content se puede omitir para validar solo el frontmatter.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -8509,7 +8571,7 @@
   },
   {
    "name": "page_read",
-   "description": "Lee summary (metadatos), content (metadatos y Markdown) o full (por defecto: JSON completo, revision, versiones, comentarios y projections: lo que dibuja cada bloque projection, resuelto con lo que puedes ver; attributes: fecha, responsable con su nombre, estatus y etiquetas tipados, sin estatus = vacío). No uses lecturas parciales para actualizar: antes de page_update lee view=full y conserva el JSON completo más reciente; usa document.id como expectedDocumentId y document.revision como expectedRevision.",
+   "description": "Lee summary (metadatos), content (metadatos y Markdown) o full (por defecto: JSON completo, revision, versiones, comentarios y projections: lo que dibuja cada bloque projection, resuelto con lo que puedes ver; whiteboards: título y resumen de cada pizarra embebida, o hidden si no la ves; attributes: fecha, responsable con su nombre, estatus y etiquetas tipados, sin estatus = vacío). No uses lecturas parciales para actualizar: antes de page_update lee view=full y conserva el JSON completo más reciente; usa document.id como expectedDocumentId y document.revision como expectedRevision.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -11126,6 +11188,68 @@
                "title",
                "html",
                "height"
+              ],
+              "additionalProperties": false
+             },
+             {
+              "type": "object",
+              "properties": {
+               "id": {
+                "type": "string",
+                "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,79}$"
+               },
+               "refs": {
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                 "type": "object",
+                 "properties": {
+                  "nodeId": {
+                   "type": "string",
+                   "format": "uuid",
+                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "revision": {
+                   "type": "integer",
+                   "minimum": 0,
+                   "maximum": 9007199254740991
+                  },
+                  "role": {
+                   "type": "string",
+                   "enum": [
+                    "cites",
+                    "grounds",
+                    "subject",
+                    "projects"
+                   ]
+                  }
+                 },
+                 "required": [
+                  "nodeId",
+                  "revision"
+                 ],
+                 "additionalProperties": false
+                }
+               },
+               "type": {
+                "type": "string",
+                "const": "whiteboard"
+               },
+               "page": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+               },
+               "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+               }
+              },
+              "required": [
+               "id",
+               "type",
+               "page"
               ],
               "additionalProperties": false
              },
@@ -13976,6 +14100,68 @@
                "title",
                "html",
                "height"
+              ],
+              "additionalProperties": false
+             },
+             {
+              "type": "object",
+              "properties": {
+               "id": {
+                "type": "string",
+                "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,79}$"
+               },
+               "refs": {
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                 "type": "object",
+                 "properties": {
+                  "nodeId": {
+                   "type": "string",
+                   "format": "uuid",
+                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "revision": {
+                   "type": "integer",
+                   "minimum": 0,
+                   "maximum": 9007199254740991
+                  },
+                  "role": {
+                   "type": "string",
+                   "enum": [
+                    "cites",
+                    "grounds",
+                    "subject",
+                    "projects"
+                   ]
+                  }
+                 },
+                 "required": [
+                  "nodeId",
+                  "revision"
+                 ],
+                 "additionalProperties": false
+                }
+               },
+               "type": {
+                "type": "string",
+                "const": "whiteboard"
+               },
+               "page": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+               },
+               "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240
+               }
+              },
+              "required": [
+               "id",
+               "type",
+               "page"
               ],
               "additionalProperties": false
              },
@@ -23231,6 +23417,497 @@
    }
   },
   {
+   "name": "whiteboard_create",
+   "title": "Crear pizarra",
+   "description": "Crea una Pizarra (Excalidraw) en Recursos del proyecto, vacía o con un diagrama. La crea el staff o un miembro de la organización cliente, como una nota: la de un cliente la ve toda su organización y el equipo de Pai; la del staff nace solo para el equipo salvo audience=client. path es la ruta completa (carpeta/nombre). content es { graph } o { mermaid }. graph: { direction?: \"TB\"|\"LR\"|\"RL\"|\"BT\", nodes: [{ id, label, shape?: \"rectangle\"|\"ellipse\"|\"diamond\"|\"note\"|\"text\", group?, tone?: \"default\"|\"info\"|\"success\"|\"warning\"|\"destructive\"|\"muted\" }], edges?: [{ from, to, label?, dashed? }], groups?: [{ id, label }] }; ids con letras, números, _ . : o -. mermaid: un flowchart (flowchart LR, nodos A[texto], A(texto), A([texto]), A{texto}, A((texto)), A>texto], aristas -->, ---, -.->, ==>, -->|texto|, subgraph … end). Nunca escribas coordenadas: el servidor acomoda los nodos. Devuelve la pizarra con su path, revision, url y lo que dice (summary); para editarla usa whiteboard_update con ese path y esa revision.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "organizationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     },
+     "projectId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     },
+     "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "description": "Ruta sin extensión, p. ej. «diagramas/flujo-de-ventas»"
+     },
+     "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Título de la pizarra"
+     },
+     "content": {
+      "description": "El diagrama inicial (graph o mermaid); vacía si se omite",
+      "anyOf": [
+       {
+        "type": "object",
+        "properties": {
+         "graph": {
+          "type": "object",
+          "properties": {
+           "direction": {
+            "default": "TB",
+            "type": "string",
+            "enum": [
+             "TB",
+             "LR",
+             "RL",
+             "BT"
+            ]
+           },
+           "nodes": {
+            "maxItems": 300,
+            "type": "array",
+            "items": {
+             "type": "object",
+             "properties": {
+              "id": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 64,
+               "pattern": "^[A-Za-z0-9_.:-]+$"
+              },
+              "label": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 280
+              },
+              "shape": {
+               "default": "rectangle",
+               "type": "string",
+               "enum": [
+                "rectangle",
+                "ellipse",
+                "diamond",
+                "note",
+                "text"
+               ]
+              },
+              "group": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 64,
+               "pattern": "^[A-Za-z0-9_.:-]+$"
+              },
+              "tone": {
+               "default": "default",
+               "type": "string",
+               "enum": [
+                "default",
+                "info",
+                "success",
+                "warning",
+                "destructive",
+                "muted"
+               ]
+              }
+             },
+             "required": [
+              "id",
+              "label"
+             ]
+            }
+           },
+           "edges": {
+            "default": [],
+            "maxItems": 600,
+            "type": "array",
+            "items": {
+             "type": "object",
+             "properties": {
+              "from": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 280
+              },
+              "to": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 280
+              },
+              "label": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 280
+              },
+              "dashed": {
+               "default": false,
+               "type": "boolean"
+              }
+             },
+             "required": [
+              "from",
+              "to"
+             ]
+            }
+           },
+           "groups": {
+            "default": [],
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+             "type": "object",
+             "properties": {
+              "id": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 64,
+               "pattern": "^[A-Za-z0-9_.:-]+$"
+              },
+              "label": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 280
+              }
+             },
+             "required": [
+              "id",
+              "label"
+             ]
+            }
+           }
+          },
+          "required": [
+           "nodes"
+          ]
+         }
+        },
+        "required": [
+         "graph"
+        ],
+        "additionalProperties": false
+       },
+       {
+        "type": "object",
+        "properties": {
+         "mermaid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20000
+         }
+        },
+        "required": [
+         "mermaid"
+        ],
+        "additionalProperties": false
+       }
+      ]
+     },
+     "audience": {
+      "description": "Solo staff: client la publica para el cliente; por omisión internal. La de un cliente siempre es client.",
+      "type": "string",
+      "enum": [
+       "client",
+       "internal"
+      ]
+     },
+     "summary": {
+      "description": "Resumen de la versión (máx. 80 caracteres)",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+     },
+     "idempotencyKey": {
+      "description": "Clave para reintentar sin crear dos veces",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+     }
+    },
+    "required": [
+     "organizationId",
+     "projectId",
+     "path",
+     "title"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "whiteboard_read",
+   "title": "Leer pizarra",
+   "description": "Lee una Pizarra: lo que dice (nodos con su id, texto, forma y grupo; conexiones entre ids; grupos; textos sueltos; otherCount cuenta trazos y formas que no son nodos ni conexiones), su revision y un boceto (preview). Los ids de los nodos sirven en las aristas de whiteboard_update con mode append. Un cliente lee las pizarras de audiencia client.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "organizationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     },
+     "projectId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     },
+     "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "description": "Ruta sin extensión, p. ej. «diagramas/flujo-de-ventas»"
+     }
+    },
+    "required": [
+     "organizationId",
+     "projectId",
+     "path"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "whiteboard_update",
+   "title": "Editar pizarra",
+   "description": "Escribe en una Pizarra con expectedRevision = revision de whiteboard_read o de la última escritura. mode append agrega el contenido a la derecha de lo que hay, y sus aristas pueden apuntar a nodos de la pizarra por id o por texto (los ids nuevos no pueden repetir los de la pizarra); mode replace cambia la pizarra entera por el contenido (borra lo que dibujaron las personas: úsalo solo si te lo piden). content es { graph } o { mermaid }. graph: { direction?: \"TB\"|\"LR\"|\"RL\"|\"BT\", nodes: [{ id, label, shape?: \"rectangle\"|\"ellipse\"|\"diamond\"|\"note\"|\"text\", group?, tone?: \"default\"|\"info\"|\"success\"|\"warning\"|\"destructive\"|\"muted\" }], edges?: [{ from, to, label?, dashed? }], groups?: [{ id, label }] }; ids con letras, números, _ . : o -. mermaid: un flowchart (flowchart LR, nodos A[texto], A(texto), A([texto]), A{texto}, A((texto)), A>texto], aristas -->, ---, -.->, ==>, -->|texto|, subgraph … end). Nunca escribas coordenadas: el servidor acomoda los nodos. Ante CONFLICT vuelve a leer con whiteboard_read e integra los cambios; quien tenga la pizarra abierta ve tu edición en vivo. idempotencyKey hace seguro el reintento: la misma clave con el mismo contenido responde la primera escritura. summary describe la versión; versionName la nombra como «Guardar versión». Un cliente edita las pizarras creadas por su organización.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "organizationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     },
+     "projectId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     },
+     "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "description": "Ruta sin extensión, p. ej. «diagramas/flujo-de-ventas»"
+     },
+     "expectedRevision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991,
+      "description": "revision de whiteboard_read; ante CONFLICT vuelve a leer"
+     },
+     "mode": {
+      "type": "string",
+      "enum": [
+       "append",
+       "replace"
+      ],
+      "description": "append agrega a la derecha; replace cambia la pizarra entera"
+     },
+     "content": {
+      "anyOf": [
+       {
+        "type": "object",
+        "properties": {
+         "graph": {
+          "type": "object",
+          "properties": {
+           "direction": {
+            "default": "TB",
+            "type": "string",
+            "enum": [
+             "TB",
+             "LR",
+             "RL",
+             "BT"
+            ]
+           },
+           "nodes": {
+            "maxItems": 300,
+            "type": "array",
+            "items": {
+             "type": "object",
+             "properties": {
+              "id": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 64,
+               "pattern": "^[A-Za-z0-9_.:-]+$"
+              },
+              "label": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 280
+              },
+              "shape": {
+               "default": "rectangle",
+               "type": "string",
+               "enum": [
+                "rectangle",
+                "ellipse",
+                "diamond",
+                "note",
+                "text"
+               ]
+              },
+              "group": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 64,
+               "pattern": "^[A-Za-z0-9_.:-]+$"
+              },
+              "tone": {
+               "default": "default",
+               "type": "string",
+               "enum": [
+                "default",
+                "info",
+                "success",
+                "warning",
+                "destructive",
+                "muted"
+               ]
+              }
+             },
+             "required": [
+              "id",
+              "label"
+             ]
+            }
+           },
+           "edges": {
+            "default": [],
+            "maxItems": 600,
+            "type": "array",
+            "items": {
+             "type": "object",
+             "properties": {
+              "from": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 280
+              },
+              "to": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 280
+              },
+              "label": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 280
+              },
+              "dashed": {
+               "default": false,
+               "type": "boolean"
+              }
+             },
+             "required": [
+              "from",
+              "to"
+             ]
+            }
+           },
+           "groups": {
+            "default": [],
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+             "type": "object",
+             "properties": {
+              "id": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 64,
+               "pattern": "^[A-Za-z0-9_.:-]+$"
+              },
+              "label": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 280
+              }
+             },
+             "required": [
+              "id",
+              "label"
+             ]
+            }
+           }
+          },
+          "required": [
+           "nodes"
+          ]
+         }
+        },
+        "required": [
+         "graph"
+        ],
+        "additionalProperties": false
+       },
+       {
+        "type": "object",
+        "properties": {
+         "mermaid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20000
+         }
+        },
+        "required": [
+         "mermaid"
+        ],
+        "additionalProperties": false
+       }
+      ],
+      "description": "Lo que se escribe: graph o mermaid"
+     },
+     "summary": {
+      "description": "Resumen de la versión (máx. 80 caracteres)",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+     },
+     "versionName": {
+      "description": "Nombre de la versión, como «Guardar versión»",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+     },
+     "idempotencyKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Clave única de esta escritura; repítela solo para reintentarla"
+     }
+    },
+    "required": [
+     "organizationId",
+     "projectId",
+     "path",
+     "expectedRevision",
+     "mode",
+     "content",
+     "idempotencyKey"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": true,
+    "openWorldHint": false
+   }
+  },
+  {
    "name": "page_suggest",
    "title": "Sugerir cambios",
    "description": "Propone cambios a una página de Pai o a una nota como sugerencias revisables, en vez de escribirlos: la persona las revisa una por una («Antes / Después») y acepta o rechaza; las aceptadas se aplican juntas en una revisión. Lee antes la página con page_read y pasa su revision como baseRevision. summary es tu explicación en prosa (va al hilo: threadId para responder en uno de la página, o abre uno nuevo); steps es la traza de lo que hiciste. En una pai-page cada sugerencia nombra un bloque (blockId) y was/now son bloques completos (replace, delete; insert va después de blockId). En una nota was/now son {text, range} con el rango del cuerpo (offsets UTF-16; insert con rango vacío) y blockId es una etiqueta libre, p. ej. «body». No cites nodos de Conocimiento nuevos (kb:) en una nota: se rechazan al aplicar.",
@@ -25531,6 +26208,68 @@
               "title",
               "html",
               "height"
+             ],
+             "additionalProperties": false
+            },
+            {
+             "type": "object",
+             "properties": {
+              "id": {
+               "type": "string",
+               "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,79}$"
+              },
+              "refs": {
+               "maxItems": 200,
+               "type": "array",
+               "items": {
+                "type": "object",
+                "properties": {
+                 "nodeId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                 },
+                 "revision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                 },
+                 "role": {
+                  "type": "string",
+                  "enum": [
+                   "cites",
+                   "grounds",
+                   "subject",
+                   "projects"
+                  ]
+                 }
+                },
+                "required": [
+                 "nodeId",
+                 "revision"
+                ],
+                "additionalProperties": false
+               }
+              },
+              "type": {
+               "type": "string",
+               "const": "whiteboard"
+              },
+              "page": {
+               "type": "string",
+               "format": "uuid",
+               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "title": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 240
+              }
+             },
+             "required": [
+              "id",
+              "type",
+              "page"
              ],
              "additionalProperties": false
             },
@@ -28272,6 +29011,68 @@
               "title",
               "html",
               "height"
+             ],
+             "additionalProperties": false
+            },
+            {
+             "type": "object",
+             "properties": {
+              "id": {
+               "type": "string",
+               "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,79}$"
+              },
+              "refs": {
+               "maxItems": 200,
+               "type": "array",
+               "items": {
+                "type": "object",
+                "properties": {
+                 "nodeId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                 },
+                 "revision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                 },
+                 "role": {
+                  "type": "string",
+                  "enum": [
+                   "cites",
+                   "grounds",
+                   "subject",
+                   "projects"
+                  ]
+                 }
+                },
+                "required": [
+                 "nodeId",
+                 "revision"
+                ],
+                "additionalProperties": false
+               }
+              },
+              "type": {
+               "type": "string",
+               "const": "whiteboard"
+              },
+              "page": {
+               "type": "string",
+               "format": "uuid",
+               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "title": {
+               "type": "string",
+               "minLength": 1,
+               "maxLength": 240
+              }
+             },
+             "required": [
+              "id",
+              "type",
+              "page"
              ],
              "additionalProperties": false
             },

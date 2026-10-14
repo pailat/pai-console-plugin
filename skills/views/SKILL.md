@@ -114,7 +114,7 @@ Todos funcionan **dentro de la vista** (filtran, ordenan, arrastran, abren) y **
 | Detalle tabular | `Table` (simple, con `caption` del corte o del top N) o `DataTable` (tipada, con búsqueda, filtros y páginas) | |
 | Datos clave de una ficha | `KeyValue` (1–3 columnas) | |
 | Un proceso por etapas | **`Stages`** (done, current, upcoming) | `Timeline`, que es para fechas y eventos |
-| Un flujo con decisiones o un mapa de dependencias | **`Flow`** (nodos `start`, `step`, `decision`, `end`, `note` y flechas con etiqueta; ≤60 nodos) | Cajas con `Card` y flechas de texto |
+| Un flujo con decisiones o un mapa de dependencias | **`Flow`** (nodos `start`, `step`, `decision`, `end`, `note` y flechas con etiqueta; ≤60 nodos) | Cajas con `Card` y flechas de texto. Si la van a seguir editando a mano, una **Pizarra** (`whiteboard_create`, skill `resources`) |
 | Un perfil de varias dimensiones o un avance contra una meta | `Chart` `radar` o `radial` (≤12 categorías; `max`, y en radial `center` con la cifra) | `Progress` repetidos |
 | Una imagen o capturas en un reporte guardado | **`Image`** o **`Carousel`** con el `assetId` de `page_asset_upload` de **esa misma page** (skill `resources` §5) | Una URL: no se acepta. En `view_render` se rechazan |
 | Requisitos o entregables con estado | **`Checklist`** | `List` |

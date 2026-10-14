@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "pai-portal 9750a4848 (2026-10-14 Merge feat/0.2.5/resources-canvas-test-fix (ATE-218: el test de pantallas del lienzo corre con react-server))",
+  "generatedFrom": "pai-portal 04278b49d (2026-10-14 Merge feat/0.2.5/resources-assets (ATE-229 parte A: assets del proyecto, modelo, API y serving))",
   "tools": {
     "agent_create": {
       "readOnly": false,
@@ -860,6 +860,18 @@
     "view_render": {
       "readOnly": true,
       "destructive": false
+    },
+    "whiteboard_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "whiteboard_read": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "whiteboard_update": {
+      "readOnly": false,
+      "destructive": true
     },
     "whoami": {
       "readOnly": true,

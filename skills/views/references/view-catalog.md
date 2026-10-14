@@ -1,6 +1,6 @@
 # Catálogo de vistas `pai-view@1`
 
-> Generado por `tools/gen-references.ts` desde pai-portal `9750a4848` (2026-10-14 Merge feat/0.2.5/resources-canvas-test-fix (ATE-218: el test de pantallas del lienzo corre con react-server)), `packages/views/src/catalog.ts`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `04278b49d` (2026-10-14 Merge feat/0.2.5/resources-assets (ATE-229 parte A: assets del proyecto, modelo, API y serving)), `packages/views/src/catalog.ts`. No editar a mano: regenerar.
 
 Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props, children? } } }. Los hijos se referencian por id.
 
@@ -72,7 +72,7 @@ Una pantalla completa empieza con uno de estos componentes como `root` (y solo a
 | Planeación | Cronologías, etapas, pasos, hitos, Tareas y Kanban. | Checklist, EventCalendar, Flow, Gantt, Kanban, MilestoneGanttLegend, MilestoneGanttSkeleton, MilestoneTimeline, Stages, Stepper, TaskBoard, Timeline |
 | Proyecto | Piezas de las pantallas de un proyecto en Portal y Console: propuestas, pagos, productos. Sólo muestran lo que la vista trae; nada se guarda. | ActivityFeed, OrganizationMembers, OrganizationsGrid, Payments, ProductDetail, ProductsList, ProjectsTable, ProposalLifecycle, ProposalSummary, Resources, ShellPicker |
 | Comercio | Planes, comparativas y reseñas del cliente, sólo informativos: nada se compra, cobra ni envía, y los precios son del cliente, no de Pai. | ComparisonTable, PricingGrid, ReviewList |
-| Conocimiento | Diagramas del grafo (ERD, C4, nodos), la biblioteca y el badge de tipo. Los diagramas se mueven y acercan en la vista. | C4Diagram, ErdDiagram, KnowledgeGraph, KnowledgeKindBadge, KnowledgeTable |
+| Conocimiento | Diagramas del grafo (ERD, C4, nodos), la biblioteca, el badge de tipo y el boceto de una Pizarra. Los diagramas se mueven y acercan en la vista. | C4Diagram, ErdDiagram, KnowledgeGraph, KnowledgeKindBadge, KnowledgeTable, WhiteboardSketch |
 
 ## Componentes
 
@@ -1722,6 +1722,15 @@ La biblioteca de Conocimiento de Portal y Console: tabla de nodos con tipo, esta
 - `search`?: string (≤120) (null = por defecto)
 
 Ejemplo: `{"items":[{"id":"dec-stack","title":"API monolítica en NestJS","kind":"decision","status":"active","visibility":"client","project":"Sitio web","updatedAt":"2026-10-02T15:00:00Z"},{"id":"rule-iva","title":"Los precios se muestran sin IVA","kind":"business_rule","status":"active","visibility":"client","updatedAt":"2026-09-20T10:00:00Z"},{"id":"q-crm","title":"¿El CRM entra en F1?","kind":"question","status":"proposed","visibility":"internal","project":"CRM","updatedAt":"2026-10-05T18:30:00Z"}]}`
+
+#### WhiteboardSketch
+
+La escena de una Pizarra (page de Excalidraw) reducida a formas planas, sin el editor: rectángulos, elipses, rombos, flechas y líneas, textos y los marcos de sus grupos, con sus colores. preview es el que devuelve whiteboard_read (el de scenePreview): no lo inventes ni lo armes a mano, porque las coordenadas vienen de la escena. Para editar la pizarra usa whiteboard_update. omitted cuenta lo que no se dibuja (imágenes o más de 400 formas). height: sm, md o lg (por omisión md).
+
+- `preview`: { width: number (≥0, ≤2000000), height: number (≥0, ≤2000000), shapes: [any] (máx 400), omitted: integer (≥0, ≤9007199254740991) }
+- `height`?: "sm"|"md"|"lg"|null (null = por defecto)
+
+Ejemplo: `{"preview":{"width":760,"height":220,"shapes":[{"kind":"frame","x":330,"y":40,"width":414,"height":164,"name":"Ventas"},{"kind":"rect","x":16,"y":88,"width":180,"height":72,"stroke":"#1e1e1e","rounded":true},{"kind":"text","x":46,"y":111,"width":120,"height":25,"text":"Cotización","fontSize":20,"align":"center","color":"#1e1e1e"},{"kind":"diamond","x":362,"y":72,"width":180,"height":104,"stroke":"#1971c2","fill":"#a5d8ff"},{"kind":"text","x":397,"y":111,"width":110,"height":25,"text":"¿Completa?","fontSize":20,"align":"center","color":"#1971c2"},{"kind":"rect","x":580,"y":88,"width":148,"height":72,"stroke":"#f08c00","fill":"#fff3bf"},{"kind":"text","x":604,"y":111,"width":100,"height":25,"text":"Propuesta","fontSize":20,"align":"center","color":"#f08c00"},{"kind":"line","points":[[202,124],[356,124]],"stroke":"#1e1e1e","endArrow":true},{"kind":"line","points":[[548,124],[574,124]],"stroke":"#1e1e1e","dashed":true,"endArrow":true}],"omitted":0},"height":"sm"}`
 
 ## Recetas
 

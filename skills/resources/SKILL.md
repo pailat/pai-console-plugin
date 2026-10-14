@@ -1,11 +1,11 @@
 ---
 name: resources
-description: "Crea y mantiene Recursos de un proyecto de Pai Console. Cubre pages (pai-page) con tipo y bloques, vistas con layout canvas y bloque view (catálogo pai-view@1), mockups y prototipos HTML (bloque html), proyecciones de Conocimiento, atributos (fecha, responsable, estatus, etiquetas) y filtros, notas, carpetas, sugerencias, comentarios, imágenes (assets) y archivos. Úsalo cuando pidan una page, documento, nota, carpeta, reporte, guía, PRD, SOW, arquitectura, tablero, dashboard, vista, mockup o prototipo HTML, marcar una page como aprobada o asignarle responsable, filtrar pages por estatus, responsable o etiqueta, sugerir cambios, comentar, subir imágenes o documentos, o mover, restaurar o borrar una page o una carpeta vacía."
+description: "Crea y mantiene Recursos de un proyecto de Pai Console. Cubre pages (pai-page) con tipo y bloques, vistas con layout canvas y bloque view (catálogo pai-view@1), mockups y prototipos HTML (bloque html), pizarras (Excalidraw: whiteboard_* y bloque whiteboard), proyecciones de Conocimiento, atributos (fecha, responsable, estatus, etiquetas) y filtros, notas, carpetas, sugerencias, comentarios, imágenes (assets) y archivos. Úsalo cuando pidan una page, documento, nota, carpeta, reporte, guía, PRD, SOW, arquitectura, tablero, dashboard, vista, mockup o prototipo HTML, pizarra, whiteboard, diagrama editable, lluvia de ideas o un diagrama desde Mermaid, marcar una page como aprobada o asignarle responsable, filtrar pages por estatus, responsable o etiqueta, sugerir cambios, comentar, subir imágenes o documentos, o mover, restaurar o borrar una page o una carpeta vacía."
 argument-hint: "[proyecto] [tema o tipo de recurso]"
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
-# Recursos en Pai: pages, vistas, imágenes y archivos
+# Recursos en Pai: pages, vistas, pizarras, imágenes y archivos
 
 Lee antes el skill `pai-console`.
 
@@ -22,6 +22,7 @@ Lee antes el skill `pai-console`.
 | Un documento con estructura conocida (nota, guía, decisión, reporte, proceso, overview, PRD, SOW, arquitectura, discovery, inventario de diseño) | Page `layout: "document"` **con `typeSlug`** del tipo built-in. Sus secciones obligatorias mandan |
 | Un tablero, reporte visual, mockup de pantalla o página libre con los componentes de Pai | Page `layout: "canvas"` con un bloque **`view`**, **sin `typeSlug`**: ningún tipo built-in admite `view` |
 | Un mockup o prototipo con JavaScript libre (canvas, simulación, maqueta interactiva o pixel a pixel) | Page con un bloque **`html`** (§3), **sin `typeSlug`**: ningún tipo built-in lo admite |
+| Un diagrama que el equipo o el cliente van a seguir editando a mano (lluvia de ideas, flujo, mapa, arquitectura en borrador), o un flowchart de Mermaid | **Pizarra** (`whiteboard_create`, §3): Excalidraw colaborativo en Recursos; se muestra en una page con un bloque `whiteboard`. Si solo se ve y no se edita, una vista `Flow` (skill `views`) |
 | Mostrar en una page lo que ya vive en Conocimiento (C4, ERD, pantallas, flujos, decisiones, riesgos, glosario…) | Bloque **`projection`** en una page v2 (§3): se dibuja al leer, no copia datos |
 | Una nota rápida en Markdown, que el cliente también puede escribir | Nota (`note_create`, §8) |
 | Un archivo binario (PDF, hoja de cálculo, contrato) | Archivo de Recursos (§6), no una page |
@@ -56,7 +57,7 @@ Ejemplos validados:
 - `${CLAUDE_PLUGIN_ROOT}/skills/resources/examples/report-page.json`: tipo `report`, con sus cinco secciones obligatorias;
 - vistas en canvas: ejemplos en `${CLAUDE_PLUGIN_ROOT}/skills/views/examples/`.
 
-## 3. Vistas, HTML y proyecciones
+## 3. Vistas, HTML, proyecciones y pizarras
 
 **Elige el bloque:** datos o un tablero con los componentes de Pai → `view`; interacción con JavaScript libre o una maqueta pixel a pixel → `html`; datos vivos de Conocimiento → `projection`; un enlace a Figma, Slides, Miro, YouTube o Loom → `embed` (solo la URL https, nunca HTML ni `<iframe>`).
 
@@ -103,6 +104,30 @@ Para **ver** uno ya guardado:
 - `page_read view=full` trae las `projections` resueltas como datos, sin dibujo: úsala para razonar o editar.
 - `knowledge_view` (staff) dibuja un ERD o C4 directo del grafo, sin page.
 - Errores: un `blockId` que no existe es `NOT_FOUND`; un bloque que no es `projection` es `BAD_REQUEST` (léelo con `page_read`).
+
+### Pizarras (`whiteboard_*` y bloque `whiteboard`)
+
+Una pizarra es una page de formato `whiteboard`: una escena de Excalidraw en Recursos que se edita en vivo en el Portal (**Nuevo → Pizarra**). Sigue la regla de las notas: la crea el staff o un miembro de la organización cliente; la de un cliente la ve toda su organización y Pai y la edita su organización; la del staff nace `internal` salvo `audience: "client"`.
+
+**Nunca escribes coordenadas.** Mandas `content` como `{graph}` o `{mermaid}` y el servidor acomoda y dibuja:
+- `graph`: `{direction?: "TB"|"LR"|"RL"|"BT", nodes: [{id, label, shape?, group?, tone?}], edges?: [{from, to, label?, dashed?}], groups?: [{id, label}]}`. `shape`: `rectangle`, `ellipse`, `diamond`, `note` o `text`; `tone`: `default`, `info`, `success`, `warning`, `destructive` o `muted`. Ids con letras, números, `_ . : -`. Hasta 300 nodos, 600 aristas, 50 grupos y textos de 280 caracteres.
+- `mermaid`: un `flowchart` (nodos `A[texto]`, `A(texto)`, `A([texto])`, `A{texto}`, `A((texto))`, `A>texto]`; aristas `-->`, `---`, `-.->`, `==>`, `-->|texto|`; `subgraph … end`), hasta 20 000 caracteres.
+
+**Flujo:**
+1. Crear: `whiteboard_create {path, title, content?, audience?, summary?, idempotencyKey?}`. `path` es la ruta completa (`diagramas/flujo-de-ventas`); sin `content` nace vacía. Devuelve `path`, `revision`, `url` y `summary` (lo que dice).
+2. Leer: `whiteboard_read {path}` devuelve lo que dice (nodos con su id, texto, forma y grupo; conexiones; grupos; textos sueltos; `otherCount` cuenta trazos y formas que no son nodos), su `revision` y un boceto (`preview`). En hosts con MCP Apps se dibuja como vista `WhiteboardSketch`. Lee siempre antes de escribir: las personas dibujan a mano.
+3. Escribir: `whiteboard_update {path, expectedRevision, mode, content, idempotencyKey, summary?, versionName?}`.
+   - **`mode: "append"` por omisión:** agrega el contenido a la derecha de lo que hay; sus aristas pueden apuntar a nodos existentes por id o por texto, y los ids nuevos no pueden repetir los de la pizarra.
+   - **`mode: "replace"` borra lo que dibujaron las personas:** úsalo solo si te lo piden explícitamente.
+   - `idempotencyKey` es obligatoria: repítela solo para reintentar la misma escritura («La clave de idempotencia ya se usó con otro contenido» si cambias el contenido). `versionName` la nombra como «Guardar versión».
+   - Quien tenga la pizarra abierta ve tu edición en vivo.
+4. Errores: `CONFLICT` («La pizarra cambió desde que la leíste…»): relee con `whiteboard_read` e integra. `UNAVAILABLE` («la colaboración no está disponible»): reintenta con la misma clave. `page_update` o `note_update` sobre una pizarra dan «Esta página es una pizarra: se edita en el Portal o con whiteboard_update».
+- `note_audience_set` (solo staff) la publica al cliente, y `page_move` la mueve sin perder la escena.
+- `WhiteboardSketch` solo dibuja el `preview` que devuelve `whiteboard_read`: no lo inventes ni lo armes a mano.
+
+**Mostrarla en una page:** un bloque `{id, type: "whiteboard", page, title?}`, donde `page` es el `document.id` (uuid) de la pizarra del mismo proyecto, no su ruta. Se dibuja su vista previa con «Abrir» y, para quien puede editarla, «Editar aquí». Ningún tipo built-in lo admite: va en una page sin `typeSlug`.
+- `page_validate` da `WHITEBOARD_NOT_FOUND` (no existe en el proyecto) o `WHITEBOARD_NOT_A_BOARD` (no es pizarra), y avisa `WHITEBOARD_NOT_CLIENT_VISIBLE`: una page `client` no puede mostrar una pizarra solo del equipo.
+- `page_read view=full` trae `whiteboards`: título y resumen de cada pizarra embebida, o `hidden` si no la ves.
 
 ## 4. Actualizar una page
 
@@ -245,3 +270,4 @@ Errores típicos: page sin `anchor` o con un `exact` que no coincide; `nodeId` s
 - **No** reescribas con `note_update` la nota de un cliente esperando que se guarde: queda como sugerencia.
 - **No** omitas `audience` en un comentario «para mi agente»: el servidor lo deja para el equipo.
 - **No** llames `folder_delete` sobre una carpeta con contenido esperando que se lo lleve: da `CONFLICT`. Vacíala antes.
+- **No** uses `mode: "replace"` en `whiteboard_update` sin que te lo pidan: borra lo que dibujaron las personas. Tampoco escribas coordenadas ni elementos de Excalidraw: manda `graph` o `mermaid`.
