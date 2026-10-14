@@ -53,8 +53,10 @@ El plugin trae un solo servidor MCP, `pai` (`plugin:pai-console:pai`). Su URL sa
 | Entorno | URL | Authorization server |
 |---|---|---|
 | **staging** (por defecto) | `https://mcp-edge-corp-staging.up.railway.app/mcp` | Console de staging |
-| develop (sin guarda de producción) | `https://mcp-edge-corp-develop.up.railway.app/mcp` | Console de develop |
+| develop (sin guarda de producción) | `https://mcp-corp.paitesting.com/mcp` | `https://console.paitesting.com` |
 | producción | `https://mcp-corp.pai.lat/mcp` | `https://console.pai.lat` |
+
+La URL anterior de develop (`https://mcp-edge-corp-develop.up.railway.app/mcp`) sigue en las opciones durante la transición: responde con el mismo Console de develop y los hooks la tratan como develop.
 
 **Cambiar de entorno**, por cualquiera de estas vías:
 - `/pai-console:pai-env production`;

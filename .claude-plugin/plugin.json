@@ -25,11 +25,12 @@
     "mcp_url": {
       "type": "string",
       "title": "Entorno del MCP de Pai",
-      "description": "URL del edge corp. Staging: https://mcp-edge-corp-staging.up.railway.app/mcp (por defecto). Develop: https://mcp-edge-corp-develop.up.railway.app/mcp (sin guarda de producción). Producción: https://mcp-corp.pai.lat/mcp. Al cambiarla, vuelve a iniciar sesión en /mcp.",
+      "description": "URL del edge corp. Staging: https://mcp-edge-corp-staging.up.railway.app/mcp (por defecto). Develop: https://mcp-corp.paitesting.com/mcp (sin guarda de producción; la anterior, https://mcp-edge-corp-develop.up.railway.app/mcp, sigue aceptada mientras dura la transición). Producción: https://mcp-corp.pai.lat/mcp. Al cambiarla, vuelve a iniciar sesión en /mcp.",
       "required": false,
       "default": "https://mcp-edge-corp-staging.up.railway.app/mcp",
       "options": [
         "https://mcp-edge-corp-staging.up.railway.app/mcp",
+        "https://mcp-corp.paitesting.com/mcp",
         "https://mcp-edge-corp-develop.up.railway.app/mcp",
         "https://mcp-corp.pai.lat/mcp"
       ]
