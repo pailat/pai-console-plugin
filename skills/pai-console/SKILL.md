@@ -18,6 +18,7 @@ Actúas como la persona que conectó el MCP, con sus mismos permisos que en Cons
 ## 1. Descubre antes de nada
 
 1. `whoami`: confirma que la persona es staff (`access: "staff"`). Si no lo es, en corp no hay tools.
+   - Puede ser **staff de una organización** sin ser staff de Pai. `whoami` dice igual `staff`, pero solo tiene herramientas de staff dentro de esas organizaciones: `organization_list` solo las lista a ellas, y no aparecen `organization_create`, `brief_*` ni lo que cruza organizaciones. El CRM sigue su rol real. Si una organización responde `FORBIDDEN`, está fuera de su alcance.
 2. `organization_list`: da el `organizationId` y tu rol en ella.
 3. `project_list`: da el `projectId`.
 4. `project_summary`, y `status_update_list` si necesitas el estado declarado.

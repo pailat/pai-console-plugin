@@ -204,7 +204,7 @@ Detalle y reglas en el skill `crm`. Toda escritura de lead u oportunidad lleva `
 
 | Tool | Tipo | Nota |
 |---|---|---|
-| `crm_access_get` | L | Tus permisos: crm:access, edit, convert, revenue, purge, import |
+| `crm_access_get` | L | Tus permisos: crm:access, edit, convert, revenue, purge, import, join. Vienen de roles (`crm.viewer`, `crm.sales`, `crm.closer`, `crm.admin` o propios) |
 | `crm_overview_get` | L | Portada de /crm: cifras, embudo, «Por atender», tus tareas, conversiones |
 | `crm_owner_list` | L | Propietarios posibles (ids para `ownerUserId`) |
 | `crm_submission_get` | L | Un envío de Forms y el lead que generó |
@@ -221,13 +221,13 @@ Detalle y reglas en el skill `crm`. Toda escritura de lead u oportunidad lleva `
 | `crm_lead_note_add` | E | Nota en el historial del lead (≤20 000 caracteres); no se edita: para corregir, escribe otra. No mueve etapa ni siguiente paso |
 | `crm_lead_create_from_submission` | E | Lead desde un envío de Forms |
 | `crm_lead_update` | E | Datos, propietario o `stage: contacted` (exige `nextTask`) |
-| `crm_lead_task_create` | E | Tarea con fecha y en espera de quién (`pai` o `client`) |
+| `crm_lead_task_create` | E | Tarea en un lead (`crm_task_create` sirve también para oportunidades y cuentas) |
 | `crm_lead_task_complete` | E | Cierra una tarea; `nextTask` si es la última |
 | `crm_lead_qualify` | E | Cuatro criterios + espacio; siembra nodos y crea la primera oportunidad (Descubrimiento) |
 | `crm_lead_disqualify` | E | Motivo de la lista; archiva |
 | `crm_lead_mark_duplicate` | E | Liga al lead que sobrevive y archiva |
 | `crm_lead_workspace_open` | E | Crea o liga la organización y abre el proyecto «Descubrimiento»; no se re-liga |
-| `crm_lead_workspace_join` | E | Te agrega como admin de la organización del lead; auditado |
+| `crm_lead_workspace_join` | E | `crm:join`. Te agrega como admin de la organización del lead; auditado. Sin el permiso no aparece |
 | `crm_lead_archive` | E | Sale del tablero sin borrarse |
 | `crm_lead_unarchive` | E | |
 | `crm_lead_purge` | E · IRR | Borrado duro de basura sin cadena (`spam`, `test`, `mistake`); `crm:purge` |
@@ -250,6 +250,19 @@ Detalle y reglas en el skill `crm`. Toda escritura de lead u oportunidad lleva `
 | `crm_opportunity_archive` | E | Sale del tablero y del pronóstico |
 | `crm_opportunity_unarchive` | E | |
 | `crm_opportunity_win` | E · IRR | Gana con versión de propuesta aceptada, responsable de entrega, inicio y `decision_maker`; `crm:convert` |
+
+### Tareas del CRM
+
+La tarea es `{body, dueAt, waitingOn, type?, detail?, priority?, tags?}`: `body` es el título corto, `detail` las notas en Markdown (≤20 000), `type` todo|call|email|meeting, `priority` low|medium|high y `tags` hasta 10. La misma forma vale en `firstTask`, `task` y `nextTask`.
+
+| Tool | Tipo | Nota |
+|---|---|---|
+| `crm_task_list` | L | Tablero de Console (todo, in_progress, waiting, done). Por omisión, tus abiertas de la más vencida, con `counts` (overdue, today, week, later). Filtros `owner` (me, all o id), `status`, `subject`, `due`, `priority`, `tag`, `query` |
+| `crm_task_get` | L | Una tarea con `detail`, tipo, prioridad, etiquetas, estado y registro |
+| `crm_task_tag_list` | L | Etiquetas del equipo, la más usada primero; revísalas antes de crear una |
+| `crm_task_create` | E | En un lead abierto, una oportunidad abierta o en pausa, o una cuenta (`record.kind` account, `id` = organizationId). Fecha futura; `ownerUserId` opcional |
+| `crm_task_update` | E | Reprograma, reasigna, cambia `waitingOn`, `type`, `priority`, `tags` (lista completa), `detail` o `progress` (todo ↔ in_progress). Un `body` nuevo archiva la tarea y abre su corrección **con otro id** |
+| `crm_task_complete` | E | La marca hecha; `nextTask` obligatoria si es la última abierta de un lead u oportunidad abiertos |
 
 ## Otros
 

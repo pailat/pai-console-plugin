@@ -213,6 +213,19 @@ class InventoryTest(HookCase):
         inventory = (ROOT / "skills" / "pai-console" / "references" / "tools.md").read_text()
         self.assertEqual(sorted(n for n in self.tools if f"`{n}`" not in inventory), [])
 
+    def test_explorer_agent_only_reads(self) -> None:
+        header = (ROOT / "agents" / "pai-explorer.md").read_text().split("\n---", 1)[0]
+        names = __import__("re").findall(r"mcp__plugin_pai-console_pai__(\w+)", header)
+        self.assertIn("crm_task_list", names)
+        self.assertEqual(sorted(n for n in names if not self.tools.get(n, {}).get("readOnly")), [])
+
+    def test_crm_task_tools_are_known(self) -> None:
+        for tool in ("crm_task_list", "crm_task_get", "crm_task_tag_list"):
+            self.assertTrue(self.tools[tool]["readOnly"], tool)
+        for tool in ("crm_task_create", "crm_task_update", "crm_task_complete"):
+            self.assertFalse(self.tools[tool]["readOnly"], tool)
+            self.assertFalse(self.tools[tool]["destructive"], tool)
+
 
 class SessionStartTest(HookCase):
     def test_announces_staging(self) -> None:

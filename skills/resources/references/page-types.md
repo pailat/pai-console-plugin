@@ -1,6 +1,6 @@
 # Tipos de page y bloques
 
-> Generado por `tools/gen-references.ts` desde pai-portal `59183d306` (2026-10-13 fix(resources): un cliente no borra subcarpetas ajenas ni descubre contenido interno), `packages/contracts/src/pages`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `3f155cf3e` (2026-10-14 Merge feat/0.2.5/resources-canvas-exit (ATE-218: salir de pantalla completa)), `packages/contracts/src/pages`. No editar a mano: regenerar.
 
 ## Límites del contenido
 

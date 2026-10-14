@@ -91,7 +91,7 @@ La guarda sabe qué es lectura por las anotaciones del propio servidor. Las lee 
 | `screens` | `screen`, `flow`, `actor` |
 | `schedule` | Hitos, dependencias, tareas, línea base, tablero, cierre y reapertura del proyecto |
 | `proposals-payments` | SOW, estados, CFDI, pagos, anulación |
-| `crm` | CRM de Console (staff): leads sin duplicados, contacto, calificación, espacio de trabajo, oportunidades por etapa, pausa, pérdida, ganar, interlocutores, probabilidad y pronóstico por moneda |
+| `crm` | CRM de Console (staff): permisos `crm:*` y roles (`crm.viewer`, `crm.sales`, `crm.closer`, `crm.admin`), leads sin duplicados, contacto, calificación, espacio de trabajo, oportunidades por etapa, pausa, pérdida, ganar, interlocutores, probabilidad, pronóstico por moneda y tareas (tablero, detalle en Markdown, prioridad, etiquetas) |
 | `products` | Alta, estados, aprovisionamiento, deploys, variables, dominios, acceso |
 | `pai-env` | `/pai-console:pai-env [staging\|develop\|production]`: ver o cambiar el entorno (solo manual) |
 

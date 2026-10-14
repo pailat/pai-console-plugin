@@ -15272,11 +15272,11 @@
         "type": "string",
         "minLength": 1,
         "maxLength": 500,
-        "description": "Qué hay que hacer"
+        "description": "Qué hay que hacer: un título corto («Enviar el NDA»)"
        },
        "dueAt": {
         "type": "string",
-        "description": "Cuándo vence la tarea"
+        "description": "Cuándo vence la tarea (con hora si la tiene)"
        },
        "waitingOn": {
         "type": "string",
@@ -15284,7 +15284,40 @@
          "pai",
          "client"
         ],
-        "description": "En espera de: pai (de nosotros) o client (del cliente)"
+        "description": "De quién depende: pai (de nosotros) o client (del cliente)"
+       },
+       "type": {
+        "description": "Tipo: todo (tarea, por omisión), call, email o meeting",
+        "type": "string",
+        "enum": [
+         "todo",
+         "call",
+         "email",
+         "meeting"
+        ]
+       },
+       "detail": {
+        "description": "Detalle opcional en Markdown: notas, contexto o pasos, aparte del título",
+        "type": "string",
+        "maxLength": 20000
+       },
+       "priority": {
+        "description": "Prioridad: low, medium o high (sin ella, sin prioridad)",
+        "type": "string",
+        "enum": [
+         "low",
+         "medium",
+         "high"
+        ]
+       },
+       "tags": {
+        "description": "Etiquetas (hasta 10); revisa crm_task_tag_list",
+        "maxItems": 10,
+        "type": "array",
+        "items": {
+         "type": "string",
+         "maxLength": 40
+        }
        }
       },
       "required": [
@@ -15339,11 +15372,11 @@
         "type": "string",
         "minLength": 1,
         "maxLength": 500,
-        "description": "Qué hay que hacer"
+        "description": "Qué hay que hacer: un título corto («Enviar el NDA»)"
        },
        "dueAt": {
         "type": "string",
-        "description": "Cuándo vence la tarea"
+        "description": "Cuándo vence la tarea (con hora si la tiene)"
        },
        "waitingOn": {
         "type": "string",
@@ -15351,7 +15384,40 @@
          "pai",
          "client"
         ],
-        "description": "En espera de: pai (de nosotros) o client (del cliente)"
+        "description": "De quién depende: pai (de nosotros) o client (del cliente)"
+       },
+       "type": {
+        "description": "Tipo: todo (tarea, por omisión), call, email o meeting",
+        "type": "string",
+        "enum": [
+         "todo",
+         "call",
+         "email",
+         "meeting"
+        ]
+       },
+       "detail": {
+        "description": "Detalle opcional en Markdown: notas, contexto o pasos, aparte del título",
+        "type": "string",
+        "maxLength": 20000
+       },
+       "priority": {
+        "description": "Prioridad: low, medium o high (sin ella, sin prioridad)",
+        "type": "string",
+        "enum": [
+         "low",
+         "medium",
+         "high"
+        ]
+       },
+       "tags": {
+        "description": "Etiquetas (hasta 10); revisa crm_task_tag_list",
+        "maxItems": 10,
+        "type": "array",
+        "items": {
+         "type": "string",
+         "maxLength": 40
+        }
        }
       },
       "required": [
@@ -15481,11 +15547,11 @@
         "type": "string",
         "minLength": 1,
         "maxLength": 500,
-        "description": "Qué hay que hacer"
+        "description": "Qué hay que hacer: un título corto («Enviar el NDA»)"
        },
        "dueAt": {
         "type": "string",
-        "description": "Cuándo vence la tarea"
+        "description": "Cuándo vence la tarea (con hora si la tiene)"
        },
        "waitingOn": {
         "type": "string",
@@ -15493,7 +15559,40 @@
          "pai",
          "client"
         ],
-        "description": "En espera de: pai (de nosotros) o client (del cliente)"
+        "description": "De quién depende: pai (de nosotros) o client (del cliente)"
+       },
+       "type": {
+        "description": "Tipo: todo (tarea, por omisión), call, email o meeting",
+        "type": "string",
+        "enum": [
+         "todo",
+         "call",
+         "email",
+         "meeting"
+        ]
+       },
+       "detail": {
+        "description": "Detalle opcional en Markdown: notas, contexto o pasos, aparte del título",
+        "type": "string",
+        "maxLength": 20000
+       },
+       "priority": {
+        "description": "Prioridad: low, medium o high (sin ella, sin prioridad)",
+        "type": "string",
+        "enum": [
+         "low",
+         "medium",
+         "high"
+        ]
+       },
+       "tags": {
+        "description": "Etiquetas (hasta 10); revisa crm_task_tag_list",
+        "maxItems": 10,
+        "type": "array",
+        "items": {
+         "type": "string",
+         "maxLength": 40
+        }
        }
       },
       "required": [
@@ -15902,11 +16001,11 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 500,
-          "description": "Qué hay que hacer"
+          "description": "Qué hay que hacer: un título corto («Enviar el NDA»)"
          },
          "dueAt": {
           "type": "string",
-          "description": "Cuándo vence la tarea"
+          "description": "Cuándo vence la tarea (con hora si la tiene)"
          },
          "waitingOn": {
           "type": "string",
@@ -15914,7 +16013,40 @@
            "pai",
            "client"
           ],
-          "description": "En espera de: pai (de nosotros) o client (del cliente)"
+          "description": "De quién depende: pai (de nosotros) o client (del cliente)"
+         },
+         "type": {
+          "description": "Tipo: todo (tarea, por omisión), call, email o meeting",
+          "type": "string",
+          "enum": [
+           "todo",
+           "call",
+           "email",
+           "meeting"
+          ]
+         },
+         "detail": {
+          "description": "Detalle opcional en Markdown: notas, contexto o pasos, aparte del título",
+          "type": "string",
+          "maxLength": 20000
+         },
+         "priority": {
+          "description": "Prioridad: low, medium o high (sin ella, sin prioridad)",
+          "type": "string",
+          "enum": [
+           "low",
+           "medium",
+           "high"
+          ]
+         },
+         "tags": {
+          "description": "Etiquetas (hasta 10); revisa crm_task_tag_list",
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+           "type": "string",
+           "maxLength": 40
+          }
          }
         },
         "required": [
@@ -16070,11 +16202,11 @@
         "type": "string",
         "minLength": 1,
         "maxLength": 500,
-        "description": "Qué hay que hacer"
+        "description": "Qué hay que hacer: un título corto («Enviar el NDA»)"
        },
        "dueAt": {
         "type": "string",
-        "description": "Cuándo vence la tarea"
+        "description": "Cuándo vence la tarea (con hora si la tiene)"
        },
        "waitingOn": {
         "type": "string",
@@ -16082,7 +16214,40 @@
          "pai",
          "client"
         ],
-        "description": "En espera de: pai (de nosotros) o client (del cliente)"
+        "description": "De quién depende: pai (de nosotros) o client (del cliente)"
+       },
+       "type": {
+        "description": "Tipo: todo (tarea, por omisión), call, email o meeting",
+        "type": "string",
+        "enum": [
+         "todo",
+         "call",
+         "email",
+         "meeting"
+        ]
+       },
+       "detail": {
+        "description": "Detalle opcional en Markdown: notas, contexto o pasos, aparte del título",
+        "type": "string",
+        "maxLength": 20000
+       },
+       "priority": {
+        "description": "Prioridad: low, medium o high (sin ella, sin prioridad)",
+        "type": "string",
+        "enum": [
+         "low",
+         "medium",
+         "high"
+        ]
+       },
+       "tags": {
+        "description": "Etiquetas (hasta 10); revisa crm_task_tag_list",
+        "maxItems": 10,
+        "type": "array",
+        "items": {
+         "type": "string",
+         "maxLength": 40
+        }
        }
       },
       "required": [
@@ -16129,11 +16294,11 @@
         "type": "string",
         "minLength": 1,
         "maxLength": 500,
-        "description": "Qué hay que hacer"
+        "description": "Qué hay que hacer: un título corto («Enviar el NDA»)"
        },
        "dueAt": {
         "type": "string",
-        "description": "Cuándo vence la tarea"
+        "description": "Cuándo vence la tarea (con hora si la tiene)"
        },
        "waitingOn": {
         "type": "string",
@@ -16141,7 +16306,40 @@
          "pai",
          "client"
         ],
-        "description": "En espera de: pai (de nosotros) o client (del cliente)"
+        "description": "De quién depende: pai (de nosotros) o client (del cliente)"
+       },
+       "type": {
+        "description": "Tipo: todo (tarea, por omisión), call, email o meeting",
+        "type": "string",
+        "enum": [
+         "todo",
+         "call",
+         "email",
+         "meeting"
+        ]
+       },
+       "detail": {
+        "description": "Detalle opcional en Markdown: notas, contexto o pasos, aparte del título",
+        "type": "string",
+        "maxLength": 20000
+       },
+       "priority": {
+        "description": "Prioridad: low, medium o high (sin ella, sin prioridad)",
+        "type": "string",
+        "enum": [
+         "low",
+         "medium",
+         "high"
+        ]
+       },
+       "tags": {
+        "description": "Etiquetas (hasta 10); revisa crm_task_tag_list",
+        "maxItems": 10,
+        "type": "array",
+        "items": {
+         "type": "string",
+         "maxLength": 40
+        }
        }
       },
       "required": [
@@ -16154,6 +16352,403 @@
     "required": [
      "leadId",
      "activityId"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "crm_task_list",
+   "title": "Tareas del CRM",
+   "description": "Las tareas del CRM en un solo lugar (el tablero de Console: state todo «Por hacer», in_progress «En curso», waiting «En espera del cliente», done «Hecha»): de leads, oportunidades y cuentas, con su fecha, de quién depende (waitingOn: pai = de nosotros, client = del cliente), responsable y registro (record: kind, id, title, company). Por defecto las abiertas del que pregunta, de la más vencida a la más lejana, con counts por ventana (overdue, today, week, later; días de CDMX). Filtros: owner (me, all o el id de alguien de crm_owner_list), status (open o done: las hechas, la más reciente primero), subject (lead, opportunity o account) y query (texto de la tarea o del registro).",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "owner": {
+      "type": "string"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "open",
+       "done"
+      ]
+     },
+     "subject": {
+      "type": "string",
+      "enum": [
+       "lead",
+       "opportunity",
+       "account"
+      ]
+     },
+     "due": {
+      "description": "Solo las que vencen: overdue, today, week o later",
+      "type": "string",
+      "enum": [
+       "overdue",
+       "today",
+       "week",
+       "later"
+      ]
+     },
+     "priority": {
+      "type": "string",
+      "enum": [
+       "low",
+       "medium",
+       "high"
+      ]
+     },
+     "tag": {
+      "description": "Solo las que llevan esta etiqueta",
+      "type": "string",
+      "maxLength": 40
+     },
+     "query": {
+      "type": "string",
+      "maxLength": 200
+     }
+    }
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "crm_task_get",
+   "title": "Ver una tarea",
+   "description": "Una tarea del CRM con todo: título, detail (su detalle en Markdown), tipo, prioridad, etiquetas, estado, fecha, de quién depende, responsable y su registro (lead, oportunidad o cuenta).",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "taskId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     }
+    },
+    "required": [
+     "taskId"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "crm_task_tag_list",
+   "title": "Etiquetas de tareas",
+   "description": "Las etiquetas que usan las tareas del equipo, la más usada primero: úsalas antes de inventar una nueva.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {}
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "crm_task_create",
+   "title": "Nueva tarea",
+   "description": "Crea una tarea en su registro: un lead abierto (nuevo o contactado), una oportunidad abierta (también en pausa) o una cuenta (record.kind account, record.id = organizationId). Lleva fecha futura y de quién depende. ownerUserId (opcional, de crm_owner_list): por omisión, el responsable del registro o tú.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "record": {
+      "type": "object",
+      "properties": {
+       "kind": {
+        "type": "string",
+        "enum": [
+         "lead",
+         "opportunity",
+         "account"
+        ]
+       },
+       "id": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+       }
+      },
+      "required": [
+       "kind",
+       "id"
+      ]
+     },
+     "task": {
+      "type": "object",
+      "properties": {
+       "body": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500,
+        "description": "Qué hay que hacer: un título corto («Enviar el NDA»)"
+       },
+       "dueAt": {
+        "type": "string",
+        "description": "Cuándo vence la tarea (con hora si la tiene)"
+       },
+       "waitingOn": {
+        "type": "string",
+        "enum": [
+         "pai",
+         "client"
+        ],
+        "description": "De quién depende: pai (de nosotros) o client (del cliente)"
+       },
+       "type": {
+        "description": "Tipo: todo (tarea, por omisión), call, email o meeting",
+        "type": "string",
+        "enum": [
+         "todo",
+         "call",
+         "email",
+         "meeting"
+        ]
+       },
+       "detail": {
+        "description": "Detalle opcional en Markdown: notas, contexto o pasos, aparte del título",
+        "type": "string",
+        "maxLength": 20000
+       },
+       "priority": {
+        "description": "Prioridad: low, medium o high (sin ella, sin prioridad)",
+        "type": "string",
+        "enum": [
+         "low",
+         "medium",
+         "high"
+        ]
+       },
+       "tags": {
+        "description": "Etiquetas (hasta 10); revisa crm_task_tag_list",
+        "maxItems": 10,
+        "type": "array",
+        "items": {
+         "type": "string",
+         "maxLength": 40
+        }
+       }
+      },
+      "required": [
+       "body",
+       "dueAt",
+       "waitingOn"
+      ]
+     },
+     "ownerUserId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     }
+    },
+    "required": [
+     "record",
+     "task"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "crm_task_update",
+   "title": "Reprogramar o reasignar una tarea",
+   "description": "Cambia una tarea abierta: dueAt (reprogramar, a una fecha futura), waitingOn (de quién depende), body (el título), type, detail (las notas; cambian en la misma tarea) u ownerUserId (reasignar, de crm_owner_list). Cada cambio queda en el historial; nada se borra. El texto de una actividad no se reescribe: un body nuevo archiva la tarea y abre su corrección con otro id (el que devuelve). Para cerrarla usa crm_task_complete.",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "taskId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     },
+     "dueAt": {
+      "type": "string",
+      "description": "Fecha y hora ISO 8601 con zona (2026-10-14T10:00:00-06:00)"
+     },
+     "waitingOn": {
+      "type": "string",
+      "enum": [
+       "pai",
+       "client"
+      ]
+     },
+     "body": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+     },
+     "type": {
+      "type": "string",
+      "enum": [
+       "todo",
+       "call",
+       "email",
+       "meeting"
+      ]
+     },
+     "detail": {
+      "description": "El detalle de la tarea en Markdown; null o vacío lo borra",
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 20000
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "priority": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "low",
+         "medium",
+         "high"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "tags": {
+      "description": "La lista completa de etiquetas ([] las quita)",
+      "maxItems": 10,
+      "type": "array",
+      "items": {
+       "type": "string",
+       "maxLength": 40
+      }
+     },
+     "ownerUserId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     },
+     "progress": {
+      "description": "in_progress la pasa a «En curso»; todo la regresa a «Por hacer»",
+      "type": "string",
+      "enum": [
+       "todo",
+       "in_progress"
+      ]
+     }
+    },
+    "required": [
+     "taskId"
+    ]
+   },
+   "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false
+   }
+  },
+  {
+   "name": "crm_task_complete",
+   "title": "Marcar tarea hecha",
+   "description": "Marca hecha una tarea abierta de un lead, una oportunidad o una cuenta. Un lead o una oportunidad abiertos nunca se quedan sin siguiente paso: si es su última tarea abierta, nextTask es obligatoria y se abre en el mismo registro. Devuelve la tarea cerrada y la siguiente (next).",
+   "inputSchema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+     "taskId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+     },
+     "nextTask": {
+      "type": "object",
+      "properties": {
+       "body": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500,
+        "description": "Qué hay que hacer: un título corto («Enviar el NDA»)"
+       },
+       "dueAt": {
+        "type": "string",
+        "description": "Cuándo vence la tarea (con hora si la tiene)"
+       },
+       "waitingOn": {
+        "type": "string",
+        "enum": [
+         "pai",
+         "client"
+        ],
+        "description": "De quién depende: pai (de nosotros) o client (del cliente)"
+       },
+       "type": {
+        "description": "Tipo: todo (tarea, por omisión), call, email o meeting",
+        "type": "string",
+        "enum": [
+         "todo",
+         "call",
+         "email",
+         "meeting"
+        ]
+       },
+       "detail": {
+        "description": "Detalle opcional en Markdown: notas, contexto o pasos, aparte del título",
+        "type": "string",
+        "maxLength": 20000
+       },
+       "priority": {
+        "description": "Prioridad: low, medium o high (sin ella, sin prioridad)",
+        "type": "string",
+        "enum": [
+         "low",
+         "medium",
+         "high"
+        ]
+       },
+       "tags": {
+        "description": "Etiquetas (hasta 10); revisa crm_task_tag_list",
+        "maxItems": 10,
+        "type": "array",
+        "items": {
+         "type": "string",
+         "maxLength": 40
+        }
+       }
+      },
+      "required": [
+       "body",
+       "dueAt",
+       "waitingOn"
+      ]
+     }
+    },
+    "required": [
+     "taskId"
     ]
    },
    "annotations": {
@@ -17759,11 +18354,11 @@
          "type": "string",
          "minLength": 1,
          "maxLength": 500,
-         "description": "Qué hay que hacer"
+         "description": "Qué hay que hacer: un título corto («Enviar el NDA»)"
         },
         "dueAt": {
          "type": "string",
-         "description": "Cuándo vence la tarea"
+         "description": "Cuándo vence la tarea (con hora si la tiene)"
         },
         "waitingOn": {
          "type": "string",
@@ -17771,7 +18366,40 @@
           "pai",
           "client"
          ],
-         "description": "En espera de: pai (de nosotros) o client (del cliente)"
+         "description": "De quién depende: pai (de nosotros) o client (del cliente)"
+        },
+        "type": {
+         "description": "Tipo: todo (tarea, por omisión), call, email o meeting",
+         "type": "string",
+         "enum": [
+          "todo",
+          "call",
+          "email",
+          "meeting"
+         ]
+        },
+        "detail": {
+         "description": "Detalle opcional en Markdown: notas, contexto o pasos, aparte del título",
+         "type": "string",
+         "maxLength": 20000
+        },
+        "priority": {
+         "description": "Prioridad: low, medium o high (sin ella, sin prioridad)",
+         "type": "string",
+         "enum": [
+          "low",
+          "medium",
+          "high"
+         ]
+        },
+        "tags": {
+         "description": "Etiquetas (hasta 10); revisa crm_task_tag_list",
+         "maxItems": 10,
+         "type": "array",
+         "items": {
+          "type": "string",
+          "maxLength": 40
+         }
         },
         "subject": {
          "type": "string",
@@ -22065,7 +22693,7 @@
   {
    "name": "organization_theme_preview",
    "title": "Vista previa del tema",
-   "description": "Valida un tema propuesto (o el borrador si no das theme) sin guardar nada: devuelve sus problemas de contraste AA y de esquema, el CSS que se aplicaría y una muestra con los componentes de Pai.",
+   "description": "Valida un tema propuesto (o el borrador si no das theme) sin guardar nada: devuelve sus problemas de contraste AA y de esquema, el CSS que se aplicaría, los shells que puede elegir (shells; id null = el de Pai) y una muestra con los componentes de Pai.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -22082,7 +22710,7 @@
        "type": "string"
       },
       "additionalProperties": {},
-      "description": "Tema completo (organizationThemeSchema, versión 1): { schemaVersion: 1, light: {…}, dark: {…}, font, radius, shadow, logo: { light, dark } }. light/dark: colores \"#rrggbb\" u \"oklch(L C H)\" para estas claves (las que no pongas quedan de Pai): background, foreground, card, card-foreground, popover, popover-foreground, primary, primary-foreground, secondary, secondary-foreground, muted, muted-foreground, accent, accent-foreground, border, ring, brand, brand-foreground, brand-text, chart-1, chart-2, chart-3, chart-4, chart-5, sidebar, sidebar-foreground, sidebar-primary, sidebar-primary-foreground, sidebar-accent, sidebar-accent-foreground, sidebar-border, sidebar-ring. font: inter | dm-sans | manrope | plus-jakarta-sans | figtree | source-serif-4 | lora | null. radius: rem de 0 a 1.25 en pasos de 0.0625 | null (Pai: 0.5). shadow: none | soft | default | strong | null. logo.light / logo.dark: la referencia que devuelve organization_theme_logo_confirm, o null."
+      "description": "Tema completo (organizationThemeSchema, versión 1): { schemaVersion: 1, light: {…}, dark: {…}, font, radius, shadow, shell, logo: { light, dark } }. light/dark: colores \"#rrggbb\" u \"oklch(L C H)\" para estas claves (las que no pongas quedan de Pai): background, foreground, card, card-foreground, popover, popover-foreground, primary, primary-foreground, secondary, secondary-foreground, muted, muted-foreground, accent, accent-foreground, border, ring, brand, brand-foreground, brand-text, chart-1, chart-2, chart-3, chart-4, chart-5, sidebar, sidebar-foreground, sidebar-primary, sidebar-primary-foreground, sidebar-accent, sidebar-accent-foreground, sidebar-border, sidebar-ring. font: inter | dm-sans | manrope | plus-jakarta-sans | figtree | source-serif-4 | lora | null. radius: rem de 0 a 1.25 en pasos de 0.0625 | null (Pai: 0.5). shadow: none | soft | default | strong | null. shell: el app shell completo del Portal (estructura de un bloque app-shell de reUI) | null (el de Pai: barra lateral insertada). sidebar: Barra lateral, Barra lateral pegada al borde que se contrae a íconos con la flecha de su orilla; la página va sobre el fondo, sin tarjeta. floating: Flotante, Barra lateral flotante con borde y sombra, que se contrae a íconos; la página va sobre el fondo, sin tarjeta. header: Encabezado completo, Encabezado de ancho completo con la organización, la búsqueda y el usuario; debajo, la barra lateral con el menú, que se contrae a íconos. dual-rail: Riel y panel, Un riel de íconos con las áreas y el usuario, y al lado un panel con la organización, la búsqueda y el menú del área, que se oculta. section-tabs: Áreas arriba, Barra superior fija con la organización, las áreas como píldoras y la búsqueda; debajo, la barra lateral con el menú del área y el usuario. framed: Marco único, Las áreas como pestañas arriba y un solo panel redondeado que enmarca el menú y la página. topbar: Solo barra superior, Sin barra lateral: las áreas en la barra superior, el menú del área como pestañas sobre la página y el menú completo en un panel que se abre. icon-rail: Riel de íconos, Solo un riel angosto con el menú del área en íconos y sus nombres al pasar; la página ocupa el resto. logo.light / logo.dark: la referencia que devuelve organization_theme_logo_confirm, o null."
      }
     },
     "required": [
@@ -22116,7 +22744,7 @@
        "type": "string"
       },
       "additionalProperties": {},
-      "description": "Tema completo (organizationThemeSchema, versión 1): { schemaVersion: 1, light: {…}, dark: {…}, font, radius, shadow, logo: { light, dark } }. light/dark: colores \"#rrggbb\" u \"oklch(L C H)\" para estas claves (las que no pongas quedan de Pai): background, foreground, card, card-foreground, popover, popover-foreground, primary, primary-foreground, secondary, secondary-foreground, muted, muted-foreground, accent, accent-foreground, border, ring, brand, brand-foreground, brand-text, chart-1, chart-2, chart-3, chart-4, chart-5, sidebar, sidebar-foreground, sidebar-primary, sidebar-primary-foreground, sidebar-accent, sidebar-accent-foreground, sidebar-border, sidebar-ring. font: inter | dm-sans | manrope | plus-jakarta-sans | figtree | source-serif-4 | lora | null. radius: rem de 0 a 1.25 en pasos de 0.0625 | null (Pai: 0.5). shadow: none | soft | default | strong | null. logo.light / logo.dark: la referencia que devuelve organization_theme_logo_confirm, o null."
+      "description": "Tema completo (organizationThemeSchema, versión 1): { schemaVersion: 1, light: {…}, dark: {…}, font, radius, shadow, shell, logo: { light, dark } }. light/dark: colores \"#rrggbb\" u \"oklch(L C H)\" para estas claves (las que no pongas quedan de Pai): background, foreground, card, card-foreground, popover, popover-foreground, primary, primary-foreground, secondary, secondary-foreground, muted, muted-foreground, accent, accent-foreground, border, ring, brand, brand-foreground, brand-text, chart-1, chart-2, chart-3, chart-4, chart-5, sidebar, sidebar-foreground, sidebar-primary, sidebar-primary-foreground, sidebar-accent, sidebar-accent-foreground, sidebar-border, sidebar-ring. font: inter | dm-sans | manrope | plus-jakarta-sans | figtree | source-serif-4 | lora | null. radius: rem de 0 a 1.25 en pasos de 0.0625 | null (Pai: 0.5). shadow: none | soft | default | strong | null. shell: el app shell completo del Portal (estructura de un bloque app-shell de reUI) | null (el de Pai: barra lateral insertada). sidebar: Barra lateral, Barra lateral pegada al borde que se contrae a íconos con la flecha de su orilla; la página va sobre el fondo, sin tarjeta. floating: Flotante, Barra lateral flotante con borde y sombra, que se contrae a íconos; la página va sobre el fondo, sin tarjeta. header: Encabezado completo, Encabezado de ancho completo con la organización, la búsqueda y el usuario; debajo, la barra lateral con el menú, que se contrae a íconos. dual-rail: Riel y panel, Un riel de íconos con las áreas y el usuario, y al lado un panel con la organización, la búsqueda y el menú del área, que se oculta. section-tabs: Áreas arriba, Barra superior fija con la organización, las áreas como píldoras y la búsqueda; debajo, la barra lateral con el menú del área y el usuario. framed: Marco único, Las áreas como pestañas arriba y un solo panel redondeado que enmarca el menú y la página. topbar: Solo barra superior, Sin barra lateral: las áreas en la barra superior, el menú del área como pestañas sobre la página y el menú completo en un panel que se abre. icon-rail: Riel de íconos, Solo un riel angosto con el menú del área en íconos y sus nombres al pasar; la página ocupa el resto. logo.light / logo.dark: la referencia que devuelve organization_theme_logo_confirm, o null."
      }
     },
     "required": [
@@ -28445,7 +29073,8 @@
        "editable-table",
        "column-groups",
        "pinned-footer-table",
-       "chart-composed"
+       "chart-composed",
+       "questionnaire"
       ]
      },
      "recipeGroup": {
