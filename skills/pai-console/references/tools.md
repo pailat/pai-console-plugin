@@ -46,7 +46,9 @@ Las tools declaran sus anotaciones, y la guarda las lee de `hooks/tools.json`, q
 
 ## Tema de la organización
 
-La marca que ven el Portal y las vistas del cliente. Solo staff en el MCP corp. Flujo: `organization_theme_get` → `organization_theme_preview` → `organization_theme_save_draft` → `organization_theme_publish`. Guía completa, mapa de tokens y verificación en el Portal: skill `theme`.
+Detalle, flujo, errores, mapa de tokens y verificación en el Portal en el skill `theme`. La marca que ven el Portal y las vistas del cliente: colores, fuente, radio, sombra, logos y `shell`, el app shell del Portal (ATE-212). Es lo mismo que edita Ajustes › Apariencia en el Portal (área `organization:appearance`, solo staff). Flujo: `organization_theme_get` → `organization_theme_preview` → `organization_theme_save_draft` → `organization_theme_publish`.
+
+`theme` va completo: `{schemaVersion: 1, light, dark, font, radius, shadow, shell, logo: {light, dark}}`. `shell` es un preset (`sidebar`, `floating`, `header`, `dual-rail`, `section-tabs`, `framed`, `topbar`, `icon-rail`) o `null` (el de Pai); otro valor da un problema `shell`. Las pantallas `PortalShell` de las vistas lo toman del tema publicado.
 
 | Tool | Tipo | Nota |
 |---|---|---|
@@ -198,7 +200,7 @@ La marca que ven el Portal y las vistas del cliente. Solo staff en el MCP corp. 
 
 Además, en los hosts con MCP Apps, las lecturas con una vista propia se dibujan solas como una vista de Pai: `project_summary`, `project_list`, `project_activity`, `project_close_review`, `status_update_list`, `timeline_get`, `milestone_list`, `payment_list`, `proposal_list`, `task_board`, `file_list`, `page_list`, `page_suggestions`, `page_comprehension`, `page_knowledge_health`, `page_projection`, `agent_inbox`, `knowledge_library`, `knowledge_graph`, `knowledge_view`, `organization_theme_preview`, las lecturas del CRM (`crm_overview_get`, `crm_lead_list`, `crm_lead_summary`, `crm_lead_get`, `crm_lead_record`, `crm_lead_event_list`, `crm_lead_duplicates`, `crm_lead_organization_suggestions`, `crm_submission_get`, `crm_opportunity_list`, `crm_opportunity_summary`, `crm_opportunity_get`, `crm_opportunity_event_list`, `crm_trace_get`) y `view_render`. `knowledge_view` y `page_projection` se dibujan en el lienzo (`ui://pai/canvas.html`). Las demás lecturas (detalles, búsquedas, validaciones, catálogos) devuelven solo datos y texto (ATE-203).
 
-## CRM (solo staff, permisos `crm:*`)
+## CRM (staff, o roles de Console con `crm:access`; permisos `crm:*`)
 
 Detalle y reglas en el skill `crm`. Toda escritura de lead u oportunidad lleva `expectedRevision`; montos en centavos, MXN y USD nunca se suman.
 
@@ -213,7 +215,7 @@ Detalle y reglas en el skill `crm`. Toda escritura de lead u oportunidad lleva `
 | `crm_lead_summary` | L | Tuyos que requieren atención, tiempo de respuesta, fuera de SLA, sin siguiente paso |
 | `crm_lead_get` | L | El lead con su `revision`, siguiente paso y cadena |
 | `crm_lead_record` | L | Ficha completa: calificación, envío, espacio, oportunidades, nodos sembrados, actividades |
-| `crm_lead_event_list` | L | Historial del lead (≤200) |
+| `crm_lead_event_list` | L | Historial del lead (≤200); los montos, solo con `crm:revenue` |
 | `crm_lead_duplicates` | L | **Antes de crear:** mismo correo, mismo dominio, organizaciones cliente |
 | `crm_lead_organization_suggestions` | L | Organizaciones parecidas y qué campos llenaría; nunca liga |
 | `crm_lead_create` | E | Referido, manual o MCP; `firstTask` obligatoria; `phone` opcional; avisa por correo |

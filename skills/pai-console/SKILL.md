@@ -141,7 +141,8 @@ Distingue hechos respaldados, inferencias y preguntas abiertas.
 | Pantallas y flujos: `screen`, `flow`, `actor` | `screens` |
 | Hitos, tareas, dependencias, línea base, tablero | `schedule` |
 | Propuestas (SOW), CFDI y pagos | `proposals-payments` |
-| CRM: leads, calificación, oportunidades y pronóstico (staff) | `crm` |
+| CRM: leads, calificación, oportunidades y pronóstico (staff o roles de CRM) | `crm` |
+| Tema de marca de una organización: colores, fuente, logos, shell del Portal, AA (staff) | `theme` |
 | Productos: alta, aprovisionamiento, deploy, dominios, acceso | `products` |
 | Tema de marca de una organización: tokens, fuente, radio, logos y verificación en el Portal (staff) | `theme` |
 

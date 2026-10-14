@@ -13,7 +13,7 @@ import os
 from pathlib import Path
 
 STAGING_HOSTS = ("mcp-edge-corp-staging.up.railway.app",)
-DEVELOP_HOSTS = ("mcp-edge-corp-develop.up.railway.app",)
+DEVELOP_HOSTS = ("mcp-corp.paitesting.com", "mcp-edge-corp-develop.up.railway.app")
 LABELS = {"staging": "STAGING", "develop": "DEVELOP", "production": "PRODUCCIÓN"}
 
 

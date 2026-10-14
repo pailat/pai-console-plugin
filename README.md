@@ -3,7 +3,7 @@
 Plugin de Claude Code para que el staff de Pai opere proyectos de clientes en **Pai Console** por su MCP corp. Incluye:
 
 - el MCP ya configurado;
-- skills opinados para Recursos, vistas, Conocimiento (ERD, C4, pantallas), Cronograma, Propuestas y Pagos, Productos y CRM;
+- skills opinados para Recursos, vistas, Conocimiento (ERD, C4, pantallas), Cronograma, Propuestas y Pagos, Productos, CRM y el tema de marca;
 - una guarda de escrituras en producción.
 
 ## Requisitos
@@ -53,8 +53,10 @@ El plugin trae un solo servidor MCP, `pai` (`plugin:pai-console:pai`). Su URL sa
 | Entorno | URL | Authorization server |
 |---|---|---|
 | **staging** (por defecto) | `https://mcp-edge-corp-staging.up.railway.app/mcp` | Console de staging |
-| develop (sin guarda de producción) | `https://mcp-edge-corp-develop.up.railway.app/mcp` | Console de develop |
+| develop (sin guarda de producción) | `https://mcp-corp.paitesting.com/mcp` | `https://console.paitesting.com` |
 | producción | `https://mcp-corp.pai.lat/mcp` | `https://console.pai.lat` |
+
+La URL anterior de develop (`https://mcp-edge-corp-develop.up.railway.app/mcp`) sigue en las opciones durante la transición: responde con el mismo Console de develop y los hooks la tratan como develop.
 
 **Cambiar de entorno**, por cualquiera de estas vías:
 - `/pai-console:pai-env production`;
@@ -82,25 +84,26 @@ La guarda sabe qué es lectura por las anotaciones del propio servidor. Las lee 
 
 | Skill | Para |
 |---|---|
-| `pai-console` | El método base: entorno, descubrimiento, buscar antes de crear, CAS, idempotencia, nombres en inglés, errores, citas. Con el inventario de tools |
+| `pai-console` | El método base: entorno, descubrimiento, buscar antes de crear, CAS, idempotencia, nombres en inglés, errores, citas. Con el inventario de tools (también el tema de la organización, con su `shell`) |
 | `resources` | Pages con tipo, bloques `view`, `html` (mockups y prototipos interactivos) y `projection`, atributos (fecha, responsable, estatus, etiquetas) y filtros, notas, carpetas, sugerencias, comentarios con audiencias y anclas, imágenes, archivos, mover, restaurar y borrar |
-| `views` | UI generativa de Pai (`pai-view@1`, 140 componentes, patrones con regiones y recetas del servidor): `view_render` para dibujar en la conversación; layouts reales de Portal, Console, pai.lat y login; piezas de datos del Portal (Pagos, Cronograma, Tareas, Proyectos, Actividad, Biblioteca); diagramas ERD/C4 y grafo; tableros, mockups, reportes visuales y comparativos guardados en Recursos. Recetas validadas y catálogo generado |
+| `views` | UI generativa de Pai (`pai-view@1`, 150 componentes, patrones con regiones y 68 recetas del servidor): `view_render` para dibujar en la conversación; layouts reales de Portal, Console, pai.lat y login; piezas de datos del Portal (Pagos, Cronograma, Tareas, Proyectos, Actividad, Biblioteca); diagramas ERD/C4 y grafo; tableros, mockups, reportes visuales y comparativos guardados en Recursos. Recetas validadas y catálogo generado |
 | `knowledge` | Kinds, fuentes, propuestas que confirma una persona, enlaces por ontología (incluido `implemented_by`), conocimiento de producto (`productId`), `knowledge_query`, `knowledge_batch`, ciclo de vida |
 | `erd` | `data_model` + `entity`: columnas tipadas; las relaciones salen de las FK |
 | `c4` | `component` por nivel y `actor`; relaciones con descripción y tecnología |
 | `screens` | `screen`, `flow`, `actor` |
 | `schedule` | Hitos, dependencias, tareas, línea base, tablero, cierre y reapertura del proyecto |
 | `proposals-payments` | SOW, estados, CFDI, pagos, anulación |
-| `crm` | CRM de Console (staff): permisos `crm:*` y roles (`crm.viewer`, `crm.sales`, `crm.closer`, `crm.admin`), leads sin duplicados, contacto, calificación, espacio de trabajo, oportunidades por etapa, pausa, pérdida, ganar, interlocutores, probabilidad, pronóstico por moneda y tareas (tablero, detalle en Markdown, prioridad, etiquetas) |
-| `theme` | Tema de marca de una organización (staff): tokens desde el producto real del cliente, OKLCH, mapa de tokens del Portal, reglas del validador AA, logos del tema y de la organización, y auditoría de contraste en el Portal en claro y oscuro |
+| `theme` | Tema de marca de una organización (Ajustes › Apariencia, staff): colores claro y oscuro, fuente, radio, sombra, logos y el app shell del Portal; contraste AA, borrador, vista previa, publicar y volver; tokens desde el producto real del cliente (OKLCH), mapa de tokens del Portal y auditoría de contraste en el Portal en claro y oscuro |
+| `crm` | CRM de Console (staff o roles de CRM): permisos `crm:*` y roles (`crm.viewer`, `crm.sales`, `crm.closer`, `crm.admin`), leads sin duplicados, contacto, calificación, espacio de trabajo, oportunidades por etapa, pausa, pérdida, ganar, interlocutores, probabilidad, pronóstico por moneda y tareas (tablero, detalle en Markdown, prioridad, etiquetas) |
 | `products` | Alta, estados, aprovisionamiento, deploys, variables, dominios, acceso |
 | `pai-env` | `/pai-console:pai-env [staging\|develop\|production]`: ver o cambiar el entorno (solo manual) |
 
 Todos los skills de área se pueden invocar como comando (`/pai-console:erd`, `/pai-console:c4`, `/pai-console:resources`, `/pai-console:views`…) o los carga el modelo cuando la tarea encaja.
 
-### Agente
+### Agentes
 
-`pai-explorer` es de solo lectura: hace búsquedas y lecturas pesadas (catálogos, inventarios, contexto) sin llenar el contexto principal.
+- `pai-explorer` es de solo lectura: hace búsquedas y lecturas pesadas (catálogos, inventarios, contexto, CRM) sin llenar el contexto principal.
+- `theme-designer` propone o corrige el tema de una organización desde una marca o un logo. Itera `organization_theme_preview` hasta pasar AA y devuelve el JSON. Solo lee y previsualiza: guardar y publicar los hace el agente principal con confirmación.
 
 ## Desarrollo
 

@@ -58,14 +58,14 @@ Si dudas entre dibujar y guardar, dibuja y ofrece guardarla.
   - Tooltip lleva un solo hijo, no interactivo.
 - **Props estrictas:** cada objeto de props es cerrado y solo lleva las del catálogo. Nada de `className`, `style`, colores, HTML ni expresiones. Las props que admiten `null` se pueden omitir.
 - **Iconos:** solo los del catálogo, por ejemplo `home`, `users`, `calendar`, `wallet`, `receipt`, `reports`, `book-open`, `plus`, `download`, `check`. La lista completa está en la referencia.
-- Límites: ≤300 elementos y ≤12 niveles; `KnowledgeGraph` ≤1500 aristas; `Grid` de 1 a 6 columnas; `Table` ≤10 columnas y ≤200 filas; `Chart` ≤6 series y ≤60 categorías.
+- Límites: ≤300 elementos y ≤12 niveles; `KnowledgeGraph` ≤1500 aristas; `Flow` ≤60 nodos y ≤120 flechas; `Grid` de 1 a 6 columnas; `Table` ≤10 columnas y ≤200 filas; `Chart` ≤6 series y ≤60 categorías (radar y radial, ≤12).
 
 ## Layouts: la raíz
 
 | Raíz | Es | Úsala para |
 |---|---|---|
 | `Stack` | Contenido sin pantalla alrededor | Tableros, reportes, resúmenes, comparativos y todo `view_render` de datos |
-| `PortalShell` | **El Portal de Pai, idéntico al real.** `area` (home, organization, project, product), `audience` (client o staff), `active` (ítem del menú), `organization`, `project`, `breadcrumb`, `user` | Mockups de pantallas nuevas o cambios del Portal. `menu` reemplaza el menú real solo para secciones que el Portal aún no tiene |
+| `PortalShell` | **El Portal de Pai, idéntico al real.** `area` (home, organization, project, product), `audience` (client o staff), `active` (ítem del menú), `organization`, `project`, `breadcrumb`, `user`. El marco es el app shell del tema publicado de la organización (el de `organizationId` en `view_render`; en `organization_theme_preview`, el del borrador), como sus colores; sin tema, el de Pai. No hay prop para elegirlo | Mockups de pantallas nuevas o cambios del Portal. `menu` reemplaza el menú real solo para secciones que el Portal aún no tiene |
 | `ConsoleShell` | **Console, idéntico al real.** `area` (admin, workforce o all), `active` (`admin.users`, `workforce.payments`…), `breadcrumb`, `title`, `action`, `user` | Mockups del back office |
 | `SiteShell` | **pai.lat, idéntico al real.** `lang`, `page`, con hijos del grupo Sitio web: `SiteHero`, `LogoGrid`, `SectionIntro`, `ServiceCards`, `HowItWorks`, `Testimonials`, `BlogList`, `CtaBand`, `ContactSection` | Páginas o secciones del sitio |
 | `AuthFrame` | **Login, registro e invitación de Pai** | Pantallas de identidad, con `Input` y `Button` dentro |
@@ -114,6 +114,9 @@ Todos funcionan **dentro de la vista** (filtran, ordenan, arrastran, abren) y **
 | Detalle tabular | `Table` (simple, con `caption` del corte o del top N) o `DataTable` (tipada, con búsqueda, filtros y páginas) | |
 | Datos clave de una ficha | `KeyValue` (1–3 columnas) | |
 | Un proceso por etapas | **`Stages`** (done, current, upcoming) | `Timeline`, que es para fechas y eventos |
+| Un flujo con decisiones o un mapa de dependencias | **`Flow`** (nodos `start`, `step`, `decision`, `end`, `note` y flechas con etiqueta; ≤60 nodos) | Cajas con `Card` y flechas de texto |
+| Un perfil de varias dimensiones o un avance contra una meta | `Chart` `radar` o `radial` (≤12 categorías; `max`, y en radial `center` con la cifra) | `Progress` repetidos |
+| Una imagen o capturas en un reporte guardado | **`Image`** o **`Carousel`** con el `assetId` de `page_asset_upload` de **esa misma page** (skill `resources` §5) | Una URL: no se acepta. En `view_render` se rechazan |
 | Requisitos o entregables con estado | **`Checklist`** | `List` |
 | Hitos con fecha | `Timeline`; el Cronograma completo, `MilestoneTimeline` | |
 | Una lista de archivos, personas o integraciones | `Item` apilados en un `Stack` `gap: "sm"` | `List` |
@@ -180,7 +183,7 @@ Antes de usar un patrón pide su esquema con `view_catalog {types}`: las regione
 
 ## Recetas
 
-**Del servidor** (`view_catalog {recipe}`; también completas al final de la referencia): 68 recetas en 7 grupos (`recipeGroup`). Entre ellas `dashboard` (AppShell + DashboardLayout), `list-filters` (encabezado, filtros y tabla), `record-detail` (detalle con pestañas y lateral), `list-reading` (SplitView), las de sitio (`site-*`), tienda (`shop-*`), CRM (`crm-pipeline`, `crm-record`), agentes (`ai-chat`, `agent-activity`, `agents-fleet`, `ai-ops`), tablas, gráficas y aplicación (`calendar`, `flow`, `gantt`, `wizard`…). Para la pantalla de una app de cliente, **parte de la receta más cercana** y cambia sus datos.
+**Del servidor** (68, en 7 grupos; `view_catalog {recipeGroup}` para el resumen de un grupo y `{recipe}` para la vista completa; también completas al final de la referencia). Por ejemplo `dashboard` (AppShell + DashboardLayout), `list-filters`, `record-detail`, `list-reading` (SplitView), `crm-pipeline`, `settings`, `wizard`, `flow`, `questionnaire`, las `site-*` del sitio y las `shop-*` de comercio. Para la pantalla de una app de cliente, **parte de la receta más cercana** y cambia sus datos.
 
 **Componentes nuevos que conviene conocer:**
 - `Image` y `Carousel` (≤12 slides) muestran imágenes **subidas a esa misma page**: `assetId` de `page_asset_upload`, nunca una URL, y `alt` obligatorio. **Solo en vistas guardadas dentro de una page**: `view_render` los rechaza.
@@ -236,5 +239,6 @@ Antes de usar un patrón pide su esquema con `view_catalog {types}`: las regione
 | `Tabs declara N pestaña(s) y tiene M hijo(s): pon uno por pestaña.` | `tabs` y `children` de distinto largo (también en UnderlinedTabs) |
 | `La serie «S» tiene N valor(es) y hay M categoría(s).` | Una serie de `Chart` sin un valor por categoría |
 | `bloque-no-permitido` | La page lleva `typeSlug`: quítalo |
+| `ASSET_OWNER_MISMATCH: …` | Un `Image` o `Carousel` con el `assetId` de otra page: sube la imagen a esta (`page_asset_upload`) |
 
 **Nunca inventes componentes, props ni iconos.** Si algo no está en el catálogo, compónlo con lo que hay o dilo. Si el servidor (`view_catalog`) ofrece algo que la referencia no tiene, manda el servidor.

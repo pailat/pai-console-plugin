@@ -1,0 +1,128 @@
+[
+  {
+    "tool": "organization_theme_get",
+    "input": {
+      "organizationId": "ORG_ID"
+    }
+  },
+  {
+    "tool": "organization_theme_preview",
+    "input": {
+      "organizationId": "ORG_ID",
+      "theme": {
+        "schemaVersion": 1,
+        "light": {
+          "primary": "#0f766e",
+          "primary-foreground": "#ffffff",
+          "ring": "#0f766e",
+          "accent": "#f0fdfa",
+          "accent-foreground": "#134e4a",
+          "brand": "#0f766e",
+          "brand-foreground": "#ffffff",
+          "brand-text": "#0f766e",
+          "sidebar": "#f0fdfa",
+          "sidebar-foreground": "#134e4a",
+          "sidebar-primary": "#0f766e",
+          "sidebar-primary-foreground": "#ffffff",
+          "sidebar-accent": "#ccfbf1",
+          "sidebar-accent-foreground": "#134e4a",
+          "sidebar-ring": "#0f766e",
+          "chart-1": "#0f766e",
+          "chart-2": "#14b8a6",
+          "chart-3": "#f59e0b"
+        },
+        "dark": {
+          "primary": "#2dd4bf",
+          "primary-foreground": "#042f2e",
+          "ring": "#2dd4bf",
+          "accent": "#0d3b38",
+          "accent-foreground": "#f0fdfa",
+          "brand": "#2dd4bf",
+          "brand-foreground": "#042f2e",
+          "brand-text": "#5eead4",
+          "sidebar": "#042f2e",
+          "sidebar-foreground": "#ccfbf1",
+          "sidebar-primary": "#2dd4bf",
+          "sidebar-primary-foreground": "#042f2e",
+          "sidebar-accent": "#134e4a",
+          "sidebar-accent-foreground": "#f0fdfa",
+          "sidebar-ring": "#2dd4bf",
+          "chart-1": "#2dd4bf",
+          "chart-2": "#5eead4",
+          "chart-3": "#fbbf24"
+        },
+        "font": "plus-jakarta-sans",
+        "radius": 0.75,
+        "shadow": "soft",
+        "shell": "floating",
+        "logo": {
+          "light": null,
+          "dark": null
+        }
+      }
+    }
+  },
+  {
+    "tool": "organization_theme_save_draft",
+    "input": {
+      "organizationId": "ORG_ID",
+      "theme": {
+        "schemaVersion": 1,
+        "light": {
+          "primary": "#0f766e",
+          "primary-foreground": "#ffffff",
+          "ring": "#0f766e",
+          "accent": "#f0fdfa",
+          "accent-foreground": "#134e4a",
+          "brand": "#0f766e",
+          "brand-foreground": "#ffffff",
+          "brand-text": "#0f766e",
+          "sidebar": "#f0fdfa",
+          "sidebar-foreground": "#134e4a",
+          "sidebar-primary": "#0f766e",
+          "sidebar-primary-foreground": "#ffffff",
+          "sidebar-accent": "#ccfbf1",
+          "sidebar-accent-foreground": "#134e4a",
+          "sidebar-ring": "#0f766e",
+          "chart-1": "#0f766e",
+          "chart-2": "#14b8a6",
+          "chart-3": "#f59e0b"
+        },
+        "dark": {
+          "primary": "#2dd4bf",
+          "primary-foreground": "#042f2e",
+          "ring": "#2dd4bf",
+          "accent": "#0d3b38",
+          "accent-foreground": "#f0fdfa",
+          "brand": "#2dd4bf",
+          "brand-foreground": "#042f2e",
+          "brand-text": "#5eead4",
+          "sidebar": "#042f2e",
+          "sidebar-foreground": "#ccfbf1",
+          "sidebar-primary": "#2dd4bf",
+          "sidebar-primary-foreground": "#042f2e",
+          "sidebar-accent": "#134e4a",
+          "sidebar-accent-foreground": "#f0fdfa",
+          "sidebar-ring": "#2dd4bf",
+          "chart-1": "#2dd4bf",
+          "chart-2": "#5eead4",
+          "chart-3": "#fbbf24"
+        },
+        "font": "plus-jakarta-sans",
+        "radius": 0.75,
+        "shadow": "soft",
+        "shell": "floating",
+        "logo": {
+          "light": null,
+          "dark": null
+        }
+      }
+    }
+  },
+  {
+    "tool": "organization_theme_publish",
+    "input": {
+      "organizationId": "ORG_ID"
+    }
+  }
+]

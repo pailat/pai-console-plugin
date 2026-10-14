@@ -1,6 +1,6 @@
 # Tipos de page y bloques
 
-> Generado por `tools/gen-references.ts` desde pai-portal `de187519c` (2026-10-14 Merge pull request #215 from pailat/fix/0.2.5/crm-conversions-mobile), `packages/contracts/src/pages`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `9750a4848` (2026-10-14 Merge feat/0.2.5/resources-canvas-test-fix (ATE-218: el test de pantallas del lienzo corre con react-server)), `packages/contracts/src/pages`. No editar a mano: regenerar.
 
 ## Límites del contenido
 
