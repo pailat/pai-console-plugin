@@ -19,7 +19,7 @@ Las tools declaran sus anotaciones, y la guarda las lee de `hooks/tools.json`, q
 | `organization_create` | E | Quien llama entra como admin; con `ownerEmail` envía una invitación |
 | `organization_slug_set` | E | Staff. Cambia el slug de la organización en las URLs del Portal; el anterior redirige y no se reutiliza |
 | `organization_update` | E | Requiere ser owner o admin de esa organización, como el resto de ajustes de la organización. Nombre visible o logo (`logo` = `fileKey` de `organization_logo_upload_url`, "" lo quita); el slug no cambia |
-| `organization_logo_upload_url` | E | URL firmada para el PUT del logo de la organización (PNG ≤10 MB); no es el logo del tema |
+| `organization_logo_upload_url` | E | URL firmada para el PUT del logo de la organización: **solo PNG** ≤10 MB. Es el avatar del selector y de Ajustes › General, no el logo del tema (que acepta SVG): sube los dos |
 | `organization_member_role_set` | E | owner, admin o member (`memberId` de `organization_get`); nunca deja la organización sin owner |
 | `organization_member_remove` | E | Quita al miembro y libera su asiento; no quita al último owner |
 | `organization_invitation_cancel` | E | El enlace del correo deja de servir |
@@ -46,17 +46,19 @@ Las tools declaran sus anotaciones, y la guarda las lee de `hooks/tools.json`, q
 
 ## Tema de la organización
 
-La marca que ven el Portal y las vistas del cliente. Flujo: `organization_theme_get` → `organization_theme_preview` → `organization_theme_save_draft` → `organization_theme_publish`.
+Detalle, flujo, errores, mapa de tokens y verificación en el Portal en el skill `theme`. La marca que ven el Portal y las vistas del cliente: colores, fuente, radio, sombra, logos y `shell`, el app shell del Portal (ATE-212). Es lo mismo que edita Ajustes › Apariencia en el Portal (área `organization:appearance`, solo staff). Flujo: `organization_theme_get` → `organization_theme_preview` → `organization_theme_save_draft` → `organization_theme_publish`.
+
+`theme` va completo: `{schemaVersion: 1, light, dark, font, radius, shadow, shell, logo: {light, dark}}`. `shell` es un preset (`sidebar`, `floating`, `header`, `dual-rail`, `section-tabs`, `framed`, `topbar`, `icon-rail`) o `null` (el de Pai); otro valor da un problema `shell`. Las pantallas `PortalShell` de las vistas lo toman del tema publicado.
 
 | Tool | Tipo | Nota |
 |---|---|---|
 | `organization_theme_get` | L | Tema publicado, borrador con sus problemas (AA, esquema, logo) y versiones. Léelo antes de editar |
-| `organization_theme_preview` | L | Valida un tema (o el borrador) sin guardar: problemas de contraste AA, CSS y muestra |
+| `organization_theme_preview` | L | Valida un tema (o el borrador) sin guardar: problemas de contraste AA, CSS, los `shells` que puede elegir (`id` null = el de Pai) y muestra |
 | `organization_theme_save_draft` | E | Borrador nuevo; lo publicado no cambia. Los problemas de AA se permiten en borrador |
 | `organization_theme_publish` | E | El cliente lo ve en su siguiente carga. Se rechaza si no cumple AA, esquema o logos |
 | `organization_theme_revert` | E | Copia una versión como borrador y, salvo `publish: false`, la publica |
 | `organization_theme_logo_upload_url` | E | URL firmada (5 min) para el PUT del logo: PNG, WebP o SVG ≤512 KB, con el `contentType` y `size` declarados |
-| `organization_theme_logo_confirm` | E | Tras el PUT: valida el logo y devuelve la referencia para `theme.logo.light` o `theme.logo.dark` |
+| `organization_theme_logo_confirm` | E | Tras el PUT (`storageKey` = `fileKey`): valida el logo y devuelve el objeto `{storageKey, contentType, bytes}`. Va **completo** en `theme.logo.light` o `theme.logo.dark`; un string da «se esperaba objeto, recibido texto» |
 
 ## Recursos
 
@@ -198,14 +200,14 @@ La marca que ven el Portal y las vistas del cliente. Flujo: `organization_theme_
 
 Además, en los hosts con MCP Apps, las lecturas con una vista propia se dibujan solas como una vista de Pai: `project_summary`, `project_list`, `project_activity`, `project_close_review`, `status_update_list`, `timeline_get`, `milestone_list`, `payment_list`, `proposal_list`, `task_board`, `file_list`, `page_list`, `page_suggestions`, `page_comprehension`, `page_knowledge_health`, `page_projection`, `agent_inbox`, `knowledge_library`, `knowledge_graph`, `knowledge_view`, `organization_theme_preview`, las lecturas del CRM (`crm_overview_get`, `crm_lead_list`, `crm_lead_summary`, `crm_lead_get`, `crm_lead_record`, `crm_lead_event_list`, `crm_lead_duplicates`, `crm_lead_organization_suggestions`, `crm_submission_get`, `crm_opportunity_list`, `crm_opportunity_summary`, `crm_opportunity_get`, `crm_opportunity_event_list`, `crm_trace_get`) y `view_render`. `knowledge_view` y `page_projection` se dibujan en el lienzo (`ui://pai/canvas.html`). Las demás lecturas (detalles, búsquedas, validaciones, catálogos) devuelven solo datos y texto (ATE-203).
 
-## CRM (solo staff, permisos `crm:*`)
+## CRM (staff, o roles de Console con `crm:access`; permisos `crm:*`)
 
 Detalle y reglas en el skill `crm`. Toda escritura de lead u oportunidad lleva `expectedRevision`; montos en centavos, MXN y USD nunca se suman.
 
 | Tool | Tipo | Nota |
 |---|---|---|
-| `crm_access_get` | L | Tus permisos: crm:access, edit, convert, revenue, purge, import |
-| `crm_overview_get` | L | Portada de /crm: cifras, embudo, «Por atender», tus tareas, conversiones |
+| `crm_access_get` | L | Tus permisos: crm:access, edit, convert, revenue, purge, import, join. Vienen de roles (`crm.viewer`, `crm.sales`, `crm.closer`, `crm.admin` o propios) |
+| `crm_overview_get` | L | Portada de /crm: cifras, embudo, «Por atender», tus tareas, conversiones. `from`/`to` (YYYY-MM-DD, ≤366 días) dan las series del periodo contra el anterior; `ownerLoad` es lo abierto de cada responsable |
 | `crm_owner_list` | L | Propietarios posibles (ids para `ownerUserId`) |
 | `crm_submission_get` | L | Un envío de Forms y el lead que generó |
 | `crm_submission_spam` | E | Archiva el envío sin crear lead |
@@ -213,7 +215,7 @@ Detalle y reglas en el skill `crm`. Toda escritura de lead u oportunidad lleva `
 | `crm_lead_summary` | L | Tuyos que requieren atención, tiempo de respuesta, fuera de SLA, sin siguiente paso |
 | `crm_lead_get` | L | El lead con su `revision`, siguiente paso y cadena |
 | `crm_lead_record` | L | Ficha completa: calificación, envío, espacio, oportunidades, nodos sembrados, actividades |
-| `crm_lead_event_list` | L | Historial del lead (≤200) |
+| `crm_lead_event_list` | L | Historial del lead (≤200); los montos, solo con `crm:revenue` |
 | `crm_lead_duplicates` | L | **Antes de crear:** mismo correo, mismo dominio, organizaciones cliente |
 | `crm_lead_organization_suggestions` | L | Organizaciones parecidas y qué campos llenaría; nunca liga |
 | `crm_lead_create` | E | Referido, manual o MCP; `firstTask` obligatoria; `phone` opcional; avisa por correo |
@@ -221,25 +223,25 @@ Detalle y reglas en el skill `crm`. Toda escritura de lead u oportunidad lleva `
 | `crm_lead_note_add` | E | Nota en el historial del lead (≤20 000 caracteres); no se edita: para corregir, escribe otra. No mueve etapa ni siguiente paso |
 | `crm_lead_create_from_submission` | E | Lead desde un envío de Forms |
 | `crm_lead_update` | E | Datos, propietario o `stage: contacted` (exige `nextTask`) |
-| `crm_lead_task_create` | E | Tarea con fecha y en espera de quién (`pai` o `client`) |
+| `crm_lead_task_create` | E | Tarea en un lead (`crm_task_create` sirve también para oportunidades y cuentas) |
 | `crm_lead_task_complete` | E | Cierra una tarea; `nextTask` si es la última |
 | `crm_lead_qualify` | E | Cuatro criterios + espacio; siembra nodos y crea la primera oportunidad (Descubrimiento) |
 | `crm_lead_disqualify` | E | Motivo de la lista; archiva |
 | `crm_lead_mark_duplicate` | E | Liga al lead que sobrevive y archiva |
 | `crm_lead_workspace_open` | E | Crea o liga la organización y abre el proyecto «Descubrimiento»; no se re-liga |
-| `crm_lead_workspace_join` | E | Te agrega como admin de la organización del lead; auditado |
+| `crm_lead_workspace_join` | E | `crm:join`. Te agrega como admin de la organización del lead; auditado. Sin el permiso no aparece |
 | `crm_lead_archive` | E | Sale del tablero sin borrarse |
 | `crm_lead_unarchive` | E | |
 | `crm_lead_purge` | E · IRR | Borrado duro de basura sin cadena (`spam`, `test`, `mistake`); `crm:purge` |
 | `crm_organization_list` | L | Organizaciones para abrir una oportunidad (≤20) |
 | `crm_organization_get` | L | Leads, personas del Portal, oportunidades abiertas y ganadas de la cuenta |
-| `crm_opportunity_list` | L | `crm:revenue`. Filtros de etapa, propietario, siguiente paso (`waitingOn`), línea, oferta, tipo, moneda, cierre |
+| `crm_opportunity_list` | L | `crm:revenue`. Filtros de etapa, propietario, siguiente paso (`waitingOn`), línea, oferta, tipo, moneda, mercado (`market` mx/br), cierre |
 | `crm_opportunity_summary` | L | Pronóstico por moneda, tasa de cierre, las tuyas que requieren atención, pausadas |
 | `crm_opportunity_get` | L | Con `revision`, interlocutores, propuestas y versiones, actividades, historial |
 | `crm_opportunity_event_list` | L | Cambios recientes de todas las oportunidades; `crm:revenue` |
 | `crm_trace_get` | L | La cadena envío → … → producto, con `asOf` |
-| `crm_opportunity_create` | E | `kind`, línea y ofertas, montos en centavos, `task` obligatoria |
-| `crm_opportunity_update` | E | Etapa abierta (exige `nextTask`), datos, propietario o propuesta ligada |
+| `crm_opportunity_create` | E | `kind`, línea y ofertas, montos en centavos, `market` (mx/br, no es la moneda), `discoveryPaid`, `task` obligatoria |
+| `crm_opportunity_update` | E | Etapa abierta (exige `nextTask`), datos (también `market` y `discoveryPaid`), propietario o propuesta ligada |
 | `crm_opportunity_hold` | E | En pausa; `task.dueAt` = fecha de retomar |
 | `crm_opportunity_lose` | E | Perdida con motivo de la lista |
 | `crm_opportunity_probability` | E | Ajuste 0–100 con motivo, o `reset`; `crm:revenue` |
@@ -250,6 +252,19 @@ Detalle y reglas en el skill `crm`. Toda escritura de lead u oportunidad lleva `
 | `crm_opportunity_archive` | E | Sale del tablero y del pronóstico |
 | `crm_opportunity_unarchive` | E | |
 | `crm_opportunity_win` | E · IRR | Gana con versión de propuesta aceptada, responsable de entrega, inicio y `decision_maker`; `crm:convert` |
+
+### Tareas del CRM
+
+La tarea es `{body, dueAt, waitingOn, type?, detail?, priority?, tags?}`: `body` es el título corto, `detail` las notas en Markdown (≤20 000), `type` todo|call|email|meeting, `priority` low|medium|high y `tags` hasta 10. La misma forma vale en `firstTask`, `task` y `nextTask`. `dueAt` va en CDMX: sin hora, `T18:00:00-06:00` («Sin hora»); con hora, la suya. Nunca medianoche ni mediodía UTC.
+
+| Tool | Tipo | Nota |
+|---|---|---|
+| `crm_task_list` | L | Tablero de Console (todo, in_progress, waiting, done). Por omisión, tus abiertas de la más vencida, con `counts` (overdue, today, week, later). Filtros `owner` (me, all o id), `status`, `subject`, `due`, `priority`, `tag`, `query` |
+| `crm_task_get` | L | Una tarea con `detail`, tipo, prioridad, etiquetas, estado y registro |
+| `crm_task_tag_list` | L | Etiquetas del equipo, la más usada primero; revísalas antes de crear una |
+| `crm_task_create` | E | En un lead abierto, una oportunidad abierta o en pausa, o una cuenta (`record.kind` account, `id` = organizationId). Fecha futura; `ownerUserId` opcional |
+| `crm_task_update` | E | Reprograma, reasigna, cambia `waitingOn`, `type`, `priority`, `tags` (lista completa), `detail` o `progress` (todo ↔ in_progress). Un `body` nuevo archiva la tarea y abre su corrección **con otro id** |
+| `crm_task_complete` | E | La marca hecha; `nextTask` obligatoria si es la última abierta de un lead u oportunidad abiertos |
 
 ## Otros
 

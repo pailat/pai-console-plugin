@@ -15,7 +15,8 @@ GUARD = ROOT / "hooks" / "guard.py"
 SESSION_START = ROOT / "hooks" / "session_start.py"
 
 STAGING = "https://mcp-edge-corp-staging.up.railway.app/mcp"
-DEVELOP = "https://mcp-edge-corp-develop.up.railway.app/mcp"
+DEVELOP = "https://mcp-corp.paitesting.com/mcp"
+DEVELOP_LEGACY = "https://mcp-edge-corp-develop.up.railway.app/mcp"
 PRODUCTION = "https://mcp-corp.pai.lat/mcp"
 PLUGIN = "mcp__plugin_pai-console_pai__"
 USER = "mcp__pai-console__"
@@ -87,7 +88,9 @@ class GuardTest(HookCase):
         self.assertIsNone(self.guard(PLUGIN + "project_delete", STAGING))
 
     def test_develop_writes_pass_without_confirmation(self) -> None:
-        self.assertIsNone(self.guard(PLUGIN + "page_update", DEVELOP))
+        for url in (DEVELOP, DEVELOP_LEGACY):
+            self.assertIsNone(self.guard(PLUGIN + "page_update", url), url)
+            self.assertIsNone(self.guard(PLUGIN + "project_delete", url), url)
 
     def test_production_reads_pass(self) -> None:
         for tool in ("whoami", "page_read", "knowledge_search", "timeline_get", "page_validate"):
@@ -213,6 +216,19 @@ class InventoryTest(HookCase):
         inventory = (ROOT / "skills" / "pai-console" / "references" / "tools.md").read_text()
         self.assertEqual(sorted(n for n in self.tools if f"`{n}`" not in inventory), [])
 
+    def test_explorer_agent_only_reads(self) -> None:
+        header = (ROOT / "agents" / "pai-explorer.md").read_text().split("\n---", 1)[0]
+        names = __import__("re").findall(r"mcp__plugin_pai-console_pai__(\w+)", header)
+        self.assertIn("crm_task_list", names)
+        self.assertEqual(sorted(n for n in names if not self.tools.get(n, {}).get("readOnly")), [])
+
+    def test_crm_task_tools_are_known(self) -> None:
+        for tool in ("crm_task_list", "crm_task_get", "crm_task_tag_list"):
+            self.assertTrue(self.tools[tool]["readOnly"], tool)
+        for tool in ("crm_task_create", "crm_task_update", "crm_task_complete"):
+            self.assertFalse(self.tools[tool]["readOnly"], tool)
+            self.assertFalse(self.tools[tool]["destructive"], tool)
+
 
 class SessionStartTest(HookCase):
     def test_announces_staging(self) -> None:
@@ -227,6 +243,11 @@ class SessionStartTest(HookCase):
         self.assertIn("DEVELOP", output["systemMessage"])
         self.assertNotIn("confirmación", output["hookSpecificOutput"]["additionalContext"])
         self.assertIn(DEVELOP, output["systemMessage"])
+
+    def test_announces_legacy_develop_url_as_develop(self) -> None:
+        output = self.run_hook(SESSION_START, {"hook_event_name": "SessionStart"}, DEVELOP_LEGACY)
+        self.assertIn("DEVELOP", output["systemMessage"])
+        self.assertNotIn("PRODUCCIÓN", output["systemMessage"])
 
     def test_announces_production_and_user_server(self) -> None:
         output = self.run_hook(SESSION_START, {"hook_event_name": "SessionStart"}, PRODUCTION, user_url=PRODUCTION)

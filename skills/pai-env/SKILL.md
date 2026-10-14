@@ -16,8 +16,10 @@ URLs del edge corp:
 | Entorno | URL |
 |---|---|
 | staging (por defecto) | `https://mcp-edge-corp-staging.up.railway.app/mcp` |
-| develop (sin guarda de producción) | `https://mcp-edge-corp-develop.up.railway.app/mcp` |
+| develop (sin guarda de producción) | `https://mcp-corp.paitesting.com/mcp` |
 | production | `https://mcp-corp.pai.lat/mcp` |
+
+La URL anterior de develop, `https://mcp-edge-corp-develop.up.railway.app/mcp`, se sigue aceptando durante la transición; para develop usa la nueva.
 
 1. Muestra el valor actual con `claude plugin configure pai-console --json`.
 2. Si no pidieron un cambio, termina diciendo el entorno actual en una línea.

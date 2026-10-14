@@ -121,7 +121,9 @@ Las imágenes son privadas de su page:
 1. Crea la page **sin** imágenes. Un `figure` lleva `assetId: null` mientras no exista el archivo; nunca inventes un `assetId`.
 2. `page_asset_upload {path, filename, contentType, size}`. Formatos png, jpeg, webp o gif, de hasta 10 MB; `size` en bytes **exactos**.
 3. Sube con `PUT` a la URL firmada, con los headers devueltos y exactamente esos bytes. Por ejemplo, `curl -X PUT --data-binary @file …` con los headers que indica la respuesta.
-4. `page_read view=full` y luego `page_update`, con el `assetId` en el bloque `figure`, o `/api/pages/assets/<assetId>` en el Markdown.
+4. `page_read view=full` y luego `page_update`, con el `assetId` en el bloque `figure`, en un `Image` o `Carousel` de un bloque `view` (skill `views`), o `/api/pages/assets/<assetId>` en el Markdown.
+   - Un `assetId` de otra page da `ASSET_OWNER_MISMATCH` y no escribe nada: sube la imagen otra vez a esta page.
+   - `Image` y `Carousel` solo se aceptan en una vista guardada en la page; `view_render` los rechaza. Fuera del Portal (la vista del MCP) se ve el `alt` en un recuadro.
 5. **Nunca guardes la URL firmada** en la page ni en un nodo.
 
 ## 6. Archivos de Recursos

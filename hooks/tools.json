@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "pai-portal 59183d306 (2026-10-13 fix(resources): un cliente no borra subcarpetas ajenas ni descubre contenido interno)",
+  "generatedFrom": "pai-portal 9750a4848 (2026-10-14 Merge feat/0.2.5/resources-canvas-test-fix (ATE-218: el test de pantallas del lienzo corre con react-server))",
   "tools": {
     "agent_create": {
       "readOnly": false,
@@ -262,6 +262,30 @@
       "destructive": false
     },
     "crm_submission_spam": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_task_complete": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_task_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_task_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_task_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_task_tag_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_task_update": {
       "readOnly": false,
       "destructive": false
     },

@@ -1,6 +1,6 @@
 # Tipos de page y bloques
 
-> Generado por `tools/gen-references.ts` desde pai-portal `59183d306` (2026-10-13 fix(resources): un cliente no borra subcarpetas ajenas ni descubre contenido interno), `packages/contracts/src/pages`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `9750a4848` (2026-10-14 Merge feat/0.2.5/resources-canvas-test-fix (ATE-218: el test de pantallas del lienzo corre con react-server)), `packages/contracts/src/pages`. No editar a mano: regenerar.
 
 ## Límites del contenido
 
