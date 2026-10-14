@@ -39,12 +39,14 @@ Todo permiso exige además `crm:access`. **Los permisos vienen de roles**, que s
 - Una sesión suplantada no tiene ninguno.
 - **Ningún rol limita la visibilidad a lo propio:** con `crm:access` se ven todos los leads, oportunidades y tareas. «Lo mío» es un filtro (`owner: "me"`), no un permiso.
 - **Ser staff de una organización** (sin ser staff de Pai) no da el CRM: ahí cuenta el rol real.
+- **Personas solo CRM:** quien no es staff de Pai pero tiene un rol de Console con `crm:access` recibe en el MCP corp solo las tools `crm_*`. Empieza por `crm_access_get` y `crm_overview_get`; no hay proyectos, Recursos ni Conocimiento.
 
 Sin `crm:revenue` los montos no llegan: no los inventes ni los estimes.
 
 ## Reglas que el servidor hace cumplir
 
 - **Nadie se queda sin siguiente paso.** Todo lead abierto (`new`, `contacted`) y toda oportunidad abierta tiene una tarea con fecha y **de quién depende**: `{body, dueAt, waitingOn, type?, detail?, priority?, tags?}` con `waitingOn` `pai` (de nosotros) o `client` (del cliente). La forma completa de la tarea está en § Tareas. Crear exige `firstTask`/`task`; mover de etapa o completar la última tarea exige `nextTask`. Propón la tarea con la persona; no inventes fechas.
+- **`dueAt` en CDMX (`-06:00`).** Sin hora, el cierre del día hábil: `T18:00:00-06:00`, que Console muestra como «Sin hora» (todo el día en el calendario). Con hora (llamada, reunión), la suya: `T10:30:00-06:00`. **Nunca** medianoche ni mediodía UTC para decir «ese día»: salen como eventos con hora.
 - **CAS:** toda escritura de un lead u oportunidad lleva `expectedRevision` (de `crm_lead_get`, `crm_lead_record` o `crm_opportunity_get`). Ante CONFLICT relee y vuelve a decidir.
 - **Montos en centavos** (`4200000` = $42,000.00) y por moneda (`mxn`, `usd`). **MXN y USD nunca se suman**: reporta cada moneda aparte.
 - **Archivar no es borrar.** Leads y oportunidades se archivan y vuelven con `*_unarchive`. Solo `crm_lead_purge` borra, y solo basura sin cadena.
@@ -54,7 +56,7 @@ Sin `crm:revenue` los montos no llegan: no los inventes ni los estimes.
 
 | Pregunta | Tool |
 |---|---|
-| ¿Cómo va el CRM? | `crm_overview_get`: cifras, embudo de 90 días, «Por atender», tus tareas por día y conversiones |
+| ¿Cómo va el CRM? | `crm_overview_get {from?, to?}`: cifras, embudo de 90 días, «Por atender», tus tareas por día y conversiones. `period`: las series del tablero entre `from` y `to` (YYYY-MM-DD, días de CDMX; por omisión 30 días, máximo 366) contra el mismo número de días previos: leads y oportunidades creadas, ganadas y perdidas, tasa de cierre, mediana del primer contacto, tareas hechas, leads por origen y embudo, por día (≤31), semana (≤180) o mes. `ownerLoad`: lo abierto de cada responsable ahora |
 | ¿Qué tareas tengo? | `crm_task_list` (por omisión, mis abiertas de la más vencida a la más lejana, con conteos por ventana) |
 | ¿Qué requiere atención? | `crm_lead_list {waitingOn: "attention", owner: "me"}` y `crm_opportunity_list {waitingOn: "attention", owner: "me"}`: vencido, sin siguiente paso o en espera de nosotros hoy |
 | Cifras del tablero de leads | `crm_lead_summary`: los tuyos que requieren atención, mediana del tiempo de respuesta (primer contacto), nuevos fuera de SLA (1 h hábil), abiertos sin siguiente paso |
@@ -64,7 +66,7 @@ Sin `crm:revenue` los montos no llegan: no los inventes ni los estimes.
 | ¿De dónde vino y en qué terminó? | `crm_trace_get {opportunityId, asOf?}`: envío → lead → espacio → oportunidad → propuesta → proyecto → hitos → producto |
 | Propietarios posibles | `crm_owner_list` (ids para `ownerUserId`, `deliveryLeadUserId`) |
 
-Filtros de `crm_lead_list`: `query`, `source`, `owner` (`me`, `none` o id), `period` (`30d`, `90d`, `year`, `all`; sin `period`, todos), `waitingOn` (`attention` requiere atención, `pai` en espera de nosotros, `client` en espera del cliente, `overdue` vencido, `none` sin siguiente paso, `outsideSla` primer contacto vencido sin importados), `archived: "1"`. `crm_opportunity_list` acepta los mismos `waitingOn` salvo `outsideSla` y suma `serviceLine`, `offering`, `kind`, `currency`, `closeWindow` (`overdue`, `30d`, `90d`) y `organizationId`.
+Filtros de `crm_lead_list`: `query`, `source`, `owner` (`me`, `none` o id), `period` (`30d`, `90d`, `year`, `all`; sin `period`, todos), `waitingOn` (`attention` requiere atención, `pai` en espera de nosotros, `client` en espera del cliente, `overdue` vencido, `none` sin siguiente paso, `outsideSla` primer contacto vencido sin importados), `archived: "1"`. `crm_opportunity_list` acepta los mismos `waitingOn` salvo `outsideSla` y suma `serviceLine`, `offering`, `kind`, `currency`, `market` (`mx`, `br`), `closeWindow` (`overdue`, `30d`, `90d`) y `organizationId`.
 
 Para mostrarlo visual, compón con el skill `views` (`Stats`, `Kanban`, `DataTable`, `BarList`) y `view_render`, con la fecha de corte.
 
@@ -101,7 +103,7 @@ Etapas: `new` → `contacted` → `qualified` (o `unqualified`) → `converted` 
   "qualification": { "need": "Cobro recurrente con Stripe Billing", "budgetRange": "150-300", "timeline": "Arrancar en noviembre", "decisionMaker": "Directora de Finanzas" },
   "workspace": { "mode": "create_from_lead" },
   "opportunity": { "title": "Billing para suscripciones", "serviceLine": "stripe", "currency": "mxn", "amountMin": 15000000, "amountMax": 30000000, "expectedCloseAt": "2026-11-30",
-    "task": { "body": "Enviar alcance de Descubrimiento", "dueAt": "2026-10-15T17:00:00-06:00", "waitingOn": "pai" } } }
+    "task": { "body": "Enviar alcance de Descubrimiento", "dueAt": "2026-10-15T18:00:00-06:00", "waitingOn": "pai" } } }
 ```
 
 `workspace` es `{mode: "create_from_lead", organizationName?}` o `{mode: "link_existing", organizationId}`; se omite si el lead ya tiene espacio.
@@ -146,7 +148,7 @@ Las tareas viven en un **lead** abierto (`new`, `contacted`), una **oportunidad*
 | Campo | Qué va |
 |---|---|
 | `body` | **Título corto** (≤500): «Enviar el NDA», «Llamada de alcance». No metas el detalle aquí |
-| `dueAt` | Fecha futura ISO 8601 con zona y hora si la tiene (`2026-10-15T10:00:00-06:00`). No la inventes: acuérdala con la persona |
+| `dueAt` | Fecha futura en CDMX. Sin hora: `2026-10-15T18:00:00-06:00` («Sin hora»). Con hora: la suya (`2026-10-15T10:30:00-06:00`). No la inventes: acuérdala con la persona |
 | `waitingOn` | `pai` (de nosotros) o `client` (del cliente) |
 | `type` | `todo` (por omisión), `call`, `email` o `meeting` |
 | `priority` | `low`, `medium` o `high`; sin ella, sin prioridad |
@@ -164,7 +166,7 @@ La misma forma sirve para `firstTask`, `task` y `nextTask` en las demás tools d
 
 ```json
 { "record": { "kind": "opportunity", "id": "…" },
-  "task": { "body": "Enviar alcance de Descubrimiento", "dueAt": "2026-10-16T12:00:00-06:00", "waitingOn": "pai", "type": "email", "priority": "high", "tags": ["propuesta"],
+  "task": { "body": "Enviar alcance de Descubrimiento", "dueAt": "2026-10-16T18:00:00-06:00", "waitingOn": "pai", "type": "email", "priority": "high", "tags": ["propuesta"],
     "detail": "Mariana pidió el alcance antes del comité del viernes.\n\n- [ ] Ajustar el SOW con las dos integraciones de Stripe\n- [ ] Validar montos con Finanzas\n- [ ] Enviar a mariana@cliente.mx con copia a Luis" } }
 ```
 
@@ -194,9 +196,11 @@ Líneas y ofertas (`offerings` deben ser de su `serviceLine`):
 
 Modelo comercial: `fixed_price`, `time_and_materials`, `retainer`.
 
+Mercado (`market`): `mx` (México) o `br` (Brasil), o `null` si aún no se sabe. **No es la moneda**: un trato de Brasil puede cotizarse en USD. Se da al crear o con `crm_opportunity_update` (`null` lo quita) y filtra `crm_opportunity_list {market}`. `discoveryPaid` marca un Descubrimiento pagado.
+
 ### Crear
 
-`crm_organization_list {query}` → `crm_organization_get {organizationId}` (leads calificados, personas del Portal, abiertas y ganadas) → `crm_opportunity_create {organizationId, kind, title, serviceLine, offerings, currency, amountMin, amountMax, expectedCloseAt, task, …}`. El título no repite el de otra abierta de la organización.
+`crm_organization_list {query}` → `crm_organization_get {organizationId}` (leads calificados, personas del Portal, abiertas y ganadas) → `crm_opportunity_create {organizationId, kind, title, serviceLine, offerings, currency, amountMin, amountMax, expectedCloseAt, market?, discoveryPaid?, task, …}`. El título no repite el de otra abierta de la organización.
 
 ### Mover
 

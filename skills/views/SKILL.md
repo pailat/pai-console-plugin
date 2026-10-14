@@ -1,6 +1,6 @@
 ---
 name: views
-description: "UI generativa de Pai (catálogo pai-view@1, 140 componentes del sistema de diseño de Pai sobre ReUI: pantallas reales de Portal, Console y pai.lat, patrones de pantalla con regiones (tablero, detalle, lista, chat, formulario, wizard…), formularios, chat, comercio, las piezas de datos del Portal —Pagos, Cronograma, Tareas, Proyectos, Actividad, Biblioteca— y diagramas de Conocimiento). Dibuja vistas en la conversación con view_render (dashboards, comparativos, resúmenes visuales de datos ya obtenidos) o guárdalas en Recursos como bloque view de una page canvas (tableros, mockups de pantallas con AppShell, reportes visuales). Úsalo cuando pidan ver, mostrar, graficar o comparar datos de Pai de forma visual, un tablero, dashboard, mockup, wireframe o pantalla (de una app de cliente, del Portal, de Console o del sitio), dibujar un ERD, un C4 o el grafo, o editar una vista existente."
+description: "UI generativa de Pai (catálogo pai-view@1, 150 componentes del sistema de diseño de Pai sobre ReUI: pantallas reales de Portal, Console y pai.lat, patrones de pantalla con regiones (tablero, detalle, lista, chat, formulario, wizard…), formularios, chat, comercio, las piezas de datos del Portal —Pagos, Cronograma, Tareas, Proyectos, Actividad, Biblioteca— y diagramas de Conocimiento). Dibuja vistas en la conversación con view_render (dashboards, comparativos, resúmenes visuales de datos ya obtenidos) o guárdalas en Recursos como bloque view de una page canvas (tableros, mockups de pantallas con AppShell, reportes visuales). Úsalo cuando pidan ver, mostrar, graficar o comparar datos de Pai de forma visual, un tablero, dashboard, mockup, wireframe o pantalla (de una app de cliente, del Portal, de Console o del sitio), dibujar un ERD, un C4 o el grafo, o editar una vista existente."
 argument-hint: "[proyecto] [qué vista: tablero, pantalla, comparativo…]"
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
@@ -9,12 +9,13 @@ compatibility: "Pai 0.2.5+ (MCP corp)"
 
 Lee antes el skill `pai-console`: entorno, descubrimiento, buscar antes de crear, CAS.
 
-**Catálogo completo**, generado desde el código: `${CLAUDE_PLUGIN_ROOT}/skills/views/references/view-catalog.md`. Tiene los layouts de raíz, los 15 grupos, los 140 componentes con sus props, límites y un ejemplo de cada uno, y las 4 recetas del servidor completas.
+**Catálogo completo**, generado desde el código: `${CLAUDE_PLUGIN_ROOT}/skills/views/references/view-catalog.md`. Tiene los layouts de raíz, los 15 grupos, los 150 componentes con sus props, límites y un ejemplo de cada uno, y las 68 recetas del servidor completas.
 
 `view_catalog` es la fuente del servidor:
 - sin argumentos devuelve el **índice** (reglas, layouts y los componentes con sus props por nombre);
 - con `{types: [...]}` o `{group}` devuelve el **esquema completo y un ejemplo** de esos componentes;
-- con `{recipe}` (`dashboard`, `list-filters`, `record-detail`, `list-reading`) devuelve una **pantalla completa** lista para cambiarle los datos.
+- con `{recipeGroup}` (`application`, `data-grid`, `chart`, `solutions`, `ecommerce`, `marketing`, `ai-agents`) devuelve el resumen de las recetas de ese grupo, sin su vista;
+- con `{recipe}` (por ejemplo `dashboard`, `list-filters`, `record-detail`, `crm-pipeline`, `site-pricing`, `shop-checkout` o `ai-chat`) devuelve una **pantalla completa** lista para cambiarle los datos.
 
 Si un componente no está en la referencia o dudas de una prop, **pide su detalle** con `view_catalog {types}` antes de usarlo. Si lo vas a hacer para muchos componentes, delégalo a `pai-explorer`.
 
@@ -179,7 +180,12 @@ Antes de usar un patrón pide su esquema con `view_catalog {types}`: las regione
 
 ## Recetas
 
-**Del servidor** (`view_catalog {recipe}`; también completas al final de la referencia): `dashboard` (AppShell + DashboardLayout), `list-filters` (encabezado, filtros y tabla), `record-detail` (detalle con pestañas y lateral) y `list-reading` (SplitView). Para la pantalla de una app de cliente, **parte de la receta más cercana** y cambia sus datos.
+**Del servidor** (`view_catalog {recipe}`; también completas al final de la referencia): 68 recetas en 7 grupos (`recipeGroup`). Entre ellas `dashboard` (AppShell + DashboardLayout), `list-filters` (encabezado, filtros y tabla), `record-detail` (detalle con pestañas y lateral), `list-reading` (SplitView), las de sitio (`site-*`), tienda (`shop-*`), CRM (`crm-pipeline`, `crm-record`), agentes (`ai-chat`, `agent-activity`, `agents-fleet`, `ai-ops`), tablas, gráficas y aplicación (`calendar`, `flow`, `gantt`, `wizard`…). Para la pantalla de una app de cliente, **parte de la receta más cercana** y cambia sus datos.
+
+**Componentes nuevos que conviene conocer:**
+- `Image` y `Carousel` (≤12 slides) muestran imágenes **subidas a esa misma page**: `assetId` de `page_asset_upload`, nunca una URL, y `alt` obligatorio. **Solo en vistas guardadas dentro de una page**: `view_render` los rechaza.
+- `Flow` dibuja procesos, aprobaciones o dependencias como nodos (`start`, `end`, `step`, `decision`, `note`) y flechas con etiqueta, en horizontal o vertical (≤60 nodos, ≤120 flechas).
+- `ShellPicker` muestra los app shells que puede elegir un tema (los presets de `organization_theme_preview`); solo muestra, no guarda.
 
 **Del plugin**: cada una tiene un ejemplo completo y validado en `${CLAUDE_PLUGIN_ROOT}/skills/views/examples/`. Parte de él.
 

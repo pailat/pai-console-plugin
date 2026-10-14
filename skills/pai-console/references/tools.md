@@ -51,7 +51,7 @@ La marca que ven el Portal y las vistas del cliente. Solo staff en el MCP corp. 
 | Tool | Tipo | Nota |
 |---|---|---|
 | `organization_theme_get` | L | Tema publicado, borrador con sus problemas (AA, esquema, logo) y versiones. Léelo antes de editar |
-| `organization_theme_preview` | L | Valida un tema (o el borrador) sin guardar: problemas de contraste AA, CSS y muestra |
+| `organization_theme_preview` | L | Valida un tema (o el borrador) sin guardar: problemas de contraste AA, CSS, los `shells` que puede elegir (`id` null = el de Pai) y muestra |
 | `organization_theme_save_draft` | E | Borrador nuevo; lo publicado no cambia. Los problemas de AA se permiten en borrador |
 | `organization_theme_publish` | E | El cliente lo ve en su siguiente carga. Se rechaza si no cumple AA, esquema o logos |
 | `organization_theme_revert` | E | Copia una versión como borrador y, salvo `publish: false`, la publica |
@@ -205,7 +205,7 @@ Detalle y reglas en el skill `crm`. Toda escritura de lead u oportunidad lleva `
 | Tool | Tipo | Nota |
 |---|---|---|
 | `crm_access_get` | L | Tus permisos: crm:access, edit, convert, revenue, purge, import, join. Vienen de roles (`crm.viewer`, `crm.sales`, `crm.closer`, `crm.admin` o propios) |
-| `crm_overview_get` | L | Portada de /crm: cifras, embudo, «Por atender», tus tareas, conversiones |
+| `crm_overview_get` | L | Portada de /crm: cifras, embudo, «Por atender», tus tareas, conversiones. `from`/`to` (YYYY-MM-DD, ≤366 días) dan las series del periodo contra el anterior; `ownerLoad` es lo abierto de cada responsable |
 | `crm_owner_list` | L | Propietarios posibles (ids para `ownerUserId`) |
 | `crm_submission_get` | L | Un envío de Forms y el lead que generó |
 | `crm_submission_spam` | E | Archiva el envío sin crear lead |
@@ -233,13 +233,13 @@ Detalle y reglas en el skill `crm`. Toda escritura de lead u oportunidad lleva `
 | `crm_lead_purge` | E · IRR | Borrado duro de basura sin cadena (`spam`, `test`, `mistake`); `crm:purge` |
 | `crm_organization_list` | L | Organizaciones para abrir una oportunidad (≤20) |
 | `crm_organization_get` | L | Leads, personas del Portal, oportunidades abiertas y ganadas de la cuenta |
-| `crm_opportunity_list` | L | `crm:revenue`. Filtros de etapa, propietario, siguiente paso (`waitingOn`), línea, oferta, tipo, moneda, cierre |
+| `crm_opportunity_list` | L | `crm:revenue`. Filtros de etapa, propietario, siguiente paso (`waitingOn`), línea, oferta, tipo, moneda, mercado (`market` mx/br), cierre |
 | `crm_opportunity_summary` | L | Pronóstico por moneda, tasa de cierre, las tuyas que requieren atención, pausadas |
 | `crm_opportunity_get` | L | Con `revision`, interlocutores, propuestas y versiones, actividades, historial |
 | `crm_opportunity_event_list` | L | Cambios recientes de todas las oportunidades; `crm:revenue` |
 | `crm_trace_get` | L | La cadena envío → … → producto, con `asOf` |
-| `crm_opportunity_create` | E | `kind`, línea y ofertas, montos en centavos, `task` obligatoria |
-| `crm_opportunity_update` | E | Etapa abierta (exige `nextTask`), datos, propietario o propuesta ligada |
+| `crm_opportunity_create` | E | `kind`, línea y ofertas, montos en centavos, `market` (mx/br, no es la moneda), `discoveryPaid`, `task` obligatoria |
+| `crm_opportunity_update` | E | Etapa abierta (exige `nextTask`), datos (también `market` y `discoveryPaid`), propietario o propuesta ligada |
 | `crm_opportunity_hold` | E | En pausa; `task.dueAt` = fecha de retomar |
 | `crm_opportunity_lose` | E | Perdida con motivo de la lista |
 | `crm_opportunity_probability` | E | Ajuste 0–100 con motivo, o `reset`; `crm:revenue` |
@@ -253,7 +253,7 @@ Detalle y reglas en el skill `crm`. Toda escritura de lead u oportunidad lleva `
 
 ### Tareas del CRM
 
-La tarea es `{body, dueAt, waitingOn, type?, detail?, priority?, tags?}`: `body` es el título corto, `detail` las notas en Markdown (≤20 000), `type` todo|call|email|meeting, `priority` low|medium|high y `tags` hasta 10. La misma forma vale en `firstTask`, `task` y `nextTask`.
+La tarea es `{body, dueAt, waitingOn, type?, detail?, priority?, tags?}`: `body` es el título corto, `detail` las notas en Markdown (≤20 000), `type` todo|call|email|meeting, `priority` low|medium|high y `tags` hasta 10. La misma forma vale en `firstTask`, `task` y `nextTask`. `dueAt` va en CDMX: sin hora, `T18:00:00-06:00` («Sin hora»); con hora, la suya. Nunca medianoche ni mediodía UTC.
 
 | Tool | Tipo | Nota |
 |---|---|---|

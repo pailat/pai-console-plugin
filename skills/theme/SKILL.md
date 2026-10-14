@@ -7,7 +7,7 @@ compatibility: "Pai 0.2.5+ (MCP corp, solo staff)"
 
 # Tema de marca de una organización
 
-Lee antes el skill `pai-console`. El tema es lo que ven el Portal y las vistas del cliente: colores en claro y oscuro, fuente, radio, sombra y logos.
+Lee antes el skill `pai-console`. El tema es lo que ven el Portal y las vistas del cliente: colores en claro y oscuro, fuente, radio, sombra, app shell y logos.
 
 Las tools `organization_theme_*` son **solo para el staff de Pai en el MCP corp**, y corresponden a la pantalla de staff «Ajustes». Un cliente o el edge público no las listan. El logo de la organización (`organization_update`) pide además ser owner o admin de esa organización.
 
@@ -29,7 +29,7 @@ Todo lo de este skill se midió en el Portal de develop al tematizar Abraxa, Dit
 8. **Verifica en el Portal** en claro y oscuro (§6).
 9. Si lo que decide es el gusto (por ejemplo, el color del acento), pregunta con opciones y una previsualización. No iteres a ciegas.
 
-`theme` va **completo** en cada llamada: `{schemaVersion: 1, light, dark, font, radius, shadow, logo: {light, dark}}`. Una clave de color que no pongas queda con el valor de Pai.
+`theme` va **completo** en cada llamada: `{schemaVersion: 1, light, dark, font, radius, shadow, shell, logo: {light, dark}}`. Una clave de color que no pongas queda con el valor de Pai.
 
 ## 2. De dónde sacar los tokens
 
@@ -60,6 +60,7 @@ En este orden:
 - **Menú:** el texto de los items inactivos es `accent-foreground` al 80 %. Si lo pones del color de marca, todo el menú se pinta de ese color.
 - **Charts:** una rampa de 5 tonos del acento, o la paleta de datos real de la marca si existe.
 - **Fuente:** solo `inter`, `dm-sans`, `manrope`, `plus-jakarta-sans`, `figtree`, `source-serif-4` o `lora`. Equivalencias en `token-map.md`; si no hay una exacta, dilo.
+- **Shell** (`shell`): elige el app shell del Portal que más se parezca a la app del cliente (barra lateral, flotante, encabezado, riel, solo barra superior…). Las opciones y su descripción salen en `shells` de `organization_theme_preview` y en `token-map.md`; `null` deja el de Pai. Si lo cambias, verifica otra vez en el Portal: el mapa de tokens se midió con el shell de Pai.
 - **Radio:** el botón mide ≈ `radius`, el item del menú ≈ `radius − 2px` y el panel ≈ `2 × radius`. Para igualar un botón de 5px, usa `0.3125`.
 - **No inventes.** Si el cliente tiene un modo oscuro genérico (Ditto: el neutral de shadcn por defecto), construye uno de marca con estas reglas y dilo.
 

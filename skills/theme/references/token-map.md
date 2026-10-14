@@ -14,6 +14,7 @@ Medido en el Portal de develop con Chrome (Abraxa, Ditto y Latitude.sh, 2026-10-
   "font": "inter",
   "radius": 0.25,
   "shadow": "none",
+  "shell": "sidebar",
   "logo": {
     "light": { "storageKey": "…/theme/logo-light-….svg", "contentType": "image/svg+xml", "bytes": 1834 },
     "dark": null
@@ -30,6 +31,20 @@ Medido en el Portal de develop con Chrome (Abraxa, Ditto y Latitude.sh, 2026-10-
 - **`font`:** `inter` | `dm-sans` | `manrope` | `plus-jakarta-sans` | `figtree` | `source-serif-4` | `lora` | `null`.
 - **`radius`:** rem de 0 a 1.25 en pasos de 0.0625, o `null` (Pai: 0.5).
 - **`shadow`:** `none` | `soft` | `default` | `strong` | `null`.
+- **`shell`:** el app shell completo del Portal (un bloque app-shell de reUI), o `null` para el de Pai: barra lateral insertada.
+
+  | `shell` | Cómo se ve |
+  |---|---|
+  | `sidebar` | Barra lateral pegada al borde, se contrae a íconos; la página va sobre el fondo, sin tarjeta |
+  | `floating` | Barra lateral flotante con borde y sombra, se contrae a íconos; página sin tarjeta |
+  | `header` | Encabezado de ancho completo (organización, búsqueda, usuario) y debajo la barra lateral |
+  | `dual-rail` | Riel de íconos con las áreas y el usuario, y un panel con organización, búsqueda y menú del área |
+  | `section-tabs` | Barra superior con la organización, las áreas como píldoras y la búsqueda; debajo, la barra lateral |
+  | `framed` | Las áreas como pestañas arriba y un solo panel redondeado que enmarca menú y página |
+  | `topbar` | Sin barra lateral: áreas arriba, menú del área como pestañas y el menú completo en un panel |
+  | `icon-rail` | Solo un riel angosto de íconos con nombres al pasar; la página ocupa el resto |
+
+  `organization_theme_preview` devuelve los `shells` que puede elegir (`id: null` = el de Pai). El mapa de tokens de abajo se midió con el shell de Pai: con otro, **vuelve a medir** marco, panel y menú.
 - **`logo.light` / `logo.dark`:** el **objeto completo** que devuelve `organization_theme_logo_confirm`, o `null`. Un string da «se esperaba objeto, recibido texto». La clave del logo claro debe contener `/theme/logo-light-`, y la del oscuro, `/theme/logo-dark-`.
 
 ## Dónde se ve cada token
