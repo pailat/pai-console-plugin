@@ -138,7 +138,7 @@ Las tareas viven en un **lead** abierto (`new`, `contacted`), una **oportunidad*
 
 - `crm_task_list`: por omisión, las abiertas del que pregunta, de la más vencida a la más lejana, con `counts` por ventana (`overdue`, `today`, `week`, `later`; días de CDMX).
   - Filtros: `owner` (`me`, `all` o un id de `crm_owner_list`), `status` (`open` o `done`), `subject` (`lead`, `opportunity` o `account`), `due`, `priority`, `tag` y `query` (texto de la tarea o del registro).
-- `crm_task_get {taskId}`: todo, incluido `detail` (el Markdown) y su registro.
+- `crm_task_get {taskId}`: la tarea completa. Trae `body` (título), `type`, `detail` (Markdown o `null`), `priority` (o `null`), `tags`, `dueAt`, `waitingOn`, `state` (columna del tablero), `startedAt` (cuándo pasó a «En curso»), `doneAt`, `window` (overdue, today, week o later; solo abiertas), `owner`, `record` (`kind`, `id`, `title`, `company`) y `createdAt`. `crm_task_list` trae lo mismo por tarea, más `counts` y `truncated` (hubo más resultados que el límite: afina los filtros).
 - `crm_task_tag_list`: las etiquetas del equipo, la más usada primero. **Revísala antes de inventar una etiqueta.**
 
 ### Crear
