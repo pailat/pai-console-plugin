@@ -183,12 +183,12 @@ Tipo, audiencia y descripción se cambian como antes:
 
 ## 9. Notas, carpetas y sugerencias
 
-**Carpetas:** `folder_create {parent, name}`: `parent` es `""` (General) o el `path` de una carpeta visible; `name` (1-120) en español, el segmento sale en slug («Actas de obra» → `actas-de-obra`). Del staff nace `internal` y en la ruta exacta (ocupada → `CONFLICT`). Devuelve el `path`: úsalo como carpeta de la nota. No hay renombrar ni mover carpetas.
+**Carpetas:** `folder_create {parent, name}`: `parent` es `""` (la raíz de Recursos; en Portal y Console se llama «Recursos» y el selector la muestra como «Recursos (raíz)») o el `path` de una carpeta visible; `name` (1-120) en español, el segmento sale en slug («Actas de obra» → `actas-de-obra`). Del staff nace `internal` y en la ruta exacta (ocupada → `CONFLICT`). Devuelve el `path`: úsalo como carpeta de la nota. No hay renombrar ni mover carpetas.
 
 **Borrar una carpeta** (`folder_delete {path, summary}`, irreversible): solo se borra **vacía a cualquier profundidad**, sin páginas ni archivos dentro ni en sus subcarpetas, también los internos; sus subcarpetas vacías se van con ella.
 1. Revisa qué contiene: `page_list {pathPrefix: "<path>/"}` y `file_list`. Mueve (`page_move`, `file_update`) o borra (`page_delete`, `file_delete`) antes lo que tenga, confirmándolo con la persona.
 2. Confirma el borrado y llama `folder_delete` con `summary` (motivo, ≤80; queda en la auditoría `folder.delete`).
-3. Errores: General (`""`) da `invalid_input`; si no la ves, `not_found`; con contenido visible para ti, `CONFLICT` (vacíala primero); «No puedes eliminar esta carpeta.» (`FORBIDDEN`) si no es tuya (un cliente solo borra carpetas que hizo un cliente, y todas sus subcarpetas también) o si la bloquea contenido que no ves: no reintentes, pide a Pai que la borre.
+3. Errores: la raíz (`""`) da `invalid_input` («La raíz de Recursos no se puede eliminar.»); si no la ves, `not_found`; con contenido visible para ti, `CONFLICT` (vacíala primero); «No puedes eliminar esta carpeta.» (`FORBIDDEN`) si no es tuya (un cliente solo borra carpetas que hizo un cliente, y todas sus subcarpetas también) o si la bloquea contenido que no ves: no reintentes, pide a Pai que la borre.
 4. Su dirección corta da 404 después; una dirección por ruta redirige a la carpeta existente más cercana. Devuelve las rutas borradas (`deleted`) y la url de la carpeta padre.
 
 **Notas** (Markdown, que también escribe el cliente):

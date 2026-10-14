@@ -64,8 +64,8 @@ Detalle, flujo, errores, mapa de tokens y verificación en el Portal en el skill
 
 | Tool | Tipo | Nota |
 |---|---|---|
-| `folder_create` | E | Carpeta vacía en Recursos (`parent` "" = General); devuelve su `path` para `note_create` |
-| `folder_delete` | E · IRR | Solo carpetas vacías a cualquier profundidad (páginas y archivos, internos incluidos); se lleva sus subcarpetas vacías. `summary` obligatorio (≤80, queda en la auditoría). General no se borra (`invalid_input`); con contenido → `CONFLICT`; no es tuya o la bloquea contenido que no ves → `FORBIDDEN` |
+| `folder_create` | E | Carpeta vacía en Recursos (`parent` "" = la raíz de Recursos, «Recursos (raíz)» en el selector); devuelve su `path` para `note_create` |
+| `folder_delete` | E · IRR | Solo carpetas vacías a cualquier profundidad (páginas y archivos, internos incluidos); se lleva sus subcarpetas vacías. `summary` obligatorio (≤80, queda en la auditoría). La raíz (`""`) no se borra (`invalid_input`); con contenido → `CONFLICT`; no es tuya o la bloquea contenido que no ves → `FORBIDDEN` |
 | `note_create` | E | Nota Markdown; la del staff nace interna salvo `audience: client` |
 | `note_update` | E | Cuerpo y atributos con `expectedRevision`. En la nota de un cliente, un agente de Pai solo **propone** sugerencias (`{suggested: true}`) |
 | `note_audience_set` | E | `client` la publica para la organización; `internal` la deja al equipo de Pai |

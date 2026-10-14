@@ -23145,7 +23145,7 @@
   {
    "name": "folder_create",
    "title": "Crear carpeta",
-   "description": "Crea una carpeta vacía en Recursos del proyecto, dentro de parent («» es General, la raíz) o de una carpeta que ves (usa su path). La crea el staff o un miembro de la organización cliente; la de un cliente la ve toda su organización y el equipo de Pai, y su ruta siempre lleva un sufijo propio. name es el nombre visible; la ruta usa su forma en minúsculas y con guiones. Devuelve la carpeta con su path (úsalo como carpeta de note_create) y su url.",
+   "description": "Crea una carpeta vacía en Recursos del proyecto, dentro de parent («» es la raíz de Recursos) o de una carpeta que ves (usa su path). La crea el staff o un miembro de la organización cliente; la de un cliente la ve toda su organización y el equipo de Pai, y su ruta siempre lleva un sufijo propio. name es el nombre visible; la ruta usa su forma en minúsculas y con guiones. Devuelve la carpeta con su path (úsalo como carpeta de note_create) y su url.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -23161,7 +23161,7 @@
       "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
      },
      "parent": {
-      "description": "Carpeta donde se crea: «» para General o el path de una carpeta que ves, p. ej. «entregables»",
+      "description": "Carpeta donde se crea: «» para la raíz de Recursos o el path de una carpeta que ves, p. ej. «entregables»",
       "type": "string",
       "maxLength": 512
      },
@@ -23189,7 +23189,7 @@
   {
    "name": "folder_delete",
    "title": "Eliminar carpeta",
-   "description": "Elimina una carpeta VACÍA de Recursos del proyecto (usa su path): sin páginas ni archivos dentro ni en sus subcarpetas, también los internos; sus subcarpetas vacías se eliminan con ella. «» (General) no se elimina. El staff elimina cualquiera; un miembro de la organización cliente solo las que creó su organización. Si tiene contenido falla con CONFLICT: mueve o elimina antes lo que contiene. La dirección corta de la carpeta deja de funcionar. Requiere `summary` (motivo; queda en la auditoría). Devuelve la carpeta eliminada, las rutas eliminadas (deleted) y la url de la carpeta padre.",
+   "description": "Elimina una carpeta VACÍA de Recursos del proyecto (usa su path): sin páginas ni archivos dentro ni en sus subcarpetas, también los internos; sus subcarpetas vacías se eliminan con ella. La raíz de Recursos («») no se elimina. El staff elimina cualquiera; un miembro de la organización cliente solo las que creó su organización. Si tiene contenido falla con CONFLICT: mueve o elimina antes lo que contiene. La dirección corta de la carpeta deja de funcionar. Requiere `summary` (motivo; queda en la auditoría). Devuelve la carpeta eliminada, las rutas eliminadas (deleted) y la url de la carpeta padre.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
