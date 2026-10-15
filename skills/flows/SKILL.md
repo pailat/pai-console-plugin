@@ -134,7 +134,7 @@ El cliente ve en Flujos solo los flujos `client`. Una ref a un nodo que no ve sa
 
 ## 8. Ejemplos
 
-Validados contra los contratos y contra lo que hay en develop:
+Validados contra los contratos y contra `flow_get` de develop del 2026-10-15: pasos, refs, transiciones `next`, ramas y textos coinciden; ninguno trae `layoutDirection` (TB). El grafo de `flow_save` reproduce el flujo tal como está (Unicef r6, Morelos r2), así que guardarlo no cambia nada; parte de él para corregir.
 
 - `${CLAUDE_PLUGIN_ROOT}/skills/flows/examples/unicef-donation.json`: **Pago con donativo a Unicef** (`flow/donation-payment`, Checkout Merchants). Busca lo que existe, `flow_get`, `flow_save` con 22 pasos y las ramas «Puede recibir», «Unicef no puede recibir», «Aprobada», «Rechazada», «Sin cambios», «Reembolso parcial», «Disputa», «Ganada» y «Perdida», una prueba `simulated` como Cliente con la integración de Stripe y, al final, la visibilidad `client`.
 - `${CLAUDE_PLUGIN_ROOT}/skills/flows/examples/morelos-entry.json`: **Recorrido de entrada** (`flow/flow-pf-entry`, Portal Funcionario). Decisiones «¿El IdP autentica?» y «¿Cuántas membresías tiene?» (Ninguna, Una, Varias) y una prueba `sample` donde el paso de Llave Morelos queda `noted` porque la integración no existe todavía.

@@ -13,7 +13,7 @@
    "organizationId": "ORG_ID",
    "projectId": "PROJECT_ID",
    "ref": "flow/flow-pf-entry",
-   "expectedRevision": 1,
+   "expectedRevision": 2,
    "idempotencyKey": "flow-portal-funcionario-entry-1",
    "changeSummary": "Inicio, fin y decisiones del IdP y de membresías",
    "graph": {
@@ -51,28 +51,28 @@
       "key": "e_d1",
       "kind": "end",
       "title": "Acceso no concedido",
-      "detail": "Vuelve al Acceso con «Acceso no concedido» y Reintentar.",
+      "detail": "2b · El IdP no autentica, la cuenta está bloqueada o la organización está fuera del gate de Hub: vuelve al Acceso con «Acceso no concedido» y Reintentar.",
       "actor": "actor/actor-coordinador-atencion"
      },
      {
       "key": "d2",
       "kind": "decision",
       "title": "¿Cuántas membresías tiene?",
-      "detail": "Ninguna: 403. Una: Inicio de esa organización. Varias: Inicio del portal.",
+      "detail": "Ninguna: cuenta pendiente de habilitación (403). Una: entra directo al Inicio de esa organización. Varias: llega al Inicio del portal (paso 3b).",
       "actor": "actor/actor-coordinador-atencion"
      },
      {
       "key": "e_d2",
       "kind": "end",
       "title": "Cuenta pendiente de habilitación (403)",
-      "detail": "Shell raíz sin menú y sin acciones.",
+      "detail": "3a · Sesión válida sin ninguna membresía: ve la Cuenta pendiente de habilitación (403), shell raíz sin menú y sin acciones: callejón sin salida.",
       "actor": "actor/actor-coordinador-atencion"
      },
      {
       "key": "s3",
       "kind": "step",
       "title": "Con varias membresías llega al Inicio del portal y revisa Te toca a ti, la Bandeja o Mis organizaciones",
-      "detail": "Ve sus organizaciones con el rol que tiene en cada una",
+      "detail": "Ve sus organizaciones con el rol que tiene en cada una (paso 3b)",
       "actor": "actor/actor-coordinador-atencion",
       "screen": "screen/scr-pf-home"
      },
@@ -80,7 +80,7 @@
       "key": "s4",
       "kind": "step",
       "title": "Pulsa Entrar en una organización",
-      "detail": "Aterriza en el Inicio de la organización",
+      "detail": "Aterriza en el Inicio de la organización; el rail pasa al grupo Dependencia y el pie muestra su rol en ella",
       "actor": "actor/actor-coordinador-atencion",
       "screen": "screen/scr-pf-org-home"
      },
@@ -96,14 +96,14 @@
       "key": "s6",
       "kind": "step",
       "title": "Trabaja en el Inicio del espacio",
-      "detail": "El rail toma el menú del espacio",
+      "detail": "El rail toma el menú del espacio y la barra superior suma el selector de espacio; el rol del pie es el de esa membresía",
       "actor": "actor/actor-coordinador-atencion",
       "screen": "screen/scr-pf-ac-home"
      },
      {
       "key": "s7",
       "kind": "step",
-      "title": "Cambia de organización con el ⇕ del rail, ⌘O o el menú de usuario",
+      "title": "Cambia de organización con el ⇕ del rail, ⌘O o el menú de usuario y elige otra viendo el rol que tendría",
       "detail": "Se reemite el token y llega a la organización elegida",
       "actor": "actor/actor-coordinador-atencion",
       "screen": "screen/scr-pf-org-home"
@@ -112,7 +112,7 @@
       "key": "end",
       "kind": "end",
       "title": "Trabaja en un espacio de la organización elegida",
-      "detail": "Con el rol de esa membresía; puede cambiar de organización desde el shell.",
+      "detail": "El funcionario trabaja en el Inicio de un espacio de la organización elegida, con el rol de esa membresía, y puede cambiar de organización desde el shell.",
       "actor": "actor/actor-coordinador-atencion"
      }
     ],
