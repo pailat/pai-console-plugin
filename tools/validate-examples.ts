@@ -4,7 +4,7 @@
  *
  * An example is `skills/<skill>/examples/*.json`:
  *   { "tool": "knowledge_create" | "page_create" | "page_update" | "view_render" |
- *             "organization_theme_*", "input": {...} }
+ *             "organization_theme_*" | "flow_*", "input": {...} }
  * or an array of those (a sequence of calls).
  *
  * Usage (pai-portal checkout with dependencies installed):
@@ -38,6 +38,9 @@ const { validateViewSpec } = await import(
 );
 const { validateOrganizationTheme } = await import(
 	join(contracts, "theme/validate.ts")
+);
+const { flowGraphInputSchema } = await import(
+	join(contracts, "flows/graph.ts")
 );
 
 type Call = { tool: string; input: Record<string, unknown> };
@@ -185,6 +188,63 @@ function themeWrite(input: Record<string, unknown>): string[] {
 	);
 }
 
+type FlowStep = { key: string; kind: string; actor?: string; screen?: string };
+type FlowTransition = { from: string; to: string; kind?: string; label?: string };
+
+/**
+ * A flow graph (flow_create / flow_save) against the contract, and the
+ * readiness checklist of skills/flows: one start, at least one end, every
+ * step reachable from the start, decisions with two or more labelled
+ * branches and an actor on every step.
+ */
+function flowGraph(input: Record<string, unknown>): string[] {
+	if (input.graph === undefined) return [];
+	const parsed = flowGraphInputSchema.safeParse(input.graph);
+	if (!parsed.success)
+		return parsed.error.issues.map(
+			(issue: { path: (string | number)[]; message: string }) =>
+				`graph.${issue.path.join(".")}: ${issue.message}`,
+		);
+	const { steps, transitions } = parsed.data as {
+		steps: FlowStep[];
+		transitions: FlowTransition[];
+	};
+	const problems: string[] = [];
+	const starts = steps.filter((step) => step.kind === "start");
+	if (starts.length !== 1)
+		problems.push(`readiness: ${starts.length} pasos start; debe haber uno`);
+	if (!steps.some((step) => step.kind === "end"))
+		problems.push("readiness: sin paso end");
+	for (const step of steps)
+		if (!step.actor) problems.push(`readiness: el paso ${step.key} no tiene actor`);
+	const exits = new Map<string, FlowTransition[]>();
+	for (const transition of transitions)
+		exits.set(transition.from, [...(exits.get(transition.from) ?? []), transition]);
+	for (const step of steps.filter((step) => step.kind === "decision")) {
+		const out = exits.get(step.key) ?? [];
+		if (out.length < 2 || out.some((transition) => !transition.label))
+			problems.push(
+				`readiness: la decisión ${step.key} necesita 2 o más ramas con etiqueta`,
+			);
+	}
+	if (starts.length === 1) {
+		const seen = new Set([starts[0].key]);
+		const queue = [starts[0].key];
+		while (queue.length > 0) {
+			const key = queue.shift() as string;
+			for (const transition of exits.get(key) ?? [])
+				if (!seen.has(transition.to)) {
+					seen.add(transition.to);
+					queue.push(transition.to);
+				}
+		}
+		for (const step of steps)
+			if (!seen.has(step.key))
+				problems.push(`readiness: el paso ${step.key} no se alcanza desde el inicio`);
+	}
+	return problems;
+}
+
 function check(call: Call): string[] {
 	return [...schemaProblems(call), ...checkContract(call)];
 }
@@ -202,6 +262,22 @@ function checkContract(call: Call): string[] {
 		case "organization_theme_preview":
 		case "organization_theme_save_draft":
 			return themeWrite(call.input);
+		case "flow_create":
+		case "flow_save":
+			return flowGraph(call.input);
+		case "knowledge_library":
+		case "knowledge_search":
+		case "knowledge_get":
+		case "knowledge_update":
+		case "flow_list":
+		case "flow_get":
+		case "flow_version_bump":
+		case "flow_run_start":
+		case "flow_run_step":
+		case "flow_run_finish":
+		case "flow_run_list":
+		case "flow_run_get":
+			return [];
 		case "organization_theme_get":
 		case "organization_theme_publish":
 		case "organization_theme_revert":

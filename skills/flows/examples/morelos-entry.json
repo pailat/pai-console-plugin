@@ -1,0 +1,236 @@
+[
+ {
+  "tool": "flow_get",
+  "input": {
+   "organizationId": "ORG_ID",
+   "projectId": "PROJECT_ID",
+   "ref": "flow/flow-pf-entry"
+  }
+ },
+ {
+  "tool": "flow_save",
+  "input": {
+   "organizationId": "ORG_ID",
+   "projectId": "PROJECT_ID",
+   "ref": "flow/flow-pf-entry",
+   "expectedRevision": 1,
+   "idempotencyKey": "flow-portal-funcionario-entry-1",
+   "changeSummary": "Inicio, fin y decisiones del IdP y de membresías",
+   "graph": {
+    "steps": [
+     {
+      "key": "start",
+      "kind": "start",
+      "title": "Un funcionario sin sesión abre una ruta del Portal Funcionario",
+      "detail": "Un funcionario sin sesión abre cualquier ruta del Portal Funcionario.",
+      "actor": "actor/actor-coordinador-atencion"
+     },
+     {
+      "key": "s1",
+      "kind": "step",
+      "title": "Abre el portal sin sesión y pulsa Iniciar Sesión",
+      "detail": "Se redirige a Llave Morelos (Hub Morelos)",
+      "actor": "actor/actor-coordinador-atencion",
+      "screen": "screen/scr-pf-sign-in"
+     },
+     {
+      "key": "s2",
+      "kind": "step",
+      "title": "Autentica con Llave Morelos en el proveedor de identidad, fuera del portal",
+      "detail": "Vuelve al portal con sesión válida y se cuentan sus membresías",
+      "actor": "actor/actor-coordinador-atencion"
+     },
+     {
+      "key": "d1",
+      "kind": "decision",
+      "title": "¿El IdP autentica?",
+      "detail": "2b · Si el IdP no autentica, la cuenta está bloqueada o la organización está fuera del gate de Hub, vuelve al Acceso.",
+      "actor": "actor/actor-coordinador-atencion"
+     },
+     {
+      "key": "e_d1",
+      "kind": "end",
+      "title": "Acceso no concedido",
+      "detail": "Vuelve al Acceso con «Acceso no concedido» y Reintentar.",
+      "actor": "actor/actor-coordinador-atencion"
+     },
+     {
+      "key": "d2",
+      "kind": "decision",
+      "title": "¿Cuántas membresías tiene?",
+      "detail": "Ninguna: 403. Una: Inicio de esa organización. Varias: Inicio del portal.",
+      "actor": "actor/actor-coordinador-atencion"
+     },
+     {
+      "key": "e_d2",
+      "kind": "end",
+      "title": "Cuenta pendiente de habilitación (403)",
+      "detail": "Shell raíz sin menú y sin acciones.",
+      "actor": "actor/actor-coordinador-atencion"
+     },
+     {
+      "key": "s3",
+      "kind": "step",
+      "title": "Con varias membresías llega al Inicio del portal y revisa Te toca a ti, la Bandeja o Mis organizaciones",
+      "detail": "Ve sus organizaciones con el rol que tiene en cada una",
+      "actor": "actor/actor-coordinador-atencion",
+      "screen": "screen/scr-pf-home"
+     },
+     {
+      "key": "s4",
+      "kind": "step",
+      "title": "Pulsa Entrar en una organización",
+      "detail": "Aterriza en el Inicio de la organización",
+      "actor": "actor/actor-coordinador-atencion",
+      "screen": "screen/scr-pf-org-home"
+     },
+     {
+      "key": "s5",
+      "kind": "step",
+      "title": "Abre Mis espacios y elige Atención ciudadana o Trámites y servicios",
+      "detail": "Entra al espacio elegido",
+      "actor": "actor/actor-coordinador-atencion",
+      "screen": "screen/scr-pf-org-spaces"
+     },
+     {
+      "key": "s6",
+      "kind": "step",
+      "title": "Trabaja en el Inicio del espacio",
+      "detail": "El rail toma el menú del espacio",
+      "actor": "actor/actor-coordinador-atencion",
+      "screen": "screen/scr-pf-ac-home"
+     },
+     {
+      "key": "s7",
+      "kind": "step",
+      "title": "Cambia de organización con el ⇕ del rail, ⌘O o el menú de usuario",
+      "detail": "Se reemite el token y llega a la organización elegida",
+      "actor": "actor/actor-coordinador-atencion",
+      "screen": "screen/scr-pf-org-home"
+     },
+     {
+      "key": "end",
+      "kind": "end",
+      "title": "Trabaja en un espacio de la organización elegida",
+      "detail": "Con el rol de esa membresía; puede cambiar de organización desde el shell.",
+      "actor": "actor/actor-coordinador-atencion"
+     }
+    ],
+    "transitions": [
+     {
+      "from": "start",
+      "to": "s1",
+      "kind": "next"
+     },
+     {
+      "from": "s1",
+      "to": "s2",
+      "kind": "next"
+     },
+     {
+      "from": "s2",
+      "to": "d1",
+      "kind": "next"
+     },
+     {
+      "from": "d1",
+      "to": "d2",
+      "kind": "branch",
+      "label": "Autentica"
+     },
+     {
+      "from": "d1",
+      "to": "e_d1",
+      "kind": "branch",
+      "label": "No autentica o bloqueada"
+     },
+     {
+      "from": "d2",
+      "to": "s3",
+      "kind": "branch",
+      "label": "Varias"
+     },
+     {
+      "from": "d2",
+      "to": "s4",
+      "kind": "branch",
+      "label": "Una"
+     },
+     {
+      "from": "d2",
+      "to": "e_d2",
+      "kind": "branch",
+      "label": "Ninguna"
+     },
+     {
+      "from": "s3",
+      "to": "s4",
+      "kind": "next"
+     },
+     {
+      "from": "s4",
+      "to": "s5",
+      "kind": "next"
+     },
+     {
+      "from": "s5",
+      "to": "s6",
+      "kind": "next"
+     },
+     {
+      "from": "s6",
+      "to": "s7",
+      "kind": "next"
+     },
+     {
+      "from": "s7",
+      "to": "end",
+      "kind": "next"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "tool": "flow_run_start",
+  "input": {
+   "organizationId": "ORG_ID",
+   "projectId": "PROJECT_ID",
+   "ref": "flow/flow-pf-entry",
+   "actor": "actor/actor-coordinador-atencion",
+   "mode": "sample"
+  }
+ },
+ {
+  "tool": "flow_run_step",
+  "input": {
+   "organizationId": "ORG_ID",
+   "projectId": "PROJECT_ID",
+   "run": "RUN_REF",
+   "stepKey": "s2",
+   "result": "noted",
+   "note": "Llave Morelos no tiene nodo integration: el paso se revisó solo con su descripción."
+  }
+ },
+ {
+  "tool": "flow_run_step",
+  "input": {
+   "organizationId": "ORG_ID",
+   "projectId": "PROJECT_ID",
+   "run": "RUN_REF",
+   "stepKey": "d2",
+   "result": "passed",
+   "branchLabel": "Varias"
+  }
+ },
+ {
+  "tool": "flow_run_finish",
+  "input": {
+   "organizationId": "ORG_ID",
+   "projectId": "PROJECT_ID",
+   "run": "RUN_REF",
+   "status": "passed_with_notes",
+   "notes": "Falta la integración de Llave Morelos (decisión pendiente del owner)."
+  }
+ }
+]

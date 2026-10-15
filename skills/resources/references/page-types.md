@@ -1,6 +1,6 @@
 # Tipos de page y bloques
 
-> Generado por `tools/gen-references.ts` desde pai-portal `e8a077100` (2026-10-14 Merge feat/0.2.5/resources-assets (ATE-229 partes B y C: medios en los editores, galería de Assets y tools del MCP)), `packages/contracts/src/pages`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `d65d611ac` (2026-10-14 Merge feat/0.2.5/flows: la dirección del flujo viaja en vivo (ATE-238)), `packages/contracts/src/pages`. No editar a mano: regenerar.
 
 ## Límites del contenido
 
@@ -30,6 +30,7 @@
 - Imágenes y videos: son assets del proyecto (asset_list para reutilizar uno, asset_upload + PUT + asset_confirm para subir); guarda sólo el assetId (figure, video) o /api/pages/assets/{assetId}; el servicio valida que el asset sea del proyecto, esté listo y lo veas.
 - HTML interactivo: para un mockup o prototipo HTML (canvas, simulación, maqueta con JS) usa un bloque html {id, type: html, title, description?, html, height}; el Portal lo dibuja como un artifact de Claude, en un iframe aislado sin cookies, storage ni red. html es el documento completo o un fragmento, de hasta 512 KB (1 MB entre todos los de la page); height es auto o px entre 120 y 4000. Scripts sólo inline o de html.scriptSources; sin fetch ni XHR (connect-src 'none'): los datos van dentro del HTML. Usa las variables de tokens de Pai (--background, --foreground, --border, --primary…) para verse en claro y oscuro. Un ```html preview nunca va en el Markdown.
 - Pizarras: para mostrar en la page una pizarra del proyecto usa un bloque whiteboard {id, type: whiteboard, page, title?}; page es el id de una page de formato whiteboard del mismo proyecto (créala con whiteboard_create). Se dibuja su vista previa con «Abrir» y, para quien puede editarla, «Editar aquí». Una page para el cliente sólo embebe pizarras visibles para el cliente.
+- Flujos: para mostrar en la page un flujo del proyecto usa un bloque flow {id, type: flow, node, title?, height?}; node es el id de un nodo flow de Conocimiento del mismo proyecto y height los px del lienzo (240 a 1200; 480 sin él). Se dibuja su lienzo en solo lectura con «Abrir». Una page para el cliente sólo embebe flujos visibles para el cliente.
 - Embeds: el bloque embed guarda sólo un enlace https (Figma, Google Slides, Miro, YouTube, Loom o cualquier sitio); nunca HTML ni código <iframe>.
 - Figuras: usa el bloque figure con assetId null mientras no exista el archivo; nunca inventes un assetId ni enlaces una imagen externa.
 - Fuentes: declara cada fuente una vez en un bloque sources con enlace y fecha ISO; facts, data-table, quote y figure la citan por sourceRef.
@@ -54,7 +55,7 @@
 - `facts`: Cifras y métricas con unidad, fecha de corte, tendencia y fuente citada.
 - `requirements`: Enunciado, prioridad, justificación y criterio de aceptación por requisito.
 - `sources`: Catálogo citable: título, enlace, tipo, editor y fecha de consulta.
-- `figure`: Imagen privada del documento con texto alternativo, pie y crédito.
+- `figure`: Imagen del proyecto (asset por assetId) con texto alternativo, pie y crédito.
 - `video`: Video del proyecto (MP4 o WebM) con reproductor, pie y póster opcional.
 - `embed`: Iframe de Figma, Google Slides, Miro, YouTube, Loom o cualquier enlace https, con título y pie.
 - `data-table`: Columnas declaradas y filas posicionales, con nota y fuente citada.
@@ -64,6 +65,7 @@
 - `view`: Vista libre compuesta con el catálogo pai-view@1 (layout, métricas, gráficas, tablas, pestañas). Su spec se describe en views.
 - `html`: Mockup HTML con JS que se dibuja como un artifact de Claude, en un iframe aislado con pantalla completa.
 - `whiteboard`: Una pizarra del proyecto, por su id: su vista previa con «Abrir» y, para quien puede editarla, «Editar aquí».
+- `flow`: Un flujo de Conocimiento del proyecto, por su id: su lienzo en solo lectura con «Abrir».
 
 ## Tipos built-in
 

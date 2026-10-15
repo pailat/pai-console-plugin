@@ -129,6 +129,10 @@ Una pizarra es una page de formato `whiteboard`: una escena de Excalidraw en Rec
 - `page_validate` da `WHITEBOARD_NOT_FOUND` (no existe en el proyecto) o `WHITEBOARD_NOT_A_BOARD` (no es pizarra), y avisa `WHITEBOARD_NOT_CLIENT_VISIBLE`: una page `client` no puede mostrar una pizarra solo del equipo.
 - `page_read view=full` trae `whiteboards`: título y resumen de cada pizarra embebida, o `hidden` si no la ves.
 
+### Flujos (bloque `flow`)
+
+**Un flujo en una page:** bloque `{id, type: "flow", node, title?, height?}`. `node` es el uuid de un nodo `flow` del mismo proyecto y `height` los px del lienzo (240 a 1200; 480 por omisión). Se dibuja su lienzo en solo lectura con «Abrir». Los flujos se arman con el skill `flows`.
+
 ## 4. Actualizar una page
 
 1. Si vas a reescribir, primero `page_comprehension` (staff ve el agregado; los demás, lo suyo): sus preguntas más falladas dicen qué explicar mejor. Es señal de práctica, nunca calificación de personas. `page_knowledge_health {path}` dice qué citas `kb:` quedaron reemplazadas, archivadas, contradichas o sin validar; sin `path`, cuenta por page.
