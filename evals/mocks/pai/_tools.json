@@ -7654,7 +7654,7 @@
   {
    "name": "organization_list",
    "title": "Listar organizaciones",
-   "description": "Descubre organizationId sin contexto previo: lista las organizaciones de las que eres miembro, tu rol en cada una (memberRole), sus IDs y números de miembros y proyectos. Filtra por nombre con query. Usa el id elegido como organizationId en project_list para descubrir projectId; después consulta project_status.",
+   "description": "Descubre organizationId sin contexto previo: lista las organizaciones de las que eres miembro, tu rol en cada una (memberRole), sus IDs y números de miembros y proyectos; si eres admin de plataforma de Pai, lista todas y marca con access: \"platform\" (rol admin) aquellas donde no eres miembro. Filtra por nombre con query. Usa el id elegido como organizationId en project_list para descubrir projectId; después consulta project_status.",
    "inputSchema": {
     "type": "object",
     "$schema": "https://json-schema.org/draft/2020-12/schema",

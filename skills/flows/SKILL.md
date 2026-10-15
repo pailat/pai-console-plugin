@@ -92,7 +92,7 @@ En Unicef se crearon actores y acciones que ya estaban en el proyecto. Para no r
 - [ ] **Todos los pasos se alcanzan** desde el inicio.
 - [ ] **Cada decisión tiene 2 o más ramas**, todas con `label`. Las alternativas que solo están en el texto o en `notes` («si la tarjeta es rechazada…») pasan a ser ramas.
 - [ ] **Actor en cada paso**, decisiones y fines incluidos: alimenta el selector de rol y atenúa los pasos de otros roles.
-- [ ] **Pantalla y acción ligadas cuando existen** (nunca pantalla en una decisión).
+- [ ] **Pantalla y acción ligadas cuando existen** (nunca pantalla en una decisión). Para que el paso se vea al probarlo, la pantalla lleva `prototype: {pageId, blockId?}` hacia su page `pantallas/<producto>/…` con un bloque **`view`**; un bloque `html` no sirve como prototipo (skill `screens`).
 - [ ] **Integraciones ligadas.** Si se van a probar, `state: simulated` con `sampleResponse` y, si hay variantes, `sampleCases` (éxito, reembolso, disputa…).
 - [ ] `detail` en cada paso: es el resultado esperado que lee quien prueba.
 
@@ -105,7 +105,7 @@ En Unicef se crearon actores y acciones que ya estaban en el proyecto. Para no r
 1. `flow_run_start {ref, actor: "actor/<rol>", mode}`.
    - `mode: "sample"` (datos de ejemplo) o `"simulated"` (las respuestas de ejemplo de las integraciones). `"real"` todavía no: `FLOW_RUN_REAL_DISABLED`.
    - `actor` es un nodo `actor` del flujo; otro kind da `FLOW_RUN_ACTOR`. Un flujo archivado o reemplazado no se prueba (`FLOW_RUN_FLOW_CLOSED`).
-2. Recorre desde `start` y registra cada paso con `flow_run_step`:
+2. Recorre desde `start` y registra cada paso con `flow_run_step`. En un paso con pantalla, «Probar como…» muestra su prototipo (el bloque `view` de su `prototype`) con las acciones que la pantalla ofrece como zonas clicables; sin prototipo, solo la descripción:
    - `passed`: hace lo que dice `detail`;
    - `noted`: pasa con una observación. Úsalo cuando **falta la integración** o la pantalla y el paso solo se revisó con su descripción, y dilo en `note`;
    - `failed`: no se cumple. Ahí se detiene la prueba;

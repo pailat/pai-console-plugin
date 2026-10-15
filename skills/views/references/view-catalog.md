@@ -1,6 +1,6 @@
 # Catálogo de vistas `pai-view@1`
 
-> Generado por `tools/gen-references.ts` desde pai-portal `d65d611ac` (2026-10-14 Merge feat/0.2.5/flows: la dirección del flujo viaja en vivo (ATE-238)), `packages/views/src/catalog.ts`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `53d255b53` (2026-10-15 Merge feat/0.2.5/flows: un solo ScreenFrame para pantallas, con dispositivos y hotspots (ATE-230 D)), `packages/views/src/catalog.ts`. No editar a mano: regenerar.
 
 Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props, children? } } }. Los hijos se referencian por id.
 

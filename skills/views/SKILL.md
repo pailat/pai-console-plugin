@@ -198,7 +198,7 @@ Antes de usar un patrón pide su esquema con `view_catalog {types}`: las regione
 4. **Mockup de app de cliente** (`app-screen.json`): `AppShell` (brand, `nav` con uno `active`, `title`, `user`) → `Breadcrumb` → KPIs → `Alert` → `Card` con `action` y `menu`, que contiene `FilterBar` + `Table` + `Pagination`.
    - Se ve en un marco de escritorio, tableta o móvil y se abre a pantalla completa.
    - Para los estados vacíos o de error de la pantalla, haz variantes con `EmptyState` o `ErrorState`.
-   - Liga el mockup desde el nodo `screen` (skill `screens`) con `wireframe: {description, pageId}`.
+   - Si es el prototipo de una pantalla, guárdalo en `pantallas/<producto>/<pantalla>` y lígalo desde el nodo `screen` con `prototype: {pageId, blockId?}` (skill `screens`). El prototipo de una pantalla es siempre un bloque `view`, nunca `html`.
 5. **Reporte visual o ficha** (`visual-report.json`): `Heading` h1 + `Text` lead → `Stages` → `KeyValue` → `Progress` → `Checklist` de entregables → `Timeline` → `Accordion`.
 6. **Comparativo** (`comparison.json`): `Stack` → `Section` → `Grid` de `Card`, una por opción, con `StatusBadge` (Recomendada, Alternativa o Descartada), `KeyValue` y `List` → `Alert` `info` con la conclusión. No anides `Card` dentro de `Card`.
 

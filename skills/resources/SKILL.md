@@ -21,7 +21,7 @@ Lee antes el skill `pai-console`.
 |---|---|
 | Un documento con estructura conocida (nota, guía, decisión, reporte, proceso, overview, PRD, SOW, arquitectura, discovery, inventario de diseño) | Page `layout: "document"` **con `typeSlug`** del tipo built-in. Sus secciones obligatorias mandan |
 | Un tablero, reporte visual, mockup de pantalla o página libre con los componentes de Pai | Page `layout: "canvas"` con un bloque **`view`**, **sin `typeSlug`**: ningún tipo built-in admite `view` |
-| Un mockup o prototipo con JavaScript libre (canvas, simulación, maqueta interactiva o pixel a pixel) | Page con un bloque **`html`** (§3), **sin `typeSlug`**: ningún tipo built-in lo admite |
+| Un mockup o prototipo con JavaScript libre (canvas, simulación, maqueta interactiva o pixel a pixel) | Page con un bloque **`html`** (§3), **sin `typeSlug`**: ningún tipo built-in lo admite. **No sirve como prototipo de una pantalla:** ese es siempre un bloque `view` (skill `screens`) |
 | Un diagrama que el equipo o el cliente van a seguir editando a mano (lluvia de ideas, flujo, mapa, arquitectura en borrador), o un flowchart de Mermaid | **Pizarra** (`whiteboard_create`, §3): Excalidraw colaborativo en Recursos; se muestra en una page con un bloque `whiteboard`. Si solo se ve y no se edita, una vista `Flow` (skill `views`) |
 | Mostrar en una page lo que ya vive en Conocimiento (C4, ERD, pantallas, flujos, decisiones, riesgos, glosario…) | Bloque **`projection`** en una page v2 (§3): se dibuja al leer, no copia datos |
 | Una nota rápida en Markdown, que el cliente también puede escribir | Nota (`note_create`, §8) |

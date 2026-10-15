@@ -1,6 +1,6 @@
 # Kinds de Conocimiento
 
-> Generado por `tools/gen-references.ts` desde pai-portal `d65d611ac` (2026-10-14 Merge feat/0.2.5/flows: la dirección del flujo viaja en vivo (ATE-238)), `packages/contracts/src/knowledge`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `53d255b53` (2026-10-15 Merge feat/0.2.5/flows: un solo ScreenFrame para pantallas, con dispositivos y hotspots (ATE-230 D)), `packages/contracts/src/knowledge`. No editar a mano: regenerar.
 
 Cada kind tiene una plantilla estricta: una clave que no aparece aquí se rechaza. `properties` lleva exactamente estas claves. Las secciones `refs` materializan aristas al guardar.
 
