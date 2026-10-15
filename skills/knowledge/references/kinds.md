@@ -1,6 +1,6 @@
 # Kinds de Conocimiento
 
-> Generado por `tools/gen-references.ts` desde pai-portal `e8a077100` (2026-10-14 Merge feat/0.2.5/resources-assets (ATE-229 partes B y C: medios en los editores, galería de Assets y tools del MCP)), `packages/contracts/src/knowledge`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `d65d611ac` (2026-10-14 Merge feat/0.2.5/flows: la dirección del flujo viaja en vivo (ATE-238)), `packages/contracts/src/knowledge`. No editar a mano: regenerar.
 
 Cada kind tiene una plantilla estricta: una clave que no aparece aquí se rechaza. `properties` lleva exactamente estas claves. Las secciones `refs` materializan aristas al guardar.
 
@@ -11,7 +11,7 @@ Cada kind tiene una plantilla estricta: una clave que no aparece aquí se rechaz
 3. ¿Es un aviso de fallo? → risk, gotcha, antipattern.
 4. ¿Es intención futura o pregunta abierta? → task, question, assumption.
 Si nada encaja: note (afirmación suelta), concept (definición), reference (fuente externa).
-Los kinds estructurales (module, screen, flow, use_case, data_model, entity, component, actor, glossary_term) se eligen por lo que describen, no por estas preguntas.
+Los kinds estructurales (module, screen, flow, action, integration, use_case, data_model, entity, component, actor, glossary_term) se eligen por lo que describen, no por estas preguntas. flow_run no se crea a mano: lo deja cada prueba de un flujo.
 
 Formato de cita: kb:<kind>/<slug>@r<revision>
 
@@ -55,6 +55,9 @@ Formato de cita: kb:<kind>/<slug>@r<revision>
 | `actor` | Actor | estructura | no | no | — |
 | `glossary_term` | Término | estructura | no | no | — |
 | `use_case` | Caso de uso | estructura | no | no | `^UC-\d{2,3}$` |
+| `action` | Acción | estructura | no | no | — |
+| `integration` | Integración | estructura | no | no | — |
+| `flow_run` | Prueba de flujo | estructura | no | no | — |
 
 ## `objective` — Objetivo (plantilla v1)
 
@@ -677,7 +680,7 @@ Ejemplo de `properties`:
 }
 ```
 
-## `screen` — Pantalla (plantilla v2)
+## `screen` — Pantalla (plantilla v3)
 
 Pantalla del producto: ruta, propósito, actores, estados, bloques de contenido, acciones, reglas que la restringen y navegación.
 
@@ -687,8 +690,8 @@ Estados: `draft`, `active`, `superseded`, `archived`.
 - `purpose` (**obligatorio**; markdown; ≤1500): Para qué existe y qué decide el usuario aquí.
 - `actors` (**obligatorio**; refs; → arista `performs` a actor): Quién la usa (al menos uno).
 - `states` (**obligatorio**; list): Al menos dos: vacío, carga, error, sin permisos…
-- `content` (**obligatorio**; table; columnas: block, data, source): Bloques y de dónde salen sus datos.
-- `actions` (**obligatorio**; table; columnas: action, effect, rule): Qué puede hacer el usuario y con qué efecto.
+- `content` (**obligatorio**; table; columnas: block, data, source): Bloques y de dónde salen sus datos: la fuente es el nodo (entidad, modelo de datos, acción, integración o flujo).
+- `actions` (opcional; refs; → arista `offers` a action): Lo que el usuario puede hacer aquí: nodos action (efecto, datos, a dónde lleva).
 - `rules` (opcional; refs; → arista `constrains` a business_rule/constraint): Reglas y restricciones aplicables.
 - `uses` (opcional; refs; → arista `uses` a entity/component): Entidades y componentes que usa.
 - `navigatesTo` (opcional; refs; → arista `navigates_to` a screen): Pantallas alcanzables.
@@ -714,15 +717,13 @@ Ejemplo de `properties`:
   {
    "block": "Tabla de nodos",
    "data": "título, estado, capa, visibilidad",
-   "source": "knowledge.list"
+   "source": {
+    "ref": "entity/knowledge-node"
+   }
   }
  ],
  "actions": [
-  {
-   "action": "Nuevo nodo",
-   "effect": "Abre el formulario por kind",
-   "rule": "business_rule/rn-02-solo-staff-escribe"
-  }
+  "action/knowledge-nuevo-nodo"
  ],
  "uses": [
   "entity/knowledge-node"
@@ -759,9 +760,9 @@ Ejemplo de `properties`:
 }
 ```
 
-## `flow` — Flujo (plantilla v1)
+## `flow` — Flujo (plantilla v2)
 
-Flujo del producto: disparador, resultado, pasos numerados con actor, pantalla y regla, y caminos alternativos. El diagrama se genera desde los pasos.
+Flujo del producto: disparador, resultado, pasos numerados con actor, pantalla y regla, y caminos alternativos. El diagrama se genera desde los pasos. Un flujo con entidad (entity: true) se edita en el canvas o con flow_save: sus pasos, ramas y referencias a actor, pantalla, acción e integración viven en tablas, y steps y alternatives son su proyección (knowledge_update no los cambia).
 
 Estados: `draft`, `active`, `superseded`, `archived`.
 
@@ -1079,5 +1080,85 @@ Ejemplo de `properties`:
  "rules": [
   "business_rule/rn-02-solo-staff-escribe"
  ]
+}
+```
+
+## `action` — Acción (plantilla v1)
+
+Lo que una persona hace en una pantalla (botón, formulario, enlace) o lo que el sistema hace solo: su efecto, los datos que pide y lo que queda. Las pantallas que la ofrecen, a dónde lleva, los datos que toca y los flujos o integraciones que dispara son aristas (offers, navigates_to, uses, triggers).
+
+Estados: `draft`, `active`, `superseded`, `archived`.
+
+- `trigger` (**obligatorio**; enum; button|form|link|automatic): button, form, link o automatic.
+- `effect` (**obligatorio**; markdown; ≤1500): Qué cambia al hacerla.
+- `inputs` (opcional; table; columnas: field, type, required): Campo, tipo y si es obligatorio.
+- `outcome` (opcional; text; ≤300): Qué ve la persona al terminar.
+- `notes` (opcional; markdown; ≤2000): Observaciones adicionales que no encajan en otra sección.
+
+Ejemplo de `properties`:
+
+```json
+{
+ "trigger": "button",
+ "effect": "Confirma el pago del carrito con la tarjeta capturada y aparta los boletos.",
+ "inputs": [
+  {
+   "field": "Tarjeta",
+   "type": "Stripe Payment Element",
+   "required": true
+  },
+  {
+   "field": "Donativo",
+   "type": "Monto en MXN",
+   "required": false
+  }
+ ],
+ "outcome": "La persona ve su código de reserva."
+}
+```
+
+## `integration` — Integración (plantilla v1)
+
+Servicio externo o interno que corre un paso de un flujo (Stripe, un webhook, un ERP): proveedor, operación y estado (described, simulated o real). Una simulada lleva la respuesta de ejemplo en JSON (hasta 16 KB) y, si se quiere, casos («éxito», «reembolso 50 %», «disputa») que muestra «Probar como…».
+
+Estados: `draft`, `active`, `superseded`, `archived`.
+
+- `provider` (**obligatorio**; text; ≤120): Quién da el servicio (p. ej. Stripe).
+- `state` (**obligatorio**; enum; described|simulated|real): described (solo descrita), simulated (con respuesta de ejemplo) o real.
+- `operation` (**obligatorio**; text; ≤300): Qué se le pide.
+- `sampleResponse` (opcional; json; ≤16384): JSON de hasta 16 KB; obligatoria si el estado es simulated.
+- `sampleCases` (opcional; table; columnas: case, response): Caso y su respuesta en JSON.
+- `notes` (opcional; markdown; ≤2000): Observaciones adicionales que no encajan en otra sección.
+
+Ejemplo de `properties`:
+
+```json
+{
+ "provider": "Stripe",
+ "state": "simulated",
+ "operation": "PaymentIntent con transfer_data hacia la cuenta del beneficiario",
+ "sampleResponse": "{\"id\":\"pi_123\",\"status\":\"succeeded\",\"amount\":18900,\"currency\":\"mxn\",\"transfer_data\":{\"amount\":10000}}",
+ "sampleCases": [
+  {
+   "case": "Reembolso 50 %",
+   "response": "{\"type\":\"charge.refunded\",\"amount_refunded\":9450}"
+  }
+ ]
+}
+```
+
+## `flow_run` — Prueba de flujo (plantilla v1)
+
+Una prueba de un flujo («Probar como…»): rol, modo, resultado de cada paso y dónde se detuvo. La crea la prueba (flow_run_start), nunca knowledge_create.
+
+Estados: `draft`, `active`, `superseded`, `archived`.
+
+- `notes` (opcional; markdown; ≤2000): Observaciones adicionales que no encajan en otra sección.
+
+Ejemplo de `properties`:
+
+```json
+{
+ "summary": "Prueba del 14 oct como Comprador: falló en el paso 4"
 }
 ```
