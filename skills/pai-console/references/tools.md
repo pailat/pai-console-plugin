@@ -133,6 +133,23 @@ Detalle, flujo, errores, mapa de tokens y verificación en el Portal en el skill
 | `knowledge_archive` | E | Reversible con `knowledge_revive` |
 | `knowledge_unlink` | E · IRR | |
 
+El cliente tiene Conocimiento en solo lectura (ATE-237): `knowledge_kinds`, `knowledge_search`, `knowledge_get`, `knowledge_impact` y `knowledge_view`, sobre nodos `client`. Los kinds `action`, `integration` y `flow_run` son nuevos; `flow_run` solo lo crea `flow_run_start`.
+
+## Flujos (skill `flows`)
+
+| Tool | Tipo | Nota |
+|---|---|---|
+| `flow_list` | L | Flujos del proyecto: ref, versión, pasos, roles y última prueba |
+| `flow_get` | L | Pasos con sus refs (actor, pantalla, acción, integración), transiciones, `revision`, versión y últimas pruebas. Se dibuja como vista (`Flow`) |
+| `flow_create` | E | Staff; `sources` obligatorio. Sin `graph` nace con inicio y fin |
+| `flow_save` | E | Staff. **Reemplaza el grafo completo** (`graph` o `mermaid`) con `expectedRevision` e `idempotencyKey`; los pasos que no vienen se borran |
+| `flow_version_bump` | E | Staff. v1 → v2 con etiqueta; no cambia la `revision` |
+| `flow_run_start` | E | Inicia una prueba: `actor` (nodo actor) y `mode` `sample` o `simulated` (`real` aún no) |
+| `flow_run_step` | E | `stepKey`, `result` (`passed`, `noted`, `failed`, `skipped`), `branchLabel`, `integrationResponse`; solo quien la inició |
+| `flow_run_finish` | E | `passed`, `passed_with_notes`, `failed` (con `stoppedAtKey`) o `abandoned` |
+| `flow_run_list` | L | Pruebas de un flujo, de la más reciente |
+| `flow_run_get` | L | Una prueba con sus pasos |
+
 ## Cronograma
 
 | Tool | Tipo | Nota |
@@ -206,7 +223,7 @@ Detalle, flujo, errores, mapa de tokens y verificación en el Portal en el skill
 | `view_catalog` | L | Catálogo `pai-view@1` (componentes, props, reglas, ejemplo); con `types`/`group`, `recipe` o `recipeGroup`, uno a la vez. Prefiere la referencia del skill `views` |
 | `view_render` | L | Dibuja en la conversación una vista que compones (`{title, spec}`); la valida y no guarda nada. `organizationId` la pinta con el tema de esa organización |
 
-Además, en los hosts con MCP Apps, las lecturas con una vista propia se dibujan solas como una vista de Pai: `project_summary`, `project_list`, `project_activity`, `project_close_review`, `status_update_list`, `timeline_get`, `milestone_list`, `payment_list`, `proposal_list`, `task_board`, `file_list`, `page_list`, `page_suggestions`, `page_comprehension`, `page_knowledge_health`, `page_projection`, `whiteboard_read`, `asset_list`, `agent_inbox`, `knowledge_library`, `knowledge_graph`, `knowledge_view`, `organization_theme_preview`, las lecturas del CRM (`crm_overview_get`, `crm_lead_list`, `crm_lead_summary`, `crm_lead_get`, `crm_lead_record`, `crm_lead_event_list`, `crm_lead_duplicates`, `crm_lead_organization_suggestions`, `crm_submission_get`, `crm_opportunity_list`, `crm_opportunity_summary`, `crm_opportunity_get`, `crm_opportunity_event_list`, `crm_trace_get`) y `view_render`. `knowledge_view` y `page_projection` se dibujan en el lienzo (`ui://pai/canvas.html`). Las demás lecturas (detalles, búsquedas, validaciones, catálogos) devuelven solo datos y texto (ATE-203).
+Además, en los hosts con MCP Apps, las lecturas con una vista propia se dibujan solas como una vista de Pai: `project_summary`, `project_list`, `project_activity`, `project_close_review`, `status_update_list`, `timeline_get`, `milestone_list`, `payment_list`, `proposal_list`, `task_board`, `file_list`, `page_list`, `page_suggestions`, `page_comprehension`, `page_knowledge_health`, `page_projection`, `whiteboard_read`, `asset_list`, `flow_get`, `agent_inbox`, `knowledge_library`, `knowledge_graph`, `knowledge_view`, `organization_theme_preview`, las lecturas del CRM (`crm_overview_get`, `crm_lead_list`, `crm_lead_summary`, `crm_lead_get`, `crm_lead_record`, `crm_lead_event_list`, `crm_lead_duplicates`, `crm_lead_organization_suggestions`, `crm_submission_get`, `crm_opportunity_list`, `crm_opportunity_summary`, `crm_opportunity_get`, `crm_opportunity_event_list`, `crm_trace_get`) y `view_render`. `knowledge_view` y `page_projection` se dibujan en el lienzo (`ui://pai/canvas.html`). Las demás lecturas (detalles, búsquedas, validaciones, catálogos) devuelven solo datos y texto (ATE-203).
 
 ## CRM (staff, o roles de Console con `crm:access`; permisos `crm:*`)
 

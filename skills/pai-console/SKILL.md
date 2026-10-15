@@ -36,6 +36,7 @@ Un `*_create` se rechaza si en la sesión no buscaste antes en su área:
 |---|---|
 | `page_create` / `note_create` | `page_search` y `page_list` (sigue `nextCursor`) |
 | `knowledge_create` | `knowledge_search` (por tema), `knowledge_library` (inventario por `kinds` en el proyecto), `knowledge_context`, o `task_board` para tareas |
+| `flow_create` | `flow_list` (o `flow_get`, `knowledge_search`, `knowledge_library`) |
 | `milestone_create` | `timeline_get` o `milestone_list` |
 | `project_create` / `organization_create` / `product_create` / `agent_create` | su `*_list` |
 | `crm_lead_create` | `crm_lead_duplicates` (o `crm_lead_list`) |
@@ -105,13 +106,15 @@ El error llega con `isError` y `structuredContent.error = { code, message, cause
 | `TIMEOUT` con `cause.code: IMPACT_TIMEOUT` | `knowledge_impact` demasiado amplio | Reduce `maxDepth` o `fanout` y reintenta una vez |
 | `INTERNAL_SERVER_ERROR` «No se pudo completar la operación» | Fallo del servidor | Reintenta una vez; si sigue, avisa a la persona |
 
+Flujos (skill `flows`): `FLOW_STEP_REF` (una ref de un paso no existe o es de otro kind; trae `path` y `ref`), `FLOW_NEEDS_PROJECT`, y en las pruebas `FLOW_RUN_REAL_DISABLED`, `FLOW_RUN_ACTOR`, `FLOW_RUN_FLOW_CLOSED`, `FLOW_RUN_NOT_RUNNER`, `FLOW_RUN_FINISHED`, `FLOW_RUN_STEP_KEY` y `FLOW_RUN_STOPPED_AT`. Un `flow_save` con revisión vieja da `CONFLICT`: relee con `flow_get`. `knowledge_update` sobre los pasos de un flujo con entidad se rechaza: van por `flow_save`.
+
 Otros `cause.code` frecuentes: `C4_LEVEL` y `ALREADY_CONTAINED` (skill `c4`), `CLIENT_VISIBLE_REQUIRES_PERSON`, `MERMAID_NOT_ALLOWED`, `QUERY`, `IMPLEMENTED_BY_NEEDS_PRODUCT`, `IMPLEMENTED_BY_ACROSS_PRODUCTS` y `TASK_NEEDS_PROJECT` (skill `knowledge`), y en pages los códigos del bloque `html` y `PAGE_ATTRIBUTE_INVALID` (skill `resources`).
 
 Algunos errores llegan **sin `cause`**, solo con código y mensaje: proyecto cerrado (arriba), «La organización no puede quedarse sin un owner» (`CONFLICT`), «para gestionar esta organización hace falta ser owner o admin» (`FORBIDDEN`). Ahí el texto es la única pista.
 
 ## 6. Qué lecturas ya se ven
 
-En los hosts con MCP Apps, solo las lecturas con una vista propia se dibujan solas (ATE-203): Inicio, cronograma, pagos, tablero, biblioteca, grafo, ERD/C4, la proyección de una page, el CRM… Son estas: `project_summary`, `project_list`, `project_activity`, `project_close_review`, `status_update_list`, `timeline_get`, `milestone_list`, `payment_list`, `proposal_list`, `task_board`, `file_list`, `page_list`, `page_suggestions`, `page_comprehension`, `page_knowledge_health`, `page_projection`, `whiteboard_read`, `asset_list`, `agent_inbox`, `knowledge_library`, `knowledge_graph`, `knowledge_view`, `organization_theme_preview`, las lecturas del CRM (`crm_overview_get`, `crm_lead_list`, `crm_lead_summary`, `crm_lead_get`, `crm_lead_record`, `crm_lead_event_list`, `crm_lead_duplicates`, `crm_lead_organization_suggestions`, `crm_submission_get`, `crm_opportunity_list`, `crm_opportunity_summary`, `crm_opportunity_get`, `crm_opportunity_event_list`, `crm_trace_get`) y `view_render`.
+En los hosts con MCP Apps, solo las lecturas con una vista propia se dibujan solas (ATE-203): Inicio, cronograma, pagos, tablero, biblioteca, grafo, ERD/C4, la proyección de una page, el CRM… Son estas: `project_summary`, `project_list`, `project_activity`, `project_close_review`, `status_update_list`, `timeline_get`, `milestone_list`, `payment_list`, `proposal_list`, `task_board`, `file_list`, `page_list`, `page_suggestions`, `page_comprehension`, `page_knowledge_health`, `page_projection`, `whiteboard_read`, `asset_list`, `flow_get`, `agent_inbox`, `knowledge_library`, `knowledge_graph`, `knowledge_view`, `organization_theme_preview`, las lecturas del CRM (`crm_overview_get`, `crm_lead_list`, `crm_lead_summary`, `crm_lead_get`, `crm_lead_record`, `crm_lead_event_list`, `crm_lead_duplicates`, `crm_lead_organization_suggestions`, `crm_submission_get`, `crm_opportunity_list`, `crm_opportunity_summary`, `crm_opportunity_get`, `crm_opportunity_event_list`, `crm_trace_get`) y `view_render`.
 - **Las demás no traen vista:** detalles (`page_read`, `knowledge_get`, `proposal_get`…), búsquedas (`page_search`, `knowledge_search`), validaciones (`page_validate`), catálogos y `whoami`. Devuelven solo datos y texto. Úsalas como pasos intermedios; no esperes que la persona las vea.
 - Cuando una vista sí aparece, no la copies en tablas de texto: comenta lo importante, responde la pregunta y cita.
 - La vista automática es el resultado crudo y solo aparece en hosts con MCP Apps. **Si la persona pide ver, mostrar o graficar algo, dibuja tú la vista con `view_render`**, también con los datos de una tool sin vista.
@@ -138,7 +141,8 @@ Distingue hechos respaldados, inferencias y preguntas abiertas.
 | Nodos de Knowledge: kinds, fuentes, propuestas, ciclo de vida, enlaces | `knowledge` |
 | Modelo de datos: `data_model` + `entity`, columnas y FK | `erd` |
 | Arquitectura C4: `component` por nivel, relaciones y actores | `c4` |
-| Pantallas y flujos: `screen`, `flow`, `actor` | `screens` |
+| Pantallas, acciones y actores: `screen` (v3), `action`, `actor` | `screens` |
+| Flujos: pasos, ramas, integraciones simuladas, «Probar como…» (`flow_*`, `flow_run_*`) | `flows` |
 | Hitos, tareas, dependencias, línea base, tablero | `schedule` |
 | Propuestas (SOW), CFDI y pagos | `proposals-payments` |
 | CRM: leads, calificación, oportunidades y pronóstico (staff o roles de CRM) | `crm` |

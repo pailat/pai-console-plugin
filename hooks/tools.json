@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "pai-portal e8a077100 (2026-10-14 Merge feat/0.2.5/resources-assets (ATE-229 partes B y C: medios en los editores, galería de Assets y tools del MCP))",
+  "generatedFrom": "pai-portal d65d611ac (2026-10-14 Merge feat/0.2.5/flows: la dirección del flujo viaja en vivo (ATE-238))",
   "tools": {
     "agent_create": {
       "readOnly": false,
@@ -338,6 +338,46 @@
       "destructive": false
     },
     "file_upload": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "flow_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "flow_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "flow_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "flow_run_finish": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "flow_run_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "flow_run_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "flow_run_start": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "flow_run_step": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "flow_save": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "flow_version_bump": {
       "readOnly": false,
       "destructive": false
     },

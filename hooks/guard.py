@@ -73,6 +73,7 @@ SEARCH_BEFORE_CREATE = {
     "agent_create": ("agent_list",),
     "crm_lead_create": ("crm_lead_duplicates", "crm_lead_list"),
     "crm_opportunity_create": ("crm_organization_get", "crm_opportunity_list"),
+    "flow_create": ("flow_list", "flow_get", "knowledge_search", "knowledge_library"),
 }
 
 # Irreversible writes: what the confirmation must say they drag along.
