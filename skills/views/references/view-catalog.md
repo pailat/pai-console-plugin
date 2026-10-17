@@ -1,8 +1,8 @@
 # Catálogo de vistas `pai-view@1`
 
-> Generado por `tools/gen-references.ts` desde pai-portal `53d255b53` (2026-10-15 Merge feat/0.2.5/flows: un solo ScreenFrame para pantallas, con dispositivos y hotspots (ATE-230 D)), `packages/views/src/catalog.ts`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `a4ece4fcf` (2026-10-16 build(mcp-app): sin los describe() de ext-apps, ~8,7 KB menos por archivo), `packages/views/src/catalog.ts`. No editar a mano: regenerar.
 
-Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props, children? } } }. Los hijos se referencian por id.
+Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props, children?, slots? } } }. Los hijos se referencian por id.
 
 ## Reglas
 
@@ -11,6 +11,7 @@ Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props,
 - Los ids son únicos, empiezan con letra y se reutilizan al editar.
 - Las props omitidas que aceptan null toman su valor por defecto.
 - Sólo AppShell, AuthFrame, ConsoleShell, PortalShell, SiteShell, ContactSection, AuthLayout, BoardLayout, ChatLayout, DashboardLayout, DetailLayout, DocLayout, EmptyLayout, FilesLayout, FormLayout, PageLayout, SettingsLayout, SplitView, WizardLayout, Card, Collapsible, DetailSheet, DialogFrame, Frame, Grid, Section, Stack, Tabs, UnderlinedTabs, Tooltip, ButtonGroup, Popover, Scrollspy, Stepper y ProposalSummary tienen hijos; Tabs y UnderlinedTabs llevan un hijo por pestaña, en orden.
+- Los componentes con slots (Card, Item, ChatComposer) llevan elementos dentro en slots: { nombre: [ids] }, como children (un solo padre, conectados a la raíz) y sólo de los tipos que cada slot admite (su detalle los lista).
 - Elige el layout con la raíz de la vista: AppShell, AuthFrame, ConsoleShell, PortalShell, SiteShell son pantallas completas (ver layouts) y van sólo en la raíz; un documento, reporte o tablero empieza con Stack. Nunca recrees una pantalla de Pai con AppShell: AppShell es para apps de clientes.
 - Antes de usar un componente, pide su descripción, su esquema y su ejemplo con view_catalog({ types: [...] }) o por grupo (view_catalog({ group })); aquí sólo están su resumen y, en los grupos con index props, sus props por nombre (nombre? es opcional). Los grupos con index names sólo traen el resumen: pide sus props por grupo.
 - Un patrón (grupo patterns) lleva un hijo por región, en el orden de sus regiones; regions elige cuáles usa, en ese mismo orden.
@@ -375,7 +376,7 @@ Ejemplo: `{"items":[{"title":"¿Quién aprueba los entregables?","content":"La d
 
 #### Card (admite hijos)
 
-Tarjeta con título y descripción opcionales que agrupa contenido relacionado. En su encabezado puede llevar una acción (botón; con href navega) y un menú «⋯» decorativo. No la uses como encabezado de la vista ni anides tarjetas dentro de tarjetas.
+Tarjeta con título y descripción opcionales que agrupa contenido relacionado. En su encabezado puede llevar una acción (botón; con href navega) y un menú «⋯» decorativo. Su slot header pone Badge, StatusBadge, Button, Select o Avatar junto al título, antes de la acción. No la uses como encabezado de la vista ni anides tarjetas dentro de tarjetas.
 
 - `title`?: string (null = por defecto)
 - `description`?: string (null = por defecto)
@@ -442,10 +443,14 @@ Ejemplo: `{"title":"Producto","description":"Ambientes y dominios.","stacked":tr
 
 #### Grid (admite hijos)
 
-Cuadrícula de 1 a 6 columnas que se apila en pantallas angostas. Úsala para tarjetas de métricas (5 o 6 en una fila de KPIs) o grupos paralelos. Dentro de una AppShell en una página, 4 columnas caben antes.
+Cuadrícula de 1 a 6 columnas que se apila en pantallas angostas. Úsala para tarjetas de métricas (5 o 6 en una fila de KPIs) o grupos paralelos. Dentro de una AppShell en una página, 4 columnas caben antes. Como Stack, acepta width, maxWidth, grow y selfAlign para su lugar en el padre.
 
 - `columns`?: integer (≥1, ≤6) (null = por defecto)
 - `gap`?: "sm"|"md"|"lg"|"xl"|null (null = por defecto)
+- `width`?: "fit"|"full"|null (null = por defecto)
+- `maxWidth`?: "sm"|"md"|"lg"|"xl"|"full"|null (null = por defecto)
+- `grow`?: boolean (null = por defecto)
+- `selfAlign`?: "start"|"center"|"end"|"stretch"|null (null = por defecto)
 
 Ejemplo: `{"columns":3,"gap":"md"}`
 
@@ -468,12 +473,17 @@ Ejemplo: `{"orientation":"horizontal"}`
 
 #### Stack (admite hijos)
 
-Contenedor flex vertical u horizontal; la base de cualquier vista. Sus hijos se apilan con el espacio indicado.
+Contenedor flex vertical u horizontal; la base de cualquier vista. Sus hijos se apilan con el espacio indicado; align los acomoda a lo ancho (en vertical) y justify a lo largo. Su lugar en el padre: width (fit o full: ocupa el ancho del padre, también dentro de un align: center, donde sin ella se encoge), maxWidth (sm, md, lg, xl, full: un ancho legible), grow (ocupa el espacio que deja su Stack padre; directo en una PortalShell llena la pantalla bajo la barra) y selfAlign (start, center, end, stretch: su propio lugar, sobre el align del padre). minHeight (screen o half) le da al menos la altura de la vista o la mitad, para centrar con justify: center. Para centrar un bloque en una pantalla: Stack con grow, justify: center y align: center; el cuadro dentro, con width: full y maxWidth: lg. Sin estas props se ve como siempre.
 
 - `direction`?: "horizontal"|"vertical"|null (null = por defecto)
 - `gap`?: "none"|"sm"|"md"|"lg"|"xl"|null (null = por defecto)
 - `align`?: "start"|"center"|"end"|"stretch"|null (null = por defecto)
 - `justify`?: "start"|"center"|"end"|"between"|"around"|null (null = por defecto)
+- `width`?: "fit"|"full"|null (null = por defecto)
+- `maxWidth`?: "sm"|"md"|"lg"|"xl"|"full"|null (null = por defecto)
+- `grow`?: boolean (null = por defecto)
+- `selfAlign`?: "start"|"center"|"end"|"stretch"|null (null = por defecto)
+- `minHeight`?: "screen"|"half"|null (null = por defecto)
 
 Ejemplo: `{"direction":"vertical","gap":"md"}`
 
@@ -642,7 +652,7 @@ Ejemplo: `{"assetId":"4d2f7a8e-1c3b-4f5a-9e6d-7b8c9d0e1f2a","alt":"Pantalla de i
 
 #### Item
 
-Fila de una lista (archivo, persona, integración): icono, título, descripción y un dato a la derecha. Con href toda la fila es un enlace. Apila varios en un Stack con gap sm.
+Fila de una lista (archivo, persona, integración): icono, título, descripción y un dato a la derecha. Con href toda la fila es un enlace. Su slot trailing pone a la derecha Badge, StatusBadge, Button o Switch (en lugar de meta en texto); con trailing la fila no es enlace. Apila varios en un Stack con gap sm.
 
 - `title`: string (min 1, ≤160)
 - `description`?: string (≤2000) (null = por defecto)
@@ -1225,11 +1235,12 @@ Ejemplo: `{"label":"Hora de la revisión","value":"10:30","hourCycle":24,"minute
 
 #### ChatComposer
 
-El cuadro donde se escribe un mensaje a un agente, de maqueta: no se conecta a ningún agente ni envía mensajes. Se pinta deshabilitado, con los botones de adjuntar y enviar decorativos (también deshabilitados). placeholder es el texto de ayuda; value, un borrador de ejemplo; attachments, nombres de archivos ya adjuntos (sin enlace). Va al pie de ChatLayout o debajo de un ChatThread. Nunca pidas contraseñas, tarjetas ni códigos.
+El cuadro donde se escribe un mensaje a un agente, de maqueta: no se conecta a ningún agente ni envía mensajes. Por omisión se pinta deshabilitado, con los botones de adjuntar y enviar decorativos (también deshabilitados); con interactive: true se puede escribir en el cuadro y pulsar sus botones, como en un Textarea, y aun así nada se envía ni se guarda (dentro de un formulario de maqueta sigue deshabilitado). placeholder es el texto de ayuda; value, un borrador de ejemplo; attachments, nombres de archivos ya adjuntos (sin enlace). Sus slots van dentro del cuadro, en la barra bajo el texto: toolbar (Select, Button, Badge, Popover: alcance, espacio de agentes, skills) después de adjuntar, leading antes de adjuntar y trailing antes de enviar (Select, Button, Badge); sin interactive se ven deshabilitados como el cuadro. Va al pie de ChatLayout o debajo de un ChatThread. Nunca pidas contraseñas, tarjetas ni códigos.
 
 - `placeholder`?: string (min 1, ≤160) (null = por defecto)
 - `value`?: string (≤2000) (null = por defecto)
 - `attachments`?: [string (min 1, ≤160)] (máx 5) (null = por defecto)
+- `interactive`?: boolean (null = por defecto)
 
 Ejemplo: `{"placeholder":"Pregunta sobre el proyecto…","attachments":["Acta revisión 2026-10-02.pdf"]}`
 
@@ -1690,6 +1701,7 @@ Diagrama C4 de Conocimiento, el mismo de Portal, en uno de sus cuatro niveles (c
 - `view`: objeto que viene de `knowledge_view` tal cual (no lo escribas a mano)
 - `href`?: string (≤500) (null = por defecto)
 - `height`?: "sm"|"md"|"lg"|null (null = por defecto)
+- `detail`?: { organizationId: string, projectId: string, scope: string (min 1, ≤200), level?: "context"|"container"|"component"|"code", productId?: string } (null = por defecto)
 
 Ejemplo: `{"view":"‹resultado de knowledge_view›","height":"md"}`
 

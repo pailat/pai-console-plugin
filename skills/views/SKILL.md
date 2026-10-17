@@ -56,6 +56,31 @@ Si dudas entre dibujar y guardar, dibuja y ofrece guardarla.
 - **Tienen hijos** solo los shells (AppShell, PortalShell, ConsoleShell, SiteShell, AuthFrame), los patrones (`*Layout`, `SplitView`), Stack, Grid, Section, Card, Frame, DialogFrame, DetailSheet, Collapsible, Tabs, UnderlinedTabs, Tooltip, Popover, ButtonGroup, Stepper, ContactSection y ProposalSummary. La lista exacta está en las reglas de la referencia.
   - Tabs y UnderlinedTabs llevan un hijo por pestaña, en orden; normalmente cada hijo es un Stack.
   - Tooltip lleva un solo hijo, no interactivo.
+- **Slots con nombre:** ChatComposer, Card e Item llevan, además de `children`, `slots: {nombre: ["id", …]}`. Mismas reglas que `children` (un padre, conectado a la raíz, sin ciclos) y cada slot admite solo ciertos tipos; otro tipo, o un slot que el componente no tiene, es un error de validación. `view_catalog` lista los slots en el índice (`slots: [nombres]`) y sus tipos en el detalle.
+
+  | Componente | Slot | Admite | Dónde se pinta |
+  |---|---|---|---|
+  | ChatComposer | `toolbar` | Select, Button, Badge, Popover | en la barra bajo el texto, después de adjuntar |
+  | ChatComposer | `leading` | Select, Button, Badge | antes de adjuntar |
+  | ChatComposer | `trailing` | Select, Button, Badge | antes de enviar |
+  | Card | `header` | Badge, StatusBadge, Button, Select, Avatar | junto al título, antes de `action` y `menu` |
+  | Item | `trailing` | Badge, StatusBadge, Button, Switch | a la derecha, en lugar de `meta`; con `trailing` la fila no es enlace aunque tenga `href` |
+
+  Lo que va dentro de un componente (el selector de alcance de un chat, un badge en el encabezado de una Card) va en su slot, no en un Stack al lado.
+- **Ancho y lugar de un bloque** (solo Stack y Grid; valores cerrados, sin ellas se ve como antes):
+  - `width: "fit" | "full"`: `full` ocupa el ancho del padre, también dentro de `align: "center"`, donde si no se encoge;
+  - `maxWidth: "sm" | "md" | "lg" | "xl" | "full"`: ancho legible;
+  - `grow: true`: ocupa el espacio que deja su Stack padre; directo en un shell, llena la pantalla bajo la barra;
+  - `selfAlign: "start" | "center" | "end" | "stretch"`: su lugar propio, sobre el `align` del padre;
+  - `minHeight: "screen" | "half"` (solo Stack): para centrar en vertical fuera de un shell.
+
+  `justify` centra en vertical cuando el Stack tiene altura (`grow` dentro de un shell, `minHeight` fuera). Para mover o limitar otro componente, envuélvelo en un Stack con estas props. Receta para centrar un bloque en una pantalla:
+
+  ```json
+  "body":   { "type": "Stack", "props": { "direction": "vertical", "grow": true }, "children": ["top", "center"] },
+  "center": { "type": "Stack", "props": { "direction": "vertical", "grow": true, "align": "center", "justify": "center" }, "children": ["title", "box"] },
+  "box":    { "type": "Stack", "props": { "width": "full", "maxWidth": "lg" }, "children": ["composer"] }
+  ```
 - **Props estrictas:** cada objeto de props es cerrado y solo lleva las del catálogo. Nada de `className`, `style`, colores, HTML ni expresiones. Las props que admiten `null` se pueden omitir.
 - **Iconos:** solo los del catálogo, por ejemplo `home`, `users`, `calendar`, `wallet`, `receipt`, `reports`, `book-open`, `plus`, `download`, `check`. La lista completa está en la referencia.
 - Límites: ≤300 elementos y ≤12 niveles; `KnowledgeGraph` ≤1500 aristas; `Flow` ≤60 nodos y ≤120 flechas; `Grid` de 1 a 6 columnas; `Table` ≤10 columnas y ≤200 filas; `Chart` ≤6 series y ≤60 categorías (radar y radial, ≤12).
@@ -129,6 +154,7 @@ Todos funcionan **dentro de la vista** (filtran, ordenan, arrastran, abren) y **
 
 **Controles y estados son de mockup:**
 - Button, ButtonGroup, ActionMenu, FilterBar, ToggleGroup, Input, Select, Textarea, Checkbox, RadioGroup, Switch, Calendar, Command, Dropzone, Pagination, Breadcrumb, OrgSwitcher y ProjectSwitcher **no envían, guardan ni navegan**: responden dentro de la vista y nada más. Un `Button` o un `Link` con `href` solo navega.
+- `ChatComposer` está deshabilitado (con sus slots) salvo con **`interactive: true`**: entonces se escribe en el cuadro y se pulsan adjuntar y enviar, sin enviar ni guardar nada. Dentro de un formulario de maqueta sigue deshabilitado. **No** lo cambies por un `Textarea` con botones sueltos para poder escribir: deforma la pantalla.
 - EmptyState, ErrorState, LoadingState, Skeleton, Spinner, MilestoneGanttLegend y MilestoneGanttSkeleton dibujan los estados de una pantalla.
 
 Úsalos para **mockups de pantallas**, no en un dashboard de datos reales: ahí darían a entender que se puede filtrar o actuar.
@@ -171,7 +197,7 @@ Dentro de un shell (o en la raíz), un **patrón** reparte la pantalla en region
 | `FormLayout` | Formulario de maqueta: `intro`, `fields`, `actions` |
 | `WizardLayout` | Alta guiada: `steps` (Stages), `main`, `actions` |
 | `SettingsLayout` | Ajustes: `nav` y `main` |
-| `ChatLayout` | Chat de maqueta con un agente: `thread` (ChatThread), `composer` (ChatComposer), `aside` |
+| `ChatLayout` | Chat de maqueta con un agente: `thread` (ChatThread), `composer` (ChatComposer, con sus controles en `slots`), `aside`. Para un «Nuevo chat» sin hilo, centra el ChatComposer con la receta de `grow` y `maxWidth: "lg"` |
 | `AuthLayout` | Acceso o registro de **la app de un cliente** (para Pai usa `AuthFrame`): `brand`, `form`, `aside` |
 | `EmptyLayout` | Estado vacío rico: `visual`, `message`, `actions`, `preview` |
 
