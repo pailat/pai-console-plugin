@@ -9,7 +9,7 @@ compatibility: "Pai 0.2.5+ (MCP corp)"
 
 Lee antes el skill `pai-console`: entorno, descubrimiento, buscar antes de crear, CAS.
 
-**Catálogo completo**, generado desde el código: `${CLAUDE_PLUGIN_ROOT}/skills/views/references/view-catalog.md`. Tiene los layouts de raíz, los 15 grupos, los 152 componentes con sus props, límites y un ejemplo de cada uno, y las 68 recetas del servidor completas.
+**Catálogo completo**, generado desde el código: `references/view-catalog.md`. Tiene los layouts de raíz, los 15 grupos, los 152 componentes con sus props, límites y un ejemplo de cada uno, y las 68 recetas del servidor completas.
 
 `view_catalog` es la fuente del servidor:
 - sin argumentos devuelve el **índice** (reglas, layouts y los componentes con sus props por nombre);
@@ -190,7 +190,7 @@ Antes de usar un patrón pide su esquema con `view_catalog {types}`: las regione
 - `Flow` dibuja procesos, aprobaciones o dependencias como nodos (`start`, `end`, `step`, `decision`, `note`) y flechas con etiqueta, en horizontal o vertical (≤60 nodos, ≤120 flechas).
 - `ShellPicker` muestra los app shells que puede elegir un tema (los presets de `organization_theme_preview`); solo muestra, no guarda.
 
-**Del plugin**: cada una tiene un ejemplo completo y validado en `${CLAUDE_PLUGIN_ROOT}/skills/views/examples/`. Parte de él.
+**Del plugin**: cada una tiene un ejemplo completo y validado en `examples/`. Parte de él.
 
 1. **Resumen en la conversación** (`render-payments-summary.json`, `view_render`): `Stack` → `Section` con origen y corte → `Grid` de `Metric` → `BarList` → `Item` con lo siguiente.
 2. **Tablero de KPIs** (`kpi-dashboard.json`): `Section` con `StatusBadge` de salud y un `Alert` → `Grid` de 4 `Metric` → `UnderlinedTabs` con `Stages` + `Table` y `Chart` + `BarList`.

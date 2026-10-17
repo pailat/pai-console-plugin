@@ -10,7 +10,7 @@ Lee antes el skill `pai-console`. El grafo es la memoria del proyecto: cada nodo
 
 ## Elegir el kind
 
-Referencia completa, generada desde los contratos: `${CLAUDE_PLUGIN_ROOT}/skills/knowledge/references/kinds.md` (plantillas y ejemplos) y `${CLAUDE_PLUGIN_ROOT}/skills/knowledge/references/ontology.md` (relaciones permitidas). `knowledge_kinds` devuelve lo mismo desde el servidor; úsalo si dudas de la versión.
+Referencia completa, generada desde los contratos: `references/kinds.md` (plantillas y ejemplos) y `references/ontology.md` (relaciones permitidas). `knowledge_kinds` devuelve lo mismo desde el servidor; úsalo si dudas de la versión.
 
 | Si es… | kind |
 |---|---|
@@ -88,7 +88,7 @@ Referencia completa, generada desde los contratos: `${CLAUDE_PLUGIN_ROOT}/skills
 
 **`implemented_by` (módulo → componente):** dice en qué componente C4 se implementa un módulo funcional. Solo va de `module` a `component` y **los dos nodos tienen que ser del mismo producto** (créalos y enlázalos con el mismo `productId`, ver abajo). Errores: kinds al revés u otros → `ONTOLOGY`; un nodo de proyecto o de organización → `cause.code: IMPLEMENTED_BY_NEEDS_PRODUCT`; productos distintos → `IMPLEMENTED_BY_ACROSS_PRODUCTS`. Mover fuera del producto un nodo con esa arista da `PRECONDITION_FAILED` `HAS_IMPLEMENTED_BY`.
 
-Si da `ONTOLOGY`, ese par no admite esa relación. Busca en `${CLAUDE_PLUGIN_ROOT}/skills/knowledge/references/ontology.md` una que sí lo admita; no fuerces otra parecida solo para que pase.
+Si da `ONTOLOGY`, ese par no admite esa relación. Busca en `references/ontology.md` una que sí lo admita; no fuerces otra parecida solo para que pase.
 
 ## Conocimiento de un producto (`productId`)
 

@@ -9,7 +9,7 @@ compatibility: "Pai 0.2.5+ (MCP corp, permisos crm:*)"
 
 Lee antes el skill `pai-console`. El CRM es del equipo de Pai en el MCP corp: lo usa el staff y quien tenga un rol de Console con `crm:access` (sin ser staff, ese corp le da **solo** las tools del CRM). Un cliente nunca lo ve y el edge público no registra estas tools. Las tools no reciben `organizationId`/`projectId` de proyecto: trabajan sobre leads y oportunidades por su id.
 
-Inventario completo: `${CLAUDE_PLUGIN_ROOT}/skills/pai-console/references/tools.md` § CRM.
+Inventario completo: `../pai-console/references/tools.md` § CRM.
 
 ## Antes de nada: permisos
 

@@ -17,7 +17,7 @@ Lee antes el skill `pai-console`. Los **flujos** (recorridos con pasos, ramas y 
 | `action` | Lo que la persona hace en una pantalla (botón, formulario, enlace) o lo que el sistema hace solo. **Una acción se reutiliza entre pantallas** | `trigger` (`button`, `form`, `link`, `automatic`), `effect`. Opcionales: `inputs` (`{field, type, required}`), `outcome`, `hotspot` |
 | `screen` (v3) | Una pantalla: ruta, propósito, quién la usa, sus estados, lo que muestra y las acciones que ofrece | `route`, `purpose` (15–1500), `actors` (≥1), `states` (≥2), `content` (≥1 fila `{block, data?, source?}`). Opcionales: `actions`, `rules`, `uses`, `navigatesTo`, `prototype`, `view`/`views` |
 
-Plantillas completas: `${CLAUDE_PLUGIN_ROOT}/skills/knowledge/references/kinds.md`.
+Plantillas completas: `../knowledge/references/kinds.md`.
 
 ### La pantalla v3 está conectada
 
@@ -66,7 +66,7 @@ Lo de una acción que no está en su plantilla se enlaza con `knowledge_link`:
 8. **Flujos:** con el skill `flows` (`flow_create` / `flow_save`). **No escribas los pasos a mano** en `properties.steps` de un nodo `flow`: el flujo v1 de pasos en `properties` ya no se escribe así, ahora son una proyección de `flow_save`.
 9. **Verifica** con `knowledge_get` las aristas `performs`, `offers`, `navigates_to` y `uses`, revisa los `warnings` de cada respuesta y corre `knowledge_audit` para ver si quedó alguna «fuente sin conectar».
 
-Ejemplo validado: `${CLAUDE_PLUGIN_ROOT}/skills/screens/examples/checkout.json`. Son tres acciones y dos pantallas v3 con navegación entre ellas y fuentes conectadas. Reutiliza `actor/shopper` y las entidades del ejemplo de ERD. El flujo de esas pantallas está en el skill `flows`.
+Ejemplo validado: `examples/checkout.json`. Son tres acciones y dos pantallas v3 con navegación entre ellas y fuentes conectadas. Reutiliza `actor/shopper` y las entidades del ejemplo de ERD. El flujo de esas pantallas está en el skill `flows`.
 
 ## Criterio
 

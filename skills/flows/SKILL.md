@@ -37,7 +37,7 @@ Un flujo **describe, se ve y se prueba**:
 
 Límites: 120 pasos y 240 transiciones. `layoutDirection`: `TB` (de arriba abajo) es el valor **por omisión**; manda `LR` solo si la persona lo pide.
 
-**Nodos que el flujo referencia** (se crean con `knowledge_create`, skill `knowledge`; plantillas en `${CLAUDE_PLUGIN_ROOT}/skills/knowledge/references/kinds.md`):
+**Nodos que el flujo referencia** (se crean con `knowledge_create`, skill `knowledge`; plantillas en `../knowledge/references/kinds.md`):
 
 | Kind | Para | Obligatorios |
 |---|---|---|
@@ -96,7 +96,7 @@ En Unicef se crearon actores y acciones que ya estaban en el proyecto. Para no r
 - [ ] **Integraciones ligadas.** Si se van a probar, `state: simulated` con `sampleResponse` y, si hay variantes, `sampleCases` (éxito, reembolso, disputa…).
 - [ ] `detail` en cada paso: es el resultado esperado que lee quien prueba.
 
-`${CLAUDE_PLUGIN_ROOT}/tools/validate-examples.ts` aplica este checklist a los ejemplos de `flow_save`.
+`../../tools/validate-examples.ts` aplica este checklist a los ejemplos de `flow_save`.
 
 **No inventes reglas de negocio.** Si el texto no dice quién decide, cuál es la rama o qué responde la integración, no lo completes por tu cuenta: anótalo en `notes` del flujo («Siguiente iteración») o como `question` (skill `knowledge`) y díselo a la persona. Ejemplos de develop que quedaron para decidir: un rol de validador que no existe como nodo, un paso que mezcla tres roles, o dos fines del mismo flujo que se contradicen.
 
@@ -136,8 +136,8 @@ El cliente ve en Flujos solo los flujos `client`. Una ref a un nodo que no ve sa
 
 Validados contra los contratos y contra `flow_get` de develop del 2026-10-15: pasos, refs, transiciones `next`, ramas y textos coinciden; ninguno trae `layoutDirection` (TB). El grafo de `flow_save` reproduce el flujo tal como está (Unicef r6, Morelos r2), así que guardarlo no cambia nada; parte de él para corregir.
 
-- `${CLAUDE_PLUGIN_ROOT}/skills/flows/examples/unicef-donation.json`: **Pago con donativo a Unicef** (`flow/donation-payment`, Checkout Merchants). Busca lo que existe, `flow_get`, `flow_save` con 22 pasos y las ramas «Puede recibir», «Unicef no puede recibir», «Aprobada», «Rechazada», «Sin cambios», «Reembolso parcial», «Disputa», «Ganada» y «Perdida», una prueba `simulated` como Cliente con la integración de Stripe y, al final, la visibilidad `client`.
-- `${CLAUDE_PLUGIN_ROOT}/skills/flows/examples/morelos-entry.json`: **Recorrido de entrada** (`flow/flow-pf-entry`, Portal Funcionario). Decisiones «¿El IdP autentica?» y «¿Cuántas membresías tiene?» (Ninguna, Una, Varias) y una prueba `sample` donde el paso de Llave Morelos queda `noted` porque la integración no existe todavía.
+- `examples/unicef-donation.json`: **Pago con donativo a Unicef** (`flow/donation-payment`, Checkout Merchants). Busca lo que existe, `flow_get`, `flow_save` con 22 pasos y las ramas «Puede recibir», «Unicef no puede recibir», «Aprobada», «Rechazada», «Sin cambios», «Reembolso parcial», «Disputa», «Ganada» y «Perdida», una prueba `simulated` como Cliente con la integración de Stripe y, al final, la visibilidad `client`.
+- `examples/morelos-entry.json`: **Recorrido de entrada** (`flow/flow-pf-entry`, Portal Funcionario). Decisiones «¿El IdP autentica?» y «¿Cuántas membresías tiene?» (Ninguna, Una, Varias) y una prueba `sample` donde el paso de Llave Morelos queda `noted` porque la integración no existe todavía.
 
 Fragmento del grafo de Unicef:
 

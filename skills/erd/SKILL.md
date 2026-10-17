@@ -44,7 +44,7 @@ Un **`data_model`** agrupa **`entity`** (tablas). **Una entidad son sus columnas
    - el Mermaid de la vista (`format:"mermaid"`) si lo pide;
    - el enlace del Portal: el `url` de la vista con el host del Portal delante (`https://app.pai.lat` en producción; en staging, el Portal de staging).
 
-Ejemplo completo y validado (modelo, 5 entidades, FK simple, dos FK a la misma tabla, FK identificante, autorreferencia y enum): `${CLAUDE_PLUGIN_ROOT}/skills/erd/examples/sales-erd.json`.
+Ejemplo completo y validado (modelo, 5 entidades, FK simple, dos FK a la misma tabla, FK identificante, autorreferencia y enum): `examples/sales-erd.json`.
 
 ## Columnas: el contrato exacto
 

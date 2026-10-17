@@ -10,7 +10,7 @@ compatibility: "Pai 0.2.5+ (MCP corp)"
 Lee antes el skill `pai-console`.
 
 **Referencias, generadas desde los contratos:**
-- `${CLAUDE_PLUGIN_ROOT}/skills/resources/references/page-types.md`: tipos built-in con sus secciones y bloques permitidos, límites y reglas;
+- `references/page-types.md`: tipos built-in con sus secciones y bloques permitidos, límites y reglas;
 - para componer vistas (`pai-view@1`), el skill **`views`**, con su catálogo y sus recetas.
 
 Úsalas en lugar de `page_catalog`, que pesa unos 35 KB. Llama a `page_catalog` o a `page_types` solo si sospechas que el entorno tiene otra versión, o para ver los tipos propios de la organización o del proyecto.
@@ -33,7 +33,7 @@ Si dudas entre page y nodo, piensa en el uso. **Una page se lee de corrido; un n
 ## 2. Crear una page
 
 1. **Busca:** `page_search` con el tema y `page_list` (sigue `nextCursor`) para ver la estructura de rutas. Si existe una page para lo mismo, actualízala (§4).
-2. **Elige el tipo:** `${CLAUDE_PLUGIN_ROOT}/skills/resources/references/page-types.md`, o `page_types {slug}` para el `authoringGuide` completo y su ejemplo.
+2. **Elige el tipo:** `references/page-types.md`, o `page_types {slug}` para el `authoringGuide` completo y su ejemplo.
 3. **Elige la ruta**, en inglés, kebab-case y por carpetas: `architecture/payments`, `reports/checkout-performance`, `dashboards/project-status`, `guides/deploy-staging`. Sin extensión y sin fechas en la ruta, salvo en las series (`reports/2026-10-weekly`).
 4. **Compón el contenido:**
    ```json
@@ -54,8 +54,8 @@ Si dudas entre page y nodo, piensa en el uso. **Una page se lee de corrido; un n
    - el enlace del Portal: el `url` de la respuesta con el host del Portal delante (`https://app.pai.lat` en producción; en staging, el Portal de staging).
 
 Ejemplos validados:
-- `${CLAUDE_PLUGIN_ROOT}/skills/resources/examples/report-page.json`: tipo `report`, con sus cinco secciones obligatorias;
-- vistas en canvas: ejemplos en `${CLAUDE_PLUGIN_ROOT}/skills/views/examples/`.
+- `examples/report-page.json`: tipo `report`, con sus cinco secciones obligatorias;
+- vistas en canvas: ejemplos en `../views/examples/`.
 
 ## 3. Vistas, HTML, proyecciones y pizarras
 

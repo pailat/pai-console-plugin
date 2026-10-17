@@ -97,7 +97,7 @@ El error llega con `isError` y `structuredContent.error = { code, message, cause
 | `FORBIDDEN` «no eres miembro» | Sin membresía en la organización | Pide acceso; no lo rodees |
 | `FORBIDDEN` con `cause.code: HUMAN_CONFIRMS` | Intentaste activar o editar un objective, decision, adr, business_rule o constraint | Créalo como `proposed`; para cambiar uno activo, crea el nuevo y usa `knowledge_supersede` |
 | `cause.code: SOURCE_REQUIRED` | Escritura de un agente sin `sources` | Agrega al menos una fuente real (page, url con fecha, repo…) |
-| `cause.code: ONTOLOGY` | Ese par de kinds no admite esa `rel` | Usa `cause.suggestedRels` (relaciones válidas para ese par) o `cause.allowedTargets`; detalle en `${CLAUDE_PLUGIN_ROOT}/skills/knowledge/references/ontology.md` |
+| `cause.code: ONTOLOGY` | Ese par de kinds no admite esa `rel` | Usa `cause.suggestedRels` (relaciones válidas para ese par) o `cause.allowedTargets`; detalle en `../knowledge/references/ontology.md` |
 | `CONFLICT` «El proyecto está cerrado y es de solo lectura…» | **Proyecto cerrado** (ATE-13). Llega sin `cause`: reconócelo por el texto | **No es CAS: no releas ni reintentes.** Dile a la persona que el proyecto está cerrado; reabrirlo (`project_reopen`) lo decide el staff (skill `schedule`) |
 | `CONFLICT` | Revisión vieja (`cause.current.revision`), duplicado (`cause.existingId`) o transición inválida | Relee y decide; no fuerces |
 | `cause.code: PRODUCT_NOT_IN_SCOPE` | `productId` de un producto que el proyecto no toca | Usa uno de los productos del proyecto (skill `knowledge`) |
@@ -150,7 +150,9 @@ Distingue hechos respaldados, inferencias y preguntas abiertas.
 | Productos: alta, aprovisionamiento, deploy, dominios, acceso | `products` |
 | Tema de marca de una organización: tokens, fuente, radio, logos y verificación en el Portal (staff) | `theme` |
 
-El inventario de tools, con lo que es lectura, escritura e irreversible, está en `${CLAUDE_PLUGIN_ROOT}/skills/pai-console/references/tools.md`.
+El inventario de tools, con lo que es lectura, escritura e irreversible, está en `references/tools.md`.
+
+Cada skill cita sus archivos **relativos a su propio directorio** (la ruta base con la que se cargó): `references/…` y `examples/…` son suyos, `../<skill>/…` es de otro skill del plugin. Si un archivo citado no existe en esa ruta, el skill se cargó de otra copia del plugin: búscalo por su ruta (`pai-console*/skills/<skill>/references/…`) antes de seguir sin él, y avisa a la persona.
 
 ## 10. Versión
 

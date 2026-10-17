@@ -10,9 +10,9 @@ compatibility: "Pai 0.2.5+ (MCP corp, staff de Pai miembro de la organización)"
 Lee antes el skill `pai-console`. El tema es la marca que el cliente ve en **su Portal** y en las vistas de Pai pintadas para su organización. Es lo mismo que edita Ajustes › Apariencia en el Portal: los mismos casos de uso y la misma auditoría.
 
 **Referencias:**
-- `${CLAUDE_PLUGIN_ROOT}/skills/theme/examples/brand-theme.json`: ejemplo completo y validado (get → preview → save_draft).
-- `${CLAUDE_PLUGIN_ROOT}/skills/theme/references/token-map.md`: claves del tema, dónde pinta el Portal cada token, los shells y los pares que exige el validador.
-- `${CLAUDE_PLUGIN_ROOT}/skills/theme/references/contrast-audit.js`: auditoría de contraste para correr en el Portal.
+- `examples/brand-theme.json`: ejemplo completo y validado (get → preview → save_draft).
+- `references/token-map.md`: claves del tema, dónde pinta el Portal cada token, los shells y los pares que exige el validador.
+- `references/contrast-audit.js`: auditoría de contraste para correr en el Portal.
 
 Lo de §4, §5 y §8 se midió en el Portal de develop al tematizar Abraxa, Ditto y Latitude.sh. El preview del MCP valida pares abstractos; el Portal es la prueba.
 
