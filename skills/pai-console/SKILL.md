@@ -1,6 +1,6 @@
 ---
 name: pai-console
-description: "Método base para trabajar con Pai Console por su MCP (tools mcp__plugin_pai-console_pai__* o mcp__pai-console__*). Úsalo siempre antes de leer o escribir en Pai: entorno, descubrimiento de organización y proyecto, buscar antes de crear, CAS con expectedRevision, idempotencia, nombres en inglés, errores y citas. Los skills de área (resources, knowledge, erd, c4, screens, schedule, proposals-payments, products, crm) lo dan por leído."
+description: "Método base para trabajar con Pai Console por su MCP (tools mcp__plugin_pai-console_pai__*, mcp__pai-console__*, mcp__pai__* o mcp__claude_ai_pai__*). Úsalo siempre antes de leer o escribir en Pai: entorno, descubrimiento de organización y proyecto, buscar antes de crear, CAS con expectedRevision, idempotencia, nombres en inglés, errores y citas. Los skills de área (resources, knowledge, erd, c4, screens, schedule, proposals-payments, products, crm) lo dan por leído."
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
@@ -10,14 +10,23 @@ Actúas como la persona que conectó el MCP, con sus mismos permisos que en Cons
 
 ## 0. Entorno
 
-- Al iniciar la sesión, el hook dice el entorno: **STAGING** o **PRODUCCIÓN**. Si no lo sabes, pregúntalo antes de escribir.
-- Usa las tools del plugin (`mcp__plugin_pai-console_pai__*`). Si también existe el servidor de usuario `pai-console` (`mcp__pai-console__*`), apunta a producción: úsalo solo si la persona lo pide.
-- **En producción cada escritura pide confirmación.** Antes de una escritura irreversible, di en una frase qué vas a hacer y qué arrastra. Si la persona la rechaza, no la reintentes ni busques otra tool que logre lo mismo.
-- Si una tool responde 401 o no aparece, la persona debe iniciar sesión en `/mcp`. Para cambiar de entorno: `/pai-console:pai-env`.
+El mismo MCP de Pai puede aparecer con varios prefijos, según quién lo conectó:
+
+| Prefijo | Servidor |
+|---|---|
+| `mcp__plugin_pai-console_pai__*` | El del plugin. Su entorno lo elige `/pai-console:pai-env` |
+| `mcp__pai-console__*` | Un servidor de usuario `pai-console`. Suele apuntar a producción |
+| `mcp__pai__*`, `mcp__claude_ai_pai__*` u otro `…pai__*` | Un conector de la cuenta o de una sesión remota. El nombre no dice el entorno |
+
+- **El entorno no se deduce del prefijo ni del nombre del servidor: se lee.** Antes de la primera escritura de la sesión, llama a `whoami` **del mismo servidor con el que vas a escribir** y lee `environment` (`staging`, `develop` o `production`) y la URL del Portal. Dilo en una frase («Escribo en STAGING, portal …»).
+- Si `whoami` no trae `environment` (un servidor anterior) o no está (quien solo tiene las tools `crm_*`), usa lo que dice el hook al iniciar la sesión, que solo cubre los servidores del plugin y `pai-console`. Si tampoco hay hook para ese servidor, **trátalo como producción** y pregunta antes de escribir.
+- Usa el servidor del plugin si está. Si hay varios, no los mezcles: lee y escribe con el mismo, y usa otro solo si la persona lo pide.
+- **En producción cada escritura pide confirmación.** Antes de una escritura irreversible, di en una frase qué vas a hacer, en qué entorno, y qué arrastra. Si la persona la rechaza, no la reintentes ni busques otra tool que logre lo mismo.
+- Si una tool responde 401 o no aparece, la persona debe iniciar sesión en `/mcp`. Para cambiar el entorno del plugin: `/pai-console:pai-env`.
 
 ## 1. Descubre antes de nada
 
-1. `whoami`: confirma que la persona es staff (`access: "staff"`). Si no lo es, en corp no hay tools.
+1. `whoami`: confirma que la persona es staff (`access: "staff"`) y en qué entorno estás (§0). Si no lo es, en corp no hay tools.
    - **Solo CRM:** quien no es staff pero tiene `crm:access` por sus roles de Console recibe en corp **solo las tools `crm_*`** (sin `whoami` ni proyectos). Si solo ves `crm_*`, trabaja con el skill `crm` y no busques organizaciones ni proyectos.
    - Puede ser **staff de una organización** sin ser staff de Pai. `whoami` dice igual `staff`, pero solo tiene herramientas de staff dentro de esas organizaciones: `organization_list` solo las lista a ellas, y no aparecen `organization_create`, `brief_*` ni lo que cruza organizaciones. El CRM sigue su rol real. No puede tocar las membresías del staff de Pai, y `product_provision` no acepta un repositorio existente (solo uno nuevo de la plantilla). Si una organización responde `FORBIDDEN`, está fuera de su alcance.
 2. `organization_list`: da el `organizationId` y tu rol en ella.
@@ -148,7 +157,6 @@ Distingue hechos respaldados, inferencias y preguntas abiertas.
 | CRM: leads, calificación, oportunidades y pronóstico (staff o roles de CRM) | `crm` |
 | Tema de marca de una organización: colores, fuente, logos, shell del Portal, AA (staff) | `theme` |
 | Productos: alta, aprovisionamiento, deploy, dominios, acceso | `products` |
-| Tema de marca de una organización: tokens, fuente, radio, logos y verificación en el Portal (staff) | `theme` |
 
 El inventario de tools, con lo que es lectura, escritura e irreversible, está en `references/tools.md`.
 
