@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "pai-portal 04278b49d (2026-10-14 Merge feat/0.2.5/resources-assets (ATE-229 parte A: assets del proyecto, modelo, API y serving))",
+  "generatedFrom": "pai-portal 53d255b53 (2026-10-15 Merge feat/0.2.5/flows: un solo ScreenFrame para pantallas, con dispositivos y hotspots (ATE-230 D))",
   "tools": {
     "agent_create": {
       "readOnly": false,
@@ -22,6 +22,26 @@
       "destructive": false
     },
     "agent_update": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "asset_confirm": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "asset_delete": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "asset_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "asset_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "asset_upload": {
       "readOnly": false,
       "destructive": false
     },
@@ -318,6 +338,46 @@
       "destructive": false
     },
     "file_upload": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "flow_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "flow_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "flow_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "flow_run_finish": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "flow_run_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "flow_run_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "flow_run_start": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "flow_run_step": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "flow_save": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "flow_version_bump": {
       "readOnly": false,
       "destructive": false
     },

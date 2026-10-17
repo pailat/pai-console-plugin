@@ -107,7 +107,7 @@ class GuardTest(HookCase):
         self.assertEqual(decision, "ask")
         self.assertTrue(reason.startswith("IRREVERSIBLE"))
         self.assertIn("pagos y CFDI", reason)
-        for tool in ("page_delete", "payment_void", "milestone_delete", "folder_delete"):
+        for tool in ("page_delete", "payment_void", "milestone_delete", "folder_delete", "asset_delete"):
             decision, reason = self.decision(self.guard(PLUGIN + tool, PRODUCTION))
             self.assertEqual(decision, "ask")
             self.assertTrue(reason.startswith("IRREVERSIBLE"), tool)
@@ -167,6 +167,12 @@ class GuardTest(HookCase):
         searched = self.transcript(PLUGIN + "crm_lead_duplicates")
         self.assertIsNone(self.guard(PLUGIN + "crm_lead_create", STAGING, transcript=searched))
 
+    def test_flow_create_needs_a_flows_search(self) -> None:
+        decision, _ = self.decision(self.guard(PLUGIN + "flow_create", STAGING, transcript=self.transcript()))
+        self.assertEqual(decision, "deny")
+        searched = self.transcript(PLUGIN + "flow_list")
+        self.assertIsNone(self.guard(PLUGIN + "flow_create", STAGING, transcript=searched))
+
     def test_note_create_needs_a_pages_search(self) -> None:
         decision, _ = self.decision(self.guard(PLUGIN + "note_create", STAGING, transcript=self.transcript()))
         self.assertEqual(decision, "deny")
@@ -221,6 +227,21 @@ class InventoryTest(HookCase):
         names = __import__("re").findall(r"mcp__plugin_pai-console_pai__(\w+)", header)
         self.assertIn("crm_task_list", names)
         self.assertEqual(sorted(n for n in names if not self.tools.get(n, {}).get("readOnly")), [])
+
+    def test_flow_tools_are_known(self) -> None:
+        for tool in ("flow_list", "flow_get", "flow_run_list", "flow_run_get"):
+            self.assertTrue(self.tools[tool]["readOnly"], tool)
+        for tool in ("flow_create", "flow_save", "flow_version_bump", "flow_run_start", "flow_run_step", "flow_run_finish"):
+            self.assertFalse(self.tools[tool]["readOnly"], tool)
+            self.assertFalse(self.tools[tool]["destructive"], tool)
+
+    def test_asset_tools_are_known(self) -> None:
+        for tool in ("asset_list", "asset_get"):
+            self.assertTrue(self.tools[tool]["readOnly"], tool)
+        for tool in ("asset_upload", "asset_confirm"):
+            self.assertFalse(self.tools[tool]["readOnly"], tool)
+            self.assertFalse(self.tools[tool]["destructive"], tool)
+        self.assertTrue(self.tools["asset_delete"]["destructive"])
 
     def test_crm_task_tools_are_known(self) -> None:
         for tool in ("crm_task_list", "crm_task_get", "crm_task_tag_list"):

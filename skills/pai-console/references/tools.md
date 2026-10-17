@@ -91,7 +91,12 @@ Detalle, flujo, errores, mapa de tokens y verificación en el Portal en el skill
 | `page_restore` | E | Restaura una versión como revisión nueva |
 | `page_move` | E | Reescribe los enlaces; revisa los `warnings` |
 | `page_migrate` | E | Convierte Markdown legacy a Pages |
-| `page_asset_upload` | E | URL firmada para subir con PUT (png/jpeg/webp/gif ≤10 MB) |
+| `page_asset_upload` | E | URL firmada para subir con PUT una imagen de una page ya creada (png/jpeg/webp/gif ≤10 MB). Queda `pending` hasta que un `page_create`/`page_update` la referencia (ahí se revisan sus bytes); no lleva `asset_confirm` |
+| `asset_list` | L | Assets del proyecto (imágenes y videos) que ves: `kind` (image/video/other), `q`, `cursor`; trae `href` y `usedIn`. Búscalo antes de subir. Se dibuja como vista |
+| `asset_get` | L | Un asset: medidas o duración, quién lo subió, `usedIn`, `canDelete` |
+| `asset_upload` | E | Prepara la subida: PNG/JPEG/WebP/GIF ≤10 MB, SVG ≤1 MB, MP4/WebM ≤200 MB; `size` exacto; `documentId` = page, nota o pizarra que editas (sin él, galería: solo staff). Devuelve `signedUrl` (PUT, 300 s), `headers`, `href`. No idempotente |
+| `asset_confirm` | E | Después del PUT: sniff de los primeros bytes contra el tipo declarado, SVG saneado; lo deja `ready`. Si falla, `invalid_input` con `reason` y el archivo se borra |
+| `asset_delete` | E · IRR | Solo sin usos (`CONFLICT` `ASSET_IN_USE`); solo staff o quien lo subió |
 | `page_comment_reply` | E | |
 | `page_delete` | E · IRR | Borrado duro, sin papelera |
 | `file_list` | L | |
@@ -127,6 +132,23 @@ Detalle, flujo, errores, mapa de tokens y verificación en el Portal en el skill
 | `knowledge_revive` | E | |
 | `knowledge_archive` | E | Reversible con `knowledge_revive` |
 | `knowledge_unlink` | E · IRR | |
+
+El cliente tiene Conocimiento en solo lectura (ATE-237): `knowledge_kinds`, `knowledge_search`, `knowledge_get`, `knowledge_impact` y `knowledge_view`, sobre nodos `client`. Los kinds `action`, `integration` y `flow_run` son nuevos; `flow_run` solo lo crea `flow_run_start`.
+
+## Flujos (skill `flows`)
+
+| Tool | Tipo | Nota |
+|---|---|---|
+| `flow_list` | L | Flujos del proyecto: ref, versión, pasos, roles y última prueba |
+| `flow_get` | L | Pasos con sus refs (actor, pantalla, acción, integración), transiciones, `revision`, versión y últimas pruebas. Se dibuja como vista (`Flow`) |
+| `flow_create` | E | Staff; `sources` obligatorio. Sin `graph` nace con inicio y fin |
+| `flow_save` | E | Staff. **Reemplaza el grafo completo** (`graph` o `mermaid`) con `expectedRevision` e `idempotencyKey`; los pasos que no vienen se borran |
+| `flow_version_bump` | E | Staff. v1 → v2 con etiqueta; no cambia la `revision` |
+| `flow_run_start` | E | Inicia una prueba: `actor` (nodo actor) y `mode` `sample` o `simulated` (`real` aún no) |
+| `flow_run_step` | E | `stepKey`, `result` (`passed`, `noted`, `failed`, `skipped`), `branchLabel`, `integrationResponse`; solo quien la inició |
+| `flow_run_finish` | E | `passed`, `passed_with_notes`, `failed` (con `stoppedAtKey`) o `abandoned` |
+| `flow_run_list` | L | Pruebas de un flujo, de la más reciente |
+| `flow_run_get` | L | Una prueba con sus pasos |
 
 ## Cronograma
 
@@ -201,7 +223,7 @@ Detalle, flujo, errores, mapa de tokens y verificación en el Portal en el skill
 | `view_catalog` | L | Catálogo `pai-view@1` (componentes, props, reglas, ejemplo); con `types`/`group`, `recipe` o `recipeGroup`, uno a la vez. Prefiere la referencia del skill `views` |
 | `view_render` | L | Dibuja en la conversación una vista que compones (`{title, spec}`); la valida y no guarda nada. `organizationId` la pinta con el tema de esa organización |
 
-Además, en los hosts con MCP Apps, las lecturas con una vista propia se dibujan solas como una vista de Pai: `project_summary`, `project_list`, `project_activity`, `project_close_review`, `status_update_list`, `timeline_get`, `milestone_list`, `payment_list`, `proposal_list`, `task_board`, `file_list`, `page_list`, `page_suggestions`, `page_comprehension`, `page_knowledge_health`, `page_projection`, `whiteboard_read`, `agent_inbox`, `knowledge_library`, `knowledge_graph`, `knowledge_view`, `organization_theme_preview`, las lecturas del CRM (`crm_overview_get`, `crm_lead_list`, `crm_lead_summary`, `crm_lead_get`, `crm_lead_record`, `crm_lead_event_list`, `crm_lead_duplicates`, `crm_lead_organization_suggestions`, `crm_submission_get`, `crm_opportunity_list`, `crm_opportunity_summary`, `crm_opportunity_get`, `crm_opportunity_event_list`, `crm_trace_get`) y `view_render`. `knowledge_view` y `page_projection` se dibujan en el lienzo (`ui://pai/canvas.html`). Las demás lecturas (detalles, búsquedas, validaciones, catálogos) devuelven solo datos y texto (ATE-203).
+Además, en los hosts con MCP Apps, las lecturas con una vista propia se dibujan solas como una vista de Pai: `project_summary`, `project_list`, `project_activity`, `project_close_review`, `status_update_list`, `timeline_get`, `milestone_list`, `payment_list`, `proposal_list`, `task_board`, `file_list`, `page_list`, `page_suggestions`, `page_comprehension`, `page_knowledge_health`, `page_projection`, `whiteboard_read`, `asset_list`, `flow_get`, `agent_inbox`, `knowledge_library`, `knowledge_graph`, `knowledge_view`, `organization_theme_preview`, las lecturas del CRM (`crm_overview_get`, `crm_lead_list`, `crm_lead_summary`, `crm_lead_get`, `crm_lead_record`, `crm_lead_event_list`, `crm_lead_duplicates`, `crm_lead_organization_suggestions`, `crm_submission_get`, `crm_opportunity_list`, `crm_opportunity_summary`, `crm_opportunity_get`, `crm_opportunity_event_list`, `crm_trace_get`) y `view_render`. `knowledge_view` y `page_projection` se dibujan en el lienzo (`ui://pai/canvas.html`). Las demás lecturas (detalles, búsquedas, validaciones, catálogos) devuelven solo datos y texto (ATE-203).
 
 ## CRM (staff, o roles de Console con `crm:access`; permisos `crm:*`)
 

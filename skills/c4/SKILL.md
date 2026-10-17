@@ -51,7 +51,7 @@ Lee antes el skill `pai-console`.
 
 **Módulos y componentes de un producto:** para decir en qué componente se implementa un `module` funcional, enlázalos con `implemented_by` (módulo → componente), los dos en el mismo producto (`productId`). Detalle y errores en el skill `knowledge`.
 
-Ejemplo completo y validado: `${CLAUDE_PLUGIN_ROOT}/skills/c4/examples/shop-c4.json`. Incluye un actor, un sistema, un sistema externo, tres contenedores (uno de ellos BD ligada al ERD), un repository y un controller.
+Ejemplo completo y validado: `examples/shop-c4.json`. Incluye un actor, un sistema, un sistema externo, tres contenedores (uno de ellos BD ligada al ERD), un repository y un controller.
 
 ## Relaciones (`relationships`, ≤30 por nodo)
 

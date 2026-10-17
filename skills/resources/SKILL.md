@@ -1,6 +1,6 @@
 ---
 name: resources
-description: "Crea y mantiene Recursos de un proyecto de Pai Console. Cubre pages (pai-page) con tipo y bloques, vistas con layout canvas y bloque view (catálogo pai-view@1), mockups y prototipos HTML (bloque html), pizarras (Excalidraw: whiteboard_* y bloque whiteboard), proyecciones de Conocimiento, atributos (fecha, responsable, estatus, etiquetas) y filtros, notas, carpetas, sugerencias, comentarios, imágenes (assets) y archivos. Úsalo cuando pidan una page, documento, nota, carpeta, reporte, guía, PRD, SOW, arquitectura, tablero, dashboard, vista, mockup o prototipo HTML, pizarra, whiteboard, diagrama editable, lluvia de ideas o un diagrama desde Mermaid, marcar una page como aprobada o asignarle responsable, filtrar pages por estatus, responsable o etiqueta, sugerir cambios, comentar, subir imágenes o documentos, o mover, restaurar o borrar una page o una carpeta vacía."
+description: "Crea y mantiene Recursos de un proyecto de Pai Console. Cubre pages (pai-page) con tipo y bloques, vistas con layout canvas y bloque view (catálogo pai-view@1), mockups y prototipos HTML (bloque html), pizarras (Excalidraw: whiteboard_* y bloque whiteboard), proyecciones de Conocimiento, atributos (fecha, responsable, estatus, etiquetas) y filtros, notas, carpetas, sugerencias, comentarios, imágenes y videos (assets: asset_list, asset_upload, asset_confirm, asset_delete; bloques figure y video) y archivos. Úsalo cuando pidan una page, documento, nota, carpeta, reporte, guía, PRD, SOW, arquitectura, tablero, dashboard, vista, mockup o prototipo HTML, pizarra, whiteboard, diagrama editable, lluvia de ideas o un diagrama desde Mermaid, marcar una page como aprobada o asignarle responsable, filtrar pages por estatus, responsable o etiqueta, sugerir cambios, comentar, subir imágenes, videos o documentos, reutilizar o borrar un asset, o mover, restaurar o borrar una page o una carpeta vacía."
 argument-hint: "[proyecto] [tema o tipo de recurso]"
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
@@ -10,7 +10,7 @@ compatibility: "Pai 0.2.5+ (MCP corp)"
 Lee antes el skill `pai-console`.
 
 **Referencias, generadas desde los contratos:**
-- `${CLAUDE_PLUGIN_ROOT}/skills/resources/references/page-types.md`: tipos built-in con sus secciones y bloques permitidos, límites y reglas;
+- `references/page-types.md`: tipos built-in con sus secciones y bloques permitidos, límites y reglas;
 - para componer vistas (`pai-view@1`), el skill **`views`**, con su catálogo y sus recetas.
 
 Úsalas en lugar de `page_catalog`, que pesa unos 35 KB. Llama a `page_catalog` o a `page_types` solo si sospechas que el entorno tiene otra versión, o para ver los tipos propios de la organización o del proyecto.
@@ -21,7 +21,7 @@ Lee antes el skill `pai-console`.
 |---|---|
 | Un documento con estructura conocida (nota, guía, decisión, reporte, proceso, overview, PRD, SOW, arquitectura, discovery, inventario de diseño) | Page `layout: "document"` **con `typeSlug`** del tipo built-in. Sus secciones obligatorias mandan |
 | Un tablero, reporte visual, mockup de pantalla o página libre con los componentes de Pai | Page `layout: "canvas"` con un bloque **`view`**, **sin `typeSlug`**: ningún tipo built-in admite `view` |
-| Un mockup o prototipo con JavaScript libre (canvas, simulación, maqueta interactiva o pixel a pixel) | Page con un bloque **`html`** (§3), **sin `typeSlug`**: ningún tipo built-in lo admite |
+| Un mockup o prototipo con JavaScript libre (canvas, simulación, maqueta interactiva o pixel a pixel) | Page con un bloque **`html`** (§3), **sin `typeSlug`**: ningún tipo built-in lo admite. **No sirve como prototipo de una pantalla:** ese es siempre un bloque `view` (skill `screens`) |
 | Un diagrama que el equipo o el cliente van a seguir editando a mano (lluvia de ideas, flujo, mapa, arquitectura en borrador), o un flowchart de Mermaid | **Pizarra** (`whiteboard_create`, §3): Excalidraw colaborativo en Recursos; se muestra en una page con un bloque `whiteboard`. Si solo se ve y no se edita, una vista `Flow` (skill `views`) |
 | Mostrar en una page lo que ya vive en Conocimiento (C4, ERD, pantallas, flujos, decisiones, riesgos, glosario…) | Bloque **`projection`** en una page v2 (§3): se dibuja al leer, no copia datos |
 | Una nota rápida en Markdown, que el cliente también puede escribir | Nota (`note_create`, §8) |
@@ -33,7 +33,7 @@ Si dudas entre page y nodo, piensa en el uso. **Una page se lee de corrido; un n
 ## 2. Crear una page
 
 1. **Busca:** `page_search` con el tema y `page_list` (sigue `nextCursor`) para ver la estructura de rutas. Si existe una page para lo mismo, actualízala (§4).
-2. **Elige el tipo:** `${CLAUDE_PLUGIN_ROOT}/skills/resources/references/page-types.md`, o `page_types {slug}` para el `authoringGuide` completo y su ejemplo.
+2. **Elige el tipo:** `references/page-types.md`, o `page_types {slug}` para el `authoringGuide` completo y su ejemplo.
 3. **Elige la ruta**, en inglés, kebab-case y por carpetas: `architecture/payments`, `reports/checkout-performance`, `dashboards/project-status`, `guides/deploy-staging`. Sin extensión y sin fechas en la ruta, salvo en las series (`reports/2026-10-weekly`).
 4. **Compón el contenido:**
    ```json
@@ -54,8 +54,8 @@ Si dudas entre page y nodo, piensa en el uso. **Una page se lee de corrido; un n
    - el enlace del Portal: el `url` de la respuesta con el host del Portal delante (`https://app.pai.lat` en producción; en staging, el Portal de staging).
 
 Ejemplos validados:
-- `${CLAUDE_PLUGIN_ROOT}/skills/resources/examples/report-page.json`: tipo `report`, con sus cinco secciones obligatorias;
-- vistas en canvas: ejemplos en `${CLAUDE_PLUGIN_ROOT}/skills/views/examples/`.
+- `examples/report-page.json`: tipo `report`, con sus cinco secciones obligatorias;
+- vistas en canvas: ejemplos en `../views/examples/`.
 
 ## 3. Vistas, HTML, proyecciones y pizarras
 
@@ -129,6 +129,10 @@ Una pizarra es una page de formato `whiteboard`: una escena de Excalidraw en Rec
 - `page_validate` da `WHITEBOARD_NOT_FOUND` (no existe en el proyecto) o `WHITEBOARD_NOT_A_BOARD` (no es pizarra), y avisa `WHITEBOARD_NOT_CLIENT_VISIBLE`: una page `client` no puede mostrar una pizarra solo del equipo.
 - `page_read view=full` trae `whiteboards`: título y resumen de cada pizarra embebida, o `hidden` si no la ves.
 
+### Flujos (bloque `flow`)
+
+**Un flujo en una page:** bloque `{id, type: "flow", node, title?, height?}`. `node` es el uuid de un nodo `flow` del mismo proyecto y `height` los px del lienzo (240 a 1200; 480 por omisión). Se dibuja su lienzo en solo lectura con «Abrir». Los flujos se arman con el skill `flows`.
+
 ## 4. Actualizar una page
 
 1. Si vas a reescribir, primero `page_comprehension` (staff ve el agregado; los demás, lo suyo): sus preguntas más falladas dicen qué explicar mejor. Es señal de práctica, nunca calificación de personas. `page_knowledge_health {path}` dice qué citas `kb:` quedaron reemplazadas, archivadas, contradichas o sin validar; sin `path`, cuenta por page.
@@ -140,16 +144,55 @@ Una pizarra es una page de formato `whiteboard`: una escena de Excalidraw en Rec
 5. Ante `CONFLICT`: relee, integra y reintenta una vez.
 6. Si `page_create` respondió con `replayed`, la page ya existía con esa clave: **relee** antes de actualizar, porque la revisión de la respuesta puede ser vieja.
 
-## 5. Imágenes (assets)
+## 5. Imágenes y videos (assets)
 
-Las imágenes son privadas de su page:
-1. Crea la page **sin** imágenes. Un `figure` lleva `assetId: null` mientras no exista el archivo; nunca inventes un `assetId`.
-2. `page_asset_upload {path, filename, contentType, size}`. Formatos png, jpeg, webp o gif, de hasta 10 MB; `size` en bytes **exactos**.
-3. Sube con `PUT` a la URL firmada, con los headers devueltos y exactamente esos bytes. Por ejemplo, `curl -X PUT --data-binary @file …` con los headers que indica la respuesta.
-4. `page_read view=full` y luego `page_update`, con el `assetId` en el bloque `figure`, en un `Image` o `Carousel` de un bloque `view` (skill `views`), o `/api/pages/assets/<assetId>` en el Markdown.
-   - Un `assetId` de otra page da `ASSET_OWNER_MISMATCH` y no escribe nada: sube la imagen otra vez a esta page.
-   - `Image` y `Carousel` solo se aceptan en una vista guardada en la page; `view_render` los rechaza. Fuera del Portal (la vista del MCP) se ve el `alt` en un recuadro.
-5. **Nunca guardes la URL firmada** en la page ni en un nodo.
+Las imágenes y los videos son **assets del proyecto**: se suben una vez y se usan por id en pages, notas y pizarras del mismo proyecto. Se ven en Recursos › Assets, con «Usado en». Nunca van como URL externa ni dataURL.
+
+| Tool | Para |
+|---|---|
+| `asset_list {kind?, q?, cursor?, limit?}` | Buscar uno para reutilizarlo antes de subirlo otra vez: `kind` es `image`, `video` u `other` y `q` busca en el nombre; pagina con `nextCursor` (máx. 100). Trae `id`, nombre, tipo, tamaño, `href` y `usedIn`. En hosts con MCP Apps se dibuja como vista |
+| `asset_get {assetId}` | Detalle: medidas o duración, quién lo subió, `href`, `usedIn` y `canDelete` |
+| `asset_upload {filename, contentType, size, documentId?}` | Prepara la subida (no idempotente: cada llamada reserva un asset nuevo) |
+| `asset_confirm {assetId}` | Confirma después del PUT; lo deja `ready` (idempotente) |
+| `asset_delete {assetId}` | Lo borra para siempre (irreversible) |
+
+Un cliente ve los assets que se usan en algo que ve, y los que subió y todavía no usa. `usedIn` solo lista lo que el lector ve.
+
+### Subir: prepare → PUT → confirm
+
+1. **Busca primero** con `asset_list` (por nombre y `kind`). Si ya existe, usa su `id`.
+2. `asset_upload {organizationId, projectId, filename, contentType, size, documentId?}`.
+   - Tipos y límites: PNG, JPEG, WebP y GIF hasta **10 MB**; SVG hasta **1 MB**; MP4 y WebM hasta **200 MB**. Si pasa del límite → `invalid_input` («El archivo pesa … bytes; el máximo para … es …»).
+   - `size` son los bytes **exactos**: la URL firmada solo admite ese tamaño y ese `Content-Type`.
+   - `documentId` (uuid, no ruta) es la page, nota o pizarra desde la que se sube, y tienes que poder editarla: si no, `FORBIDDEN` «Solo quien puede editar este documento sube archivos en él.». Sin `documentId` la subida va a la galería y **solo la hace el staff**; un cliente recibe «Solo el equipo de Pai sube assets desde la galería; súbelo desde tu nota o pizarra.».
+   - Devuelve `assetId`, `signedUrl`, `method: "PUT"`, `headers`, `href` y `expiresIn` (300 s).
+3. **PUT** de los bytes a `signedUrl` con exactamente los `headers` devueltos y antes de que caduque, por ejemplo `curl -X PUT --data-binary @fachada.png -H 'Content-Type: image/png' "<signedUrl>"`.
+4. `asset_confirm {assetId}`. El servidor revisa lo que llegó:
+   - que exista con el tamaño declarado (`ASSET_UPLOAD_MISSING`: vuelve a subirlo);
+   - **sniff de bytes:** lee los primeros 64 KB y comprueba que el contenido sea del tipo declarado (`ASSET_CONTENT_MISMATCH`). Una extensión o un `contentType` falso no pasa;
+   - **un SVG se lee completo, se sanea y se guarda saneado.** Si trae scripts o algo que el saneador no acepta, se rechaza con `ASSET_SVG_REFUSED`;
+   - de las imágenes lee ancho y alto cuando el encabezado los trae.
+
+   Si algo falla, responde `invalid_input` con su `reason`, borra el archivo y el asset queda `pending` e invisible. Empieza de nuevo con otro `asset_upload`. Confirmar un asset que ya está `ready` lo devuelve igual. Solo quien lo subió (o el staff) lo confirma.
+5. Un asset `pending` que nadie confirma se barre a las 24 h. **Nunca guardes `signedUrl`:** se usa el `assetId` o el `href` (`/api/pages/assets/<assetId>`).
+
+**`page_asset_upload {path, filename, contentType, size}`** sigue existiendo para imágenes PNG/JPEG/WebP/GIF ≤10 MB de una page ya creada. Es la misma subida con la page como origen, **sin `asset_confirm`**: el asset queda `pending` hasta que un `page_create` o `page_update` lo referencia, y esa escritura revisa sus bytes (si no son una imagen real, falla con el error del asset). Para videos, SVG, notas o pizarras usa `asset_upload`.
+
+### Usarlo
+
+Solo se aceptan assets del **mismo proyecto**, `ready` y que el autor vea. Uno de otro proyecto, sin confirmar o que no ves da `NOT_FOUND`; un `/storage`, una URL firmada o una URL externa dan `ASSET_ADAPTATION_REQUIRED`. Ya no hace falta que el asset sea de la misma page: reutiliza el que encuentres con `asset_list`. El asset sigue la audiencia de lo que lo usa.
+
+- **Page (pai-page):** `page_read view=full` y luego `page_update` con CAS.
+  - Imagen: bloque `{type: "figure", assetId, alt, caption, credit?}`. `assetId: null` mientras no exista el archivo; nunca inventes un id.
+  - Video: bloque `{type: "video", assetId, caption?, poster?}`. `assetId` es un MP4 o WebM y `poster` (opcional) una imagen del proyecto que se ve antes de reproducir.
+  - En un bloque `view` (skill `views`): `Image`, `Carousel` o `Video` (con `title` obligatorio). Solo se aceptan en una vista guardada en la page; `view_render` los rechaza. Fuera del Portal (la vista del MCP) se ve el texto alternativo en un recuadro.
+  - En Markdown de la page: `![alt](/api/pages/assets/<assetId>)`.
+- **Nota:** en su Markdown, `![alt](<href>)` con el `href` del asset (`/api/pages/assets/<assetId>`), y `note_update` con `expectedRevision`. Súbelo con `documentId` = el id de la nota: así un cliente también puede subirlo a su propia nota.
+- **Pizarra:** en el `graph` de `whiteboard_create` o `whiteboard_update`, un nodo `{id, label, image: "<assetId>"}`. El nodo es la imagen con su texto debajo (`shape` se ignora). Solo imágenes `ready` que veas; si no → `invalid_input` «El asset «…» no es una imagen lista de este proyecto que puedas ver: búscala con asset_list (kind image).». Los videos no van en nodos.
+
+### Borrar
+
+`asset_delete {assetId}` es **irreversible**: confirma con la persona antes. Solo se borra si **ninguna** page, nota o pizarra vigente lo usa; si no, `CONFLICT` `ASSET_IN_USE`: quítalo antes de cada documento en `usedIn`. Solo el staff o quien lo subió puede borrarlo (`FORBIDDEN` «Solo el equipo de Pai o quien lo subió puede borrar este asset.»). `canDelete` de `asset_get` lo dice antes de intentarlo. Las versiones viejas que lo citaban muestran su texto alternativo.
 
 ## 6. Archivos de Recursos
 

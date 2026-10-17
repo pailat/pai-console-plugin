@@ -45,7 +45,7 @@ Lee antes el skill `pai-console`.
    - `owner`, `startDate`, `dueDate`, `milestoneId` (del `milestone_list`);
    - `sources`: la reunión, la page o `{type:"chat"}`.
 
-   Ejemplo validado: `${CLAUDE_PLUGIN_ROOT}/skills/schedule/examples/task.json`. `startDate` no puede ser posterior a `dueDate`.
+   Ejemplo validado: `examples/task.json`. `startDate` no puede ser posterior a `dueDate`.
 6. **Dependencias entre tareas:** `task_dependency_create {predecessorTaskId, successorTaskId, reason, visibility}`. `visibility` es `internal` por defecto. Los ids son los uuid de los nodos `task`.
 7. **Línea base:** cuando la persona confirme que el plan está acordado con el cliente, `milestone_baseline_capture` en cada hito. **Se captura una sola vez y no se mueve:** pide confirmación explícita.
 

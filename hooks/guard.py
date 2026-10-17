@@ -73,6 +73,7 @@ SEARCH_BEFORE_CREATE = {
     "agent_create": ("agent_list",),
     "crm_lead_create": ("crm_lead_duplicates", "crm_lead_list"),
     "crm_opportunity_create": ("crm_organization_get", "crm_opportunity_list"),
+    "flow_create": ("flow_list", "flow_get", "knowledge_search", "knowledge_library"),
 }
 
 # Irreversible writes: what the confirmation must say they drag along.
@@ -95,6 +96,7 @@ IRREVERSIBLE = {
     "knowledge_unlink": "Borra la arista entre los nodos.",
     "file_delete": "Borra el archivo de Recursos.",
     "folder_delete": "Borra la carpeta vacía de Recursos con sus subcarpetas vacías; su dirección corta deja de funcionar (404). No se puede deshacer.",
+    "asset_delete": "Borra el asset (imagen o video) y su archivo para siempre. Solo si nada lo usa; las versiones viejas que lo citaban muestran su texto alternativo. No se puede deshacer.",
     "crm_lead_purge": "Borra en duro el lead con sus tareas e historial; solo queda una lápida en la auditoría.",
     "crm_opportunity_win": "Gana la oportunidad: fija la propuesta aceptada, convierte el lead, activa la cuenta y pasa el proyecto a planeado.",
 }

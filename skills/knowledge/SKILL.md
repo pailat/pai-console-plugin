@@ -1,6 +1,6 @@
 ---
 name: knowledge
-description: "Crea y mantiene el Conocimiento (grafo de nodos y aristas) de un proyecto o de un producto de Pai Console. Cubre elegir el kind, plantillas, fuentes obligatorias, propuestas que confirma una persona, CAS con expectedRevision, enlaces según la ontología (incluido implemented_by módulo → componente), consultas estructuradas (knowledge_query), lotes atómicos (knowledge_batch) y el ciclo de vida (resolve, supersede, archive). Úsalo para registrar decisiones, reglas de negocio, riesgos, preguntas, supuestos, hechos, glosario, módulos o cualquier nodo, o para consultar el grafo. ERD, C4 y pantallas tienen skills propios (erd, c4, screens)."
+description: "Crea y mantiene el Conocimiento (grafo de nodos y aristas) de un proyecto o de un producto de Pai Console. Cubre elegir el kind, plantillas, fuentes obligatorias, propuestas que confirma una persona, CAS con expectedRevision, enlaces según la ontología (incluido implemented_by módulo → componente), consultas estructuradas (knowledge_query), lotes atómicos (knowledge_batch) y el ciclo de vida (resolve, supersede, archive). Úsalo para registrar decisiones, reglas de negocio, riesgos, preguntas, supuestos, hechos, glosario, módulos o cualquier nodo, o para consultar el grafo. ERD, C4, pantallas y flujos tienen skills propios (erd, c4, screens, flows)."
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
@@ -10,7 +10,7 @@ Lee antes el skill `pai-console`. El grafo es la memoria del proyecto: cada nodo
 
 ## Elegir el kind
 
-Referencia completa, generada desde los contratos: `${CLAUDE_PLUGIN_ROOT}/skills/knowledge/references/kinds.md` (plantillas y ejemplos) y `${CLAUDE_PLUGIN_ROOT}/skills/knowledge/references/ontology.md` (relaciones permitidas). `knowledge_kinds` devuelve lo mismo desde el servidor; úsalo si dudas de la versión.
+Referencia completa, generada desde los contratos: `references/kinds.md` (plantillas y ejemplos) y `references/ontology.md` (relaciones permitidas). `knowledge_kinds` devuelve lo mismo desde el servidor; úsalo si dudas de la versión.
 
 | Si es… | kind |
 |---|---|
@@ -25,7 +25,9 @@ Referencia completa, generada desde los contratos: `${CLAUDE_PLUGIN_ROOT}/skills
 | Un dato verificable con fuente | `fact`; una fuente externa, `reference` |
 | Vocabulario | `glossary_term`; idea del dominio, `concept` |
 | Un módulo funcional del producto | `module` |
-| Pantalla, flujo, actor | skill `screens` |
+| Pantalla, actor, o lo que la persona hace en una pantalla (`action`) | skill `screens` |
+| Un recorrido con pasos y ramas (`flow`), el servicio que corre un paso (`integration`) | skill `flows` |
+| Una prueba de un flujo (`flow_run`) | No se crea a mano: la crea `flow_run_start` (skill `flows`); `knowledge_create kind=flow_run` se rechaza |
 | Modelo de datos, tabla | skill `erd` |
 | Sistema, contenedor, componente | skill `c4` |
 | Cómo se hace algo / qué evitar | `runbook`, `pattern`, `gotcha`, `antipattern` |
@@ -47,8 +49,9 @@ Referencia completa, generada desde los contratos: `${CLAUDE_PLUGIN_ROOT}/skills
    - Confirmar o rechazar no es tarea del agente: no hay tool para eso. Lo hace una persona en el Portal o en Console.
    - Al terminar, **dile a la persona qué propuestas quedaron pendientes**, con sus citas `kb:`.
 3. **Un nodo activo de esos kinds no se edita.** Para cambiarlo, crea el nuevo (también `proposed`). Cuando una persona lo active, `knowledge_supersede` reemplaza al viejo: exige que el nuevo esté `active`.
-4. **La visibilidad para el cliente la decide una persona.** `visibility:"client"` se baja a `internal` con un warning.
-   - Un agente no edita, archiva ni desenlaza nodos visibles al cliente (`CLIENT_VISIBLE_REQUIRES_PERSON`).
+4. **Lo que ve el cliente lo cuida una persona.**
+   - Un agente no edita, archiva ni desenlaza nodos visibles al cliente (`CLIENT_VISIBLE_REQUIRES_PERSON`). No lo rodees ocultándolo, editándolo y publicándolo otra vez: crea una propuesta interna de reemplazo o pídeselo a una persona.
+   - En el MCP corp, el agente del **staff** sí puede cambiar la visibilidad (`internal` ↔ `client`) en un `knowledge_update` que **solo** lleve `visibility`; queda registrado con un warning. Hazlo al final y con el visto bueno de la persona (orden en el skill `flows`). En cualquier otro caso, `visibility:"client"` se baja a `internal` con un warning.
 5. **Las plantillas son estrictas:** `properties` lleva exactamente las claves del kind. Una clave desconocida, o un Mermaid dentro (`MERMAID_NOT_ALLOWED`), se rechaza.
 6. **Las referencias aceptan** `uuid`, `slug`, `kind/slug` o `kb:kind/slug@rN`. **Usa `kind/slug`**: es legible y no es ambiguo.
 
@@ -77,11 +80,15 @@ Referencia completa, generada desde los contratos: `${CLAUDE_PLUGIN_ROOT}/skills
 | `depends_on`, `implements`, `refers_to` | Dependencia, implementación, uso de un término |
 | `constrains` | Una regla o restricción limita un módulo, una pantalla, un flujo… |
 | `contains` | Jerarquía estructural (módulo → pantalla, data_model → entidad, component → component) |
+| `offers` | Una pantalla ofrece una acción. No fija contenedor: la acción puede estar en varias pantallas |
+| `triggers` | Una acción dispara un flujo o una integración, o un flujo dispara una integración («Pagar» corre Stripe) |
+| `performs`, `navigates_to`, `uses` | También para acciones: el actor ejecuta la acción, la acción lleva a una pantalla, la acción usa entidades (`properties.mode`: create, update, read) |
+| `tests` | Una prueba (`flow_run`) de un flujo. Solo la escribe `flow_run_start`: no la crees a mano |
 | `relates_to` | Solo entre entidades del ERD, y se deriva de sus FK: no la crees a mano |
 
 **`implemented_by` (módulo → componente):** dice en qué componente C4 se implementa un módulo funcional. Solo va de `module` a `component` y **los dos nodos tienen que ser del mismo producto** (créalos y enlázalos con el mismo `productId`, ver abajo). Errores: kinds al revés u otros → `ONTOLOGY`; un nodo de proyecto o de organización → `cause.code: IMPLEMENTED_BY_NEEDS_PRODUCT`; productos distintos → `IMPLEMENTED_BY_ACROSS_PRODUCTS`. Mover fuera del producto un nodo con esa arista da `PRECONDITION_FAILED` `HAS_IMPLEMENTED_BY`.
 
-Si da `ONTOLOGY`, ese par no admite esa relación. Busca en `${CLAUDE_PLUGIN_ROOT}/skills/knowledge/references/ontology.md` una que sí lo admita; no fuerces otra parecida solo para que pase.
+Si da `ONTOLOGY`, ese par no admite esa relación. Busca en `references/ontology.md` una que sí lo admita; no fuerces otra parecida solo para que pase.
 
 ## Conocimiento de un producto (`productId`)
 
@@ -128,7 +135,7 @@ Hasta 200 operaciones atómicas (`create` con ref local `$nombre`, `update`, `li
 
 ## Salud del grafo
 
-- `knowledge_audit` lista nodos débiles, delgados (sin justificación), huérfanos y preguntas sin resolver. Úsalo al cerrar una sesión de modelado y dale el resultado a la persona.
+- `knowledge_audit` lista nodos débiles, delgados (sin justificación), huérfanos, preguntas sin resolver y pantallas con **«fuente sin conectar»** (`unconnectedSources`: un bloque de `content` con `source` en texto en vez de `{ref}`, skill `screens`). Úsalo al cerrar una sesión de modelado y dale el resultado a la persona.
 - `knowledge_impact` (`maxDepth` ≤3) dice qué se afecta si cambia un nodo. Úsalo antes de proponer el reemplazo de una decisión.
 - `knowledge_graph {projectId?}` muestra la estructura: nodos con su grado, aristas y hubs (`hubThreshold`). Úsalo para encontrar los nodos centrales y los huérfanos de un proyecto o de toda la organización.
 - **Conocimiento de la organización:** un nodo puede no tener proyecto y ser **de la organización** (un glosario común, reglas del cliente, sistemas compartidos).
@@ -138,6 +145,16 @@ Hasta 200 operaciones atómicas (`create` con ref local `$nombre`, `update`, `li
   - Crear un nodo de la organización o mover un nodo entre proyecto y organización **no está en el MCP**: lo hace una persona en el Portal o en Console. Propónselo si un nodo de proyecto debería ser común.
   - En el Portal, la ficha de un nodo de la organización está en `/organization/knowledge/<nodeId>`.
 - Las tareas siempre viven en su proyecto.
+
+## Lo que ve el cliente (ATE-237)
+
+El cliente ve **Conocimiento en solo lectura** en el Portal y en su MCP:
+- solo los nodos `visibility: "client"`, y las aristas cuyas **dos puntas** son visibles para él;
+- sus tools de Conocimiento son lecturas del proyecto: `knowledge_kinds`, `knowledge_search`, `knowledge_get`, `knowledge_impact` y `knowledge_view`;
+- **no** tiene escrituras (`knowledge_create`, `update`, `link`, `batch`…), ni `knowledge_context`, `knowledge_audit` o `knowledge_query`, ni el Conocimiento de la organización (`knowledge_library`, `knowledge_graph`). Tareas (`task_board`) sigue siendo del staff;
+- en Flujos ve solo los flujos `client`; una ref a un nodo interno sale como «Interno» (skill `flows`).
+
+Por eso, antes de publicar un nodo, piensa qué arrastra: un nodo `client` cuyo vecino es `internal` se ve sin esa arista. Y escribe `title`, `summary` y `properties` de un nodo `client` como algo que el cliente va a leer: sin correos, ids del staff ni notas internas.
 
 ## Qué no hacer
 

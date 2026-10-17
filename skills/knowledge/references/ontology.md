@@ -1,6 +1,6 @@
 # Ontología de Conocimiento
 
-> Generado por `tools/gen-references.ts` desde pai-portal `04278b49d` (2026-10-14 Merge feat/0.2.5/resources-assets (ATE-229 parte A: assets del proyecto, modelo, API y serving)), `packages/contracts/src/knowledge/ontology.ts`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `53d255b53` (2026-10-15 Merge feat/0.2.5/flows: un solo ScreenFrame para pantallas, con dispositivos y hotspots (ATE-230 D)), `packages/contracts/src/knowledge/ontology.ts`. No editar a mano: regenerar.
 
 Un `knowledge_link` (o un link en `knowledge_create`) solo se acepta si el par source → target aparece aquí. Si no, el error es `ONTOLOGY`.
 
@@ -10,37 +10,37 @@ Un `knowledge_link` (o un link en `knowledge_create`) solo se acepta si el par s
 
 Grounds (Toulmin): el source es el dato o afirmación en el que se apoya el claim destino.
 
-- de *todos menos* `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`
+- de *todos menos* `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`, `action`, `integration`, `flow_run` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`, `action`, `integration`, `flow_run`
 
 ### `warrant` (justifica)
 
 Warrant (Toulmin): el source es la regla o principio que conecta los grounds con el claim destino.
 
-- de `business_rule`, `constraint`, `objective`, `pattern`, `concept`, `decision`, `adr` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`
+- de `business_rule`, `constraint`, `objective`, `pattern`, `concept`, `decision`, `adr` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`, `action`, `integration`, `flow_run`
 
 ### `supports` (respalda)
 
 Backing (Toulmin): el source es evidencia positiva del claim destino.
 
-- de *todos menos* `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`
+- de *todos menos* `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`, `action`, `integration`, `flow_run` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`, `action`, `integration`, `flow_run`
 
 ### `opposes` (se opone a)
 
 Contra-backing (Toulmin): el source es evidencia contraria al claim destino.
 
-- de *todos menos* `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`
+- de *todos menos* `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`, `action`, `integration`, `flow_run` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`, `action`, `integration`, `flow_run`
 
 ### `rebuttal` (refutaría)
 
 Rebuttal (Toulmin): el source describe la condición que invalidaría el claim destino.
 
-- de *todos menos* `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`
+- de *todos menos* `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`, `action`, `integration`, `flow_run` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`, `action`, `integration`, `flow_run`
 
 ### `alternative_to` (fue alternativa a) — mismo kind en ambos extremos
 
 El source fue una opción considerada y no elegida frente al claim destino (mismo kind).
 
-- de *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`
+- de *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`, `action`, `integration`, `flow_run` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`, `action`, `integration`, `flow_run`
 
 ## lifecycle
 
@@ -48,13 +48,13 @@ El source fue una opción considerada y no elegida frente al claim destino (mism
 
 El source reemplaza al destino (mismo kind); al activarse marca el destino como superseded.
 
-- de *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`
+- de *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`, `action`, `integration`, `flow_run` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`, `action`, `integration`, `flow_run`
 
 ### `contradicts` (contradice a)
 
 Dos claims incompatibles entre sí; señal de conflicto abierto.
 
-- de *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`
+- de *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`, `action`, `integration`, `flow_run` → a *todos menos* `fact`, `reference`, `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `actor`, `glossary_term`, `use_case`, `action`, `integration`, `flow_run`
 
 ## structural
 
@@ -77,10 +77,12 @@ El source necesita al destino para funcionar.
 
 ### `uses` (usa)
 
-Pantalla, flujo, componente o caso de uso que usa una entidad, un modelo de datos o un componente (en C4, properties.description y technology describen la relación).
+Pantalla, flujo, componente o caso de uso que usa una entidad, un modelo de datos o un componente (en C4, properties.description y technology describen la relación). Una acción usa los datos que crea, cambia o lee (properties.mode: create, update o read); una pantalla usa la acción, integración o flujo de donde sale un bloque de su contenido; un flujo usa las pantallas y acciones por las que pasan sus pasos.
 
 - de `screen`, `flow`, `component` → a `entity`, `data_model`, `component`
-- de `use_case` → a `entity`, `data_model`
+- de `use_case`, `action` → a `entity`, `data_model`
+- de `screen` → a `action`, `integration`, `flow`
+- de `flow` → a `screen`, `action`
 
 ### `implements` (implementa)
 
@@ -99,7 +101,7 @@ Une lo funcional con lo técnico: el módulo (lo que el producto hace) lo realiz
 
 Regla o restricción que limita al destino.
 
-- de `business_rule`, `constraint` → a `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `decision`, `adr`, `use_case`
+- de `business_rule`, `constraint` → a `module`, `screen`, `flow`, `data_model`, `entity`, `component`, `decision`, `adr`, `use_case`, `action`, `integration`
 
 ### `affects` (impacta a)
 
@@ -127,15 +129,15 @@ Riesgo que amenaza un objetivo o una parte de la estructura.
 
 ### `performs` (ejecuta)
 
-Actor que ejecuta un flujo o un caso de uso, usa una pantalla o usa un elemento C4 (la persona del diagrama C4).
+Actor que ejecuta un flujo, un caso de uso o una acción, usa una pantalla o usa un elemento C4 (la persona del diagrama C4).
 
-- de `actor` → a `flow`, `screen`, `component`, `use_case`
+- de `actor` → a `flow`, `screen`, `component`, `use_case`, `action`
 
 ### `navigates_to` (navega a)
 
-Navegación entre pantallas.
+Navegación entre pantallas; una acción lleva a la pantalla destino.
 
-- de `screen` → a `screen`
+- de `screen`, `action` → a `screen`
 
 ### `relates_to` (se relaciona con) — mismo kind en ambos extremos
 
@@ -154,6 +156,25 @@ Referencia o nota que documenta al destino.
 Cualquier nodo que usa un término del glosario o un concepto.
 
 - de *todos* → a `glossary_term`, `concept`
+
+### `offers` (ofrece)
+
+La pantalla ofrece la acción. No fija contenedor: una acción puede estar en varias pantallas.
+
+- de `screen` → a `action`
+
+### `triggers` (dispara)
+
+Una acción inicia un flujo («Apartar» inicia «dar de alta una venta») o corre una integración («Pagar» corre Stripe); un flujo corre una integración.
+
+- de `action` → a `flow`, `integration`
+- de `flow` → a `integration`
+
+### `tests` (prueba) — solo manual
+
+Una prueba de un flujo («Probar como…»). La escribe solo el caso de uso de la prueba.
+
+- de `flow_run` → a `flow`
 
 ## provenance
 

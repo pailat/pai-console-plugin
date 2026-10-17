@@ -1,8 +1,8 @@
 # Catálogo de vistas `pai-view@1`
 
-> Generado por `tools/gen-references.ts` desde pai-portal `04278b49d` (2026-10-14 Merge feat/0.2.5/resources-assets (ATE-229 parte A: assets del proyecto, modelo, API y serving)), `packages/views/src/catalog.ts`. No editar a mano: regenerar.
+> Generado por `tools/gen-references.ts` desde pai-portal `a4ece4fcf` (2026-10-16 build(mcp-app): sin los describe() de ext-apps, ~8,7 KB menos por archivo), `packages/views/src/catalog.ts`. No editar a mano: regenerar.
 
-Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props, children? } } }. Los hijos se referencian por id.
+Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props, children?, slots? } } }. Los hijos se referencian por id.
 
 ## Reglas
 
@@ -11,6 +11,7 @@ Formato: Spec plano de json-render: { root: id, elements: { [id]: { type, props,
 - Los ids son únicos, empiezan con letra y se reutilizan al editar.
 - Las props omitidas que aceptan null toman su valor por defecto.
 - Sólo AppShell, AuthFrame, ConsoleShell, PortalShell, SiteShell, ContactSection, AuthLayout, BoardLayout, ChatLayout, DashboardLayout, DetailLayout, DocLayout, EmptyLayout, FilesLayout, FormLayout, PageLayout, SettingsLayout, SplitView, WizardLayout, Card, Collapsible, DetailSheet, DialogFrame, Frame, Grid, Section, Stack, Tabs, UnderlinedTabs, Tooltip, ButtonGroup, Popover, Scrollspy, Stepper y ProposalSummary tienen hijos; Tabs y UnderlinedTabs llevan un hijo por pestaña, en orden.
+- Los componentes con slots (Card, Item, ChatComposer) llevan elementos dentro en slots: { nombre: [ids] }, como children (un solo padre, conectados a la raíz) y sólo de los tipos que cada slot admite (su detalle los lista).
 - Elige el layout con la raíz de la vista: AppShell, AuthFrame, ConsoleShell, PortalShell, SiteShell son pantallas completas (ver layouts) y van sólo en la raíz; un documento, reporte o tablero empieza con Stack. Nunca recrees una pantalla de Pai con AppShell: AppShell es para apps de clientes.
 - Antes de usar un componente, pide su descripción, su esquema y su ejemplo con view_catalog({ types: [...] }) o por grupo (view_catalog({ group })); aquí sólo están su resumen y, en los grupos con index props, sus props por nombre (nombre? es opcional). Los grupos con index names sólo traen el resumen: pide sus props por grupo.
 - Un patrón (grupo patterns) lleva un hijo por región, en el orden de sus regiones; regions elige cuáles usa, en ese mismo orden.
@@ -62,7 +63,7 @@ Una pantalla completa empieza con uno de estos componentes como `root` (y solo a
 | Sitio web | Secciones de un sitio web (pai.lat o el de un cliente) dentro de SiteShell. | BlogList, ContactSection, CtaBand, HowItWorks, LogoGrid, SectionIntro, ServiceCards, SiteHero, Testimonials |
 | Patrones | Layouts de pantalla con regiones con nombre (encabezado, principal, lateral…): un hijo por región, en orden. Van dentro de un shell o en la raíz. | AuthLayout, BoardLayout, ChatLayout, DashboardLayout, DetailLayout, DocLayout, EmptyLayout, FilesLayout, FormLayout, PageLayout, SettingsLayout, SplitView, WizardLayout |
 | Estructura | Contenedores que ordenan la vista. | Accordion, Card, Collapsible, DetailSheet, DialogFrame, Frame, Grid, Section, Separator, Stack, Tabs, UnderlinedTabs |
-| Contenido | Títulos, texto, etiquetas, avisos, listas, enlaces y código. | Alert, Avatar, Badge, Carousel, CodeBlock, CommentsPanel, FileType, Heading, HistoryPanel, HoverCard, IconStack, IconTile, Image, Item, Kbd, Link, List, Rating, StatusBadge, StatusDot, Text, Tooltip |
+| Contenido | Títulos, texto, etiquetas, avisos, listas, enlaces y código. | Alert, Avatar, Badge, Carousel, CodeBlock, CommentsPanel, FileType, Heading, HistoryPanel, HoverCard, IconStack, IconTile, Image, Item, Kbd, Link, List, Rating, StatusBadge, StatusDot, Text, Tooltip, Video |
 | Datos | Indicadores, tablas, gráficas y pares etiqueta–valor. | BarList, Chart, DataTable, FileList, Heatmap, KeyValue, Metric, Progress, ProgressRing, Stats, Table, Tree, TreeTable |
 | Controles | Botones, menús y campos de formulario. Responden dentro de la vista (abren, cambian, se marcan) pero nada se envía, guarda ni navega, salvo un botón con href. | ActionMenu, Autocomplete, Button, ButtonGroup, Calendar, Checkbox, Command, DateSelector, Dropzone, FilterBar, Input, Popover, RadioGroup, Select, Sortable, Switch, Textarea, ToggleGroup |
 | Formularios | Campos de formulario de maqueta: se ven como en Pai pero no se enfocan, no envían ni guardan nada, ni piden datos sensibles. | Cascader, ColorPicker, Combobox, EmojiPicker, InputOTP, NumberField, PhoneInput, SignaturePad, Slider, TimePicker |
@@ -85,9 +86,9 @@ Cada objeto de props es cerrado. `?` marca una prop opcional; las que aceptan `n
 App completa de un cliente, sólo raíz: marca, menú con iconos y badge opcional, usuario y contenido. layout sidebar (null) conserva la barra lateral; inset usa el lateral con contenido en SidebarInset; topbar muestra marca, menú horizontal y usuario (no admite secondaryNav: se ignora). En una página, la barra lateral se pliega a iconos con tooltip si la vista no es ancha, y en angosto el menú abre con un botón. breadcrumb muestra migas antes de title; sus href navegan. En Recursos se ve en un marco de dispositivos y puede abrirse a pantalla completa.
 
 - `brand`: { name: string (min 1, ≤160), detail?: string (≤80) (null = por defecto) }
-- `nav`: [{ label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette", active?: boolean (null = por defecto), badge?: string (min 1, ≤6) (null = por defecto) }] (min 1, máx 12)
+- `nav`: [{ label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow", active?: boolean (null = por defecto), badge?: string (min 1, ≤6) (null = por defecto) }] (min 1, máx 12)
 - `secondaryTitle`?: string (≤80) (null = por defecto)
-- `secondaryNav`?: [{ label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette", active?: boolean (null = por defecto), badge?: string (min 1, ≤6) (null = por defecto) }] (máx 12) (null = por defecto)
+- `secondaryNav`?: [{ label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow", active?: boolean (null = por defecto), badge?: string (min 1, ≤6) (null = por defecto) }] (máx 12) (null = por defecto)
 - `layout`?: "sidebar"|"inset"|"topbar"|null (null = por defecto)
 - `breadcrumb`?: [{ label: string (min 1, ≤160), href?: string (null = por defecto) }] (min 1, máx 4) (null = por defecto)
 - `title`: string (min 1, ≤160)
@@ -110,7 +111,7 @@ Pantalla de Console (el back office de Pai), idéntica a la real: selector «Con
 
 - `area`?: "admin"|"workforce"|"all"|null (null = por defecto)
 - `active`?: string (≤80) (null = por defecto)
-- `menu`?: [{ label?: string (min 1, ≤160) (null = por defecto), items: [{ key: string (min 1, ≤80), label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette" }] (min 1, máx 12) }] (min 1, máx 6) (null = por defecto)
+- `menu`?: [{ label?: string (min 1, ≤160) (null = por defecto), items: [{ key: string (min 1, ≤80), label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow" }] (min 1, máx 12) }] (min 1, máx 6) (null = por defecto)
 - `breadcrumb`?: [{ label: string (min 1, ≤160), href?: string (null = por defecto) }] (min 1, máx 6) (null = por defecto)
 - `title`?: string (min 1, ≤160) (null = por defecto)
 - `action`?: string (min 1, ≤160) (null = por defecto)
@@ -125,7 +126,7 @@ Pantalla del Portal de Pai, idéntica a la real: selector de organización, el m
 - `area`?: "home"|"organization"|"project"|"product"|null (null = por defecto)
 - `audience`?: "client"|"staff"|null (null = por defecto)
 - `active`?: string (≤80) (null = por defecto)
-- `menu`?: [{ label?: string (min 1, ≤160) (null = por defecto), items: [{ key: string (min 1, ≤80), label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette" }] (min 1, máx 12) }] (min 1, máx 6) (null = por defecto)
+- `menu`?: [{ label?: string (min 1, ≤160) (null = por defecto), items: [{ key: string (min 1, ≤80), label: string (min 1, ≤160), icon: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow" }] (min 1, máx 12) }] (min 1, máx 6) (null = por defecto)
 - `organization`?: string (min 1, ≤160) (null = por defecto)
 - `organizations`?: [string (min 1, ≤160)] (máx 20) (null = por defecto)
 - `project`?: string (min 1, ≤160) (null = por defecto)
@@ -216,7 +217,7 @@ Ejemplo: `{"title":"El conocimiento y el método para construir con AI Agents","
 
 Tarjetas de servicios o capacidades del sitio (2 a 6), en 1, 2 o 3 columnas: icono, título, texto y una lista corta de lo que incluye.
 
-- `items`: [{ title: string (min 1, ≤160), body: string (≤2000), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), points?: [string (min 1, ≤160)] (máx 6) (null = por defecto) }] (min 2, máx 6)
+- `items`: [{ title: string (min 1, ≤160), body: string (≤2000), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto), points?: [string (min 1, ≤160)] (máx 6) (null = por defecto) }] (min 2, máx 6)
 
 Ejemplo: `{"items":[{"title":"Diagnóstico","body":"Entendemos tu operación y lo que necesitas resolver.","icon":"search","points":["Entrevistas","Mapa de procesos"]},{"title":"Construcción por módulos","body":"Lo ves en pantallas y lo construimos por etapas.","icon":"layers","points":["Prototipos","Entregas quincenales"]},{"title":"Operación","body":"Operamos y mejoramos el producto con tu equipo.","icon":"settings"}]}`
 
@@ -375,14 +376,14 @@ Ejemplo: `{"items":[{"title":"¿Quién aprueba los entregables?","content":"La d
 
 #### Card (admite hijos)
 
-Tarjeta con título y descripción opcionales que agrupa contenido relacionado. En su encabezado puede llevar una acción (botón; con href navega) y un menú «⋯» decorativo. No la uses como encabezado de la vista ni anides tarjetas dentro de tarjetas.
+Tarjeta con título y descripción opcionales que agrupa contenido relacionado. En su encabezado puede llevar una acción (botón; con href navega) y un menú «⋯» decorativo. Su slot header pone Badge, StatusBadge, Button, Select o Avatar junto al título, antes de la acción. No la uses como encabezado de la vista ni anides tarjetas dentro de tarjetas.
 
 - `title`?: string (null = por defecto)
 - `description`?: string (null = por defecto)
 - `maxWidth`?: "sm"|"md"|"lg"|"full"|null (null = por defecto)
 - `centered`?: boolean (null = por defecto)
-- `action`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
-- `menu`?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), destructive?: boolean (null = por defecto), separatorBefore?: boolean (null = por defecto) }] (min 1, máx 20) (null = por defecto)
+- `action`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
+- `menu`?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto), destructive?: boolean (null = por defecto), separatorBefore?: boolean (null = por defecto) }] (min 1, máx 20) (null = por defecto)
 
 Ejemplo: `{"title":"Ventas por cerrar","description":"Oportunidades con fecha de cierre este mes.","action":{"label":"Ver todas","href":"/organization/projects"},"menu":[{"label":"Exportar","icon":"download"}]}`
 
@@ -403,7 +404,7 @@ Detalle de un elemento (un pago, una tarea, un hito) con la anatomía del panel 
 - `title`: string (min 1, ≤160)
 - `description`?: string (≤2000) (null = por defecto)
 - `badges`?: [{ label: string (min 1, ≤160), tone: "neutral"|"info"|"progress"|"success"|"warning"|"danger" }] (máx 4) (null = por defecto)
-- `actions`?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), href?: string (null = por defecto) }] (máx 3) (null = por defecto)
+- `actions`?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto), href?: string (null = por defecto) }] (máx 3) (null = por defecto)
 - `presentation`?: "inline"|"overlay"|null (null = por defecto)
 - `open`?: boolean (null = por defecto)
 - `triggerLabel`?: string (min 1, ≤160) (null = por defecto)
@@ -418,7 +419,7 @@ La maqueta de un diálogo o una confirmación, dibujada en su lugar de la vista:
 
 - `title`: string (min 1, ≤160)
 - `description`?: string (≤2000) (null = por defecto)
-- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto)
+- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto)
 - `tone`?: "default"|"destructive"|null (null = por defecto)
 - `actions`?: [{ label: string (min 1, ≤160) }] (min 1, máx 3) (null = por defecto)
 - `size`?: "sm"|"md"|"lg"|null (null = por defecto)
@@ -432,7 +433,7 @@ Marco de paneles: un panel por hijo; stacked los une (ficha por secciones). Un s
 - `title`?: string (min 1, ≤160) (null = por defecto)
 - `description`?: string (≤2000) (null = por defecto)
 - `stacked`?: boolean (null = por defecto)
-- `action`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
+- `action`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
 - `variant`?: "default"|"ghost"|null (null = por defecto)
 - `spacing`?: "sm"|"default"|"lg"|null (null = por defecto)
 - `dense`?: boolean (null = por defecto)
@@ -442,10 +443,14 @@ Ejemplo: `{"title":"Producto","description":"Ambientes y dominios.","stacked":tr
 
 #### Grid (admite hijos)
 
-Cuadrícula de 1 a 6 columnas que se apila en pantallas angostas. Úsala para tarjetas de métricas (5 o 6 en una fila de KPIs) o grupos paralelos. Dentro de una AppShell en una página, 4 columnas caben antes.
+Cuadrícula de 1 a 6 columnas que se apila en pantallas angostas. Úsala para tarjetas de métricas (5 o 6 en una fila de KPIs) o grupos paralelos. Dentro de una AppShell en una página, 4 columnas caben antes. Como Stack, acepta width, maxWidth, grow y selfAlign para su lugar en el padre.
 
 - `columns`?: integer (≥1, ≤6) (null = por defecto)
 - `gap`?: "sm"|"md"|"lg"|"xl"|null (null = por defecto)
+- `width`?: "fit"|"full"|null (null = por defecto)
+- `maxWidth`?: "sm"|"md"|"lg"|"xl"|"full"|null (null = por defecto)
+- `grow`?: boolean (null = por defecto)
+- `selfAlign`?: "start"|"center"|"end"|"stretch"|null (null = por defecto)
 
 Ejemplo: `{"columns":3,"gap":"md"}`
 
@@ -468,12 +473,17 @@ Ejemplo: `{"orientation":"horizontal"}`
 
 #### Stack (admite hijos)
 
-Contenedor flex vertical u horizontal; la base de cualquier vista. Sus hijos se apilan con el espacio indicado.
+Contenedor flex vertical u horizontal; la base de cualquier vista. Sus hijos se apilan con el espacio indicado; align los acomoda a lo ancho (en vertical) y justify a lo largo. Su lugar en el padre: width (fit o full: ocupa el ancho del padre, también dentro de un align: center, donde sin ella se encoge), maxWidth (sm, md, lg, xl, full: un ancho legible), grow (ocupa el espacio que deja su Stack padre; directo en una PortalShell llena la pantalla bajo la barra) y selfAlign (start, center, end, stretch: su propio lugar, sobre el align del padre). minHeight (screen o half) le da al menos la altura de la vista o la mitad, para centrar con justify: center. Para centrar un bloque en una pantalla: Stack con grow, justify: center y align: center; el cuadro dentro, con width: full y maxWidth: lg. Sin estas props se ve como siempre.
 
 - `direction`?: "horizontal"|"vertical"|null (null = por defecto)
 - `gap`?: "none"|"sm"|"md"|"lg"|"xl"|null (null = por defecto)
 - `align`?: "start"|"center"|"end"|"stretch"|null (null = por defecto)
 - `justify`?: "start"|"center"|"end"|"between"|"around"|null (null = por defecto)
+- `width`?: "fit"|"full"|null (null = por defecto)
+- `maxWidth`?: "sm"|"md"|"lg"|"xl"|"full"|null (null = por defecto)
+- `grow`?: boolean (null = por defecto)
+- `selfAlign`?: "start"|"center"|"end"|"stretch"|null (null = por defecto)
+- `minHeight`?: "screen"|"half"|null (null = por defecto)
 
 Ejemplo: `{"direction":"vertical","gap":"md"}`
 
@@ -505,8 +515,8 @@ Aviso destacado: info, success, warning o error. Úsalo para conclusiones, riesg
 - `title`?: string (min 1) (null = por defecto)
 - `message`?: string (null = por defecto)
 - `type`?: "info"|"success"|"warning"|"error"|null (null = por defecto)
-- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto)
-- `actions`?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), href?: string (null = por defecto) }] (min 1, máx 2) (null = por defecto)
+- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto)
+- `actions`?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto), href?: string (null = por defecto) }] (min 1, máx 2) (null = por defecto)
 
 Ejemplo: `{"title":"Enviar la propuesta de «Membresías con CFDI»","message":"Ana López · vence el 14 oct · después: esperar a Mariana Ruiz","type":"info","icon":"send","actions":[{"label":"Hecho y siguiente"},{"label":"Reprogramar"}]}`
 
@@ -534,7 +544,7 @@ Ejemplo: `{"text":"En curso","variant":"secondary","tone":"progress"}`
 
 #### Carousel
 
-Imágenes subidas a esta misma page, una tras otra con flechas: cada slide trae su assetId (de page_asset_upload, nunca una URL), su alt (obligatorio) y un caption opcional. Hasta 12. ratio encuadra todas igual (16:9 por omisión). Sólo en vistas guardadas dentro de una page: view_render y otras vistas lo rechazan. Donde las imágenes no se pueden cargar (la vista del MCP) salen recuadros con su alt.
+Imágenes del proyecto, una tras otra con flechas: cada slide trae su assetId (un asset listo de asset_list o de asset_upload y asset_confirm, nunca una URL), su alt (obligatorio) y un caption opcional. Hasta 12. ratio encuadra todas igual (16:9 por omisión). Sólo en vistas guardadas dentro de una page: view_render y otras vistas lo rechazan. Donde las imágenes no se pueden cargar (la vista del MCP) salen recuadros con su alt.
 
 - `slides`: [{ assetId: string, alt: string (min 1, ≤160), caption?: string (≤2000) (null = por defecto) }] (min 1, máx 12)
 - `ratio`?: "16:9"|"4:3"|"3:2"|"1:1"|"3:4"|"21:9"|null (null = por defecto)
@@ -610,7 +620,7 @@ Ejemplo: `{"label":"Ana López","title":"Ana López","text":"Arquitecta de Pai a
 
 Ilustración isométrica de capas con un icono del catálogo al frente (icon), para un primer uso, un paso de onboarding o una tarjeta de función. Es decorativa: el texto de al lado dice lo que significa; label la nombra sólo si el icono dice algo que el texto no. Para un estado vacío completo usa EmptyState con illustration stack.
 
-- `icon`: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"
+- `icon`: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"
 - `label`?: string (min 1, ≤160) (null = por defecto)
 
 Ejemplo: `{"icon":"sparkles"}`
@@ -619,7 +629,7 @@ Ejemplo: `{"icon":"sparkles"}`
 
 Icono en su cuadro (filas, tarjetas). label lo nombra; soft y solid toman el tone. variant frame lo pone en un marco como Frame; size va de xs a xl; radius full lo hace redondo.
 
-- `icon`: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"
+- `icon`: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"
 - `label`: string (min 1, ≤160)
 - `tone`?: "neutral"|"info"|"progress"|"success"|"warning"|"danger"|null (null = por defecto)
 - `variant`?: "outline"|"elevated"|"soft"|"solid"|"frame"|null (null = por defecto)
@@ -630,7 +640,7 @@ Ejemplo: `{"icon":"wallet","label":"Pagos","tone":"info","variant":"soft"}`
 
 #### Image
 
-Una imagen subida a esta misma page: assetId es el que devolvió page_asset_upload (nunca una URL; las imágenes externas no se aceptan). alt describe la imagen para quien no la ve (obligatorio); caption es el pie, o null. ratio la encuadra: 16:9, 4:3, 3:2, 1:1, 3:4 o 21:9 (null respeta su forma). fit: cover (llena el marco, por omisión) o contain (completa, con margen). Sólo en vistas guardadas dentro de una page: view_render y otras vistas la rechazan. Donde la imagen no se puede cargar (la vista del MCP) sale un recuadro con el alt.
+Una imagen del proyecto por su assetId: un asset listo de asset_list, o uno nuevo de asset_upload y asset_confirm (nunca una URL; las imágenes externas no se aceptan). alt describe la imagen para quien no la ve (obligatorio); caption es el pie, o null. ratio la encuadra: 16:9, 4:3, 3:2, 1:1, 3:4 o 21:9 (null respeta su forma). fit: cover (llena el marco, por omisión) o contain (completa, con margen). Sólo en vistas guardadas dentro de una page: view_render y otras vistas la rechazan. Donde la imagen no se puede cargar (la vista del MCP) sale un recuadro con el alt.
 
 - `assetId`: string
 - `alt`: string (min 1, ≤160)
@@ -642,11 +652,11 @@ Ejemplo: `{"assetId":"4d2f7a8e-1c3b-4f5a-9e6d-7b8c9d0e1f2a","alt":"Pantalla de i
 
 #### Item
 
-Fila de una lista (archivo, persona, integración): icono, título, descripción y un dato a la derecha. Con href toda la fila es un enlace. Apila varios en un Stack con gap sm.
+Fila de una lista (archivo, persona, integración): icono, título, descripción y un dato a la derecha. Con href toda la fila es un enlace. Su slot trailing pone a la derecha Badge, StatusBadge, Button o Switch (en lugar de meta en texto); con trailing la fila no es enlace. Apila varios en un Stack con gap sm.
 
 - `title`: string (min 1, ≤160)
 - `description`?: string (≤2000) (null = por defecto)
-- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto)
+- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto)
 - `meta`?: string (min 1, ≤160) (null = por defecto)
 - `href`?: string (null = por defecto)
 - `variant`?: "default"|"outline"|"muted"|null (null = por defecto)
@@ -727,6 +737,17 @@ Muestra un texto breve al pasar el cursor o enfocar su único hijo, que no debe 
 
 Ejemplo: `{"text":"Monto con IVA incluido"}`
 
+#### Video
+
+Un video (MP4 o WebM) del proyecto por su assetId: un asset listo de asset_list, o uno nuevo de asset_upload y asset_confirm (nunca una URL; los videos externos van en un embed). title nombra el video para quien usa lector de pantalla (obligatorio); caption es el pie, o null. ratio lo encuadra: 16:9, 4:3, 3:2, 1:1, 3:4 o 21:9 (null respeta su forma). Sólo en vistas guardadas dentro de una page: view_render y otras vistas lo rechazan. Donde el video no se puede cargar (la vista del MCP) sale un recuadro con el título.
+
+- `assetId`: string
+- `title`: string (min 1, ≤160)
+- `caption`?: string (≤2000) (null = por defecto)
+- `ratio`?: "16:9"|"4:3"|"3:2"|"1:1"|"3:4"|"21:9"|null (null = por defecto)
+
+Ejemplo: `{"assetId":"4d2f7a8e-1c3b-4f5a-9e6d-7b8c9d0e1f2a","title":"Recorrido por el flujo de pedidos","caption":"Demo grabada en la revisión del sprint 4","ratio":"16:9"}`
+
 ### Grupo: Datos
 
 #### BarList
@@ -761,15 +782,15 @@ Ejemplo: `{"title":"Horas por mes","kind":"bar","categories":["Jul","Ago","Sep"]
 La tabla de datos de Portal y Console (DataTable): columnas tipadas (text, number, money en centavos alineado a la derecha, percent, date, badge, status con tono, link, person, progress), buscador, filtros «Etiqueta: valor» (filters[].key es la key de una columna o de cualquier celda que traen las filas, aunque no sea columna, p. ej. la de un secondaryKey), orden por columna (defaultSort.key, sólo columnas), paginación (pageSize; null la oculta y muestra todas las filas), selección (selectable añade casillas; selectionSummary deja sólo el pie «0 de N fila(s) seleccionada(s)», como la lista de proyectos), filas apagadas (muted) un menú «⋯» por fila, filas fijadas arriba (pinned, siguen en cada página) y celdas en edición de maqueta (editing: keys de la fila, un campo deshabilitado). footer es la fila de totales: label a la izquierda y cells por key de columna. columnGroups agrupa columnas contiguas bajo un encabezado. hiddenColumns oculta columnas al abrir y suma el menú «Columnas» para mostrarlas. Todo funciona dentro de la vista (filtra, ordena, pagina) y nada se guarda ni navega. Cada fila trae id y cells: { [key de columna]: valor }; una celda vacía es null.
 
 - `columns`: [{ key: string, header: string (min 1, ≤160), sortable?: boolean (null = por defecto), hideBelow?: "sm"|"md"|"lg"|null (null = por defecto), type: "text"|"number"|"money"|"percent"|"date"|"badge"|"status"|"link"|"person"|"progress", secondaryKey?: string (null = por defecto), decimals?: integer (≥0, ≤4) (null = por defecto), currency?: string (min 3, ≤3) (null = por defecto), plusTax?: boolean (null = por defecto), format?: "day"|"instant"|"relative"|null (null = por defecto) }] (min 1, máx 10)
-- `rows`: [{ id: string (min 1, ≤80), cells: object, muted?: boolean (null = por defecto), actions?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), destructive?: boolean (null = por defecto), separatorBefore?: boolean (null = por defecto) }] (min 1, máx 20) (null = por defecto), pinned?: boolean (null = por defecto), editing?: [string] (min 1, máx 10) (null = por defecto) }] (máx 200)
+- `rows`: [{ id: string (min 1, ≤80), cells: object, muted?: boolean (null = por defecto), actions?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto), destructive?: boolean (null = por defecto), separatorBefore?: boolean (null = por defecto) }] (min 1, máx 20) (null = por defecto), pinned?: boolean (null = por defecto), editing?: [string] (min 1, máx 10) (null = por defecto) }] (máx 200)
 - `search`?: string (min 1, ≤160) (null = por defecto)
 - `filters`?: [{ key: string, title: string (min 1, ≤160), options?: [{ label: string (min 1, ≤160), value: string (min 1, ≤80) }] (máx 20) (null = por defecto) }] (máx 4) (null = por defecto)
 - `defaultSort`?: { key: string, desc: boolean } (null = por defecto)
 - `pageSize`?: number | number | number | number | number | number (null = por defecto)
 - `selectable`?: boolean (null = por defecto)
 - `selectionSummary`?: boolean (null = por defecto)
-- `empty`?: { title: string (min 1, ≤160), description?: string (≤2000) (null = por defecto), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto) } (null = por defecto)
-- `toolbarAction`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
+- `empty`?: { title: string (min 1, ≤160), description?: string (≤2000) (null = por defecto), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto) } (null = por defecto)
+- `toolbarAction`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
 - `footer`?: { label: string (min 1, ≤160), cells: object } (null = por defecto)
 - `columnGroups`?: [{ header: string (min 1, ≤160), keys: [string] (min 2, máx 10) }] (min 1, máx 6) (null = por defecto)
 - `hiddenColumns`?: [string] (máx 10) (null = por defecto)
@@ -812,7 +833,7 @@ Ejemplo: `{"items":[{"label":"Responsable","value":"Ana López"},{"label":"Inici
 Indicador (KPI): etiqueta, valor ya formateado («68 %», «$1.2 M»), unidad pequeña opcional («MXN») cambio opcional («+12 %», badge con trend) y detalle con su comparación o fecha de corte. tone colorea el valor: positive, warning, negative o info. icon añade un IconTile y trendLine una sparkline de 2–24 valores; trendKind la dibuja como line (por omisión), area o bar.
 
 - `label`: string (min 1, ≤160)
-- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto)
+- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto)
 - `trendLine`?: [number] (min 2, máx 24) (null = por defecto)
 - `trendKind`?: "line"|"area"|"bar"|null (null = por defecto)
 - `value`: string (min 1, ≤40)
@@ -850,7 +871,7 @@ Ejemplo: `{"label":"Avance del hito de pagos","value":68,"description":"Quedan l
 
 Fila de 1–6 KPIs: valor formateado, unidad, cambio con trend y tone y detalle. icon añade un IconTile; progress dibuja una barra de 0 a 100 con su etiqueta (label, «Avance» por omisión) y el porcentaje a la vista; trendLine dibuja una sparkline de 2–24 valores. variant elige row (fila dividida, por omisión) o cards (tarjetas en rejilla); dentro de Card siempre se usa row.
 
-- `items`: [{ label: string (min 1, ≤160), value: string (min 1, ≤40), unit?: string (min 1, ≤12) (null = por defecto), delta?: string (min 1, ≤12) (null = por defecto), trend?: "up"|"down"|"flat"|null (null = por defecto), tone?: "neutral"|"positive"|"warning"|"negative"|"info"|null (null = por defecto), detail?: string (≤160) (null = por defecto), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), progress?: { value: number (≥0, ≤100), label?: string (min 1, ≤160) (null = por defecto) } (null = por defecto), trendLine?: [number] (min 2, máx 24) (null = por defecto) }] (min 1, máx 6)
+- `items`: [{ label: string (min 1, ≤160), value: string (min 1, ≤40), unit?: string (min 1, ≤12) (null = por defecto), delta?: string (min 1, ≤12) (null = por defecto), trend?: "up"|"down"|"flat"|null (null = por defecto), tone?: "neutral"|"positive"|"warning"|"negative"|"info"|null (null = por defecto), detail?: string (≤160) (null = por defecto), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto), progress?: { value: number (≥0, ≤100), label?: string (min 1, ≤160) (null = por defecto) } (null = por defecto), trendLine?: [number] (min 2, máx 24) (null = por defecto) }] (min 1, máx 6)
 - `variant`?: "row"|"cards"|null (null = por defecto)
 
 Ejemplo: `{"items":[{"label":"Avance","icon":"chart","value":"68 %","delta":"+12 pts","trend":"up","tone":"positive"},{"label":"Cobrado","value":"$1.2 M","unit":"MXN","detail":"de $2.0 M","progress":{"value":60,"label":"Meta de cobro"}},{"label":"Hitos vencidos","trendLine":[5,4,3,1,2],"value":"2","delta":"+1","trend":"up","tone":"negative"}]}`
@@ -896,7 +917,7 @@ Ejemplo: `{"columns":[{"key":"name","header":"Etapa / proyecto","type":"text"},{
 Menú de acciones que se abre al pulsar: sin label es el botón «⋯» de las filas y tarjetas; con label es un botón con flecha. Sus opciones son decorativas (no ejecutan nada).
 
 - `label`?: string (min 1, ≤160) (null = por defecto)
-- `items`: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), destructive?: boolean (null = por defecto), separatorBefore?: boolean (null = por defecto) }] (min 1, máx 20)
+- `items`: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto), destructive?: boolean (null = por defecto), separatorBefore?: boolean (null = por defecto) }] (min 1, máx 20)
 - `align`?: "start"|"end"|null (null = por defecto)
 
 Ejemplo: `{"items":[{"label":"Editar","icon":"pencil"},{"label":"Duplicar","icon":"copy"},{"label":"Eliminar","icon":"trash","destructive":true,"separatorBefore":true}],"align":"end"}`
@@ -920,7 +941,7 @@ Botón con las variantes de Pai. Con href navega (ruta del Portal o https); sin 
 - `label`: string (min 1, ≤160)
 - `variant`?: "default"|"secondary"|"outline"|"ghost"|"destructive"|"link"|null (null = por defecto)
 - `size`?: "sm"|"default"|"lg"|null (null = por defecto)
-- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto)
+- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto)
 - `iconOnly`?: boolean (null = por defecto)
 - `href`?: string (null = por defecto)
 - `disabled`?: boolean (null = por defecto)
@@ -961,7 +982,7 @@ Ejemplo: `{"label":"Acepto los términos de la propuesta","checked":true}`
 Buscador de comandos (paleta tipo ⌘K) con grupos de opciones y atajos. Filtra al escribir dentro de la vista; las opciones no ejecutan nada.
 
 - `placeholder`?: string (min 1, ≤160) (null = por defecto)
-- `groups`: [{ heading?: string (min 1, ≤160) (null = por defecto), items: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), shortcut?: string (≤20) (null = por defecto) }] (min 1, máx 20) }] (min 1, máx 6)
+- `groups`: [{ heading?: string (min 1, ≤160) (null = por defecto), items: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto), shortcut?: string (≤20) (null = por defecto) }] (min 1, máx 20) }] (min 1, máx 6)
 - `empty`?: string (min 1, ≤160) (null = por defecto)
 
 Ejemplo: `{"placeholder":"Busca un proyecto o una acción…","groups":[{"heading":"Acciones","items":[{"label":"Nueva propuesta","icon":"file-signature","shortcut":"⌘N"},{"label":"Subir archivo","icon":"upload"}]},{"heading":"Ir a","items":[{"label":"Cronograma","icon":"calendar"},{"label":"Pagos","icon":"wallet"}]}]}`
@@ -997,7 +1018,7 @@ Barra de filtros sobre una tabla o tablero: buscador opcional, filtros «Etiquet
 
 - `search`?: string (min 1, ≤160) (null = por defecto)
 - `filters`: [{ label: string (min 1, ≤40), value: string (min 1, ≤80), options?: [string (min 1, ≤80)] (máx 20) (null = por defecto) }] (máx 6)
-- `action`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
+- `action`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
 - `variant`?: "basic"|"advanced"|null (null = por defecto)
 - `combinator`?: "and"|"or"|null (null = por defecto)
 - `groups`?: [{ combinator?: "and"|"or"|null (null = por defecto), filters: [{ label: string (min 1, ≤40), value: string (min 1, ≤80), options?: [string (min 1, ≤80)] (máx 20) (null = por defecto) }] (min 1, máx 6) }] (min 1, máx 4) (null = por defecto)
@@ -1022,7 +1043,7 @@ Ejemplo: `{"label":"Correo del cliente","placeholder":"nombre@empresa.com","type
 Panel flotante que abre un botón con label e icon opcional. Sus hijos contienen filtros o detalles y title añade un título dentro del panel. side elige dónde abre (bottom por omisión). Los cambios quedan en la vista: nada se envía ni se guarda.
 
 - `label`: string (min 1, ≤160)
-- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto)
+- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto)
 - `title`?: string (≤80) (null = por defecto)
 - `side`?: "top"|"right"|"bottom"|"left"|null (null = por defecto)
 
@@ -1090,7 +1111,7 @@ Ejemplo: `{"label":"Notas para el equipo","placeholder":"Escribe un comentario�
 
 Botones segmentados para cambiar de modo (Lista | Tablero, Semana | Mes). Cambia dentro de la vista; no cambia el contenido ni navega.
 
-- `options`: [{ label: string (min 1, ≤160), value: string (min 1, ≤80), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto) }] (min 2, máx 6)
+- `options`: [{ label: string (min 1, ≤160), value: string (min 1, ≤80), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto) }] (min 2, máx 6)
 - `value`?: string (null = por defecto)
 - `variant`?: "default"|"outline"|null (null = por defecto)
 
@@ -1214,11 +1235,12 @@ Ejemplo: `{"label":"Hora de la revisión","value":"10:30","hourCycle":24,"minute
 
 #### ChatComposer
 
-El cuadro donde se escribe un mensaje a un agente, de maqueta: no se conecta a ningún agente ni envía mensajes. Se pinta deshabilitado, con los botones de adjuntar y enviar decorativos (también deshabilitados). placeholder es el texto de ayuda; value, un borrador de ejemplo; attachments, nombres de archivos ya adjuntos (sin enlace). Va al pie de ChatLayout o debajo de un ChatThread. Nunca pidas contraseñas, tarjetas ni códigos.
+El cuadro donde se escribe un mensaje a un agente, de maqueta: no se conecta a ningún agente ni envía mensajes. Por omisión se pinta deshabilitado, con los botones de adjuntar y enviar decorativos (también deshabilitados); con interactive: true se puede escribir en el cuadro y pulsar sus botones, como en un Textarea, y aun así nada se envía ni se guarda (dentro de un formulario de maqueta sigue deshabilitado). placeholder es el texto de ayuda; value, un borrador de ejemplo; attachments, nombres de archivos ya adjuntos (sin enlace). Sus slots van dentro del cuadro, en la barra bajo el texto: toolbar (Select, Button, Badge, Popover: alcance, espacio de agentes, skills) después de adjuntar, leading antes de adjuntar y trailing antes de enviar (Select, Button, Badge); sin interactive se ven deshabilitados como el cuadro. Va al pie de ChatLayout o debajo de un ChatThread. Nunca pidas contraseñas, tarjetas ni códigos.
 
 - `placeholder`?: string (min 1, ≤160) (null = por defecto)
 - `value`?: string (≤2000) (null = por defecto)
 - `attachments`?: [string (min 1, ≤160)] (máx 5) (null = por defecto)
+- `interactive`?: boolean (null = por defecto)
 
 Ejemplo: `{"placeholder":"Pregunta sobre el proyecto…","attachments":["Acta revisión 2026-10-02.pdf"]}`
 
@@ -1281,14 +1303,14 @@ Ejemplo: `{"breadcrumb":[{"label":"Proyectos","href":"/organization/projects"},{
 Encabezado de una página de producto, como los de Portal y Console: back (enlace de regreso, «← Todos los proyectos»), icon (en su cuadro), eyebrow (antetítulo), title, description, badges (estados con tono), meta (datos breves con icono: «Activo», «Por asignar», «Actualizado 6 oct») y hasta 3 actions a la derecha (la primera sólida, las demás con borde; con href navegan). level h2 lo usa como encabezado de una sección de la página. Úsalo en la región header de PageLayout o DetailLayout; para un proyecto de Portal, ProjectHeader.
 
 - `back`?: { label: string (min 1, ≤160), href?: string (null = por defecto) } (null = por defecto)
-- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto)
+- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto)
 - `eyebrow`?: string (min 1, ≤60) (null = por defecto)
 - `title`: string (min 1, ≤160)
 - `level`?: "h1"|"h2"|null (null = por defecto)
 - `description`?: string (≤2000) (null = por defecto)
 - `badges`?: [{ label: string (min 1, ≤160), tone: "neutral"|"info"|"progress"|"success"|"warning"|"danger" }] (min 1, máx 4) (null = por defecto)
-- `meta`?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto) }] (min 1, máx 4) (null = por defecto)
-- `actions`?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), href?: string (null = por defecto) }] (min 1, máx 3) (null = por defecto)
+- `meta`?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto) }] (min 1, máx 4) (null = por defecto)
+- `actions`?: [{ label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto), href?: string (null = por defecto) }] (min 1, máx 3) (null = por defecto)
 
 Ejemplo: `{"back":{"label":"Todos los proyectos","href":"/organization/projects"},"icon":"folder","title":"Pai Ecosystem","description":"Lo que se decidió en el proyecto, por qué y qué partes lo componen.","badges":[{"label":"Activo","tone":"success"}],"meta":[{"label":"Por asignar","icon":"user"},{"label":"Actualizado 6 oct 2026","icon":"calendar"}],"actions":[{"label":"Nuevo nodo","icon":"plus"},{"label":"Ver en toda la organización"}]}`
 
@@ -1339,10 +1361,10 @@ Estado vacío de una sección, como en Portal: icono, «Aún no hay {objetos}»,
 
 - `title`: string (min 1, ≤160)
 - `description`?: string (≤2000) (null = por defecto)
-- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto)
-- `action`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
+- `icon`?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto)
+- `action`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
 - `illustration`?: "tile"|"stack"|null (null = por defecto)
-- `secondaryAction`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
+- `secondaryAction`?: { label: string (min 1, ≤160), icon?: "dashboard"|"chart"|"file"|"folder"|"users"|"user"|"building"|"home"|"calendar"|"wallet"|"receipt"|"commission"|"reports"|"settings"|"help"|"search"|"bell"|"mail"|"map"|"layers"|"briefcase"|"key"|"flag"|"file-signature"|"list-checks"|"network"|"book-open"|"package"|"orbit"|"shield"|"shield-check"|"monitor-smartphone"|"plus"|"download"|"upload"|"filter"|"send"|"pencil"|"trash"|"copy"|"external"|"sparkles"|"check"|"clock"|"id-card"|"receipt-text"|"folder-kanban"|"file-cog"|"layout-grid"|"log-in"|"graduation-cap"|"palette"|"workflow"|null (null = por defecto), href?: string (null = por defecto) } (null = por defecto)
 
 Ejemplo: `{"title":"Aún no hay propuestas","description":"Cuando el equipo envíe una propuesta, aparecerá aquí.","icon":"file-signature","action":{"label":"Nueva propuesta","icon":"plus"}}`
 
@@ -1679,6 +1701,7 @@ Diagrama C4 de Conocimiento, el mismo de Portal, en uno de sus cuatro niveles (c
 - `view`: objeto que viene de `knowledge_view` tal cual (no lo escribas a mano)
 - `href`?: string (≤500) (null = por defecto)
 - `height`?: "sm"|"md"|"lg"|null (null = por defecto)
+- `detail`?: { organizationId: string, projectId: string, scope: string (min 1, ≤200), level?: "context"|"container"|"component"|"code", productId?: string } (null = por defecto)
 
 Ejemplo: `{"view":"‹resultado de knowledge_view›","height":"md"}`
 
@@ -1697,7 +1720,7 @@ Ejemplo: `{"view":"‹resultado de knowledge_view›","focus":"venta","height":"
 
 Grafo de Conocimiento, el mismo de Portal (WebGL): un punto por nodo, coloreado por su kind, y una línea por relación. Se arrastra, se acerca y al elegir un punto se resaltan sus vecinos y su título. Con href, el nodo elegido enlaza a su página ({id}). Usa los nodos y relaciones que devolvieron knowledge_list, knowledge_get o knowledge_context.
 
-- `nodes`: [{ id: string (min 1, ≤200), title: string (min 1, ≤200), kind: "objective"|"decision"|"adr"|"business_rule"|"constraint"|"risk"|"question"|"assumption"|"task"|"pattern"|"runbook"|"gotcha"|"antipattern"|"note"|"concept"|"fact"|"reference"|"module"|"screen"|"flow"|"data_model"|"entity"|"component"|"actor"|"glossary_term"|"use_case" }] (min 1, máx 500)
+- `nodes`: [{ id: string (min 1, ≤200), title: string (min 1, ≤200), kind: "objective"|"decision"|"adr"|"business_rule"|"constraint"|"risk"|"question"|"assumption"|"task"|"pattern"|"runbook"|"gotcha"|"antipattern"|"note"|"concept"|"fact"|"reference"|"module"|"screen"|"flow"|"data_model"|"entity"|"component"|"actor"|"glossary_term"|"use_case"|"action"|"integration"|"flow_run" }] (min 1, máx 500)
 - `edges`: [{ source: string (min 1, ≤200), target: string (min 1, ≤200), rel: string (min 1, ≤40) }] (máx 1500)
 - `href`?: string (≤500) (null = por defecto)
 - `height`?: "sm"|"md"|"lg"|null (null = por defecto)
@@ -1708,7 +1731,7 @@ Ejemplo: `{"nodes":[{"id":"dec-stack","title":"API monolítica en NestJS","kind"
 
 El tipo de un nodo de Conocimiento como lo pinta Pai: badge con su punto de color y su nombre («• Componente (C4)»).
 
-- `kind`: "objective"|"decision"|"adr"|"business_rule"|"constraint"|"risk"|"question"|"assumption"|"task"|"pattern"|"runbook"|"gotcha"|"antipattern"|"note"|"concept"|"fact"|"reference"|"module"|"screen"|"flow"|"data_model"|"entity"|"component"|"actor"|"glossary_term"|"use_case"
+- `kind`: "objective"|"decision"|"adr"|"business_rule"|"constraint"|"risk"|"question"|"assumption"|"task"|"pattern"|"runbook"|"gotcha"|"antipattern"|"note"|"concept"|"fact"|"reference"|"module"|"screen"|"flow"|"data_model"|"entity"|"component"|"actor"|"glossary_term"|"use_case"|"action"|"integration"|"flow_run"
 
 Ejemplo: `{"kind":"decision"}`
 
@@ -1716,7 +1739,7 @@ Ejemplo: `{"kind":"decision"}`
 
 La biblioteca de Conocimiento de Portal y Console: tabla de nodos con tipo, estado, proyecto (project; sin él, «Organización»), visibilidad y fecha, con búsqueda, filtros, orden y páginas dentro de la vista. showProject:false es la biblioteca de un proyecto: sin columna de proyecto, y sólo los nodos con organization:true llevan «Organización» bajo el título. Con href (plantilla con {id}) el título enlaza a la página del nodo. Usa los nodos que devolvió knowledge_search o knowledge_list.
 
-- `items`: [{ id: string (min 1, ≤80), title: string (min 1, ≤200), kind: "objective"|"decision"|"adr"|"business_rule"|"constraint"|"risk"|"question"|"assumption"|"task"|"pattern"|"runbook"|"gotcha"|"antipattern"|"note"|"concept"|"fact"|"reference"|"module"|"screen"|"flow"|"data_model"|"entity"|"component"|"actor"|"glossary_term"|"use_case", status: "draft"|"proposed"|"active"|"resolved"|"superseded"|"archived"|"rejected", visibility?: "internal"|"client"|null (null = por defecto), summary?: string (≤400) (null = por defecto), project?: string (min 1, ≤160) (null = por defecto), organization?: boolean (null = por defecto), updatedAt: string }] (máx 200)
+- `items`: [{ id: string (min 1, ≤80), title: string (min 1, ≤200), kind: "objective"|"decision"|"adr"|"business_rule"|"constraint"|"risk"|"question"|"assumption"|"task"|"pattern"|"runbook"|"gotcha"|"antipattern"|"note"|"concept"|"fact"|"reference"|"module"|"screen"|"flow"|"data_model"|"entity"|"component"|"actor"|"glossary_term"|"use_case"|"action"|"integration"|"flow_run", status: "draft"|"proposed"|"active"|"resolved"|"superseded"|"archived"|"rejected", visibility?: "internal"|"client"|null (null = por defecto), summary?: string (≤400) (null = por defecto), project?: string (min 1, ≤160) (null = por defecto), organization?: boolean (null = por defecto), updatedAt: string }] (máx 200)
 - `showProject`?: boolean (null = por defecto)
 - `href`?: string (≤500) (null = por defecto)
 - `search`?: string (≤120) (null = por defecto)

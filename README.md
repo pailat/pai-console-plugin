@@ -3,7 +3,7 @@
 Plugin de Claude Code para que el staff de Pai opere proyectos de clientes en **Pai Console** por su MCP corp. Incluye:
 
 - el MCP ya configurado;
-- skills opinados para Recursos, vistas, Conocimiento (ERD, C4, pantallas), Cronograma, Propuestas y Pagos, Productos, CRM y el tema de marca;
+- skills opinados para Recursos, vistas, Conocimiento (ERD, C4, pantallas), Flujos, Cronograma, Propuestas y Pagos, Productos, CRM y el tema de marca;
 - una guarda de escrituras en producción.
 
 ## Requisitos
@@ -84,13 +84,14 @@ La guarda sabe qué es lectura por las anotaciones del propio servidor. Las lee 
 
 | Skill | Para |
 |---|---|
-| `pai-console` | El método base: entorno, descubrimiento, buscar antes de crear, CAS, idempotencia, nombres en inglés, errores, citas. Con el inventario de tools (también el tema de la organización, con su `shell`) |
-| `resources` | Pages con tipo, bloques `view`, `html` (mockups y prototipos interactivos), `projection` y `whiteboard`, pizarras (Excalidraw desde un grafo o Mermaid), atributos (fecha, responsable, estatus, etiquetas) y filtros, notas, carpetas, sugerencias, comentarios con audiencias y anclas, imágenes, archivos, mover, restaurar y borrar |
-| `views` | UI generativa de Pai (`pai-view@1`, 150 componentes, patrones con regiones y 68 recetas del servidor): `view_render` para dibujar en la conversación; layouts reales de Portal, Console, pai.lat y login; piezas de datos del Portal (Pagos, Cronograma, Tareas, Proyectos, Actividad, Biblioteca); diagramas ERD/C4 y grafo; tableros, mockups, reportes visuales y comparativos guardados en Recursos. Recetas validadas y catálogo generado |
+| `pai-console` | El método base: entorno (leído con `whoami`, con cualquier prefijo del MCP), descubrimiento, buscar antes de crear, CAS, idempotencia, nombres en inglés, errores, citas. Con el inventario de tools (también el tema de la organización, con su `shell`) |
+| `resources` | Pages con tipo, bloques `view`, `html` (mockups y prototipos interactivos), `projection` y `whiteboard`, pizarras (Excalidraw desde un grafo o Mermaid), atributos (fecha, responsable, estatus, etiquetas) y filtros, notas, carpetas, sugerencias, comentarios con audiencias y anclas, assets del proyecto (imágenes y videos con `asset_*`: subir, confirmar, reutilizar y borrar; bloques `figure` y `video`, nodos de imagen en pizarras), archivos, mover, restaurar y borrar |
+| `views` | UI generativa de Pai (`pai-view@1`, 152 componentes, slots con nombre, props de layout, patrones con regiones y 68 recetas del servidor): `view_render` para dibujar en la conversación; layouts reales de Portal, Console, pai.lat y login; piezas de datos del Portal (Pagos, Cronograma, Tareas, Proyectos, Actividad, Biblioteca); diagramas ERD/C4 y grafo; tableros, mockups, reportes visuales y comparativos guardados en Recursos. Recetas validadas y catálogo generado |
 | `knowledge` | Kinds, fuentes, propuestas que confirma una persona, enlaces por ontología (incluido `implemented_by`), conocimiento de producto (`productId`), `knowledge_query`, `knowledge_batch`, ciclo de vida |
 | `erd` | `data_model` + `entity`: columnas tipadas; las relaciones salen de las FK |
 | `c4` | `component` por nivel y `actor`; relaciones con descripción y tecnología |
-| `screens` | `screen`, `flow`, `actor` |
+| `screens` | `screen` (v3: acciones como nodos `action` con `offers`, fuentes `{ref}`, prototipo en un bloque `view`), `actor` y el nodo `flow` (sus pasos van por `flows`) |
+| `flows` | Flujos (ATE-230): pasos inicio/paso/decisión/fin con ramas etiquetadas y refs a actor, pantalla, acción e integración; `flow_save` con CAS o Mermaid, versiones, «Probar como…» con `flow_run_*`, integraciones simuladas (`sampleResponse`, `sampleCases`), checklist para que se pueda probar y orden para publicarlo al cliente |
 | `schedule` | Hitos, dependencias, tareas, línea base, tablero, cierre y reapertura del proyecto |
 | `proposals-payments` | SOW, estados, CFDI, pagos, anulación |
 | `theme` | Tema de marca de una organización (Ajustes › Apariencia, staff): colores claro y oscuro, fuente, radio, sombra, logos y el app shell del Portal; contraste AA, borrador, vista previa, publicar y volver; tokens desde el producto real del cliente (OKLCH), mapa de tokens del Portal y auditoría de contraste en el Portal en claro y oscuro |
