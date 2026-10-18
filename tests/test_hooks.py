@@ -48,7 +48,7 @@ class HookCase(unittest.TestCase):
     def transcript(self, *tool_names: str) -> str:
         path = Path(self.home.name, "transcript.jsonl")
         lines = [
-            json.dumps({"type": "user", "message": {"role": "user", "content": "hola"}}),
+            json.dumps({"type": "user", "message": {"role": "user", "content": "hello"}}),
             *(
                 json.dumps(
                     {
@@ -99,14 +99,14 @@ class GuardTest(HookCase):
     def test_production_write_asks(self) -> None:
         decision, reason = self.decision(self.guard(PLUGIN + "page_update", PRODUCTION, {"path": "architecture/payments"}))
         self.assertEqual(decision, "ask")
-        self.assertIn("PRODUCCIÓN", reason)
+        self.assertIn("PRODUCTION", reason)
         self.assertIn("architecture/payments", reason)
 
     def test_production_irreversible_says_so_and_what_it_drags(self) -> None:
         decision, reason = self.decision(self.guard(PLUGIN + "project_delete", PRODUCTION, {"projectId": "p1"}))
         self.assertEqual(decision, "ask")
         self.assertTrue(reason.startswith("IRREVERSIBLE"))
-        self.assertIn("pagos y CFDI", reason)
+        self.assertIn("payments and CFDI", reason)
         for tool in ("page_delete", "payment_void", "milestone_delete", "folder_delete", "asset_delete"):
             decision, reason = self.decision(self.guard(PLUGIN + tool, PRODUCTION))
             self.assertEqual(decision, "ask")
@@ -116,7 +116,7 @@ class GuardTest(HookCase):
         _, reason = self.decision(self.guard(PLUGIN + "product_deploy", PRODUCTION, {"environment": "production"}))
         self.assertTrue(reason.startswith("IRREVERSIBLE"))
         _, reason = self.decision(self.guard(PLUGIN + "product_deploy", PRODUCTION, {"environment": "staging"}))
-        self.assertTrue(reason.startswith("ATENCIÓN"))
+        self.assertTrue(reason.startswith("ATTENTION"))
 
     def test_unknown_tool_counts_as_write(self) -> None:
         decision, _ = self.decision(self.guard(PLUGIN + "brand_new_tool", PRODUCTION))
@@ -173,6 +173,28 @@ class GuardTest(HookCase):
         searched = self.transcript(PLUGIN + "flow_list")
         self.assertIsNone(self.guard(PLUGIN + "flow_create", STAGING, transcript=searched))
 
+    def test_new_domain_creates_require_the_corresponding_completed_search(self) -> None:
+        for create, search in (("task_create", "task_list"), ("chat_create", "chat_list"),
+                               ("iam_group_create", "iam_group_list"), ("iam_role_create", "iam_role_list"),
+                               ("iam_deny_create", "iam_deny_list")):
+            with self.subTest(tool=create):
+                decision, _ = self.decision(self.guard(PLUGIN + create, STAGING, transcript=self.transcript(PLUGIN + "page_list")))
+                self.assertEqual(decision, "deny")
+                searched = self.transcript(PLUGIN + search)
+                self.assertIsNone(self.guard(PLUGIN + create, STAGING, transcript=searched))
+                decision, _ = self.decision(self.guard(PLUGIN + create, PRODUCTION, transcript=searched))
+                self.assertEqual(decision, "ask")
+
+    def test_new_reads_pass_but_privacy_access_and_agent_writes_prompt(self) -> None:
+        for tool in ("iam_policy_get", "iam_access_test", "chat_list", "chat_get", "task_list_mine"):
+            self.assertIsNone(self.guard(PLUGIN + tool, PRODUCTION), tool)
+        for tool, expected in (("crm_lead_anonymize", "ARCO"), ("knowledge_merge", "duplicate"),
+                               ("chat_send", "credits"), ("iam_policy_set", "etag"),
+                               ("knowledge_move", "subtree"), ("folder_reorder", "PRODUCTION")):
+            decision, reason = self.decision(self.guard(PLUGIN + tool, PRODUCTION))
+            self.assertEqual(decision, "ask")
+            self.assertIn(expected, reason)
+
     def test_note_create_needs_a_pages_search(self) -> None:
         decision, _ = self.decision(self.guard(PLUGIN + "note_create", STAGING, transcript=self.transcript()))
         self.assertEqual(decision, "deny")
@@ -186,6 +208,30 @@ class GuardTest(HookCase):
     def test_missing_transcript_never_blocks(self) -> None:
         self.assertIsNone(self.guard(PLUGIN + "page_create", STAGING, transcript=str(Path(self.home.name, "missing.jsonl"))))
 
+    def test_hostname_spoofs_are_production(self) -> None:
+        for url in (
+            STAGING.replace(".app/mcp", ".app.evil.test/mcp"),
+            "https://evil.test/" + STAGING,
+            "https://mcp-corp.paitesting.com@evil.test/mcp",
+            "https://[broken/mcp",
+        ):
+            decision, _ = self.decision(self.guard(PLUGIN + "page_update", url))
+            self.assertEqual(decision, "ask")
+            output = self.run_hook(SESSION_START, {"hook_event_name": "SessionStart"}, url)
+            self.assertIn("PRODUCTION", output["systemMessage"])
+
+    def test_malformed_events_do_not_crash(self) -> None:
+        for event in (None, [], True, "text", {"tool_name": []}):
+            self.assertIsNone(self.run_hook(GUARD, event, PRODUCTION))
+        decision, _ = self.decision(self.run_hook(GUARD, {"tool_name": PLUGIN + "page_update", "tool_input": []}, PRODUCTION))
+        self.assertEqual(decision, "ask")
+
+    def test_malformed_transcript_entries_are_ignored(self) -> None:
+        path = Path(self.home.name, "malformed.jsonl")
+        path.write_text('[]\n{"message": []}\n{"message": {"content": "tool_use"}}\n')
+        decision, _ = self.decision(self.guard(PLUGIN + "page_create", STAGING, transcript=str(path)))
+        self.assertEqual(decision, "deny")
+
 
 class InventoryTest(HookCase):
     """hooks/tools.json is the corp server's tools/list (pai-portal 0.2.5+)."""
@@ -193,7 +239,7 @@ class InventoryTest(HookCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.tools = json.loads((ROOT / "hooks" / "tools.json").read_text())["tools"]
-        source = (ROOT / "hooks" / "guard.py").read_text()
+        source = (ROOT / "hooks" / "policy.py").read_text()
         cls.guard_names = set(
             name
             for block in ("IRREVERSIBLE = {", "ATTENTION = {", "SEARCH_BEFORE_CREATE = {")
@@ -206,7 +252,7 @@ class InventoryTest(HookCase):
 
     def test_every_read_passes_and_every_write_asks_in_production(self) -> None:
         for name, hints in self.tools.items():
-            output = self.guard(PLUGIN + name, PRODUCTION, transcript=self.transcript(PLUGIN + "page_search", PLUGIN + "knowledge_search", PLUGIN + "timeline_get", PLUGIN + "project_list", PLUGIN + "organization_list", PLUGIN + "product_list", PLUGIN + "agent_list", PLUGIN + "crm_lead_duplicates", PLUGIN + "crm_organization_get"))
+            output = self.guard(PLUGIN + name, PRODUCTION, transcript=self.transcript(PLUGIN + "page_search", PLUGIN + "knowledge_search", PLUGIN + "timeline_get", PLUGIN + "project_list", PLUGIN + "organization_list", PLUGIN + "product_list", PLUGIN + "agent_list", PLUGIN + "crm_lead_duplicates", PLUGIN + "crm_organization_get", PLUGIN + "chat_list", PLUGIN + "task_list", PLUGIN + "iam_group_list", PLUGIN + "iam_role_list", PLUGIN + "iam_deny_list", PLUGIN + "flow_list"))
             if hints["readOnly"]:
                 self.assertIsNone(output, name)
             else:
@@ -225,7 +271,9 @@ class InventoryTest(HookCase):
     def test_explorer_agent_only_reads(self) -> None:
         header = (ROOT / "agents" / "pai-explorer.md").read_text().split("\n---", 1)[0]
         names = __import__("re").findall(r"mcp__plugin_pai-console_pai__(\w+)", header)
-        self.assertIn("crm_task_list", names)
+        self.assertIn("task_list", names)
+        self.assertIn("iam_access_test", names)
+        self.assertIn("chat_get", names)
         self.assertEqual(sorted(n for n in names if not self.tools.get(n, {}).get("readOnly")), [])
 
     def test_flow_tools_are_known(self) -> None:
@@ -243,12 +291,11 @@ class InventoryTest(HookCase):
             self.assertFalse(self.tools[tool]["destructive"], tool)
         self.assertTrue(self.tools["asset_delete"]["destructive"])
 
-    def test_crm_task_tools_are_known(self) -> None:
-        for tool in ("crm_task_list", "crm_task_get", "crm_task_tag_list"):
+    def test_unified_task_tools_are_known(self) -> None:
+        for tool in ("task_list", "task_get", "task_tag_list", "task_list_mine"):
             self.assertTrue(self.tools[tool]["readOnly"], tool)
-        for tool in ("crm_task_create", "crm_task_update", "crm_task_complete"):
+        for tool in ("task_create", "task_update", "task_complete", "task_cancel", "task_archive", "task_restore"):
             self.assertFalse(self.tools[tool]["readOnly"], tool)
-            self.assertFalse(self.tools[tool]["destructive"], tool)
 
 
 class SessionStartTest(HookCase):
@@ -257,24 +304,24 @@ class SessionStartTest(HookCase):
         self.assertIn("STAGING", output["systemMessage"])
         context = output["hookSpecificOutput"]["additionalContext"]
         self.assertIn("mcp__plugin_pai-console_pai__", context)
-        self.assertNotIn("pide confirmación", context)
+        self.assertNotIn("requests confirmation", context)
 
     def test_announces_develop(self) -> None:
         output = self.run_hook(SESSION_START, {"hook_event_name": "SessionStart"}, DEVELOP)
         self.assertIn("DEVELOP", output["systemMessage"])
-        self.assertNotIn("confirmación", output["hookSpecificOutput"]["additionalContext"])
+        self.assertNotIn("confirmation", output["hookSpecificOutput"]["additionalContext"])
         self.assertIn(DEVELOP, output["systemMessage"])
 
     def test_announces_legacy_develop_url_as_develop(self) -> None:
         output = self.run_hook(SESSION_START, {"hook_event_name": "SessionStart"}, DEVELOP_LEGACY)
         self.assertIn("DEVELOP", output["systemMessage"])
-        self.assertNotIn("PRODUCCIÓN", output["systemMessage"])
+        self.assertNotIn("PRODUCTION", output["systemMessage"])
 
     def test_announces_production_and_user_server(self) -> None:
         output = self.run_hook(SESSION_START, {"hook_event_name": "SessionStart"}, PRODUCTION, user_url=PRODUCTION)
-        self.assertIn("PRODUCCIÓN", output["systemMessage"])
+        self.assertIn("PRODUCTION", output["systemMessage"])
         context = output["hookSpecificOutput"]["additionalContext"]
-        self.assertIn("pide confirmación", context)
+        self.assertIn("requests confirmation", context)
         self.assertIn("mcp__pai-console__", context)
 
 

@@ -1,166 +1,170 @@
 ---
 name: flows
-description: "Flujos de un proyecto de Pai Console (ATE-230): el flujo como entidad con pasos (inicio, paso, decisión, fin), ramas etiquetadas y referencias a actor, pantalla, acción e integración, y sus pruebas «Probar como…». Cubre flow_list, flow_get, flow_create, flow_save (CAS con expectedRevision, grafo o Mermaid), flow_version_bump y flow_run_start/step/finish/list/get, los nodos action e integration (simulada con sampleResponse y sampleCases), el checklist para que un flujo se pueda probar y el orden para publicarlo al cliente. Úsalo cuando pidan un flujo, un recorrido, un journey, un diagrama de proceso con ramas, probar un flujo, «Probar como…», simular una integración o dejar un flujo listo para el cliente."
-argument-hint: "[proyecto] [flujo a crear, corregir o probar]"
-compatibility: "Pai 0.2.5+ (MCP corp; flow_* en develop desde d65d611ac)"
+description: "Pai Console project flows (ATE-230): entity-backed steps, labeled branches, actor/screen/action/integration refs, and role-based tests. Covers flow_list/get/create/save with CAS and graph or Mermaid, version bumps, flow_run_* tests, simulated integrations with sampleResponse/sampleCases, test readiness, and client publication order. Use to create, correct, simulate, test, or prepare a branched journey or process for clients."
+argument-hint: "[project] [flow to create, correct, or test]"
+compatibility: "Pai 0.2.5+ (MCP corp; flow_* in develop since d65d611ac)"
 ---
 
-# Flujos en Pai: `flow_*` y `flow_run_*`
+# Flows: `flow_*` and `flow_run_*`
 
-Lee antes el skill `pai-console`. Los nodos `actor`, `screen` y `action` se documentan con el skill `screens`, y el resto del Conocimiento con el skill `knowledge`.
+Read shared `pai-console` first through the current client's skill mechanism. `screens` covers `actor`, `screen`, and `action`; `knowledge` covers the remaining graph.
 
-Un flujo **describe, se ve y se prueba**:
-- es un nodo `flow` de Conocimiento y, a la vez, una entidad con sus pasos como filas (`flow_step`) y sus ramas (`flow_transition`);
-- en el Portal vive en **Flujos** (`/{org}/{proyecto}/flows`), con su lienzo, «Probar como…», las pestañas Pruebas y Versiones, y «Siguiente iteración» (`notes`);
-- `properties.steps` y `alternatives` del nodo son una **proyección** que escribe `flow_save`. `knowledge_update` no los cambia («Los pasos de este flujo se editan en el canvas o con flow_save, no con knowledge_update.»).
+A flow **describes, displays, and tests** a journey:
+- It is both a Knowledge `flow` node and an entity with `flow_step` rows and `flow_transition` branches.
+- In Portal it lives at `/{org}/{project}/flows`, with canvas, role-based testing, Tests/Versions tabs, and next-iteration `notes`.
+- Node `properties.steps` and `alternatives` are **projections** written by `flow_save`. `knowledge_update` rejects changes with the literal server message “Los pasos de este flujo se editan en el canvas o con flow_save, no con knowledge_update.”
 
-## 1. El modelo
+## 1. Model
 
-**Paso** (`steps[]`): `{key, kind, title, detail?, actor?, screen?, action?, integration?, position?}`.
+**Step** (`steps[]`): `{key, kind, title, detail?, actor?, screen?, action?, integration?, position?}`.
 
-| `kind` | Qué es |
+| `kind` | Meaning |
 |---|---|
-| `start` | Lo que dispara el flujo (sale del `trigger`) |
-| `step` | Algo que hace una persona o el sistema |
-| `decision` | Un punto donde el camino se divide. **Nunca lleva `screen`** |
-| `end` | Un resultado (sale del `outcome`, o de cada rama que termina) |
+| `start` | Flow trigger (from `trigger`) |
+| `step` | User/system action |
+| `decision` | Branch point; **never has `screen`** |
+| `end` | Outcome (from `outcome` or each ending branch) |
 
-- `key`: id estable dentro del flujo (`[A-Za-z0-9_-]`, ≤64). Los pasos que no mandas **se borran**.
-- `actor`, `screen`, `action` e `integration` son refs (`kind/slug`, uuid o short id) a nodos del **proyecto o de la organización** del kind correcto. Uno que no existe o de otro kind da `invalid_input` con `cause.code: FLOW_STEP_REF` y la ruta (`steps.3.screen`).
-- `detail` es el resultado esperado del paso: es lo que ve quien prueba.
+- Stable `key` within the flow (`[A-Za-z0-9_-]`, ≤64). Omitted steps **are deleted**.
+- `actor`, `screen`, `action`, `integration`: correct-kind refs (`kind/slug`, UUID, short ID) from **project or organization**. Missing/wrong kind yields `invalid_input`, `cause.code: FLOW_STEP_REF`, and path such as `steps.3.screen`.
+- `detail`: expected result shown to the tester.
 
-**Transición** (`transitions[]`): `{from, to, kind, label?}`.
-- `next` (por omisión): el camino principal.
-- `branch`: una salida etiquetada de una decisión («Aprobada», «Rechazada»).
-- `alternative`: «si algo sale distinto», etiquetada.
-- `branch` y `alternative` exigen `label`. No hay transiciones de un paso a sí mismo ni repetidas.
+**Transition** (`transitions[]`): `{from, to, kind, label?}`.
+- `next` (default): main path.
+- `branch`: labeled decision outcome.
+- `alternative`: labeled deviation.
+- `branch` and `alternative` require `label`; no self-transitions or duplicates.
 
-Límites: 120 pasos y 240 transiciones. `layoutDirection`: `TB` (de arriba abajo) es el valor **por omisión**; manda `LR` solo si la persona lo pide.
+Limits: 120 steps, 240 transitions. **Default** `layoutDirection: TB`; send `LR` only if requested.
 
-**Nodos que el flujo referencia** (se crean con `knowledge_create`, skill `knowledge`; plantillas en `../knowledge/references/kinds.md`):
+**Referenced nodes** (`knowledge_create`, `knowledge`; templates `../knowledge/references/kinds.md`):
 
-| Kind | Para | Obligatorios |
+| Kind | Purpose | Required |
 |---|---|---|
-| `actor` | Quién hace el paso | ver skill `screens` |
-| `screen` | Dónde pasa (v3) | ver skill `screens` |
-| `action` | Lo que la persona hace en la pantalla, o lo que el sistema hace solo | `trigger` (`button`, `form`, `link`, `automatic`), `effect` |
-| `integration` | El servicio que corre el paso (Stripe, un webhook, un IdP) | `provider`, `state` (`described`, `simulated`, `real`), `operation`. Si es `simulated`, `sampleResponse` (JSON ≤16 KB) es obligatoria; `sampleCases` (`{case, response}`) agrega los casos que elige quien prueba |
+| `actor` | Step performer | See `screens` |
+| `screen` | Step location (v3) | See `screens` |
+| `action` | User or automatic system action | `trigger` (`button`, `form`, `link`, `automatic`), `effect` |
+| `integration` | Step service (Stripe, webhook, IdP) | `provider`, `state` (`described`, `simulated`, `real`), `operation`; `simulated` requires `sampleResponse` (JSON ≤16 KB); `sampleCases` (`{case, response}`) adds selectable test cases |
 
-Aristas que deriva `flow_save` de los pasos (`fromSection: "flow_steps"`): actor `performs` flujo, flujo `uses` pantalla y acción, y flujo `triggers` integración. Una acción que dispara el flujo se enlaza a mano: `knowledge_link` acción `triggers` flujo.
+`flow_save` derives edges from steps (`fromSection: "flow_steps"`): actor `performs` flow, flow `uses` screen/action, flow `triggers` integration. Manually link an initiating action with `knowledge_link` action `triggers` flow.
 
 ## 2. Tools
 
-| Tool | Qué hace | Quién |
+| Tool | Behavior | Access |
 |---|---|---|
-| `flow_list` | Flujos del proyecto: ref, título, versión, pasos, roles y la última prueba | Staff y cliente (solo los `client`) |
-| `flow_get {ref}` | Disparador, resultado, pasos en orden con sus refs, transiciones, `revision`, versión y las últimas pruebas, con el resultado de cada paso. En hosts con MCP Apps se dibuja como vista (`Flow`) | Staff y cliente |
-| `flow_create {title, trigger?, outcome?, summary?, visibility?, graph?, sources, idempotencyKey?}` | Crea el flujo. Sin `graph` nace con un inicio (el disparador) y un fin (el resultado). `sources` es obligatorio | Staff |
-| `flow_save {ref, graph \| mermaid, expectedRevision, idempotencyKey, changeSummary?}` | **Reemplaza** el grafo completo | Staff |
-| `flow_version_bump {ref, label}` | v1 → v2… con etiqueta («Integraciones simuladas»). No cambia la `revision` | Staff |
-| `flow_run_start {ref, actor?, mode}` | Inicia una prueba. Devuelve su `ref` | Staff y cliente |
-| `flow_run_step {run, stepKey, result, note?, branchLabel?, integrationResponse?}` | Registra un paso | Quien inició la prueba |
-| `flow_run_finish {run, status, stoppedAtKey?, notes?}` | Cierra la prueba | Quien la inició |
-| `flow_run_list {ref, limit?}` / `flow_run_get {run}` | Historial y detalle de pruebas | Staff y cliente (el cliente ve las de su organización, no las del equipo de Pai) |
+| `flow_list` | Project refs, titles, versions, steps, roles, latest test | Staff/client (only `client` flows) |
+| `flow_get {ref}` | Trigger, outcome, ordered referenced steps, transitions, `revision`, version, latest tests and step results; `Flow` view on MCP Apps hosts | Staff/client |
+| `flow_create {title, trigger?, outcome?, summary?, visibility?, graph?, sources, idempotencyKey?}` | Creates flow; without `graph`, creates trigger start and outcome end; requires `sources` | Staff |
+| `flow_save {ref, graph \| mermaid, expectedRevision, idempotencyKey, changeSummary?}` | **Replaces** complete graph | Staff |
+| `flow_version_bump {ref, label}` | v1 → v2… with label; does not change `revision` | Staff |
+| `flow_run_start {ref, actor?, mode}` | Starts test, returns its `ref` | Staff/client |
+| `flow_run_step {run, stepKey, result, note?, branchLabel?, integrationResponse?}` | Records step | Test initiator |
+| `flow_run_finish {run, status, stoppedAtKey?, notes?}` | Closes test | Test initiator |
+| `flow_run_list {ref, limit?}` / `flow_run_get {run}` | History/details | Staff/client; clients see their organization's tests, not Pai team's |
 
-Todas reciben `organizationId` y `projectId`. `ref` del flujo: uuid, short id, `flow/<slug>` o slug.
+All receive `organizationId` and `projectId`. Flow `ref`: UUID, short ID, `flow/<slug>`, or slug.
 
-### `flow_save`: CAS e idempotencia
+### `flow_save`: CAS and idempotency
 
-1. `flow_get` y toma `revision`.
-2. Compón el grafo **completo** a partir de lo leído: lo que no mandes se borra.
-3. `flow_save` con `expectedRevision` = esa revisión e `idempotencyKey` estable (`flow-<proyecto>-<slug>-<n>`). Si reintentas, usa la misma clave.
-4. `CONFLICT`: alguien guardó antes (el lienzo es colaborativo y en vivo). Relee, integra y reintenta una vez.
-5. Revisa `warnings` y la respuesta: trae el flujo con su nueva `revision`.
+1. `flow_get` for `revision`.
+2. Compose the **complete** graph from that read; omitted content is deleted.
+3. `flow_save` with that `expectedRevision` and stable `idempotencyKey` (`flow-<project>-<slug>-<n>`). Reuse on retry.
+4. On `CONFLICT`, another user saved first (live collaborative canvas). Reread, integrate, retry once.
+5. Inspect `warnings` and the returned flow/new `revision`.
 
-**Mermaid** en lugar de `graph`: `{…}` es decisión, `([…])` inicio o fin, `-->|condición|` desde una decisión es una rama y `-. texto .->` una alternativa. Sirve para un borrador. Las refs a actor, pantalla, acción e integración solo van con `graph`.
+**Mermaid** instead of `graph`: `{…}` decision, `([…])` start/end, `-->|condition|` from a decision creates a branch, `-. text .->` an alternative. Suitable for drafts; actor/screen/action/integration refs require `graph`.
 
-## 3. Antes de crear: reusa lo que ya existe
+## 3. Reuse before creating
 
-En Unicef se crearon actores y acciones que ya estaban en el proyecto. Para no repetirlo:
+The Unicef project previously received duplicate actors/actions. Prevent recurrence:
 
-1. `flow_list` y `knowledge_library {projectId, kinds: ["flow","actor","screen","action","integration"]}` (recorre `offset` hasta `total`). Busca también en la organización: un flujo puede referenciar sus actores.
-2. `knowledge_search` por nombre, en español y en inglés.
-3. **Flujos migrados:** los flujos v1 (pasos en `properties`) ya tienen entidad (`flows:backfill`) o la ganan al abrirlos. **Corrígelos con `flow_save`; no crees uno nuevo.**
-4. Si dos nodos parecen el mismo (dos «Cliente», dos «Pagar»), no crees un tercero: usa uno y anota el duplicado para que lo decida una persona.
+1. `flow_list` and paginated `knowledge_library {projectId, kinds: ["flow","actor","screen","action","integration"]}` (`offset` to `total`). Search organization nodes too: flows can reference its actors.
+2. `knowledge_search` by name in Spanish and English.
+3. **Migrated flows:** v1 property-based flows already have entities (`flows:backfill`) or acquire them on opening. **Correct with `flow_save`; never create replacements merely for migration.**
+4. If two nodes seem equivalent, use one and flag the duplicate for a person; never create a third.
 
-## 4. Requisitos para que se pueda probar
+## 4. Test readiness
 
-«Probar como…» arranca en el paso `start` y sigue las transiciones. Antes de dar un flujo por terminado, revisa este **checklist** con `flow_get`:
+Role-based testing (literal UI “Probar como…”) begins at `start` and follows transitions. Verify with `flow_get` before declaring completion:
 
-- [ ] **Un solo `start`**. Sin él, «Empezar» queda deshabilitado (era el bloqueante de los 24 flujos migrados de develop).
-- [ ] **Al menos un `end`**, y cada camino termina en uno.
-- [ ] **Todos los pasos se alcanzan** desde el inicio.
-- [ ] **Cada decisión tiene 2 o más ramas**, todas con `label`. Las alternativas que solo están en el texto o en `notes` («si la tarjeta es rechazada…») pasan a ser ramas.
-- [ ] **Actor en cada paso**, decisiones y fines incluidos: alimenta el selector de rol y atenúa los pasos de otros roles.
-- [ ] **Pantalla y acción ligadas cuando existen** (nunca pantalla en una decisión). Para que el paso se vea al probarlo, la pantalla lleva `prototype: {pageId, blockId?}` hacia su page `pantallas/<producto>/…` con un bloque **`view`**; un bloque `html` no sirve como prototipo (skill `screens`).
-- [ ] **Integraciones ligadas.** Si se van a probar, `state: simulated` con `sampleResponse` y, si hay variantes, `sampleCases` (éxito, reembolso, disputa…).
-- [ ] `detail` en cada paso: es el resultado esperado que lee quien prueba.
+- [ ] **Exactly one `start`**; without it the start control is disabled (blocked 24 migrated develop flows).
+- [ ] **At least one `end`**; every path ends in one.
+- [ ] **Every step reachable** from start.
+- [ ] **Each decision has ≥2 labeled branches**. Explicit alternatives only in prose/`notes` must become branches.
+- [ ] **Actor on every step**, including decisions/ends, for role selection and dimming other roles.
+- [ ] **Link existing screen/action**; never screen on decision. A testable screen needs `prototype: {pageId, blockId?}` pointing to its page under `pantallas/<product>/…` with a **`view`** block. `html` is not a screen prototype (`screens`).
+- [ ] **Link integrations.** For testing, use `state: simulated`, `sampleResponse`, and variant `sampleCases` (success, refund, dispute…).
+- [ ] `detail` on each step: tester's expected result.
 
-`../../tools/validate-examples.ts` aplica este checklist a los ejemplos de `flow_save`.
+`../../tools/validate-examples.ts` applies this checklist to `flow_save` examples.
 
-**No inventes reglas de negocio.** Si el texto no dice quién decide, cuál es la rama o qué responde la integración, no lo completes por tu cuenta: anótalo en `notes` del flujo («Siguiente iteración») o como `question` (skill `knowledge`) y díselo a la persona. Ejemplos de develop que quedaron para decidir: un rol de validador que no existe como nodo, un paso que mezcla tres roles, o dos fines del mismo flujo que se contradicen.
+**Never invent business rules.** Unspecified decision owners, branches, or integration responses belong in flow `notes` (next iteration) or a `question` (`knowledge`); report them. Unresolved develop examples include a missing validator-role node, a step mixing three roles, and contradictory ends.
 
-## 5. Probarlo con `flow_run_*`
+## 5. Test with `flow_run_*`
 
-1. `flow_run_start {ref, actor: "actor/<rol>", mode}`.
-   - `mode: "sample"` (datos de ejemplo) o `"simulated"` (las respuestas de ejemplo de las integraciones). `"real"` todavía no: `FLOW_RUN_REAL_DISABLED`.
-   - `actor` es un nodo `actor` del flujo; otro kind da `FLOW_RUN_ACTOR`. Un flujo archivado o reemplazado no se prueba (`FLOW_RUN_FLOW_CLOSED`).
-2. Recorre desde `start` y registra cada paso con `flow_run_step`. En un paso con pantalla, «Probar como…» muestra su prototipo (el bloque `view` de su `prototype`) con las acciones que la pantalla ofrece como zonas clicables; sin prototipo, solo la descripción:
-   - `passed`: hace lo que dice `detail`;
-   - `noted`: pasa con una observación. Úsalo cuando **falta la integración** o la pantalla y el paso solo se revisó con su descripción, y dilo en `note`;
-   - `failed`: no se cumple. Ahí se detiene la prueba;
-   - `skipped`: lo hace otro rol, o no aplica a la rama.
-   - En una decisión, `branchLabel` = la etiqueta de la rama elegida. En un paso con integración simulada, `integrationResponse` = la respuesta (o el caso) que se mostró.
-3. Cierra con `flow_run_finish`: `passed`, `passed_with_notes` (si hubo `noted`), `failed` (con `stoppedAtKey`, o toma el último paso fallido; sin ninguno da `FLOW_RUN_STOPPED_AT`) o `abandoned`.
-4. Para cubrir ramas, haz **una prueba por rama** importante (el camino feliz y cada fin), no una sola que lo mezcle todo.
+1. `flow_run_start {ref, actor: "actor/<role>", mode}`.
+   - `sample` uses example data; `simulated` uses integration samples. `real` remains disabled (`FLOW_RUN_REAL_DISABLED`).
+   - `actor` must be a flow actor (`FLOW_RUN_ACTOR` otherwise). Archived/superseded flows cannot run (`FLOW_RUN_FLOW_CLOSED`).
+2. Traverse from `start`, recording each `flow_run_step`. A linked screen displays its prototype `view` and offered action hotspots in Portal testing; without prototype, only description:
+   - `passed`: meets `detail`;
+   - `noted`: passes with observation; use when **integration or screen is missing** and review relied only on description, explaining in `note`;
+   - `failed`: expectation unmet, test stops;
+   - `skipped`: another role or inapplicable branch;
+   - decision `branchLabel` must match the chosen label; simulated step `integrationResponse` records the response/case shown.
+3. `flow_run_finish`: `passed`, `passed_with_notes` (if any `noted`), `failed` (with `stoppedAtKey`, or inferred last failed step; neither yields `FLOW_RUN_STOPPED_AT`), or `abandoned`.
+4. Cover important branches with **one test per branch** (happy path and each end), rather than mixing them into one.
 
-Solo quien inició la prueba la continúa (`FLOW_RUN_NOT_RUNNER`). Una prueba cerrada no se edita (`FLOW_RUN_FINISHED`). Un `stepKey` que no existe da `FLOW_RUN_STEP_KEY`. Las pruebas son nodos `flow_run` (rel `tests`) que crea la prueba; nunca uses `knowledge_create kind=flow_run`.
+Only the initiator continues a run (`FLOW_RUN_NOT_RUNNER`); closed runs cannot change (`FLOW_RUN_FINISHED`); missing step key gives `FLOW_RUN_STEP_KEY`. Tests create `flow_run` nodes with `tests`; never `knowledge_create kind=flow_run`.
 
-## 6. El orden con el cliente
+## 6. Client publication order
 
-Un agente **no edita lo que el cliente ya ve** (`CLIENT_VISIBLE_REQUIRES_PERSON`). El agente del staff en el MCP corp sí puede cambiar solo la visibilidad, y guardar el grafo de un flujo `client` con `flow_save`. Por eso:
+Agents cannot edit client-visible nodes (`CLIENT_VISIBLE_REQUIRES_PERSON`). Corp staff agents may change visibility alone and save a `client` flow graph through `flow_save`.
 
-1. Crea **todo `internal`**: actores, pantallas, acciones, integraciones y el flujo.
-2. Arma el grafo con `flow_save` y pásale el checklist (§4). Pruébalo (§5).
-3. **Al final**, con el visto bueno de la persona, `knowledge_update {ref, expectedRevision, visibility: "client", changeSummary}`, uno por nodo (relee cada uno con `knowledge_get`). Solo `visibility`, sin otros campos.
-4. Para corregir después un nodo que ya es `client`, crea una propuesta o pídeselo a una persona. **No lo rodees** volviéndolo `internal`, editándolo y publicándolo otra vez.
+1. Create **everything `internal`**: actors, screens, actions, integrations, flow.
+2. Build with `flow_save`, check §4, test §5.
+3. **Last**, with user approval, reread each node via `knowledge_get`, then `knowledge_update {ref, expectedRevision, visibility: "client", changeSummary}`. Visibility only, no other content changes.
+4. Later client-node corrections require a proposal or person. Never hide, edit, and republish to bypass the boundary.
 
-El cliente ve en Flujos solo los flujos `client`. Una ref a un nodo que no ve sale como «Interno», sin ref, y `sampleResponse` solo se muestra si la integración es `client`.
+Clients see only `client` flows. Invisible refs are returned as literal “Interno”, without ref; `sampleResponse` is shown only for `client` integrations. Spanish literal UI/server strings and existing paths above are intentional exceptions.
 
-## 7. Mostrarlo
+## 7. Display
 
-- En la conversación: `flow_get` se dibuja solo en hosts con MCP Apps. Si no, `view_render` con el componente `Flow` (skill `views`).
-- En una page: bloque `{id, type: "flow", node, title?, height?}`, donde `node` es el **uuid** del flujo del mismo proyecto. Dibuja su lienzo en solo lectura con «Abrir» (skill `resources`).
+- Conversation: `flow_get` can render on MCP Apps hosts; otherwise try `view_render` with `Flow` (`views`). **CLI requires text fallback**, and no rendering claim without evidence (`pai-console` §6).
+- Page: `{id, type: "flow", node, title?, height?}`, with same-project flow **UUID** in `node`, renders a read-only canvas and open control (`resources`).
 
-## 8. Ejemplos
+## 8. Examples
 
-Validados contra los contratos y contra `flow_get` de develop del 2026-10-15: pasos, refs, transiciones `next`, ramas y textos coinciden; ninguno trae `layoutDirection` (TB). El grafo de `flow_save` reproduce el flujo tal como está (Unicef r6, Morelos r2), así que guardarlo no cambia nada; parte de él para corregir.
+Validated against contracts and develop `flow_get` on 2026-10-15: steps, refs, `next` transitions, branches, and text matched; no `layoutDirection` (TB). `flow_save` examples reproduce existing graphs (Unicef r6, Morelos r2), so saving the original graph does not change it; use it as the correction baseline. Preserve authentic captured labels when editing existing graphs; translated synthetic examples are not proof of current server text.
 
-- `examples/unicef-donation.json`: **Pago con donativo a Unicef** (`flow/donation-payment`, Checkout Merchants). Busca lo que existe, `flow_get`, `flow_save` con 22 pasos y las ramas «Puede recibir», «Unicef no puede recibir», «Aprobada», «Rechazada», «Sin cambios», «Reembolso parcial», «Disputa», «Ganada» y «Perdida», una prueba `simulated` como Cliente con la integración de Stripe y, al final, la visibilidad `client`.
-- `examples/morelos-entry.json`: **Recorrido de entrada** (`flow/flow-pf-entry`, Portal Funcionario). Decisiones «¿El IdP autentica?» y «¿Cuántas membresías tiene?» (Ninguna, Una, Varias) y una prueba `sample` donde el paso de Llave Morelos queda `noted` porque la integración no existe todavía.
+- `examples/unicef-donation.json`: donation payment to Unicef (`flow/donation-payment`, Checkout Merchants). Search, `flow_get`, `flow_save` with 22 steps and branches for recipient eligibility, approval/rejection, no changes, partial refund, dispute won/lost, a `simulated` customer test with Stripe, then `client` visibility.
+- `examples/morelos-entry.json`: entry journey (`flow/flow-pf-entry`, Portal Funcionario), IdP authentication and membership-count decisions (none/one/many); `sample` test marks the Llave Morelos step `noted` because its integration is absent.
 
-Fragmento del grafo de Unicef:
+Synthetic graph excerpt, preserving identifiers:
 
 ```json
 {
   "steps": [
-    {"key": "start", "kind": "start", "title": "El cliente elige un donativo y pulsa «Pagar»", "actor": "actor/customer"},
-    {"key": "c1", "kind": "decision", "title": "¿El banco aprueba la tarjeta?", "actor": "actor/customer"},
-    {"key": "s6", "kind": "step", "title": "Cobra y transfiere el donativo a Unicef", "actor": "actor/stripe",
+    {"key": "start", "kind": "start", "title": "Customer chooses a donation and selects Pay", "actor": "actor/customer"},
+    {"key": "c1", "kind": "decision", "title": "Does the bank approve the card?", "actor": "actor/customer"},
+    {"key": "s6", "kind": "step", "title": "Charges and transfers the donation to Unicef", "actor": "actor/stripe",
      "integration": "integration/stripe-payment-intent-transfer-data"},
-    {"key": "c2", "kind": "end", "title": "Tarjeta rechazada", "actor": "actor/customer"}
+    {"key": "c2", "kind": "end", "title": "Card declined", "actor": "actor/customer"}
   ],
   "transitions": [
-    {"from": "c1", "to": "s6", "kind": "branch", "label": "Aprobada"},
-    {"from": "c1", "to": "c2", "kind": "branch", "label": "Rechazada"}
+    {"from": "c1", "to": "s6", "kind": "branch", "label": "Approved"},
+    {"from": "c1", "to": "c2", "kind": "branch", "label": "Declined"}
   ]
 }
 ```
 
-## Qué no hacer
+## Avoid
 
-- **No** escribas los pasos en `properties.steps` con `knowledge_create` o `knowledge_update`: usa `flow_save`.
-- **No** mandes un grafo parcial a `flow_save`: borra los pasos que faltan.
-- **No** dejes las alternativas en `notes` cuando el texto dice claramente cuál es la rama: modélalas como `branch`.
-- **No** inventes actores, decisiones ni respuestas de integración para que el flujo «pase» el checklist: lo que no está claro se anota.
-- **No** publiques (`visibility: client`) antes de terminar el grafo y probarlo.
+- Never write flow steps through `knowledge_create`/`knowledge_update` `properties.steps`; use `flow_save`.
+- Never send a partial graph: omitted steps are deleted.
+- Never leave clearly specified alternatives only in `notes`; model branches.
+- Never invent actors, decisions, or integration responses to pass readiness checks; record uncertainty.
+- Never publish `client` before finishing and testing the graph.
+
+## Preserve canvas and screen state
+
+`flow_create` and `flow_save` accept `graph.viewport {x,y,zoom}` (zoom >0) and step `position {x,y}`. Preserve these from a complete flow_get when editing an existing graph. `screenState` selects a linked screen prototype state by its actual key or name; read screen.prototype.states from flow_get, never invent a state. Keep layoutDirection TB by default or the existing value; use LR when requested. These are graph fields, not top-level tool keys. Full graph replacement still deletes omitted steps/transitions and requires fresh CAS and stable idempotencyKey.

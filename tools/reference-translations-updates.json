@@ -1,0 +1,8 @@
+{
+  "537447ae714cad55ca737bf090d486eba6e0a2ed80e5f9a4ba885aec81c3206a": "- `httpRoutes` (optional; table; columns: method, path, handler, description, target, targetMember, guard): Controller or class: method, route, handler, target component, target method and guard.",
+  "594074cf583049d66cd75eef2fdd93e0978dd4f54237f4c4931cb5e44c85d2c9": "Two-column site contact section: eyebrow, heading, copy and numbered next steps (headed by next) on the left; its child form composed from Field, Input, Select, Textarea and Checkbox on the right. Nothing is submitted. Without a child, show a card with steps, cta and its note. variant page is a contact page with h1; close is a closing section with h2 (default).",
+  "89b1b6743ef8b41027abd887da1106a1e590900be887b73982c136287b3a3383": "Site service/capability cards (2 to 6), in one, two or three columns: icon, title, text and a short list of included features.",
+  "8c2b45916b62690ed69f965e2f36564dfa843dba76a14ea86ed2c40b6920ffbb": "- `methods` (optional; table; columns: name, parameters, returns, visibility, description, calls): Service, interface, controller, repository, class, interface or function.",
+  "c5dd0e16ae3b57ec4a13bd9acd4a0d00f492ed1364190e5ffde70d3c43436b31": "- `members` (optional; list): Module: grouped components (component/<slug>), drawn inside its boundary.",
+  "d21614e13ae2de5992bd44c0cad15c70494eb6a0770a219a48e74685688d0423": "- `entity` (optional; refs; → edge `uses` to entity): Repository or code entity: the ERD entities it manages or implements; the first is primary."
+}

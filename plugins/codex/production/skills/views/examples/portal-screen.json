@@ -1,0 +1,56 @@
+{
+  "tool": "page_create",
+  "input": {
+    "organizationId": "ORG_ID",
+    "projectId": "PROJECT_ID",
+    "path": "mockups/portal-project-documents",
+    "title": "Mockup — Project documents in Portal",
+    "description": "Proposed Documents section in a Portal project, for review before implementation.",
+    "audience": "internal",
+    "summary": "Portal Documents section mockup",
+    "idempotencyKey": "page-pai-mockups-portal-project-documents",
+    "content": {
+      "schemaVersion": 1,
+      "componentSetVersion": "pai-core-v1",
+      "layout": "canvas",
+      "sections": [
+        {
+          "id": "screen",
+          "title": "Documents",
+          "blocks": [
+            {
+              "id": "documentsMockup",
+              "type": "view",
+              "title": "Mockup — Project documents",
+              "spec": {
+                "root": "shell",
+                "elements": {
+                  "shell": {
+                    "type": "PortalShell",
+                    "props": {
+                      "area": "project",
+                      "audience": "client",
+                      "organization": "Portenta",
+                      "project": "Sales platform · Phase 1",
+                      "breadcrumb": [ { "label": "Projects", "href": "#projects" }, { "label": "Sales platform · Phase 1", "href": "#project" }, { "label": "Documents" } ],
+                      "user": { "name": "Juan Carlos Vega", "email": "jc@portenta.example" }
+                    },
+                    "children": ["content"]
+                  },
+                  "content": { "type": "Stack", "props": { "direction": "vertical", "gap": "lg" }, "children": ["header", "documentsCard"] },
+                  "header": { "type": "ProjectHeader", "props": { "name": "Sales platform · Phase 1", "status": "active", "architect": "Alejandro Sánchez", "dates": "1 Sep – 15 Dec", "health": "on_track" } },
+                  "documentsCard": { "type": "Card", "props": { "title": "Documents", "description": "Signed contracts, proposals, and deliverables.", "action": { "label": "Upload document", "icon": "upload" } }, "children": ["documentsFilter", "documentsList"] },
+                  "documentsFilter": { "type": "FilterBar", "props": { "search": "Search documents", "filters": [ { "label": "Type", "value": "All", "options": ["All", "Contract", "Proposal", "Deliverable"] } ] } },
+                  "documentsList": { "type": "Stack", "props": { "direction": "vertical", "gap": "sm" }, "children": ["docContract", "docProposal", "docDelivery"] },
+                  "docContract": { "type": "Item", "props": { "title": "Services agreement", "description": "Signed by both parties", "icon": "file-signature", "meta": "2026-09-01", "variant": "outline" } },
+                  "docProposal": { "type": "Item", "props": { "title": "Phase 1 proposal", "description": "Accepted", "icon": "file", "meta": "2026-08-28", "variant": "outline" } },
+                  "docDelivery": { "type": "Item", "props": { "title": "Deliverable: process map", "description": "Under client review", "icon": "list-checks", "meta": "2026-10-03", "variant": "outline" } }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

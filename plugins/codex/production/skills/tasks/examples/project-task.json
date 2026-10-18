@@ -1,0 +1,15 @@
+{
+  "tool": "task_create",
+  "input": {
+    "title": "Review the shipping model",
+    "contexts": [
+      {
+        "kind": "project",
+        "id": "PROJECT_ID"
+      }
+    ],
+    "status": "todo",
+    "detail": "Compare origin and destination references with the agreed requirements.",
+    "visibility": "internal"
+  }
+}

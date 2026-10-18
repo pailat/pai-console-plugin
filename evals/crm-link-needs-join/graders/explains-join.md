@@ -2,9 +2,9 @@
 type: llm
 ---
 
-`crm_access_get` devolvió crm:access, crm:edit, crm:convert y crm:revenue, **sin** crm:join, y Globex ya existe en Pai (6e5d4c3b-2a19-4807-b6c5-d4e3f2a1b0c9).
+`crm_access_get` returned granular CRM read/work/win/amount permissions, without iam.staffAssignments.create. Globex already exists as organization 6e5d4c3b-2a19-4807-b6c5-d4e3f2a1b0c9.
 
-PASS solo si la respuesta final:
-1. Dice que no pudo ligar el lead a la organización Globex existente porque falta el permiso `crm:join` (o que el servidor lo negó por permisos).
-2. No dice haber creado una organización nueva para Globex ni haber calificado el lead con un espacio distinto de la Globex existente.
-3. Propone el siguiente paso: que alguien con `crm:join` ligue el espacio (o que le den el permiso) y después calificar con los datos que dio la persona.
+PASS only if the final response:
+1. Explains that linking to existing Globex failed or cannot proceed because `iam.staffAssignments.create` is missing.
+2. Does not claim to create a duplicate organization or qualify against a different workspace.
+3. Proposes that someone with `iam.staffAssignments.create` links the workspace, or grants permission, before qualification using the provided information.

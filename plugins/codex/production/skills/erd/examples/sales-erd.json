@@ -1,0 +1,155 @@
+[
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "data_model",
+      "slug": "sales-model",
+      "title": "Sales model",
+      "summary": "Customers, addresses, orders, order lines, and category catalog.",
+      "properties": {
+        "purpose": "Records online shop customers, their addresses, orders, order contents, and the catalog category tree.",
+        "engine": "PostgreSQL 16",
+        "namespace": "public",
+        "conventions": [
+          "Singular English snake_case table names.",
+          "Every table has id uuid and created_at timestamptz."
+        ]
+      },
+      "sources": [{ "type": "repo", "path": "db/schema.sql", "ref": "main" }],
+      "changeSummary": "Create sales model",
+      "idempotencyKey": "kn-shop-data-model-sales"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "entity",
+      "slug": "customer",
+      "title": "Customer",
+      "summary": "Registered person who buys from the shop.",
+      "properties": {
+        "physicalName": "customer",
+        "dataModel": ["data_model/sales-model"],
+        "purpose": "Registered person who buys from the shop; email is unique.",
+        "columns": [
+          { "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false, "default": "gen_random_uuid()" },
+          { "name": "email", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+          { "name": "full_name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+          { "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+        ]
+      },
+      "sources": [{ "type": "repo", "path": "db/schema.sql", "ref": "main" }],
+      "changeSummary": "Create customer entity",
+      "idempotencyKey": "kn-shop-entity-customer"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "entity",
+      "slug": "address",
+      "title": "Address",
+      "summary": "Customer postal address.",
+      "properties": {
+        "physicalName": "address",
+        "dataModel": ["data_model/sales-model"],
+        "purpose": "Customer postal addresses; an order uses one for billing and another for shipping.",
+        "columns": [
+          { "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
+          { "name": "customer_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false, "referencesEntity": "entity/customer", "referencesColumn": "id", "onDelete": "cascade" },
+          { "name": "line1", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+          { "name": "city", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+          { "name": "postal_code", "type": "text", "nullable": false, "primaryKey": false, "unique": false }
+        ]
+      },
+      "sources": [{ "type": "repo", "path": "db/schema.sql", "ref": "main" }],
+      "changeSummary": "Create address entity",
+      "idempotencyKey": "kn-shop-entity-address"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "entity",
+      "slug": "order",
+      "title": "Order",
+      "summary": "Confirmed customer purchase.",
+      "properties": {
+        "physicalName": "order",
+        "dataModel": ["data_model/sales-model"],
+        "purpose": "Confirmed customer purchase with payment status.",
+        "columns": [
+          { "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
+          { "name": "customer_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false, "referencesEntity": "entity/customer", "referencesColumn": "id", "onDelete": "restrict", "description": "Who is buying." },
+          { "name": "billing_address_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false, "referencesEntity": "entity/address", "referencesColumn": "id", "onDelete": "restrict", "description": "Billing address." },
+          { "name": "shipping_address_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false, "referencesEntity": "entity/address", "referencesColumn": "id", "onDelete": "set_null", "description": "Shipping address; empty for in-store pickup." },
+          { "name": "status", "type": "enum", "nullable": false, "primaryKey": false, "unique": false, "enumValues": ["open", "paid", "cancelled"] },
+          { "name": "total_cents", "type": "bigint", "nullable": false, "primaryKey": false, "unique": false },
+          { "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+        ],
+        "invariants": ["total_cents is the sum of the order lines."]
+      },
+      "sources": [{ "type": "repo", "path": "db/schema.sql", "ref": "main" }],
+      "changeSummary": "Create order entity",
+      "idempotencyKey": "kn-shop-entity-order"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "entity",
+      "slug": "order-line",
+      "title": "Order line",
+      "summary": "Product and quantity within an order.",
+      "properties": {
+        "physicalName": "order_line",
+        "dataModel": ["data_model/sales-model"],
+        "purpose": "Each product in an order, with quantity and price at purchase time.",
+        "columns": [
+          { "name": "order_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false, "referencesEntity": "entity/order", "referencesColumn": "id", "onDelete": "cascade" },
+          { "name": "line_no", "type": "integer", "nullable": false, "primaryKey": true, "unique": false },
+          { "name": "sku", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+          { "name": "quantity", "type": "integer", "nullable": false, "primaryKey": false, "unique": false },
+          { "name": "unit_price_cents", "type": "bigint", "nullable": false, "primaryKey": false, "unique": false }
+        ]
+      },
+      "sources": [{ "type": "repo", "path": "db/schema.sql", "ref": "main" }],
+      "changeSummary": "Create order_line entity",
+      "idempotencyKey": "kn-shop-entity-order-line"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "entity",
+      "slug": "category",
+      "title": "Category",
+      "summary": "Nestable catalog category.",
+      "properties": {
+        "physicalName": "category",
+        "dataModel": ["data_model/sales-model"],
+        "purpose": "Catalog categories; a category may belong to another category (tree).",
+        "columns": [
+          { "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
+          { "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+          { "name": "parent_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false, "referencesEntity": "entity/category", "referencesColumn": "id", "onDelete": "set_null", "description": "Parent category; empty at the root." }
+        ]
+      },
+      "sources": [{ "type": "repo", "path": "db/schema.sql", "ref": "main" }],
+      "changeSummary": "Create category entity",
+      "idempotencyKey": "kn-shop-entity-category"
+    }
+  }
+]

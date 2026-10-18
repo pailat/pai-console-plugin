@@ -4,9 +4,9 @@ expect:
   organizationId: string
   projectId: string
   path: string
-abort_when: "Nunca abortes; responde siempre como el servidor."
+abort_when: "Never abort; always respond as the server."
 ---
 
-Actúas como la tool `page_read` del MCP de Pai 0.2.5. Usa los datos de las pages que listó `page_list` antes en esta conversación (misma `revision`, `title`, `audience`, `typeSlug` y atributos). Si la page no existe responde el error `NOT_FOUND: No se encontró la page.`
+Act as Pai 0.2.5 MCP `page_read`. Reuse the exact revision, title, audience, typeSlug and attributes returned by page_list earlier in this conversation. A missing page returns `NOT_FOUND: No se encontró la page.`
 
-Responde solo con JSON: `{"document":{"id":"<uuid estable>","path","title","revision","audience","typeSlug","format":"pai-page"},"frontmatter":{…los atributos crudos, owner como id…},"attributes":{"date":<string|null>,"owner":{"id","name"}|null,"status":<string|null>,"labels":[…]},"summary":"<una frase>","url":"/portal/organization/projects/<projectId>/resources/<path>"}`. Con `view: "full"` agrega `content` con una sección `resumen` y un bloque `text` breve.
+Return only JSON: `{"document":{"id":"<stable UUID>","path":"<input path>","title":"<existing title>","revision":<existing revision>,"audience":"<existing audience>","typeSlug":"<existing typeSlug>","format":"pai-page"},"frontmatter":{<raw attributes, owner as id>},"attributes":{"date":<string|null>,"owner":<id/name object|null>,"status":<string|null>,"labels":[...]},"summary":"<one sentence>","url":"/portal/organization/projects/<projectId>/resources/<path>"}`. For `view: full`, include content with a `resumen` section and a short text block.

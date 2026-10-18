@@ -1,0 +1,236 @@
+[
+ {
+  "tool": "flow_get",
+  "input": {
+   "organizationId": "ORG_ID",
+   "projectId": "PROJECT_ID",
+   "ref": "flow/flow-pf-entry"
+  }
+ },
+ {
+  "tool": "flow_save",
+  "input": {
+   "organizationId": "ORG_ID",
+   "projectId": "PROJECT_ID",
+   "ref": "flow/flow-pf-entry",
+   "expectedRevision": 2,
+   "idempotencyKey": "flow-portal-funcionario-entry-1",
+   "changeSummary": "Start, end, IdP and membership decisions",
+   "graph": {
+    "steps": [
+     {
+      "key": "start",
+      "kind": "start",
+      "title": "An unauthenticated public official opens a Portal Funcionario route",
+      "detail": "An unauthenticated public official opens any Portal Funcionario route.",
+      "actor": "actor/actor-coordinador-atencion"
+     },
+     {
+      "key": "s1",
+      "kind": "step",
+      "title": "Opens the portal without a session and selects Sign In",
+      "detail": "Redirects to Llave Morelos (Hub Morelos)",
+      "actor": "actor/actor-coordinador-atencion",
+      "screen": "screen/scr-pf-sign-in"
+     },
+     {
+      "key": "s2",
+      "kind": "step",
+      "title": "Authenticates with Llave Morelos at the identity provider, outside the portal",
+      "detail": "Returns to the portal with a valid session; memberships are counted",
+      "actor": "actor/actor-coordinador-atencion"
+     },
+     {
+      "key": "d1",
+      "kind": "decision",
+      "title": "Does the IdP authenticate?",
+      "detail": "2b · If the IdP does not authenticate, the account is blocked, or the organization is outside the Hub gate, returns to Access.",
+      "actor": "actor/actor-coordinador-atencion"
+     },
+     {
+      "key": "e_d1",
+      "kind": "end",
+      "title": "Access not granted",
+      "detail": "2b · IdP authentication fails, the account is blocked, or the organization is outside the Hub gate: returns to Access with “Access not granted” and Retry.",
+      "actor": "actor/actor-coordinador-atencion"
+     },
+     {
+      "key": "d2",
+      "kind": "decision",
+      "title": "How many memberships are there?",
+      "detail": "None: account pending activation (403). One: directly opens that organization's Home. Several: opens portal Home (step 3b).",
+      "actor": "actor/actor-coordinador-atencion"
+     },
+     {
+      "key": "e_d2",
+      "kind": "end",
+      "title": "Account pending activation (403)",
+      "detail": "3a · Valid session with no memberships: sees Account pending activation (403), root shell without menu or actions: a dead end.",
+      "actor": "actor/actor-coordinador-atencion"
+     },
+     {
+      "key": "s3",
+      "kind": "step",
+      "title": "With several memberships, opens portal Home and reviews Your turn, Inbox, or My organizations",
+      "detail": "Sees organizations with the role held in each (step 3b)",
+      "actor": "actor/actor-coordinador-atencion",
+      "screen": "screen/scr-pf-home"
+     },
+     {
+      "key": "s4",
+      "kind": "step",
+      "title": "Selects Enter on an organization",
+      "detail": "Lands on organization Home; rail switches to the Department group and footer shows the organization role",
+      "actor": "actor/actor-coordinador-atencion",
+      "screen": "screen/scr-pf-org-home"
+     },
+     {
+      "key": "s5",
+      "kind": "step",
+      "title": "Opens My spaces and chooses Citizen services or Procedures and services",
+      "detail": "Enters the selected space",
+      "actor": "actor/actor-coordinador-atencion",
+      "screen": "screen/scr-pf-org-spaces"
+     },
+     {
+      "key": "s6",
+      "kind": "step",
+      "title": "Works in the space's Home",
+      "detail": "Rail uses the space menu, topbar adds the space selector; footer role comes from that membership",
+      "actor": "actor/actor-coordinador-atencion",
+      "screen": "screen/scr-pf-ac-home"
+     },
+     {
+      "key": "s7",
+      "kind": "step",
+      "title": "Switches organization using rail ⇕, ⌘O, or user menu, choosing another while seeing the prospective role",
+      "detail": "Token is reissued and the selected organization opens",
+      "actor": "actor/actor-coordinador-atencion",
+      "screen": "screen/scr-pf-org-home"
+     },
+     {
+      "key": "end",
+      "kind": "end",
+      "title": "Works in a space of the selected organization",
+      "detail": "The public official works in a space's Home in the selected organization, with that membership's role, and can switch organization from the shell.",
+      "actor": "actor/actor-coordinador-atencion"
+     }
+    ],
+    "transitions": [
+     {
+      "from": "start",
+      "to": "s1",
+      "kind": "next"
+     },
+     {
+      "from": "s1",
+      "to": "s2",
+      "kind": "next"
+     },
+     {
+      "from": "s2",
+      "to": "d1",
+      "kind": "next"
+     },
+     {
+      "from": "d1",
+      "to": "d2",
+      "kind": "branch",
+      "label": "Authenticates"
+     },
+     {
+      "from": "d1",
+      "to": "e_d1",
+      "kind": "branch",
+      "label": "Authentication fails or account blocked"
+     },
+     {
+      "from": "d2",
+      "to": "s3",
+      "kind": "branch",
+      "label": "Several"
+     },
+     {
+      "from": "d2",
+      "to": "s4",
+      "kind": "branch",
+      "label": "One"
+     },
+     {
+      "from": "d2",
+      "to": "e_d2",
+      "kind": "branch",
+      "label": "None"
+     },
+     {
+      "from": "s3",
+      "to": "s4",
+      "kind": "next"
+     },
+     {
+      "from": "s4",
+      "to": "s5",
+      "kind": "next"
+     },
+     {
+      "from": "s5",
+      "to": "s6",
+      "kind": "next"
+     },
+     {
+      "from": "s6",
+      "to": "s7",
+      "kind": "next"
+     },
+     {
+      "from": "s7",
+      "to": "end",
+      "kind": "next"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "tool": "flow_run_start",
+  "input": {
+   "organizationId": "ORG_ID",
+   "projectId": "PROJECT_ID",
+   "ref": "flow/flow-pf-entry",
+   "actor": "actor/actor-coordinador-atencion",
+   "mode": "sample"
+  }
+ },
+ {
+  "tool": "flow_run_step",
+  "input": {
+   "organizationId": "ORG_ID",
+   "projectId": "PROJECT_ID",
+   "run": "RUN_REF",
+   "stepKey": "s2",
+   "result": "noted",
+   "note": "Llave Morelos has no integration node: the step was reviewed from its description only."
+  }
+ },
+ {
+  "tool": "flow_run_step",
+  "input": {
+   "organizationId": "ORG_ID",
+   "projectId": "PROJECT_ID",
+   "run": "RUN_REF",
+   "stepKey": "d2",
+   "result": "passed",
+   "branchLabel": "Several"
+  }
+ },
+ {
+  "tool": "flow_run_finish",
+  "input": {
+   "organizationId": "ORG_ID",
+   "projectId": "PROJECT_ID",
+   "run": "RUN_REF",
+   "status": "passed_with_notes",
+   "notes": "Llave Morelos integration is missing (owner decision pending)."
+  }
+ }
+]

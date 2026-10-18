@@ -1,41 +1,41 @@
 ---
 name: knowledge
-description: "Crea y mantiene el Conocimiento (grafo de nodos y aristas) de un proyecto o de un producto de Pai Console. Cubre elegir el kind, plantillas, fuentes obligatorias, propuestas que confirma una persona, CAS con expectedRevision, enlaces según la ontología (incluido implemented_by módulo → componente), consultas estructuradas (knowledge_query), lotes atómicos (knowledge_batch) y el ciclo de vida (resolve, supersede, archive). Úsalo para registrar decisiones, reglas de negocio, riesgos, preguntas, supuestos, hechos, glosario, módulos o cualquier nodo, o para consultar el grafo. ERD, C4, pantallas y flujos tienen skills propios (erd, c4, screens, flows)."
+description: "Create and maintain Pai Console project or product Knowledge graphs: kinds, strict templates, sources, human-confirmed proposals, CAS with expectedRevision, ontology links including implemented_by, structured knowledge_query, atomic knowledge_batch, and resolve/supersede/archive lifecycle. Use for decisions, business rules, risks, questions, assumptions, facts, glossary, modules, other nodes, or graph queries. ERD, C4, screens, and flows have dedicated skills."
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
-# Conocimiento en Pai
+# Knowledge in Pai
 
-Lee antes el skill `pai-console`. El grafo es la memoria del proyecto: cada nodo es una afirmación o un artefacto con su fuente; cada arista dice cómo se relacionan.
+Read shared `pai-console` first through the current client's skill mechanism. The graph is project memory: each node is a sourced assertion or artifact; each edge explains a relationship.
 
-## Elegir el kind
+## Choose a kind
 
-Referencia completa, generada desde los contratos: `references/kinds.md` (plantillas y ejemplos) y `references/ontology.md` (relaciones permitidas). `knowledge_kinds` devuelve lo mismo desde el servidor; úsalo si dudas de la versión.
+Contract-generated references: `references/kinds.md` (templates/examples), `references/ontology.md` (allowed relationships). `knowledge_kinds` returns the server's equivalent; use it when version is uncertain.
 
-| Si es… | kind |
+| Content | Kind |
 |---|---|
-| Una meta medible con horizonte | `objective` |
-| Una elección ya tomada, con contexto y consecuencias | `decision`; si es de arquitectura y formal, `adr` |
-| Algo que el negocio exige («si X entonces Y») | `business_rule` |
-| Un límite externo que no se elige | `constraint` |
-| Algo que puede salir mal | `risk` |
-| Algo que no sabemos | `question` |
-| Algo que damos por cierto sin probarlo | `assumption` |
-| Trabajo por hacer | `task` (skill `schedule`) |
-| Un dato verificable con fuente | `fact`; una fuente externa, `reference` |
-| Vocabulario | `glossary_term`; idea del dominio, `concept` |
-| Un módulo funcional del producto | `module` |
-| Pantalla, actor, o lo que la persona hace en una pantalla (`action`) | skill `screens` |
-| Un recorrido con pasos y ramas (`flow`), el servicio que corre un paso (`integration`) | skill `flows` |
-| Una prueba de un flujo (`flow_run`) | No se crea a mano: la crea `flow_run_start` (skill `flows`); `knowledge_create kind=flow_run` se rechaza |
-| Modelo de datos, tabla | skill `erd` |
-| Sistema, contenedor, componente | skill `c4` |
-| Cómo se hace algo / qué evitar | `runbook`, `pattern`, `gotcha`, `antipattern` |
-| Nada de lo anterior | `note`, y como último recurso |
+| Measurable goal with a horizon | `objective` |
+| Choice with context and consequences | `decision`; formal architecture choice: `adr` |
+| Business requirement (“if X then Y”) | `business_rule` |
+| External, non-negotiable limit | `constraint` |
+| Potential failure | `risk` |
+| Unknown | `question` |
+| Unverified belief | `assumption` |
+| Work to do | `task` (`schedule`) |
+| Verifiable sourced datum / external source | `fact` / `reference` |
+| Vocabulary / domain idea | `glossary_term` / `concept` |
+| Functional product module | `module` |
+| Screen, actor, screen action (`action`) | `screens` skill |
+| Branched journey (`flow`), step service (`integration`) | `flows` skill |
+| Flow test (`flow_run`) | Created only by `flow_run_start` (`flows`); `knowledge_create kind=flow_run` is rejected |
+| Data model, table | `erd` skill |
+| System, container, component | `c4` skill |
+| Procedure / reusable approach / pitfall / approach to avoid | `runbook`, `pattern`, `gotcha`, `antipattern` |
+| None of the above | `note`, as a last resort |
 
-## Reglas que el servidor impone a un agente
+## Server rules for agents
 
-1. **`sources` obligatorio:** sin al menos una fuente da `SOURCE_REQUIRED`. Tipos:
+1. **Required `sources`:** at least one, or `SOURCE_REQUIRED`. Types:
    - `page` `{pageId, quote?}`;
    - `page_comment` `{pageId, threadId}`;
    - `url` `{url, accessedAt}`;
@@ -44,121 +44,132 @@ Referencia completa, generada desde los contratos: `references/kinds.md` (planti
    - `meeting` `{title, date}`;
    - `ckl` `{blockId}`.
 
-   Las fuentes son estrictas: una clave extra se rechaza. `fact` y `reference` exigen fuente siempre.
-2. **Lo que decide una persona queda como propuesta.** `objective`, `decision`, `adr`, `business_rule` y `constraint` se crean en `proposed`. Pedir `active` da `HUMAN_CONFIRMS`.
-   - Confirmar o rechazar no es tarea del agente: no hay tool para eso. Lo hace una persona en el Portal o en Console.
-   - Al terminar, **dile a la persona qué propuestas quedaron pendientes**, con sus citas `kb:`.
-3. **Un nodo activo de esos kinds no se edita.** Para cambiarlo, crea el nuevo (también `proposed`). Cuando una persona lo active, `knowledge_supersede` reemplaza al viejo: exige que el nuevo esté `active`.
-4. **Lo que ve el cliente lo cuida una persona.**
-   - Un agente no edita, archiva ni desenlaza nodos visibles al cliente (`CLIENT_VISIBLE_REQUIRES_PERSON`). No lo rodees ocultándolo, editándolo y publicándolo otra vez: crea una propuesta interna de reemplazo o pídeselo a una persona.
-   - En el MCP corp, el agente del **staff** sí puede cambiar la visibilidad (`internal` ↔ `client`) en un `knowledge_update` que **solo** lleve `visibility`; queda registrado con un warning. Hazlo al final y con el visto bueno de la persona (orden en el skill `flows`). En cualquier otro caso, `visibility:"client"` se baja a `internal` con un warning.
-5. **Las plantillas son estrictas:** `properties` lleva exactamente las claves del kind. Una clave desconocida, o un Mermaid dentro (`MERMAID_NOT_ALLOWED`), se rechaza.
-6. **Las referencias aceptan** `uuid`, `slug`, `kind/slug` o `kb:kind/slug@rN`. **Usa `kind/slug`**: es legible y no es ambiguo.
+   Sources are strict: extra keys are rejected. `fact` and `reference` always require a source.
+2. **Human decisions remain proposals.** Create `objective`, `decision`, `adr`, `business_rule`, and `constraint` as `proposed`. Requesting `active` yields `HUMAN_CONFIRMS`.
+   - Agents cannot confirm/reject; no tool permits it. A person does so in Portal or Console.
+   - Finish by **listing pending proposals** with `kb:` citations.
+3. **Never edit an active node of those kinds.** Create a replacement, also `proposed`. Once a person activates it, use `knowledge_supersede`; the replacement must be `active`.
+4. **People control client-visible content.**
+   - Agents cannot edit, archive, or unlink client-visible nodes (`CLIENT_VISIBLE_REQUIRES_PERSON`). Never hide, edit, and republish to bypass this. Create an internal replacement proposal or ask a person.
+   - In corp MCP, a **staff** agent may change visibility (`internal` ↔ `client`) using `knowledge_update` with **only** `visibility` as the content change; it records a warning. Do this last with user approval (`flows` order). Otherwise `visibility:"client"` is downgraded to `internal` with a warning.
+5. **Strict templates:** `properties` must have exactly the kind's keys. Unknown keys or embedded Mermaid (`MERMAID_NOT_ALLOWED`) are rejected.
+6. References accept `uuid`, `slug`, `kind/slug`, or `kb:kind/slug@rN`. Prefer **`kind/slug`** for readable, unambiguous references.
 
-## Crear un nodo
+## Create
 
-1. `knowledge_search` con el tema y los kinds probables. Para ver todo lo de un kind en el proyecto, `knowledge_library {projectId, kinds}`. Para el bundle de contexto alrededor de un nodo o tema, `knowledge_context`.
-2. Si existe algo equivalente: **actualízalo, enlázalo o, si lo contradice, propón el reemplazo**. No crees un duplicado.
-3. `knowledge_create` con:
-   - `kind`, `slug` (en inglés y kebab-case), `title` (en español, ≤200), `summary` (≤280);
-   - `properties` según la plantilla, `sources`;
-   - `links` (≤10 aristas creadas en la misma escritura);
-   - `changeSummary` (≤80), `idempotencyKey` (8–128, estable).
-4. Lee la respuesta:
-   - `similar`: posibles duplicados. Si uno es el mismo nodo, archiva el tuyo con motivo o fusiona.
-   - `warnings`: referencias sin resolver, visibilidad degradada.
-   - La cita `kb:` del nodo, para dársela a la persona.
+1. `knowledge_search` by topic and likely kinds. For complete kind inventory use `knowledge_library {projectId, kinds}`; for a node/topic context bundle use `knowledge_context`.
+2. If equivalent content exists, **update or link it**, or propose replacement if contradictory. Never duplicate.
+3. `knowledge_create` with:
+   - `kind`, English kebab-case `slug`, Spanish business `title` (≤200), `summary` (≤280);
+   - template `properties`, `sources`;
+   - `links` (≤10 edges in the same write);
+   - `changeSummary` (≤80), stable `idempotencyKey` (8–128).
+4. Inspect:
+   - `similar`: possible duplicates. Archive your duplicate with a reason or merge.
+   - `warnings`: unresolved references, downgraded visibility.
+   - The `kb:` citation to return to the user.
 
-## Enlazar
+## Link
 
-`knowledge_link {rel, sourceRef, targetRef, evidence}`. `evidence` (≤500) dice por qué existe la arista. Las relaciones útiles:
+`knowledge_link {rel, sourceRef, targetRef, evidence}`. `evidence` (≤500) explains the edge.
 
-| rel | Uso |
+| Relation | Use |
 |---|---|
-| `grounds` / `warrant` | La evidencia o el razonamiento que sostiene una decisión o una regla (Toulmin) |
-| `supports` / `opposes` / `rebuttal` | A favor, en contra, excepción |
-| `depends_on`, `implements`, `refers_to` | Dependencia, implementación, uso de un término |
-| `constrains` | Una regla o restricción limita un módulo, una pantalla, un flujo… |
-| `contains` | Jerarquía estructural (módulo → pantalla, data_model → entidad, component → component) |
-| `offers` | Una pantalla ofrece una acción. No fija contenedor: la acción puede estar en varias pantallas |
-| `triggers` | Una acción dispara un flujo o una integración, o un flujo dispara una integración («Pagar» corre Stripe) |
-| `performs`, `navigates_to`, `uses` | También para acciones: el actor ejecuta la acción, la acción lleva a una pantalla, la acción usa entidades (`properties.mode`: create, update, read) |
-| `tests` | Una prueba (`flow_run`) de un flujo. Solo la escribe `flow_run_start`: no la crees a mano |
-| `relates_to` | Solo entre entidades del ERD, y se deriva de sus FK: no la crees a mano |
+| `grounds` / `warrant` | Evidence/reasoning supporting a decision or rule (Toulmin) |
+| `supports` / `opposes` / `rebuttal` | Support, opposition, exception |
+| `depends_on`, `implements`, `refers_to` | Dependency, implementation, terminology |
+| `constrains` | Rule/constraint limits a module, screen, flow… |
+| `contains` | Structural hierarchy (module → screen, data_model → entity, component → component) |
+| `offers` | Screen offers an action; does not impose containment, so actions can be shared |
+| `triggers` | Action triggers flow/integration; flow triggers integration (a payment action runs Stripe) |
+| `performs`, `navigates_to`, `uses` | Actor performs action; action navigates to screen or uses entities (`properties.mode`: create, update, read) |
+| `tests` | `flow_run` tests a flow; only `flow_run_start` writes it, never manually |
+| `relates_to` | ERD entity edges derived from FKs, never manually |
 
-**`implemented_by` (módulo → componente):** dice en qué componente C4 se implementa un módulo funcional. Solo va de `module` a `component` y **los dos nodos tienen que ser del mismo producto** (créalos y enlázalos con el mismo `productId`, ver abajo). Errores: kinds al revés u otros → `ONTOLOGY`; un nodo de proyecto o de organización → `cause.code: IMPLEMENTED_BY_NEEDS_PRODUCT`; productos distintos → `IMPLEMENTED_BY_ACROSS_PRODUCTS`. Mover fuera del producto un nodo con esa arista da `PRECONDITION_FAILED` `HAS_IMPLEMENTED_BY`.
+**`implemented_by` (module → component):** identifies a functional module's C4 implementation. Only `module` → `component`, with **both nodes in the same product** (create/link with the same `productId`). Wrong/reversed kinds → `ONTOLOGY`; project/organization node → `cause.code: IMPLEMENTED_BY_NEEDS_PRODUCT`; different products → `IMPLEMENTED_BY_ACROSS_PRODUCTS`. Moving a node with this edge out of its product yields `PRECONDITION_FAILED` `HAS_IMPLEMENTED_BY`.
 
-Si da `ONTOLOGY`, ese par no admite esa relación. Busca en `references/ontology.md` una que sí lo admita; no fuerces otra parecida solo para que pase.
+On `ONTOLOGY`, find an allowed relationship for that pair in `references/ontology.md`. Do not force a superficially similar relationship just to pass validation.
 
-## Conocimiento de un producto (`productId`)
+## Product Knowledge (`productId`)
 
-Las tools `knowledge_*` (y `knowledge_view`, `knowledge_query`, `knowledge_batch`, `task_board`) aceptan `productId`: entonces trabajan sobre el conocimiento **de ese producto** (su arquitectura y funcionamiento vigentes), no el del proyecto.
-- `projectId` sigue siendo obligatorio y el proyecto tiene que tocar el producto (`product_link_project`, skill `products`). Si no: `BAD_REQUEST` con `cause.code: PRODUCT_NOT_IN_SCOPE`; usa uno de los productos del proyecto (`product_get`).
-- `knowledge_create {productId}` hace nacer el nodo en el producto. Una `task` nunca: `TASK_NEEDS_PROJECT`.
-- Sin `productId`, `knowledge_query` ya incluye los nodos de los productos que toca el proyecto y los de la organización enlazados; con él, acota a ese producto.
-- Al cerrar un proyecto, cada producto que tocó registra `knowledge_merged`.
+`knowledge_*` (including `knowledge_view`, `knowledge_query`, `knowledge_batch`, and `task_board`) accept `productId` to work with **product Knowledge**, its current architecture/functionality, rather than project Knowledge.
+- `projectId` remains required; the project must touch the product (`product_link_project`, `products`). Otherwise `BAD_REQUEST` with `cause.code: PRODUCT_NOT_IN_SCOPE`; use a project product (`product_get`).
+- `knowledge_create {productId}` creates a product node, except `task`, which yields `TASK_NEEDS_PROJECT`.
+- Without `productId`, `knowledge_query` already includes touched products' nodes and linked organization nodes; with it, results are product-scoped.
+- Closing a project records `knowledge_merged` for every product it touched.
 
-## Consultar el grafo: `knowledge_query`
+## Move and merge existing knowledge
 
-Para preguntas estructuradas («los requisitos activos con prioridad alta», «las pantallas que contiene este módulo», «los riesgos que afectan a un componente»), mejor que una búsqueda por tema:
-- `kinds` (obligatorio), `status` (por defecto draft, proposed y active), `properties` `{clave: [valores]}` de la plantilla, `tags`;
-- `scope {nodeId, revision}`: descendientes por `contains`;
-- `related {node, rels, direction: in|out|both, depth 1-3}`: vecindad;
-- `pattern {steps}` (≤4 pasos): el primero sin `via`, los demás con `via {rel, direction}`;
-- `limit` ≤200; si viene `truncated`, acota.
+Search all relevant project/product/organization scopes before duplicating content. Use knowledge_get for reference resolution and knowledge_library/knowledge_context to inspect relevant scopes; knowledge_view {view:"c4",productId} without scope renders a product context with its system, external organization systems and actors. Verify source and destination before a scope change.
 
-Errores: `BAD_REQUEST` con `cause.code: QUERY` e `issues` (propiedad que no es de la plantilla, paso sin `via`, arista que la ontología no admite); `TIMEOUT` `QUERY_TIMEOUT`: acota `kinds`, `scope`, `depth` o el patrón.
+- knowledge_move requires ref, toProjectId, organizationId and projectId; send expectedRevision from the current read. toProjectId:null plus toProductId targets a product, null without product targets the organization, and a project UUID targets that project. Product moves from a project must use a product it touches.
+- Inspect the containment tree first with knowledge_query scope {nodeId}. HAS_CONTAINMENT means a node cannot move alone: subtree:true atomically moves the top node and its descendants. HAS_IMPLEMENTED_BY means both ends cannot remain in the same product; resolve the relationship explicitly rather than deleting it to bypass the error.
+- A project-page-derived node needs releasePage:true to leave its project. Review this effect first: the page becomes provenance (grounds), and releasedPages identifies affected pages. Preserve IDs, history and comments. SLUG_TAKEN/IDENTIFIER_TAKEN return conflicts; do not rename another node automatically.
+- knowledge_merge requires keepRef, duplicateRef (UUID), keepExpectedRevision, duplicateExpectedRevision and evidence (1–500), plus organizationId/projectId. Read both first and explain why they are duplicates of the same kind. Optional toProjectId/toProductId moves the survivor under the same rules.
+- A merge preserves edge evidence, reports dropped duplicate edges, supersedes an assertion or archives a duplicate artifact, and never deletes it. pagesCitingDuplicate must be reviewed by a person: pages are not rewritten automatically. NEW_NOT_ACTIVE prevents an inactive survivor replacing a current node.
+- Tasks cannot move or merge through these graph tools, a duplicate inside a contains hierarchy cannot merge, closed destinations reject writes, and an agent cannot move/merge client-visible content. Do not bypass these boundaries with lower-level writes.
 
-## Muchas escrituras juntas: `knowledge_batch`
+## Structured queries: `knowledge_query`
 
-Hasta 200 operaciones atómicas (`create` con ref local `$nombre`, `update`, `link`, `unlink`, `supersede`, `archive`, `resolve`, `set-status`) con un `idempotencyKey`, `changeSummary`, `sources` del lote y `productId?`.
-- **Revisa siempre `status` de la respuesta.** Un lote rechazado **no es un error del MCP**: llega con `status: "rejected"` y, por operación fallida, `results[i].error {code, message, allowedTargets?, suggestedRels?, currentRevision?}`. No se escribió nada (las operaciones `ok: true` anteriores se revirtieron).
-- **`set-status` lo decide una persona:** desde el MCP siempre eres un agente, así que un lote con `set-status` vuelve `rejected` con `HUMAN_CONFIRMS` (ATE-184). Quita esa operación y deja los nodos `proposed`.
-- La clave de un lote rechazado no se consume: corrige y reintenta con la misma. La misma clave con otra entrada da `IDEMPOTENCY_MISMATCH`; con la misma entrada, `replayed: true`.
+Use for questions such as active high-priority requirements, a module's screens, or risks affecting a component:
+- Required `kinds`; `status` defaults to draft, proposed, active; template `properties` `{key: [values]}`; `tags`.
+- `scope {nodeId, revision}`: descendants through `contains`.
+- `related {node, rels, direction: in|out|both, depth 1-3}`: neighborhood.
+- `pattern {steps}` (≤4): first without `via`, subsequent steps with `via {rel, direction}`.
+- `limit` ≤200; narrow results when `truncated`.
 
-## Actualizar (CAS)
+Errors: `BAD_REQUEST` with `cause.code: QUERY` and `issues` (non-template property, missing `via`, ontology-invalid edge); `TIMEOUT` `QUERY_TIMEOUT`: narrow `kinds`, `scope`, `depth`, or pattern.
 
-1. `knowledge_get` del nodo: `revision` y `properties` completas.
-2. Modifica **sobre esa copia**.
-3. `knowledge_update {ref, expectedRevision, changeSummary, …}`. Si mandas `properties`, se **reemplazan completas**: lo que omitas dentro de ellas se borra. Para cambiar solo `status`, `title`, `summary`, `tags` o `sources`, no mandes `properties`.
-4. Ante `CONFLICT` (`REVISION`): relee, integra y reintenta una vez.
+## Atomic writes: `knowledge_batch`
 
-## Ciclo de vida
+Up to 200 atomic operations (`create` with local ref `$name`, `update`, `link`, `unlink`, `supersede`, `archive`, `resolve`, `set-status`) with batch `idempotencyKey`, `changeSummary`, `sources`, and optional `productId`.
+- **Always inspect response `status`.** Rejection **is not an MCP error**: `status: "rejected"`, and each failed operation's `results[i].error {code, message, allowedTargets?, suggestedRels?, currentRevision?}`. Nothing was written; preceding `ok: true` operations were rolled back.
+- **People decide `set-status`:** MCP callers are agents, so a batch containing it is `rejected` with `HUMAN_CONFIRMS` (ATE-184). Remove it and keep nodes `proposed`.
+- Rejected keys are not consumed: correct and retry with the same key. Reusing a consumed key with different input yields `IDEMPOTENCY_MISMATCH`; identical input yields `replayed: true`.
 
-| Situación | Tool |
+## Update with CAS
+
+1. `knowledge_get`: current `revision`, complete `properties`.
+2. Modify **that copy**.
+3. `knowledge_update {ref, expectedRevision, changeSummary, …}`. Supplying `properties` **replaces them completely**; omitted fields are deleted. Omit `properties` when changing only `status`, `title`, `summary`, `tags`, or `sources`.
+4. On `CONFLICT` (`REVISION`), reread, integrate, retry once.
+
+## Lifecycle
+
+| Situation | Tool |
 |---|---|
-| Se respondió una `question` o se probó o refutó una `assumption` | `knowledge_resolve` con `outcome` (`answered`, `confirmed` o `refuted`), `evidence`, `idempotencyKey` y un nodo de resolución: `resolution` (borrador en línea) **o** `resolutionRef`, nunca ambos. Queda enlazado con `supports` u `opposes` |
-| Se mitigó un `risk` o terminó una `task` | `knowledge_resolve` con `outcome` `done` o `wont_do` |
-| Un nodo nuevo reemplaza a uno viejo | `knowledge_supersede {oldRef, newRef, evidence}`. El nuevo debe estar `active` |
-| Ya no aplica | `knowledge_archive {reason}`, reversible con `knowledge_revive`. Los nodos no se borran |
-| Lo consultaste y te sirvió | `knowledge_observe` (barato, no audita) |
+| Answered `question` or confirmed/refuted `assumption` | `knowledge_resolve` with `outcome` (`answered`, `confirmed`, `refuted`), `evidence`, `idempotencyKey`, and either inline `resolution` draft **or** `resolutionRef`, never both; links with `supports` or `opposes` |
+| Mitigated `risk` or completed `task` | `knowledge_resolve` with `outcome` `done` or `wont_do` |
+| Replacement | `knowledge_supersede {oldRef, newRef, evidence}`; replacement must be `active` |
+| No longer applicable | `knowledge_archive {reason}`, reversible with `knowledge_revive`; nodes are not deleted |
+| Read and useful | `knowledge_observe` (inexpensive, not audited) |
 
-## Salud del grafo
+## Graph health
 
-- `knowledge_audit` lista nodos débiles, delgados (sin justificación), huérfanos, preguntas sin resolver y pantallas con **«fuente sin conectar»** (`unconnectedSources`: un bloque de `content` con `source` en texto en vez de `{ref}`, skill `screens`). Úsalo al cerrar una sesión de modelado y dale el resultado a la persona.
-- `knowledge_impact` (`maxDepth` ≤3) dice qué se afecta si cambia un nodo. Úsalo antes de proponer el reemplazo de una decisión.
-- `knowledge_graph {projectId?}` muestra la estructura: nodos con su grado, aristas y hubs (`hubThreshold`). Úsalo para encontrar los nodos centrales y los huérfanos de un proyecto o de toda la organización.
-- **Conocimiento de la organización:** un nodo puede no tener proyecto y ser **de la organización** (un glosario común, reglas del cliente, sistemas compartidos).
-  - `knowledge_library` y `knowledge_graph` aceptan tres alcances en `projectId`: un proyecto (sus nodos más los de la organización enlazados a él), `"organization"` (solo los de la organización), o ninguno (todo).
-  - En los resultados, esos nodos traen `project: null`.
-  - **Antes de crear en un proyecto, busca también en `"organization"`.** Si ya existe ahí, enlázalo (`knowledge_link` acepta su uuid como `targetRef`) en vez de duplicarlo.
-  - Crear un nodo de la organización o mover un nodo entre proyecto y organización **no está en el MCP**: lo hace una persona en el Portal o en Console. Propónselo si un nodo de proyecto debería ser común.
-  - En el Portal, la ficha de un nodo de la organización está en `/organization/knowledge/<nodeId>`.
-- Las tareas siempre viven en su proyecto.
+- `knowledge_audit`: weak/thin (unjustified) nodes, orphans, unresolved questions, and unconnected screen sources (`unconnectedSources`: `content.source` text instead of `{ref}`, `screens`). Run at the end of a modeling session and report results.
+- `knowledge_impact` (`maxDepth` ≤3): affected nodes if one changes. Use before proposing a decision replacement.
+- `knowledge_graph {projectId?}`: nodes/degrees, edges, hubs (`hubThreshold`), for project or organization central nodes and orphans.
+- **Organization Knowledge:** nodes can have no project (shared glossary, client rules, systems).
+  - `knowledge_library` and `knowledge_graph` accept a project (its nodes plus linked organization nodes), `"organization"` (organization nodes only), or omitted `projectId` (everything).
+  - These nodes return `project: null`.
+  - **Also search `"organization"` before project creation.** Link existing content (`knowledge_link` accepts UUID `targetRef`) rather than duplicating it.
+  - Use knowledge_move for supported project/product/organization movement under the current IAM grants; direct creation still follows knowledge_create scope. Read the movement workflow above before changing scope.
+  - Organization node Portal path: `/organization/knowledge/<nodeId>`.
+- Legacy Knowledge task nodes/projections stay project-scoped. Unified tasks also support product backlogs and CRM contexts through `../tasks/SKILL.md`; do not create those with knowledge_create.
 
-## Lo que ve el cliente (ATE-237)
+## Client visibility (ATE-237)
 
-El cliente ve **Conocimiento en solo lectura** en el Portal y en su MCP:
-- solo los nodos `visibility: "client"`, y las aristas cuyas **dos puntas** son visibles para él;
-- sus tools de Conocimiento son lecturas del proyecto: `knowledge_kinds`, `knowledge_search`, `knowledge_get`, `knowledge_impact` y `knowledge_view`;
-- **no** tiene escrituras (`knowledge_create`, `update`, `link`, `batch`…), ni `knowledge_context`, `knowledge_audit` o `knowledge_query`, ni el Conocimiento de la organización (`knowledge_library`, `knowledge_graph`). Tareas (`task_board`) sigue siendo del staff;
-- en Flujos ve solo los flujos `client`; una ref a un nodo interno sale como «Interno» (skill `flows`).
+Clients have **read-only Knowledge** in Portal and MCP:
+- Only `visibility: "client"` nodes, and edges with **both endpoints** visible.
+- Project reads: `knowledge_kinds`, `knowledge_search`, `knowledge_get`, `knowledge_impact`, `knowledge_view`.
+- No writes (`knowledge_create`, `update`, `link`, `batch`…), `knowledge_context`, `knowledge_audit`, `knowledge_query`, or organization Knowledge (`knowledge_library`, `knowledge_graph`). `task_board` remains staff-only.
+- Only `client` flows; internal-node references are labeled with the server's literal “Interno” (`flows`).
 
-Por eso, antes de publicar un nodo, piensa qué arrastra: un nodo `client` cuyo vecino es `internal` se ve sin esa arista. Y escribe `title`, `summary` y `properties` de un nodo `client` como algo que el cliente va a leer: sin correos, ids del staff ni notas internas.
+Consider publication effects: a `client` node with an `internal` neighbor appears without that edge. Write client-visible `title`, `summary`, and `properties` for the client: no staff emails, IDs, or internal notes. Server/UI labels quoted in Spanish are intentional literal exceptions.
 
-## Qué no hacer
+## Avoid
 
-- **No** crees nodos sin fuente real ni inventes fuentes: si la fuente es la conversación, usa `{type:"chat"}` y dilo.
-- **No** encadenes reintentos de `HUMAN_CONFIRMS`: es un límite, no un error.
-- **No** uses `note` para lo que tiene kind propio.
-- **No** pongas en `properties` texto que debería ser otro nodo: una decisión dentro de las notas de un riesgo debe ser una `decision` enlazada.
+- Never invent sources or create unsourced nodes. If the conversation is the source, use `{type:"chat"}` and say so.
+- Never retry `HUMAN_CONFIRMS` repeatedly: it is a boundary.
+- Do not use `note` when a dedicated kind applies.
+- Do not bury another node in `properties`: a decision in risk notes should be a linked `decision`.

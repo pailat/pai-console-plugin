@@ -1,0 +1,6 @@
+{
+  "environment": "production",
+  "url": "https://mcp-corp.pai.lat/mcp",
+  "plugin_name": "pai-console-production",
+  "server_name": "pai_console_production"
+}

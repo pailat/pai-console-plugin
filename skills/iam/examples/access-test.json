@@ -1,0 +1,12 @@
+{
+  "tool": "iam_access_test",
+  "input": {
+    "resource": {
+      "type": "platform",
+      "id": null
+    },
+    "permissions": [
+      "crm.tasks.list"
+    ]
+  }
+}

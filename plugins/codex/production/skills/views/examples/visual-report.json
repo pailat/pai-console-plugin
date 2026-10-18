@@ -1,0 +1,204 @@
+{
+  "tool": "page_create",
+  "input": {
+    "organizationId": "ORG_ID",
+    "projectId": "PROJECT_ID",
+    "path": "reports/phase-0-summary",
+    "title": "Phase 0 brief",
+    "description": "Visual Discovery summary: scope, team, progress, milestones.",
+    "audience": "client",
+    "summary": "Phase 0 visual brief as of 2026-10-06",
+    "idempotencyKey": "page-shop-reports-phase-0-summary",
+    "content": {
+      "schemaVersion": 1,
+      "componentSetVersion": "pai-core-v1",
+      "layout": "canvas",
+      "sections": [
+        {
+          "id": "summary",
+          "title": "Brief",
+          "blocks": [
+            {
+              "id": "phaseView",
+              "type": "view",
+              "title": "Phase 0 — Discovery",
+              "spec": {
+                "root": "root",
+                "elements": {
+                  "root": {
+                    "type": "Stack",
+                    "props": {
+                      "direction": "vertical",
+                      "gap": "lg"
+                    },
+                    "children": [
+                      "title",
+                      "lead",
+                      "stages",
+                      "facts",
+                      "progress",
+                      "deliverables",
+                      "milestones",
+                      "details"
+                    ]
+                  },
+                  "title": {
+                    "type": "Heading",
+                    "props": {
+                      "text": "Phase 0 — Discovery",
+                      "level": "h1"
+                    }
+                  },
+                  "lead": {
+                    "type": "Text",
+                    "props": {
+                      "text": "We understood the sales process, prioritized modules, and prepared the Phase 1 proposal. As of 2026-10-06.",
+                      "variant": "lead"
+                    }
+                  },
+                  "facts": {
+                    "type": "KeyValue",
+                    "props": {
+                      "columns": 3,
+                      "items": [
+                        {
+                          "label": "Home",
+                          "value": "2026-09-01"
+                        },
+                        {
+                          "label": "Expected close",
+                          "value": "2026-10-17"
+                        },
+                        {
+                          "label": "Pai owner",
+                          "value": "Alejandro Sánchez"
+                        },
+                        {
+                          "label": "Interviews",
+                          "value": "11 of 12"
+                        },
+                        {
+                          "label": "Prioritized modules",
+                          "value": "6"
+                        },
+                        {
+                          "label": "Investment",
+                          "value": "$180,000 MXN"
+                        }
+                      ]
+                    }
+                  },
+                  "progress": {
+                    "type": "Progress",
+                    "props": {
+                      "value": 80,
+                      "label": "Phase progress: 80 %"
+                    }
+                  },
+                  "milestones": {
+                    "type": "Timeline",
+                    "props": {
+                      "items": [
+                        {
+                          "date": "2026-09-05",
+                          "title": "Kickoff",
+                          "description": "Kickoff meeting and system access.",
+                          "status": "done"
+                        },
+                        {
+                          "date": "2026-09-26",
+                          "title": "Interviews",
+                          "description": "Sales, collections, and management.",
+                          "status": "done"
+                        },
+                        {
+                          "date": "2026-10-10",
+                          "title": "Process map",
+                          "status": "current"
+                        },
+                        {
+                          "date": "2026-10-17",
+                          "title": "Phase 1 proposal",
+                          "status": "upcoming"
+                        }
+                      ]
+                    }
+                  },
+                  "details": {
+                    "type": "Accordion",
+                    "props": {
+                      "type": "multiple",
+                      "items": [
+                        {
+                          "title": "What is outside this phase?",
+                          "content": "ERP integrations and historical data migration; quoted in Phase 1."
+                        },
+                        {
+                          "title": "What do we need from the client?",
+                          "content": "Pending Finance interview and current product catalog."
+                        }
+                      ]
+                    }
+                  },
+                  "stages": {
+                    "type": "Stages",
+                    "props": {
+                      "items": [
+                        {
+                          "label": "Kickoff",
+                          "status": "done",
+                          "detail": "2026-09-05"
+                        },
+                        {
+                          "label": "Interviews",
+                          "status": "done",
+                          "detail": "2026-09-26"
+                        },
+                        {
+                          "label": "Process map",
+                          "status": "current",
+                          "detail": "2026-10-10"
+                        },
+                        {
+                          "label": "Proposal",
+                          "status": "upcoming",
+                          "detail": "2026-10-17"
+                        }
+                      ]
+                    }
+                  },
+                  "deliverables": {
+                    "type": "Checklist",
+                    "props": {
+                      "items": [
+                        {
+                          "label": "Interview minutes",
+                          "status": "done"
+                        },
+                        {
+                          "label": "System inventory",
+                          "status": "done"
+                        },
+                        {
+                          "label": "Sales process map",
+                          "status": "pending",
+                          "detail": "Under review with Sales"
+                        },
+                        {
+                          "label": "Product catalog",
+                          "status": "warning",
+                          "detail": "Client's current list is missing",
+                          "statusLabel": "With observations"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

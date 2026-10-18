@@ -1,21 +1,21 @@
 ---
 name: proposals-payments
-description: Propuestas (SOW) y cobros de un proyecto de Pai Console. Cubre redactar y guardar la propuesta, enviarla y registrar su aceptación o rechazo, ligar hitos a la propuesta, importar CFDI (facturas de ingreso), registrar pagos desde el complemento de pago y anular pagos. Úsalo cuando pidan propuesta, cotización, SOW, inversión, factura, CFDI, complemento de pago, pago recibido, cobro o anulación.
-argument-hint: "[proyecto] [propuesta, factura o pago]"
+description: "Manage Pai Console project SOW proposals and collections: compose/save/send proposals, record acceptance or rejection, link billing milestones, import income CFDI, record payment complements, and void payments. Use for proposals, quotations, SOWs, investment, invoices, CFDI, payment complements, received payments, collections, or voids."
+argument-hint: "[project] [proposal, invoice, or payment]"
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
-# Propuestas y Pagos en Pai
+# Proposals and payments
 
-Lee antes el skill `pai-console`. Aquí casi todo mueve dinero o compromisos con el cliente.
+Read shared `pai-console` first through the current client's skill mechanism. Most actions affect money or client commitments. Preserve Mexican Spanish business formatting, MXN amounts, and `America/Mexico_City` dates where required; reply in the user's language.
 
-**Las transiciones de propuesta, los CFDI y los pagos no se deshacen** (salvo anular un pago, que también es definitivo). Antes de cada una, di a la persona exactamente qué vas a registrar y espera su sí explícito, también en staging.
+**Proposal transitions, CFDI imports, and payments cannot be undone** (except voiding a payment, also final). Before each, explain exactly what will be recorded and wait for explicit approval, including in staging.
 
-## Propuestas
+## Proposals
 
-Una propuesta es un SOW: su `pageContent` sigue el contrato de pages con el tipo **`sow`**. Las secciones van en este orden y son todas obligatorias:
+A proposal is a SOW: `pageContent` follows page type **`sow`**. All sections are required in this order. These Spanish section identifiers are contract values, not translatable prose:
 
-| Sección | Bloques permitidos |
+| Section | Allowed blocks |
 |---|---|
 | `contexto` | text, callout |
 | `alcance` | deliverables, text |
@@ -25,70 +25,58 @@ Una propuesta es un SOW: su `pageContent` sigue el contrato de pages con el tipo
 | `supuestos` | text, callout, risks |
 | `fuentes` | sources |
 
-Bloques obligatorios en algún lugar del documento: `deliverables`, `data-table` y `sources`. Detalle en `../resources/references/page-types.md`.
+Required somewhere: `deliverables`, `data-table`, `sources`. See `../resources/references/page-types.md`.
 
-1. **Lee** `proposal_list` y, si hay propuesta, `proposal_get`. Un proyecto tiene historial de propuestas; un borrador vivo se edita, no se duplica.
-2. **Compón el SOW:**
-   - `deliverables`, cada uno con su criterio de aceptación;
-   - `fuera-de-alcance` explícito: es lo que evita disputas;
-   - la inversión en un `data-table` con su fuente;
-   - los supuestos.
+1. **Read** `proposal_list`, then `proposal_get` for an existing proposal. Projects retain proposal history; edit the current draft rather than duplicating it.
+2. **Compose SOW:** deliverables with acceptance criteria, explicit exclusions (`fuera-de-alcance`) to prevent disputes, sourced investment `data-table`, assumptions. Validate with `page_validate {content, typeSlug:"sow"}`.
+3. **Save:** `proposal_save {organizationId, projectId, createNew:true, title, pageContent, feeAmount, currency, acceptanceWindowDays}`.
+   - `feeAmount` is **cents**.
+   - **Explicit `currency`:** proposals default to `mxn`; milestones default to `usd`. Make them match.
+   - `acceptanceWindowDays`: default 5, range 1–365.
+   - Edit draft with `proposalId`, `expectedRevision` from `proposal_get`, `createNew:false`.
+   - Only drafts are editable; sent/closed proposals retain content.
+4. **Send:** `proposal_set_status {status:"sent"}` validates the SOW and starts acceptance window. **No email is sent**; the user notifies the client separately. Supply `expectedRevision` from `proposal_get`; on `CONFLICT`, reread.
+5. **Client response:**
+   - Client accepts/rejects in Portal (`proposal_accept` / `proposal_reject` are client-only, not staff).
+   - Staff records an externally communicated response with `proposal_set_status {status:"accepted", acceptedByName, expectedRevision}` or `{status:"rejected", reason, expectedRevision}`.
 
-   Valida con `page_validate {content, typeSlug:"sow"}`.
-3. **Guarda:** `proposal_save` con `{organizationId, projectId, createNew:true, title, pageContent, feeAmount, currency, acceptanceWindowDays}`.
-   - `feeAmount` va **en centavos**.
-   - `currency` **explícita**: por defecto es `mxn`, pero los hitos usan `usd` por defecto. Que coincidan.
-   - `acceptanceWindowDays` vale 5 por defecto (de 1 a 365).
-   - Para editar el borrador: `proposalId` + `expectedRevision` de `proposal_get`, y `createNew:false`.
-   - Solo se editan borradores. Las propuestas enviadas o cerradas conservan su contenido.
-4. **Enviar:** `proposal_set_status {status:"sent"}`.
-   - Valida el SOW y arranca la ventana de aceptación.
-   - **No manda correo:** la persona avisa al cliente por su canal.
-   - Manda `expectedRevision` (la `revision` de `proposal_get`): si cambió, responde `CONFLICT` y hay que volver a leer.
-5. **Respuesta del cliente**, por una de dos vías:
-   - el cliente la acepta o rechaza en el Portal (`proposal_accept` / `proposal_reject` son del cliente, no del staff);
-   - el staff registra lo que el cliente comunicó por otro medio: `proposal_set_status {status:"accepted", acceptedByName, expectedRevision}` o `{status:"rejected", reason, expectedRevision}`.
+   **Irreversible:** confirm the accepting person's exact name.
+6. Link each billable milestone through `milestone_proposal_link {milestoneId, proposalId}`; feeds the next collection in Payments.
 
-   **Irreversible:** confirma el nombre exacto de quien aceptó.
-6. **Liga cada hito que cobra** con `milestone_proposal_link {milestoneId, proposalId}`. Alimenta el «siguiente cobro» de Pagos.
+## CFDI income invoices (type I)
 
-## CFDI (facturas de ingreso, tipo I)
+**Tax data comes from the stamped XML, never manual entry.** Issuer must be Pai's RFC or the server rejects it.
 
-**Los datos fiscales salen del XML timbrado:** nunca los escribas tú. El emisor debe ser el RFC de Pai; si no lo es, el servidor rechaza la factura.
+1. Optional PDF: `payment_file_upload {size}` with exact bytes, ≤10 MB; `PUT` PDF to `signedUrl` with `Content-Type: application/pdf` within 5 minutes; retain `uploadId`.
+2. `payment_cfdi_import {xml, pdfUploadId?, milestoneId? | proposalId?, contract}`.
+   - **Always supply `contract` for a milestone/proposal link:** `{currency, amount (cents), rate?, rateSource?}`, the contract-currency equivalent.
+   - Without it, the invoice does not count toward payment status/totals; response warns.
+3. Reimporting the same UUID returns the existing unchanged record; retry is safe.
+4. **No CFDI edit/delete tool.** Check milestone, proposal, and `contract` before importing.
 
-1. **PDF (opcional):**
-   - `payment_file_upload {size}` con los bytes exactos, ≤10 MB;
-   - `PUT` del PDF a `signedUrl` con `Content-Type: application/pdf` antes de 5 min;
-   - guarda el `uploadId`.
-2. **`payment_cfdi_import`** con `{xml, pdfUploadId?, milestoneId? | proposalId?, contract}`.
-   - **Siempre `contract` cuando la ligas a un hito o a una propuesta:** `{currency, amount (centavos), rate?, rateSource?}`, la equivalencia en la moneda del contrato.
-   - Sin `contract`, la factura no cuenta para el estado de pago ni para los totales; la respuesta lo advierte.
-3. Reimportar el mismo UUID devuelve el registro existente sin cambios: es seguro reintentar.
-4. **No hay herramienta para editar ni borrar un CFDI.** Revisa hito, propuesta y `contract` antes de importar.
+## Payments (payment complement, CFDI type P)
 
-## Pagos (complemento de pago, CFDI tipo P)
+1. First import every invoice settled by the complement, in the same currency.
+2. Upload complement PDF and transfer receipt separately through `payment_file_upload` → `PUT`.
+3. `payment_record` with:
+   - stable `requestId`, such as `pay-<project>-<complement-uuid>`; **reuse on retry**;
+   - `complementXml`, optional `complementPdfUploadId`, `receiptUploadId`;
+   - `paidAt`: bank execution date/time with zone;
+   - `method`: `spei`, `transfer`, `card`, `cash`, `other`;
+   - available `reference`, `trackingKey`, `payerName`, `payerBank`, `payerAccountLast4`…
 
-1. **Antes,** cada factura que liquida el complemento debe estar importada, y en la misma moneda.
-2. **PDFs** del complemento y del comprobante de transferencia: `payment_file_upload` → `PUT` en cada uno.
-3. **`payment_record`** con:
-   - `requestId`: estable, por ejemplo `pay-<proyecto>-<uuid-del-complemento>`; **reutilízalo al reintentar**;
-   - `complementXml`, `complementPdfUploadId?`, `receiptUploadId?`;
-   - `paidAt`: fecha y hora con zona, la de la ejecución bancaria;
-   - `method`: `spei`, `transfer`, `card`, `cash` u `other`;
-   - y, si los tienes, `reference`, `trackingKey`, `payerName`, `payerBank`, `payerAccountLast4`…
+   Store only the last four account digits.
+4. Linked milestones become paid when invoices cover their amount. Verify `payment_list`.
+5. Download receipt or invoice PDF/XML with `payment_file_download_url {fileId}` (`fileId` from `payment_list`). URL expires in 60 seconds: use immediately, never store/share.
 
-   De las cuentas solo se guardan los últimos 4 dígitos.
-4. Los hitos ligados pasan a **pagados** cuando sus facturas cubren su monto. Verifica con `payment_list`.
-5. Para descargar un comprobante o el PDF/XML de una factura: `payment_file_download_url {fileId}` (el `fileId` viene de `payment_list`). La URL dura 60 s: úsala de inmediato y no la guardes ni la compartas.
+## Void a payment
 
-## Anular un pago
+`payment_void {paymentId, reason}` voids an erroneous record and recalculates milestones. **Final**; already voided yields `CONFLICT`. Explain milestone effects before requesting confirmation.
 
-`payment_void {paymentId, reason}` anula un pago registrado por error y recalcula los hitos. Es **definitivo**: si ya estaba anulado, da `CONFLICT`. Explica a la persona el efecto en los hitos antes de pedir su confirmación.
+## Avoid
 
-## Qué no hacer
-
-- **No** escribas datos fiscales (RFC, UUID, montos de impuestos) a mano: salen del XML.
-- **No** registres un pago sin sus facturas importadas, ni importes sin `contract` una factura ligada a un hito.
-- **No** marques `paymentStatus` de un hito a mano: lo recalculan los pagos.
-- **No** cambies el estado de una propuesta sin una confirmación explícita de la persona, con el nombre de quien aceptó.
-- **No** borres un proyecto ni un hito con pagos para «limpiar»: `project_delete` borra en cascada pagos y CFDI.
+- Never manually enter tax data (RFC, UUID, tax amounts); read XML.
+- Never record payment before invoice import, or omit `contract` for a milestone-linked invoice.
+- Never manually mark milestone `paymentStatus`; payments recalculate it.
+- Never transition a proposal without explicit approval and the accepting person's name when applicable.
+- Never delete projects/milestones with payments to clean up: `project_delete` cascades payments and CFDI.

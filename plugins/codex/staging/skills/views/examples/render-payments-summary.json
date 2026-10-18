@@ -1,0 +1,108 @@
+{
+  "tool": "view_render",
+  "input": {
+    "title": "Online shop collections",
+    "spec": {
+      "root": "root",
+      "elements": {
+        "root": {
+          "type": "Stack",
+          "props": {
+            "direction": "vertical",
+            "gap": "lg"
+          },
+          "children": [
+            "summary"
+          ]
+        },
+        "kpis": {
+          "type": "Grid",
+          "props": {
+            "columns": 3,
+            "gap": "md"
+          },
+          "children": [
+            "kpiContract",
+            "kpiPaid",
+            "kpiPending"
+          ]
+        },
+        "kpiContract": {
+          "type": "Metric",
+          "props": {
+            "label": "Contract",
+            "value": "$480,000",
+            "unit": "MXN"
+          }
+        },
+        "kpiPaid": {
+          "type": "Metric",
+          "props": {
+            "label": "Collected",
+            "value": "$240,000",
+            "unit": "MXN",
+            "detail": "2 of 4 milestones",
+            "tone": "positive"
+          }
+        },
+        "kpiPending": {
+          "type": "Metric",
+          "props": {
+            "label": "Receivable",
+            "value": "$240,000",
+            "unit": "MXN",
+            "detail": "Next: Payments, 2026-10-25"
+          }
+        },
+        "byMilestone": {
+          "type": "BarList",
+          "props": {
+            "items": [
+              {
+                "label": "Discovery — paid",
+                "value": 120000,
+                "display": "$120,000"
+              },
+              {
+                "label": "Catalog and cart — paid",
+                "value": 120000,
+                "display": "$120,000"
+              },
+              {
+                "label": "Payments — pending",
+                "value": 120000,
+                "display": "$120,000"
+              },
+              {
+                "label": "Launch — pending",
+                "value": 120000,
+                "display": "$120,000"
+              }
+            ]
+          }
+        },
+        "next": {
+          "type": "Item",
+          "props": {
+            "title": "Next collection: Payments milestone",
+            "description": "Invoiced on payment integration delivery.",
+            "icon": "receipt",
+            "meta": "2026-10-25"
+          }
+        },
+        "summary": {
+          "type": "Section",
+          "props": {
+            "title": "Collections by milestone",
+            "description": "payment_list and timeline_get data as of 2026-10-06."
+          },
+          "children": [
+            "kpis",
+            "byMilestone",
+            "next"
+          ]
+        }
+      }
+    }
+  }
+}

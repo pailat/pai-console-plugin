@@ -1,0 +1,44 @@
+{
+  "name": "pai-console-plugin",
+  "interface": {
+    "displayName": "Pai Console environments"
+  },
+  "plugins": [
+    {
+      "name": "pai-console-staging",
+      "source": {
+        "source": "local",
+        "path": "./plugins/codex/staging"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "pai-console-develop",
+      "source": {
+        "source": "local",
+        "path": "./plugins/codex/develop"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "pai-console-production",
+      "source": {
+        "source": "local",
+        "path": "./plugins/codex/production"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

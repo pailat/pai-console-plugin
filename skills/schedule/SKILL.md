@@ -1,88 +1,81 @@
 ---
 name: schedule
-description: "Planea y lleva el Cronograma de un proyecto de Pai Console. Cubre hitos (fechas, monto, criterios de aceptación, línea base), dependencias entre hitos y entre tareas, tareas (nodos task de Knowledge), el tablero de Tareas y el cierre y la reapertura del proyecto. Úsalo cuando pidan plan de trabajo, cronograma, hitos, tareas, kanban, tablero, dependencias, línea base, el avance y los atrasos del proyecto, o cerrar o reabrir un proyecto."
-argument-hint: "[proyecto] [qué planear o actualizar]"
+description: "Plan and maintain Pai Console project schedules: milestones, dates, amounts, acceptance criteria, baseline, milestone/task dependencies, unified tasks, legacy Knowledge task compatibility, task board, and project closure/reopening. Use for work plans, schedules, milestones, tasks, kanban, dependencies, baselines, progress, delays, or closing/reopening projects."
+argument-hint: "[project] [plan or update requested]"
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
-# Cronograma y Tareas en Pai
+# Schedule and tasks
 
-Lee antes el skill `pai-console`.
+Read shared `pai-console` first through the current client's skill mechanism.
 
-## Modelo
+## Model
 
-- **Hitos** (`milestone_*`): entregas con fechas previstas y reales, criterios de aceptación, monto que se cobra (en centavos), estado (`pending`, `in_progress` o `completed`), responsable y línea base.
-- **Tareas**: nodos `task` de Knowledge, ligados a un hito por `properties.milestoneId`.
-  - `timeline_get` les calcula el estado (`scheduleLabel`: Pendiente, En curso, Atrasado, Completado o Cancelado, sobre el día de hoy en CDMX) y `blockedNow`.
-- **Dependencias:**
-  - entre hitos: `milestone_dependency_*`, fin a inicio, con `reason` y `visibility`;
-  - entre tareas: `task_dependency_*`.
+- **Milestones** (`milestone_*`): planned/actual dates, acceptance criteria, billable amount in cents, `pending`/`in_progress`/`completed` status, owner, baseline.
+- **Tasks:** use the unified `task_*` primitive in `../tasks/SKILL.md`, with project as primary context and milestone/product links as additional contexts. Legacy Knowledge task nodes remain compatible with older board/dependency responses; follow each returned transition rather than mixing their schemas. `timeline_get` computes `scheduleLabel` and `blockedNow` using today's date in `America/Mexico_City`. Literal labels are Pendiente, En curso, Atrasado, Completado, Cancelado; preserve these server values.
+- **Dependencies:** milestone `milestone_dependency_*` (finish-to-start with `reason`, `visibility`) and task `task_dependency_*`. Both reject duplicates/cycles.
+- **Board:** `task_board {milestoneId?, search?, columns?, limit, offset}`, paginated by `nextOffset`.
 
-  En ambos casos el servidor rechaza duplicados y ciclos.
-- **Tablero** (`task_board {milestoneId?, search?, columns?, limit, offset}`, paginado con `nextOffset`):
+The following columns describe the legacy Knowledge board, not unified task status enums:
 
-| Columna | Estado de la tarea |
+| Column | Legacy task state |
 |---|---|
-| Borrador (`backlog`) | `draft` o `proposed` |
-| Por hacer (`todo`) | `active` |
-| Hecha (`done`) | resuelta `done` |
-| Descartada (`discarded`) | resuelta `wont_do` o rechazada |
+| Backlog (`backlog`) | `draft` or `proposed` |
+| To do (`todo`) | `active` |
+| Done (`done`) | Resolved `done` |
+| Discarded (`discarded`) | Resolved `wont_do` or rejected |
 
-  Cada tarea trae su `revision`, su `citation` y en `moves` las transiciones posibles, con la tool y la entrada exactas: síguelas.
+Each task has `revision`, `citation`, and exact permitted transitions in `moves`, with tool/input. Follow them.
 
-## Planear desde cero
+## Plan from scratch
 
-1. **Lee lo que hay:** `timeline_get`, `milestone_list` y `task_board`. Si ya hay plan, ajústalo; no lo dupliques.
-2. **Responsables:** `milestone_owner_options` da los `ownerUserId` válidos.
-3. **Hitos, en orden:** `milestone_create` con:
-   - `name` (en español), `description`, `acceptanceCriteria` (cómo se sabe que está hecho);
-   - `startDate`, `endDate` (AAAA-MM-DD);
-   - `amount` **en centavos** y `currency` **explícita** (`mxn` o `usd`). Por defecto es `usd`, pero las propuestas usan `mxn` por defecto: no lo dejes al azar;
-   - `sequence` explícito (1, 2, 3…): sin él toma max+1 y puede chocar si hay otra escritura a la vez.
-4. **Dependencias entre hitos:** `milestone_dependency_create {predecessorMilestoneId, successorMilestoneId, reason, visibility}`. `reason` explica por qué espera; `visibility` es `internal` o `client`, y con `client` el cliente lo lee.
-5. **Tareas:** `knowledge_create` con `kind: "task"` y `status: "active"`. Lleva:
-   - `properties.statement` (≥10);
-   - `owner`, `startDate`, `dueDate`, `milestoneId` (del `milestone_list`);
-   - `sources`: la reunión, la page o `{type:"chat"}`.
+1. Read `timeline_get`, `milestone_list`, `task_board`. Adjust existing plans; never duplicate.
+2. `milestone_owner_options` provides valid `ownerUserId` values.
+3. Create milestones in order through `milestone_create`:
+   - Spanish business `name`, `description`, `acceptanceCriteria` defining completion;
+   - `startDate`, `endDate` (`YYYY-MM-DD`);
+   - **Cents** `amount`, **explicit** `currency` (`mxn`/`usd`): defaults to `usd` whereas proposals default to `mxn`; make the choice explicit;
+   - explicit `sequence` (1, 2, 3…); absent sequence uses max+1 and can conflict with concurrent writes.
+4. `milestone_dependency_create {predecessorMilestoneId, successorMilestoneId, reason, visibility}`. Explain waiting in `reason`; `visibility` is `internal`/`client`, client-visible when `client`.
+5. Use `../tasks/SKILL.md`: task_create with title, contexts beginning with {kind:"project",id}, and the milestone/product as additional contexts. Search first, keep the agreed dates/assignee and distinguish proposed draft from active work. The older Knowledge task route remains compatible; `examples/task.json` documents that legacy path, not the unified task input.
+6. `task_dependency_create {predecessorTaskId, successorTaskId, reason, visibility}`; default `visibility: internal`; use canonical IDs accepted by the returned dependency input; do not substitute a task shortId or invent a Knowledge node.
+7. Once the user confirms the client agreed to the plan, `milestone_baseline_capture` per milestone. **One capture, immutable:** request explicit confirmation.
 
-   Ejemplo validado: `examples/task.json`. `startDate` no puede ser posterior a `dueDate`.
-6. **Dependencias entre tareas:** `task_dependency_create {predecessorTaskId, successorTaskId, reason, visibility}`. `visibility` es `internal` por defecto. Los ids son los uuid de los nodos `task`.
-7. **Línea base:** cuando la persona confirme que el plan está acordado con el cliente, `milestone_baseline_capture` en cada hito. **Se captura una sola vez y no se mueve:** pide confirmación explícita.
+## Daily updates
 
-## Llevar el día a día
-
-| Evento | Qué hacer |
+| Event | Action |
 |---|---|
-| Empezó un hito | `milestone_update {status:"in_progress", actualStartDate}` |
-| Terminó un hito | `milestone_update {status:"completed", actualEndDate}`, tras confirmar que se cumplieron los `acceptanceCriteria` |
-| Una tarea pasa de Borrador a Por hacer, o vuelve | `knowledge_update {ref, expectedRevision, status:"active"}` (o `"draft"`), sin `properties` |
-| Se terminó una tarea | `knowledge_resolve {ref, outcome:"done", evidence, idempotencyKey}` |
-| Se descarta una tarea | `knowledge_resolve {outcome:"wont_do", evidence}` |
-| Cambian las fechas de una tarea | `knowledge_get` → `knowledge_update` con **todas** sus `properties` y las fechas nuevas |
-| Reordenar hitos | `milestone_reorder {items:[{id, sequence}]}`. Ignora en silencio los ids que no son del proyecto: verifica después con `milestone_list` |
+| Milestone starts | `milestone_update {status:"in_progress", actualStartDate}` |
+| Milestone finishes | `milestone_update {status:"completed", actualEndDate}` after confirming `acceptanceCriteria` |
+| Backlog ↔ To do | `task_get` → `task_update {taskId,expectedRevision,status:"todo"}` or draft; a person confirms proposals |
+| Task completes | `task_complete {taskId,expectedRevision,closeNote}` |
+| Task discarded | `task_cancel {taskId,expectedRevision,closeNote}` |
+| Task dates change | `task_get` → `task_update` with expectedRevision and changed startAt/dueAt/dueHasTime |
+| Reorder milestones | `milestone_reorder {items:[{id, sequence}]}` silently ignores out-of-project IDs; verify `milestone_list` |
 
-Notas:
-- Una tarea cerrada no se reabre: si vuelve a hacer falta, crea otra y enlázala.
-- Rechazar una tarea propuesta lo hace una persona desde el tablero.
-- **`paymentStatus` de un hito no se edita a mano:** lo recalculan los pagos (skill `proposals-payments`). Un valor manual se pisa con el siguiente pago.
+- Closed tasks cannot reopen; create/link a new task if needed.
+- A person rejects proposed tasks in the board.
+- Never manually edit milestone **`paymentStatus`**: payments recalculate it (`proposals-payments`) and overwrite manual values.
 
-## Reportar el estado
+## Status reporting
 
-1. Lee `timeline_get` (hitos, dependencias, `scheduleLabel`, `blockedNow`) y `task_board` (tareas por columna).
-2. Resume: hitos por estado, tareas Atrasadas y bloqueadas (`blockedNow`), y lo próximo a vencer.
-3. Si la persona lo pide, publícalo con `status_update_publish {health, headline, body}`: `health` es `on_track`, `at_risk` u `off_track`; `headline` ≤120 y `body` ≤600 caracteres. **El cliente lo ve al momento:** muéstrale el texto antes de publicar.
+1. Read `timeline_get` (milestones, dependencies, `scheduleLabel`, `blockedNow`) and `task_board`.
+2. Summarize milestone states, overdue/blocked tasks, upcoming due dates. CLI clients need text fallback; never claim a widget rendered without evidence (`pai-console` §6).
+3. If requested, `status_update_publish {health, headline, body}`: `health` `on_track`/`at_risk`/`off_track`, `headline` ≤120, `body` ≤600. **Immediately client-visible:** show the text before publication.
 
-## Cerrar y reabrir un proyecto (staff)
+## Close/reopen a project (staff)
 
-1. `project_close_review`: lo que queda pendiente (`openTasks`, `unresolved` —preguntas, supuestos, riesgos—, `pendingSuggestions`, `counts`), cada uno con la `action` que lo cierra (por ejemplo, una tarea con `knowledge_resolve` `done` o `wont_do`). No bloquea: muéstraselo a la persona y resuelvan lo que decidan.
-2. `project_close {status: "completed" | "cancelled", summary?}` (≤4000): deja el proyecto **en solo lectura**. Devuelve `merged[]`: cada producto que tocó registra `knowledge_merged`. `project_update` con `status` `completed` o `cancelled` también lo cierra. Confírmalo con la persona antes.
-3. Con el proyecto cerrado, **toda escritura de contenido** (Conocimiento, también en un producto desde ese proyecto; pages, notas, carpetas, archivos, comentarios) responde `CONFLICT` «El proyecto está cerrado y es de solo lectura. Un miembro del equipo de Pai puede reabrirlo.», sin `cause`. No es una revisión vieja: no releas ni reintentes. Siguen abiertas las lecturas, las propuestas, los pagos, los hitos, los status updates y los vínculos de producto. `project_summary` trae `project.readOnly: true`.
-4. `project_reopen {status?: "draft" | "planned" | "active" | "on_hold"}` (por defecto `active`): solo si la persona lo pide. Queda auditado. Un cliente no puede cerrar ni reabrir.
+1. `project_close_review`: pending `openTasks`, `unresolved` (questions, assumptions, risks), `pendingSuggestions`, `counts`, each with a closing `action` such as task `knowledge_resolve` `done`/`wont_do`. Nonblocking: show the review and resolve only what the user decides.
+2. `project_close {status: "completed" | "cancelled", summary?}` (≤4000) makes the project **read-only**. Returns `merged[]`; touched products record `knowledge_merged`. `project_update` with `completed`/`cancelled` also closes. Confirm beforehand.
+3. On closure, **all content writes** (Knowledge, including product Knowledge through that project; pages, notes, folders, files, comments) return `CONFLICT` without `cause`, with literal server text “El proyecto está cerrado y es de solo lectura. Un miembro del equipo de Pai puede reabrirlo.” This is not stale CAS: never reread/retry. Reads, proposals, payments, milestones, status updates, product links remain available. `project_summary` returns `project.readOnly: true`.
+4. `project_reopen {status?: "draft" | "planned" | "active" | "on_hold"}` (default `active`) **only when requested**; audited. Clients cannot close/reopen.
 
-## Qué no hacer
+Spanish status/error quotations above intentionally preserve server contracts. Replies follow the user's language; retain Mexican business formatting and cents/MXN conventions.
 
-- **No** borres hitos con pagos o CFDI (`milestone_delete` los deja huérfanos). Si sobra un hito, pregunta qué hacer con su cobro.
-- **No** captures la línea base por iniciativa propia.
-- **No** cierres ni reabras un proyecto por iniciativa propia, ni reintentes una escritura que respondió «El proyecto está cerrado».
-- **No** crees tareas con kinds distintos de `task`, ni metas ni decisiones como tareas.
-- **No** pongas montos en pesos o dólares enteros: van en centavos (`150000` = 1 500.00).
+## Avoid
+
+- Never delete milestones with payments/CFDI (`milestone_delete` orphans them); ask how to handle their billing.
+- Never capture baseline without explicit confirmation.
+- Never close/reopen on your own or retry a closed-project write.
+- Never use another kind for tasks or represent goals/decisions as tasks.
+- Never send whole pesos/dollars: amounts are cents (`150000` = 1 500.00).

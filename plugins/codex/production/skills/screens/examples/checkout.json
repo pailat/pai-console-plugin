@@ -1,0 +1,199 @@
+[
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "action",
+      "slug": "order-detail-back-to-shop",
+      "title": "Back to shop",
+      "summary": "Returns from order detail to catalog.",
+      "properties": {
+        "trigger": "link",
+        "effect": "Navigates to the product catalog.",
+        "outcome": "The user sees the catalog."
+      },
+      "sources": [
+        {
+          "type": "repo",
+          "path": "apps/web/app/checkout/page.tsx",
+          "ref": "main"
+        }
+      ],
+      "changeSummary": "Create Back to shop action",
+      "idempotencyKey": "kn-shop-action-order-detail-back-to-shop"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "action",
+      "slug": "checkout-pay",
+      "title": "Pay",
+      "summary": "Creates the order and charges the entered card.",
+      "properties": {
+        "trigger": "button",
+        "effect": "Creates the order in the API and charge in the gateway; approval navigates to order detail.",
+        "inputs": [
+          {
+            "field": "Card",
+            "type": "Stripe Elements",
+            "required": true
+          }
+        ],
+        "outcome": "The user sees the paid order."
+      },
+      "sources": [
+        {
+          "type": "repo",
+          "path": "apps/web/app/checkout/page.tsx",
+          "ref": "main"
+        }
+      ],
+      "changeSummary": "Create Pay action",
+      "idempotencyKey": "kn-shop-action-checkout-pay"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "action",
+      "slug": "checkout-edit-cart",
+      "title": "Edit cart",
+      "summary": "Returns to cart to change products or quantities.",
+      "properties": {
+        "trigger": "link",
+        "effect": "Returns to cart without creating the order."
+      },
+      "sources": [
+        {
+          "type": "repo",
+          "path": "apps/web/app/checkout/page.tsx",
+          "ref": "main"
+        }
+      ],
+      "changeSummary": "Create Edit cart action",
+      "idempotencyKey": "kn-shop-action-checkout-edit-cart"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "screen",
+      "slug": "order-detail",
+      "title": "Order detail",
+      "summary": "Status and contents of a buyer's order.",
+      "properties": {
+        "route": "/orders/[orderId]",
+        "purpose": "Shows the buyer their order status, purchased items, and total paid.",
+        "actors": [
+          "actor/shopper"
+        ],
+        "states": [
+          "Loading",
+          "Order paid",
+          "Order canceled",
+          "Not found"
+        ],
+        "content": [
+          {
+            "block": "Header",
+            "data": "Order number, date, and status",
+            "source": {
+              "ref": "entity/order"
+            }
+          },
+          {
+            "block": "Lines",
+            "data": "Product, quantity, and price",
+            "source": {
+              "ref": "entity/order-line"
+            }
+          }
+        ],
+        "actions": [
+          "action/order-detail-back-to-shop"
+        ],
+        "uses": [
+          "entity/order",
+          "entity/order-line"
+        ]
+      },
+      "sources": [
+        {
+          "type": "repo",
+          "path": "apps/web/app/orders/[orderId]/page.tsx",
+          "ref": "main"
+        }
+      ],
+      "changeSummary": "Create order detail screen",
+      "idempotencyKey": "kn-shop-screen-order-detail"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "screen",
+      "slug": "checkout",
+      "title": "Checkout",
+      "summary": "Cart confirmation and payment.",
+      "properties": {
+        "route": "/checkout",
+        "purpose": "Buyer reviews cart, confirms address, and pays by card.",
+        "actors": [
+          "actor/shopper"
+        ],
+        "states": [
+          "Empty cart",
+          "Ready to pay",
+          "Processing payment",
+          "Payment declined"
+        ],
+        "content": [
+          {
+            "block": "Cart summary",
+            "data": "Products, quantities, and total",
+            "source": {
+              "ref": "entity/order-line"
+            }
+          },
+          {
+            "block": "Payment form",
+            "data": "Card (Stripe Elements)",
+            "source": {
+              "ref": "action/checkout-pay"
+            }
+          }
+        ],
+        "actions": [
+          "action/checkout-pay",
+          "action/checkout-edit-cart"
+        ],
+        "uses": [
+          "entity/order",
+          "component/shop-web"
+        ],
+        "navigatesTo": [
+          "screen/order-detail"
+        ]
+      },
+      "sources": [
+        {
+          "type": "repo",
+          "path": "apps/web/app/checkout/page.tsx",
+          "ref": "main"
+        }
+      ],
+      "changeSummary": "Create checkout screen",
+      "idempotencyKey": "kn-shop-screen-checkout"
+    }
+  }
+]

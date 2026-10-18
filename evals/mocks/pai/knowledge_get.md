@@ -1,11 +1,11 @@
 ---
 type: agent
-abort_when: "Nunca abortes; responde siempre como el servidor."
+abort_when: "Never abort; always respond as the server."
 ---
 
-Actúas como la tool `knowledge_get` del MCP de Pai. Devuelve el nodo pedido en `ref`, tal como quedó en una llamada previa a `knowledge_create` de esta conversación, en JSON: `{"node":{...,"revision":0,"properties":<las properties que se mandaron>},"edges":[...]}`. En `edges`, deriva:
-- `contains` desde el `dataModel` o el `parent` declarado;
-- `relates_to` por cada columna con `referencesEntity`;
-- `uses` o `performs` por cada fila de `relationships`.
+Act as Pai MCP `knowledge_get`. Return the requested `ref` exactly as created earlier in this conversation, with its original properties and revision: `{"node":{...,"revision":0,"properties":<original properties>},"edges":[...]}`. Derive edges:
+- `contains` from the declared `dataModel` or `parent`;
+- `relates_to` for each column with `referencesEntity`;
+- `uses` or `performs` for each relationship row.
 
-Si el nodo no se creó antes, responde el error `NOT_FOUND: No se encontró el nodo.`
+For a node not created earlier, return `NOT_FOUND: No se encontró el nodo.`

@@ -1,0 +1,189 @@
+[
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "actor",
+      "slug": "shopper",
+      "title": "Buyer",
+      "summary": "Person who buys from the online shop.",
+      "properties": {
+        "actorType": "person",
+        "description": "End customer who browses the catalog, builds a cart, and pays online.",
+        "goals": ["Find products", "Pay without friction", "Track order status"]
+      },
+      "sources": [{ "type": "repo", "path": "docs/architecture.md", "ref": "main" }],
+      "changeSummary": "Create buyer actor",
+      "idempotencyKey": "kn-shop-actor-shopper"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "component",
+      "slug": "payment-gateway",
+      "title": "Payment gateway",
+      "summary": "External provider that processes card charges.",
+      "properties": {
+        "c4Level": "context",
+        "c4Type": "System_Ext",
+        "technology": "Stripe",
+        "responsibility": "Charges card orders and notifies the result through a webhook."
+      },
+      "sources": [{ "type": "repo", "path": "docs/architecture.md", "ref": "main" }],
+      "changeSummary": "Create external payment system",
+      "idempotencyKey": "kn-shop-c4-payment-gateway"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "component",
+      "slug": "shop-system",
+      "title": "Online shop",
+      "summary": "Client's online sales system.",
+      "properties": {
+        "c4Level": "context",
+        "c4Type": "System",
+        "responsibility": "Sells products online: catalog, cart, checkout, and order tracking.",
+        "relationships": [
+          { "to": "actor/shopper", "direction": "in", "description": "Buys products", "technology": "HTTPS" },
+          { "to": "component/payment-gateway", "direction": "out", "description": "Charges orders", "technology": "HTTPS/JSON" }
+        ]
+      },
+      "sources": [{ "type": "repo", "path": "docs/architecture.md", "ref": "main" }],
+      "changeSummary": "Create shop system (context)",
+      "idempotencyKey": "kn-shop-c4-shop-system"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "component",
+      "slug": "shop-db",
+      "title": "Shop database",
+      "summary": "PostgreSQL with customers, orders, and order lines.",
+      "properties": {
+        "c4Level": "container",
+        "c4Type": "ContainerDb",
+        "technology": "PostgreSQL 16",
+        "responsibility": "Stores shop customers, orders, and order lines.",
+        "parent": ["component/shop-system"],
+        "dataModels": ["data_model/sales-model"]
+      },
+      "sources": [{ "type": "repo", "path": "docs/architecture.md", "ref": "main" }],
+      "changeSummary": "Create database container",
+      "idempotencyKey": "kn-shop-c4-shop-db"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "component",
+      "slug": "shop-api",
+      "title": "Shop API",
+      "summary": "HTTP API for orders and payments.",
+      "properties": {
+        "c4Level": "container",
+        "c4Type": "Container",
+        "technology": "Hono on Bun",
+        "responsibility": "Exposes orders and payments; the only service that writes to the database.",
+        "parent": ["component/shop-system"],
+        "relationships": [
+          { "to": "component/shop-db", "direction": "out", "description": "Reads and writes orders", "technology": "SQL/TLS" },
+          { "to": "component/payment-gateway", "direction": "out", "description": "Creates charges", "technology": "HTTPS/JSON" }
+        ]
+      },
+      "sources": [{ "type": "repo", "path": "docs/architecture.md", "ref": "main" }],
+      "changeSummary": "Create API container",
+      "idempotencyKey": "kn-shop-c4-shop-api"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "component",
+      "slug": "shop-web",
+      "title": "Shop web app",
+      "summary": "Frontend for the catalog and checkout.",
+      "properties": {
+        "c4Level": "container",
+        "c4Type": "Container",
+        "technology": "Next.js 16",
+        "responsibility": "Displays the catalog, cart, and checkout; calls the API.",
+        "parent": ["component/shop-system"],
+        "relationships": [
+          { "to": "actor/shopper", "direction": "in", "description": "Browses and buys", "technology": "HTTPS" },
+          { "to": "component/shop-api", "direction": "out", "description": "Queries and creates orders", "technology": "HTTPS/JSON" }
+        ]
+      },
+      "sources": [{ "type": "repo", "path": "docs/architecture.md", "ref": "main" }],
+      "changeSummary": "Create web container",
+      "idempotencyKey": "kn-shop-c4-shop-web"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "component",
+      "slug": "order-repository",
+      "title": "Order repository",
+      "summary": "Order data access.",
+      "properties": {
+        "c4Level": "component",
+        "c4Type": "Component",
+        "stereotype": "repository",
+        "technology": "Drizzle ORM",
+        "responsibility": "Reads and writes orders and their lines in PostgreSQL.",
+        "parent": ["component/shop-api"],
+        "entity": ["entity/order"],
+        "dataOperations": ["create", "read", "update", "list"]
+      },
+      "sources": [{ "type": "repo", "path": "apps/api/src/orders/repository.ts", "ref": "main" }],
+      "changeSummary": "Create order repository",
+      "idempotencyKey": "kn-shop-c4-order-repository"
+    }
+  },
+  {
+    "tool": "knowledge_create",
+    "input": {
+      "organizationId": "ORG_ID",
+      "projectId": "PROJECT_ID",
+      "kind": "component",
+      "slug": "orders-controller",
+      "title": "Order controller",
+      "summary": "Order HTTP routes.",
+      "properties": {
+        "c4Level": "component",
+        "c4Type": "Component",
+        "stereotype": "controller",
+        "technology": "Hono",
+        "responsibility": "Validates order requests and delegates to the repository.",
+        "parent": ["component/shop-api"],
+        "httpRoutes": [
+          { "method": "GET", "path": "/v1/orders", "description": "Lists the customer's orders" },
+          { "method": "POST", "path": "/v1/orders", "description": "Creates an order" }
+        ],
+        "relationships": [
+          { "to": "component/order-repository", "direction": "out", "description": "Persists orders", "technology": "Internal call" }
+        ]
+      },
+      "sources": [{ "type": "repo", "path": "apps/api/src/orders/routes.ts", "ref": "main" }],
+      "changeSummary": "Create order controller",
+      "idempotencyKey": "kn-shop-c4-orders-controller"
+    }
+  }
+]

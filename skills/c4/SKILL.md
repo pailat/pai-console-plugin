@@ -1,113 +1,113 @@
 ---
 name: c4
-description: Modela la arquitectura C4 de un sistema en el Conocimiento de un proyecto de Pai Console. Usa nodos component por nivel (context, container, component, code) y nodos actor para las personas; las relaciones llevan descripción y tecnología. Úsalo cuando pidan arquitectura, C4, diagrama de contexto o de contenedores, componentes o el mapa de un sistema.
-argument-hint: "[proyecto] [sistema o repositorio a documentar]"
+description: "Model a system's C4 architecture in Pai Console Knowledge using component nodes by level (context, container, component, code) and actor nodes for people, with descriptions and technology on relationships. Use for architecture, C4, context or container diagrams, components, or a system map."
+argument-hint: "[project] [system or repository to document]"
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
-# C4 en Pai: `component` por nivel + `actor`
+# C4 in Pai: `component` by level + `actor`
 
-Lee antes el skill `pai-console`.
+Read the shared `pai-console` skill first, using the current client's invocation mechanism.
 
-## El modelo
+## Model
 
-- **Cada elemento C4 es un nodo `component`** con su `c4Level` y su `c4Type`.
-- **Las personas son nodos `actor`**, nunca un `component` de tipo `Person`.
-- La **jerarquía** se declara con `parent`: el elemento del nivel inmediatamente superior lo contiene (`contains`).
-- Las **interacciones** se declaran con `relationships`: el servidor crea aristas `uses` entre componentes y `performs` desde un actor.
-- El diagrama se genera solo, por nivel, con navegación entre los cuatro niveles.
+- **Each C4 element is a `component` node** with `c4Level` and `c4Type`.
+- **People are `actor` nodes**, never a `component` of type `Person`.
+- Declare **hierarchy** with `parent`: the element at the immediately higher level contains it (`contains`).
+- Declare **interactions** with `relationships`: the server creates `uses` edges between components and `performs` edges from actors.
+- The diagram is generated automatically by level, with navigation across all four levels.
 
-| `c4Level` | `c4Type` permitidos | `technology` |
+| `c4Level` | Allowed `c4Type` | `technology` |
 |---|---|---|
-| `context` | `System`, `System_Ext` | opcional |
-| `container` | `Container`, `ContainerDb`, `ContainerQueue`, `System_Ext` | **obligatoria** |
-| `component` | `Component`, `ContainerDb`, `System_Ext` | **obligatoria** |
-| `code` | `Code` (+ `codeKind`: class, interface, enum, entity o function) | opcional |
+| `context` | `System`, `System_Ext` | optional |
+| `container` | `Container`, `ContainerDb`, `ContainerQueue`, `System_Ext` | **required** |
+| `component` | `Component`, `ContainerDb`, `System_Ext` | **required** |
+| `code` | `Code` (+ `codeKind`: class, interface, enum, entity, or function) | optional |
 
-## Orden
+## Order
 
-1. **Descubre** el proyecto y **busca lo que ya existe**:
-   - **inventario:** `knowledge_library {projectId, kinds:["component","actor"]}`, recorriendo `offset` hasta `total`;
-   - **de la organización:** el mismo `knowledge_library` con `projectId: "organization"`. Los modelos y sistemas compartidos del cliente pueden vivir ahí: enlázalos por uuid en vez de recrearlos;
-   - **por tema:** `knowledge_search` con esos kinds y el nombre del sistema.
+1. **Discover** the project and **search existing content**:
+   - **inventory:** `knowledge_library {projectId, kinds:["component","actor"]}`, advancing `offset` to `total`;
+   - **organization:** the same `knowledge_library` with `projectId: "organization"`. Shared client models and systems may live there: link their UUIDs instead of recreating them;
+   - **topic:** `knowledge_search` with those kinds and the system name.
 
-   Si el sistema ya está, **agrega debajo**; no lo dupliques.
-2. **Actores primero:** `actor` con `actorType` (`person`, `role`, `system` o `agent`), `description` (10–1000) y `goals` (≥1). Reutiliza los actores que ya existan: los comparten las pantallas y los flujos.
-3. **Nivel context:** el `System` y los `System_Ext` (proveedores y sistemas del cliente).
-4. **Nivel container,** con `parent: ["component/<sistema>"]`. Las bases de datos son `ContainerDb`, con `dataModels: ["data_model/<slug>"]` para ligarlas al ERD (skill `erd`).
-5. **Nivel component** (solo donde aporte), con `parent: ["component/<contenedor>"]` y `stereotype` cuando aplique.
-6. **Nivel code:** casi nunca. Solo si la persona lo pide o el elemento es central.
-7. **Siempre crea primero el destino de una relación o de un `parent`.** Si el destino no existe, la escritura no falla: devuelve un warning y no crea la arista. Si pasó, vuelve a guardar el nodo cuando el destino exista.
-8. **Verifica con `knowledge_view {view:"c4", scope:"component/<sistema>", level, format:"json"}`**, nivel por nivel (`context`, luego `container`…). Es la misma vista que dibuja el Portal.
-   - Los elementos del nivel están, con su `c4Type` y su `technology`. Las personas aparecen como actores.
-   - Las relaciones llevan la `description` y la `technology` que declaraste.
-   - El árbol (`tree`) cuelga cada elemento de su padre.
-9. **Entrega** a la persona:
-   - **el diagrama dibujado:** `view_render` con un `C4Diagram` que recibe la respuesta de `knowledge_view` tal cual (skill `views`, «Diagramas de Conocimiento»);
-   - las citas `kb:`;
-   - si quieren el diagrama en un documento, un bloque `projection` `format: "c4"` en una page v2 (skill `resources` §3), que se dibuja vivo en vez de copiar los datos; uno ya guardado se muestra con `page_projection {path, blockId}`;
-   - el Mermaid (`format:"mermaid"`) si lo pide;
-   - el enlace del Portal: el `url` de la vista (ya trae `?level=`) con el host del Portal delante (`https://app.pai.lat` en producción; en staging, el Portal de staging).
+   If the system exists, **add beneath it** rather than duplicating it.
+2. **Actors first:** `actor` with `actorType` (`person`, `role`, `system`, or `agent`), `description` (10–1000), and `goals` (≥1). Reuse existing actors shared by screens and flows.
+3. **Context level:** the `System` and `System_Ext` nodes (providers and client systems).
+4. **Container level**, with `parent: ["component/<system>"]`. Databases use `ContainerDb`, with `dataModels: ["data_model/<slug>"]` linking to the ERD (`erd` skill).
+5. **Component level** only where useful, with `parent: ["component/<container>"]` and `stereotype` where applicable.
+6. **Code level:** rarely; only when requested or when the element is central.
+7. **Always create the target of a relationship or `parent` first.** A missing target does not fail the write: it returns a warning and omits the edge. Resave the node once the target exists.
+8. **Verify with `knowledge_view {view:"c4", scope:"component/<system>", level, format:"json"}`**, level by level (`context`, then `container`…). This is the Portal's projection.
+   - Elements have their `c4Type` and `technology`; people appear as actors.
+   - Relationships have the declared `description` and `technology`.
+   - The `tree` attaches each element to its parent.
+9. **Deliver**:
+   - the diagram through `view_render` with a `C4Diagram` receiving the unmodified `knowledge_view` response (`views` skill, Knowledge diagrams); in CLI clients provide a text fallback and never claim a widget rendered without evidence;
+   - `kb:` citations;
+   - for a document, a `projection` block with `format: "c4"` in a v2 page (`resources` §3), a live projection rather than copied data; show an existing block with `page_projection {path, blockId}`;
+   - Mermaid (`format:"mermaid"`) when requested;
+   - the Portal link: the view's `url` (already includes `?level=`) prefixed by the Portal host (`https://app.pai.lat` in production; the staging Portal in staging).
 
-**Módulos y componentes de un producto:** para decir en qué componente se implementa un `module` funcional, enlázalos con `implemented_by` (módulo → componente), los dos en el mismo producto (`productId`). Detalle y errores en el skill `knowledge`.
+**Product modules and components:** link a functional `module` to its implementation with `implemented_by` (module → component), both in the same product (`productId`). Details and errors are in `knowledge`.
 
-Ejemplo completo y validado: `examples/shop-c4.json`. Incluye un actor, un sistema, un sistema externo, tres contenedores (uno de ellos BD ligada al ERD), un repository y un controller.
+Complete validated example: `examples/shop-c4.json`. It includes an actor, a system, an external system, three containers (one database linked to the ERD), a repository, and a controller.
 
-## Relaciones (`relationships`, ≤30 por nodo)
+## Relationships (`relationships`, ≤30 per node)
 
 ```json
-{ "to": "component/shop-api", "direction": "out", "description": "Consulta y crea pedidos", "technology": "HTTPS/JSON" }
+{ "to": "component/shop-api", "direction": "out", "description": "Queries and creates orders", "technology": "HTTPS/JSON" }
 ```
 
-| Campo | Contenido |
+| Field | Content |
 |---|---|
-| `description` | **Es la etiqueta de la flecha** (3–120 caracteres). Un verbo y su objeto: «Cobra los pedidos». **No existe `label`.** |
-| `technology` | Protocolo o mecanismo (≤60): `HTTPS/JSON`, `SQL/TLS`, `AMQP`, `gRPC`, `Webhook`. |
-| `direction: "out"` | Este elemento usa a `to`. |
-| `direction: "in"` | `to` usa a este elemento. **Con un actor siempre va `in`**, porque la persona inicia la relación. |
+| `description` | **Arrow label** (3–120 characters). A verb and object, such as “Charges orders”. **There is no `label`.** |
+| `technology` | Protocol or mechanism (≤60): `HTTPS/JSON`, `SQL/TLS`, `AMQP`, `gRPC`, `Webhook`. |
+| `direction: "out"` | This element uses `to`. |
+| `direction: "in"` | `to` uses this element. **Always `in` for an actor**, because the person initiates the relationship. |
 
-El par `direction:to` es único dentro de un nodo.
+The `direction:to` pair is unique within a node.
 
-Declara cada relación **una sola vez**, en el nodo que la inicia (`out`), salvo las de actores, que van con `in` en el elemento que usan.
+Declare each relationship **once**, on its initiating node (`out`), except actor relationships, declared with `in` on the element they use.
 
-Dos elementos pueden usarse en ambos sentidos (la API llama al proveedor y el proveedor avisa a la API por webhook): son dos relaciones, una `out` en cada nodo, y el diagrama dibuja las dos.
+Two elements can use each other (the API calls a provider and the provider notifies the API through a webhook): declare two relationships, one `out` on each node; the diagram shows both.
 
-## Estereotipos (solo en el nivel component)
+## Stereotypes (component level only)
 
-| `stereotype` | Lleva | Exige |
+| `stereotype` | Fields | Requires |
 |---|---|---|
 | `controller` | `httpRoutes[{method, path, handler?, description?}]`, `methods` | — |
 | `service`, `interface` | `methods[{name, parameters?, returns?, visibility?, description?}]` | — |
-| `repository` | `methods`, `dataOperations` (create, read, update, delete, list, count) | `entity: ["entity/<slug>"]`, que es el puente al ERD |
+| `repository` | `methods`, `dataOperations` (create, read, update, delete, list, count) | `entity: ["entity/<slug>"]`, the ERD bridge |
 | `module` | `exports` | — |
-| `component` | por defecto | — |
+| `component` | default | — |
 
-En el nivel code, `codeKind` decide qué lleva:
-- `class`: `attributes`, `methods` y `httpRoutes`;
-- `interface` y `function`: `methods`;
-- `enum`: `enumValues`, obligatorio;
-- `entity`: `attributes` y `entity`.
+At code level, `codeKind` determines the fields:
+- `class`: `attributes`, `methods`, and `httpRoutes`;
+- `interface` and `function`: `methods`;
+- `enum`: required `enumValues`;
+- `entity`: `attributes` and `entity`.
 
-## Nombres
+## Naming
 
-- Slugs en inglés y kebab-case: `shop-system`, `shop-api`, `orders-controller`.
-- Títulos en español.
-- `technology` con producto y versión mayor cuando importa: «Next.js 16», «PostgreSQL 16».
-- `responsibility` (15–1000 caracteres): qué hace y qué no, en una o dos frases.
+- English kebab-case slugs: `shop-system`, `shop-api`, `orders-controller`.
+- Spanish business titles where required; conversation replies follow the user's language.
+- `technology` includes product and major version when relevant: “Next.js 16”, “PostgreSQL 16”.
+- `responsibility` (15–1000 characters): what it does and excludes, in one or two sentences.
 
-## Qué no hacer
+## Avoid
 
-- **No** uses `c4Type: "Person"`: es un `actor`.
-- **No** saltes niveles con `parent`: un container cuelga de un context y un component de un container. Si no, da `C4_LEVEL`. Un nodo tiene **un solo** padre (`ALREADY_CONTAINED`).
-- **No** dejes un container o component sin `technology`.
-- **No** escribas `label`, ni Mermaid en `properties` (`MERMAID_NOT_ALLOWED`).
-- **No** pongas `stereotype` fuera del nivel component, ni `httpRoutes` fuera de un controller o una class.
-- **No** crees aristas `uses`, `performs` o `contains` a mano: salen de `relationships` y de `parent`.
-- **No** modeles cada clase: el C4 sirve para entender el sistema, no para copiar el código.
+- Never use `c4Type: "Person"`: use an `actor`.
+- Do not skip levels with `parent`: a container belongs to a context and a component to a container, otherwise `C4_LEVEL`. A node has **one** parent (`ALREADY_CONTAINED`).
+- Never omit `technology` on a container or component.
+- Do not write `label` or Mermaid in `properties` (`MERMAID_NOT_ALLOWED`).
+- Do not use `stereotype` outside component level, or `httpRoutes` outside a controller or class.
+- Do not manually create `uses`, `performs`, or `contains`: derive them from `relationships` and `parent`.
+- Do not model every class: C4 explains the system rather than copying its code.
 
-## Cambios posteriores
+## Later changes
 
-1. `knowledge_get` del nodo.
-2. `knowledge_update` con **todas** las `properties` (las `relationships` completas) y `expectedRevision`.
+1. `knowledge_get` the node.
+2. `knowledge_update` with **all** `properties` (the complete `relationships`) and `expectedRevision`.
 
-Si quitas una fila de `relationships`, su arista desaparece. Para retirar un elemento usa `knowledge_archive` con motivo.
+Removing a relationship row removes its edge. Retire an element with `knowledge_archive` and a reason.

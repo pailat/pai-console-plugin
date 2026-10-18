@@ -3,9 +3,9 @@ type: llm
 focus: mock_calls
 ---
 
-PASS solo si la llamada a `page_create` cumple todo esto:
-1. El `spec` del bloque `view` tiene como raíz (`root`) un elemento `AppShell` con `brand`, `title` («Cobranza» o similar) y `nav` con Inicio, Clientes, Cobranza y Reportes; Cobranza con `active: true`. Cada `icon` es uno del catálogo (por ejemplo home, users, wallet, receipt, reports), nunca uno inventado.
-2. Dentro hay tres `Metric` (por cobrar, vencido, cobrado del mes) con valores en MXN ya formateados y una `Table` de facturas vencidas cuyas filas tienen tantas celdas como columnas.
-3. Los datos son verosímiles (nombres de clientes y montos, no «Lorem ipsum») y la vista dice que es un mockup (en el título del bloque o de la page).
-4. `path` en inglés y kebab-case (por ejemplo `mockups/collections`), `audience` `client` y sin `typeSlug`.
-5. No hay `className`, `style` ni componentes fuera del catálogo pai-view@1.
+PASS only if the `page_create` call satisfies every condition:
+1. The view spec root is an `AppShell` with `brand`, a Collections title, and navigation for Home, Customers, Collections (active), and Reports. Every icon belongs to the catalog, such as home, users, wallet, receipt, or reports.
+2. It contains three `Metric` components for outstanding, overdue, and monthly collections, with formatted MXN values, and an overdue-invoices `Table` with matching cell and column counts.
+3. Sample customer names and amounts are plausible, and the page or block is labeled as a mockup.
+4. `path` uses English kebab-case, such as `mockups/collections`; `audience` is `client`; no `typeSlug` is supplied.
+5. No `className`, `style`, or non-catalog components appear.

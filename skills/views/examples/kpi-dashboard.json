@@ -4,10 +4,10 @@
     "organizationId": "ORG_ID",
     "projectId": "PROJECT_ID",
     "path": "dashboards/project-status",
-    "title": "Estado del proyecto",
-    "description": "Tablero con avance, hitos, cobros y horas del proyecto al corte.",
+    "title": "Project status",
+    "description": "Dashboard of project progress, milestones, collections, and hours as of the reporting date.",
     "audience": "internal",
-    "summary": "Tablero de estado del proyecto al 2026-10-06",
+    "summary": "Project status dashboard as of 2026-10-06",
     "idempotencyKey": "page-shop-dashboards-project-status",
     "content": {
       "schemaVersion": 1,
@@ -16,58 +16,58 @@
       "sections": [
         {
           "id": "dashboard",
-          "title": "Tablero",
+          "title": "Dashboard",
           "blocks": [
             {
               "id": "statusView",
               "type": "view",
-              "title": "Estado del proyecto",
+              "title": "Project status",
               "spec": {
                 "root": "root",
                 "elements": {
                   "root": { "type": "Stack", "props": { "direction": "vertical", "gap": "lg" }, "children": ["header", "kpis", "detailTabs"] },
-                  "header": { "type": "Section", "props": { "title": "Tienda en línea", "description": "Corte al 2026-10-06, con datos de timeline_get y payment_list." }, "children": ["health", "riskAlert"] },
-                  "health": { "type": "StatusBadge", "props": { "label": "En riesgo", "tone": "warning" } },
-                  "riskAlert": { "type": "Alert", "props": { "title": "Hito 3 en riesgo", "message": "La integración de pagos depende de las credenciales del cliente; sin ellas el 2026-10-15, el hito se mueve una semana.", "type": "warning" } },
+                  "header": { "type": "Section", "props": { "title": "Online shop", "description": "As of 2026-10-06, using timeline_get and payment_list data." }, "children": ["health", "riskAlert"] },
+                  "health": { "type": "StatusBadge", "props": { "label": "At risk", "tone": "warning" } },
+                  "riskAlert": { "type": "Alert", "props": { "title": "Milestone 3 at risk", "message": "Payment integration depends on client credentials; without them by 2026-10-15, the milestone moves one week.", "type": "warning" } },
                   "kpis": { "type": "Grid", "props": { "columns": 4, "gap": "md" }, "children": ["kpiProgress", "kpiMilestones", "kpiCollected", "kpiHours"] },
-                  "kpiProgress": { "type": "Metric", "props": { "label": "Avance", "value": "68 %", "detail": "vs. 55 % al 2026-09-29", "trend": "up", "tone": "positive" } },
-                  "kpiMilestones": { "type": "Metric", "props": { "label": "Hitos cerrados", "value": "2 de 4" } },
-                  "kpiCollected": { "type": "Metric", "props": { "label": "Cobrado", "value": "$240,000", "unit": "MXN", "detail": "de $480,000 del contrato" } },
-                  "kpiHours": { "type": "Metric", "props": { "label": "Horas de octubre", "value": "98", "unit": "h", "detail": "Corte 2026-10-06" } },
-                  "detailTabs": { "type": "UnderlinedTabs", "props": { "tabs": [ { "label": "Hitos", "value": "milestones" }, { "label": "Horas", "value": "hours" } ], "defaultValue": "milestones" }, "children": ["milestonesStack", "hoursStack"] },
+                  "kpiProgress": { "type": "Metric", "props": { "label": "Progress", "value": "68 %", "detail": "vs. 55 % as of 2026-09-29", "trend": "up", "tone": "positive" } },
+                  "kpiMilestones": { "type": "Metric", "props": { "label": "Closed milestones", "value": "2 of 4" } },
+                  "kpiCollected": { "type": "Metric", "props": { "label": "Collected", "value": "$240,000", "unit": "MXN", "detail": "of $480,000 contract" } },
+                  "kpiHours": { "type": "Metric", "props": { "label": "October hours", "value": "98", "unit": "h", "detail": "As of 2026-10-06" } },
+                  "detailTabs": { "type": "UnderlinedTabs", "props": { "tabs": [ { "label": "Milestones", "value": "milestones" }, { "label": "Hours", "value": "hours" } ], "defaultValue": "milestones" }, "children": ["milestonesStack", "hoursStack"] },
                   "milestonesStack": { "type": "Stack", "props": { "direction": "vertical", "gap": "md" }, "children": ["stages", "milestonesTable"] },
                   "stages": {
                     "type": "Stages",
                     "props": {
                       "items": [
-                        { "label": "Descubrimiento", "status": "done", "detail": "2026-08-30" },
-                        { "label": "Catálogo y carrito", "status": "done", "detail": "2026-09-27" },
-                        { "label": "Pagos", "status": "current", "detail": "2026-10-25" },
-                        { "label": "Lanzamiento", "status": "upcoming", "detail": "2026-11-15" }
+                        { "label": "Discovery", "status": "done", "detail": "2026-08-30" },
+                        { "label": "Catalog and cart", "status": "done", "detail": "2026-09-27" },
+                        { "label": "Payments", "status": "current", "detail": "2026-10-25" },
+                        { "label": "Launch", "status": "upcoming", "detail": "2026-11-15" }
                       ]
                     }
                   },
                   "milestonesTable": {
                     "type": "Table",
                     "props": {
-                      "columns": ["Hito", "Fin", "Estado", "Cobro"],
+                      "columns": ["Milestone", "End", "Status", "Collection"],
                       "rows": [
-                        ["Descubrimiento", "2026-08-30", "Completado", "Pagado"],
-                        ["Catálogo y carrito", "2026-09-27", "Completado", "Pagado"],
-                        ["Pagos", "2026-10-25", "En curso", "Pendiente"],
-                        ["Lanzamiento", "2026-11-15", "Pendiente", "Pendiente"]
+                        ["Discovery", "2026-08-30", "Completed", "Paid"],
+                        ["Catalog and cart", "2026-09-27", "Completed", "Paid"],
+                        ["Payments", "2026-10-25", "In progress", "Pending"],
+                        ["Launch", "2026-11-15", "Pending", "Pending"]
                       ],
-                      "caption": "Fechas de la línea base"
+                      "caption": "Baseline dates"
                     }
                   },
                   "hoursStack": { "type": "Stack", "props": { "direction": "vertical", "gap": "md" }, "children": ["hoursChart", "hoursByArea"] },
                   "hoursChart": {
                     "type": "Chart",
-                    "props": { "title": "Horas por mes", "kind": "bar", "categories": ["Ago", "Sep", "Oct"], "series": [ { "name": "Horas", "values": [120, 140, 98] } ], "unit": "h", "description": "Octubre al día 6." }
+                    "props": { "title": "Hours by month", "kind": "bar", "categories": ["Aug", "Sep", "Oct"], "series": [ { "name": "Hours", "values": [120, 140, 98] } ], "unit": "h", "description": "October through day 6." }
                   },
                   "hoursByArea": {
                     "type": "BarList",
-                    "props": { "items": [ { "label": "Desarrollo", "value": 62 }, { "label": "Diseño", "value": 21 }, { "label": "Gestión", "value": 15 } ], "showPercent": true }
+                    "props": { "items": [ { "label": "Development", "value": 62 }, { "label": "Design", "value": 21 }, { "label": "Management", "value": 15 } ], "showPercent": true }
                   }
                 }
               }

@@ -1,88 +1,86 @@
 ---
 name: products
-description: Productos de un proyecto de Pai Console (las apps que Pai construye u opera) y su ciclo de vida. Cubre alta, estados con aprobación, aprovisionamiento de una Pai App (GitHub + Railway), variables, deploys a staging y producción, dominios, equipo y acceso a producción. Úsalo cuando pidan crear o registrar un producto, aprovisionar, desplegar, configurar variables o dominios, ver logs, dar acceso o pasar un producto a live.
-argument-hint: "[proyecto] [producto y acción]"
+description: "Manage Pai Console project products and lifecycle: registration, approval-gated states, Pai App provisioning (GitHub/Railway), variables, staging/production deploys, domains, team, and production access. Use to register, provision, deploy, configure, inspect logs, grant access, or move a product to live."
+argument-hint: "[project] [product and action]"
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
-# Productos en Pai
+# Products in Pai
 
-Lee antes el skill `pai-console`. Varias de estas tools tocan infraestructura real (GitHub y Railway) y la app que usan los clientes.
+Read shared `pai-console` first through the current client's skill mechanism. Several tools change real GitHub/Railway infrastructure and client applications.
 
-**Antes de aprovisionar, desplegar a producción, cambiar variables de producción, conectar un dominio o cambiar el acceso a producción:** di exactamente qué va a pasar y espera el sí explícito de la persona. Esto aplica en cualquier entorno de Console: un deploy desde Console de staging también llega a Railway.
+**Before provisioning, production deploys, production variable changes, domain attachment, or production access changes:** explain exactly what will happen and wait for explicit user approval. This applies in every Console environment: staging Console deploys also reach Railway.
 
-## Lee primero
+## Read first
 
-1. `product_list` (paginado por offset) → `product_get {productId}`.
-   - `nextStatus` y `missing[]` dicen qué falta para el siguiente estado.
-   - Cada faltante trae su `hint`, con la tool que lo resuelve. **Sigue los `hint`** en vez de adivinar el orden.
-2. Si es una Pai App ya aprovisionada:
-   - `product_provisioning_get`: pasos, URLs y último deploy;
-   - `product_logs {environment, deploymentId?, limit ≤500}`: logs de build o de deploy.
+1. Offset-paginated `product_list` → `product_get {productId}`.
+   - `nextStatus` and `missing[]` identify next-state prerequisites.
+   - Each missing item has a `hint` naming its tool. **Follow hints** rather than guessing order.
+2. For an already provisioned Pai App:
+   - `product_provisioning_get`: steps, URLs, latest deployment;
+   - `product_logs {environment, deploymentId?, limit ≤500}`: build/deploy logs.
 
-## Estados
+## States
 
 `draft` → `building` → `testing` → `live` → `retired`.
 
-- Se piden con `product_request_status {status, note}`; el servidor verifica las compuertas.
-- **`live` necesita que otra persona lo apruebe** con `product_decide_status {approve, note}`: quien pidió no puede decidir.
-- Desde `retired` solo se vuelve a `draft`, y retirar un producto **no** desaprovisiona nada.
+- Request with `product_request_status {status, note}`; server checks gates.
+- **`live` requires another person's approval** via `product_decide_status {approve, note}`; requester cannot decide.
+- `retired` can return only to `draft`; retirement **does not** deprovision anything.
 
-## Alta y aprovisionamiento de una Pai App
+## Register and provision a Pai App
 
-1. **`product_create`** con `{name, slug?, description?, type, hosting, recipeKey?, recipeVersion?}`:
-   - `type`: `web`, `mobile`, `integration`, `api`, `website` u `other`;
-   - `hosting`: `pai` (la operamos en Railway) o `external`;
-   - `recipeKey` y `recipeVersion` van juntos o no van;
-   - el slug va en inglés; si duplica, da `CONFLICT`.
-2. Liga el producto al proyecto: `product_link_project {productId, projectId, role?}` con `role` `creates`, `improves` (por defecto) o `maintains`; religar con otro `role` lo actualiza. Ese vínculo es el que deja usar `productId` en las tools `knowledge_*` desde el proyecto (skill `knowledge`).
+1. **`product_create`** `{name, slug?, description?, type, hosting, recipeKey?, recipeVersion?}`:
+   - `type`: `web`, `mobile`, `integration`, `api`, `website`, `other`;
+   - `hosting`: `pai` (operated on Railway) or `external`;
+   - `recipeKey` and `recipeVersion`: both present or absent;
+   - English slug; duplicates yield `CONFLICT`.
+2. `product_link_project {productId, projectId, role?}`: `creates`, `improves` (default), `maintains`; relinking updates `role`. This enables project `knowledge_*` tools with `productId` (`knowledge`).
 3. `product_request_status {status:"building"}`.
-4. **`product_provision`** (solo `hosting: pai`), una de dos:
-   - `{productId, repositoryName}`: crea el repo privado desde el template;
-   - `{productId, repository: "owner/name"}`: usa uno existente tal cual.
+4. **`product_provision`** (`hosting: pai` only), either:
+   - `{productId, repositoryName}` creates a private template repository;
+   - `{productId, repository: "owner/name"}` uses an existing repository unchanged, only where the user's scope permits (`pai-console` organization-staff restriction).
 
-   Qué hace:
-   - lee el manifiesto `pai.app.json` del repo (permisos, roles, acceso a producción). Sin manifiesto aplica la receta y producción queda **protegida**;
-   - crea el proyecto en Railway (Postgres, staging y production, variables, «Entrar con Pai») y el primer deploy de staging.
+   It reads repo `pai.app.json` (permissions, roles, production access). Without a manifest, recipe defaults apply and production is **protected**. It creates a Railway project (Postgres, staging/production, variables, Pai sign-in) and first staging deploy.
 
-   **Tiene costo y no se deshace desde el MCP.** Es idempotente: si un paso falla, corrige la causa (por ejemplo, el manifiesto en el repo) y vuelve a llamarla; reanuda sin duplicar.
-5. Sigue el avance con `product_provisioning_get` y `product_logs`. No asumas que terminó.
+   **Costs money and cannot be undone through MCP.** Idempotent: fix a failed step's cause (such as repo manifest) then call again; it resumes without duplicates.
+5. Track with `product_provisioning_get` and `product_logs`; never assume completion.
 
-## Variables y deploys
+## Variables and deployments
 
-- `product_variables_set {environment, variables, redeploy?}`. **Los valores nunca se devuelven ni se imprimen.**
-  - Pide los secretos a la persona en el momento y no los repitas en el chat ni los guardes en pages o nodos.
-  - Con `redeploy:true` en producción se vuelve a desplegar el último commit exitoso.
-- `product_deploy {environment:"staging"}`: despliega en staging.
-- **`product_deploy {environment:"production", commitSha}`** publica ese commit a los usuarios del cliente. El servidor **no** comprueba que el producto esté en `live` ni que el commit pasara por staging. **Compruébalo tú:**
-  - el mismo `commitSha` desplegado y verificado en staging (`product_provisioning_get` y `product_logs`);
-  - el visto bueno de la persona.
-- No hay rollback ni cancelación desde el MCP: un rollback es otro `product_deploy` con el commit anterior bueno.
+- `product_variables_set {environment, variables, redeploy?}`. **Never return or print values.** Request secrets when needed; never repeat them in chat or store in pages/nodes. `redeploy:true` in production redeploys the last successful commit.
+- `product_deploy {environment:"staging"}` deploys staging.
+- **`product_deploy {environment:"production", commitSha}`** publishes that commit to client users. Server **does not verify** `live` state or staging history. **Verify yourself:** the same `commitSha` was deployed and verified in staging (`product_provisioning_get`, `product_logs`), and the user approved.
+- No MCP rollback/cancel tool: rollback means another `product_deploy` using the previous good commit.
 
-## Dominios, enlaces y ambientes
+## Domains, links, environments
 
-| Tool | Qué toca |
+| Tool | Effect |
 |---|---|
-| `product_domain_attach {environment, domain}` | **Conecta el dominio en Railway**. Devuelve los `dnsRecords` que la persona debe configurar; llamarla de nuevo re-verifica. No hay herramienta para desconectarlo |
-| `product_domain_set` / `_remove` | Solo el registro en la base de datos de Pai |
-| `product_environment_set` / `_remove` | Solo el registro en la base de datos de Pai |
-| `product_link_set` / `_remove` | Solo el registro en la base de datos de Pai (repositorio, documentación…) |
+| `product_domain_attach {environment, domain}` | **Attaches in Railway**; returns user-configurable `dnsRecords`; repeat to reverify. No detach tool |
+| `product_domain_set` / `_remove` | Pai database records only |
+| `product_environment_set` / `_remove` | Pai database records only |
+| `product_link_set` / `_remove` | Pai database records only (repository, docs…) |
 
-Quitar un dominio del registro con `product_domain_remove` **no** lo desconecta en Railway.
+`product_domain_remove` **does not detach** a Railway domain.
 
-## Equipo y acceso
+## Team and access
 
-- `product_member_list`, y `product_member_add {userId | email, role, appRoles}` / `_update` / `_remove`. El último owner no se puede quitar ni degradar.
-- **`product_production_access_set {access}`** (`public` o `protected`):
-  - cambia quién puede entrar a la app en producción;
-  - actualiza `PAI_PRODUCTION_ACCESS` en Railway y **redespliega producción** si estaba en línea.
+- `product_member_list`; `product_member_add {userId | email, role, appRoles}` / `_update` / `_remove`. Cannot remove/demote the last owner.
+- **`product_production_access_set {access}`** (`public`, `protected`) changes production app access, updates Railway `PAI_PRODUCTION_ACCESS`, and **redeploys production** if already online. Confirm first and disclose the redeploy.
 
-  Confirma antes y avisa del redeploy.
+## Product work and architecture
 
-## Qué no hacer
+Use `../tasks/SKILL.md` for task_list {section:"product",productId} and product-first contexts; filter by productId to include project tasks working on that product. A project task may link to one of its organization's products; a product backlog task cannot change products.
 
-- **No** despliegues a producción un commit que no pasó por staging, ni sin el visto bueno de la persona.
-- **No** pidas `live` y lo apruebes en la misma sesión como la misma persona: la aprobación es de otra.
-- **No** imprimas, registres ni guardes valores de variables o secretos.
-- **No** reintentes `product_provision` en bucle: lee `steps[].error`, corrige y llama una vez.
-- **No** uses `product_domain_remove` para «desconectar» un dominio: solo borra el registro.
+Use `../knowledge/SKILL.md` for product-scoped architecture, cross-scope lookup, atomic subtree movement and deduplication. knowledge_view {view:"c4",productId} without scope renders the product context; product linkage does not grant cross-organization access.
+
+product_update accepts recipeKey and recipeVersion. Hosting/class changes are allowed only in draft before provisioning; changing to external removes the recipe. Read product_get and actual permissions before applying this change; do not provision infrastructure as a workaround for a rejected update.
+
+## Avoid
+
+- Never deploy an unverified staging commit to production or deploy without user approval.
+- Never request and approve `live` as the same person/session; another person must approve.
+- Never print, log, or store secrets/variable values.
+- Never loop `product_provision`; inspect `steps[].error`, correct, then call once.
+- Never use `product_domain_remove` as domain disconnection; it only removes a record.

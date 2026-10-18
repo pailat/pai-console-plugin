@@ -3,8 +3,8 @@ type: llm
 focus: mock_calls
 ---
 
-PASS solo si la llamada a `whiteboard_update` (la última, si hubo varias) cumple todo esto:
-1. `path` es `diagramas/flujo-de-ventas`, `expectedRevision` es `7` (la `revision` de `whiteboard_read`) e `idempotencyKey` está presente.
-2. `content` es `{graph}` o `{mermaid}`, sin coordenadas (`x`, `y`, `width`, `height`) ni elementos de Excalidraw.
-3. Agrega «Negociación» y «Cierre» como nodos nuevos con ids que no repiten los de la pizarra (`lead`, `calificacion`, `cotizacion`).
-4. Hay una arista de la cotización existente (por su id `cotizacion` o por su texto «Cotización») a «Negociación», y otra de «Negociación» a «Cierre». No vuelve a crear «Cotización» como nodo nuevo.
+PASS only if the last `whiteboard_update` call satisfies every condition:
+1. `path` is the existing literal `diagramas/flujo-de-ventas`, `expectedRevision` is 7 from `whiteboard_read`, and `idempotencyKey` is present.
+2. `content` is `{graph}` or `{mermaid}`, without coordinates (`x`, `y`, `width`, `height`) or Excalidraw elements.
+3. It adds “Negociación” and “Cierre” using new ids distinct from existing `lead`, `calificacion`, and `cotizacion`.
+4. An edge connects existing `cotizacion` (or its text “Cotización”) to “Negociación”, then another connects “Negociación” to “Cierre”. It does not recreate “Cotización”.

@@ -3,9 +3,9 @@ type: llm
 focus: mock_calls
 ---
 
-PASS solo si en las llamadas a `knowledge_create` se cumple todo esto:
-1. Hay un `data_model` y al menos dos `entity` (autor y libro) con `slug` en inglés y kebab-case.
-2. Cada entidad tiene `properties.dataModel` apuntando al data_model y `columns` en las que **cada** columna declara `name` en snake_case, un `type` del vocabulario cerrado (uuid, text, integer, bigint, numeric, real, boolean, date, time, timestamptz, interval, jsonb, bytea, vector, enum) y los tres booleanos `nullable`, `primaryKey` y `unique`. Ningún `varchar`.
-3. La columna del ISBN es `unique: true`. La FK del libro al autor está en la columna (`referencesEntity` + `referencesColumn`), con `nullable: false`.
-4. Ninguna llamada usa claves `attributes` o `relations`, ni pone Mermaid en `properties`.
-5. Todas llevan `sources` no vacío.
+PASS only if the `knowledge_create` calls satisfy every condition:
+1. A `data_model` and at least two `entity` nodes (author and book) have English kebab-case slugs.
+2. Every entity references the model in `properties.dataModel`. Every column declares a snake_case `name`, a closed-vocabulary `type` (uuid, text, integer, bigint, numeric, real, boolean, date, time, timestamptz, interval, jsonb, bytea, vector, enum), and boolean `nullable`, `primaryKey`, and `unique`. No `varchar`.
+3. ISBN has `unique: true`. The book-author FK is encoded in a column using `referencesEntity` and `referencesColumn`, with `nullable: false`.
+4. No call uses `attributes` or `relations`, or puts Mermaid in `properties`.
+5. Every call includes nonempty `sources`.

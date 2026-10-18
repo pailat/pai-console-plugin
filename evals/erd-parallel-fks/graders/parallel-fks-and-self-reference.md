@@ -3,9 +3,9 @@ type: llm
 focus: mock_calls
 ---
 
-PASS solo si en las llamadas a `knowledge_create` se cumple todo esto:
-1. La entidad del envío tiene **dos columnas FK distintas** a la entidad de la bodega (`referencesEntity` igual en ambas), nombradas por su papel (por ejemplo `origin_warehouse_id` y `destination_warehouse_id`, nunca `warehouse_id_2`), las dos con `nullable: false`.
-2. No hay una tabla intermedia ni una sola columna que junte origen y destino para evitar las dos FK.
-3. La entidad de la zona tiene una FK a **sí misma** (`referencesEntity` apunta a su propio slug) con `nullable: true`.
-4. La bodega tiene su FK a la zona en una columna (`referencesEntity` + `referencesColumn`).
-5. Ninguna llamada usa claves `attributes` o `relations` ni pone Mermaid en `properties`, y todas llevan `sources` no vacío.
+PASS only if the `knowledge_create` calls satisfy every condition:
+1. The shipment has two distinct foreign-key columns to the same warehouse entity, named by role (for example `origin_warehouse_id` and `destination_warehouse_id`, never `warehouse_id_2`), both with `nullable: false`.
+2. No intermediate table or combined origin/destination column is used to avoid parallel FKs.
+3. The zone has a self-reference to its own slug with `nullable: true`.
+4. The warehouse has its zone FK in a column using `referencesEntity` and `referencesColumn`.
+5. No call uses `attributes`, `relations`, or Mermaid in `properties`, and every call includes nonempty `sources`.

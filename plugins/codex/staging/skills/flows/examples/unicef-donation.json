@@ -1,0 +1,380 @@
+[
+ {
+  "tool": "knowledge_library",
+  "input": {
+   "organizationId": "ORG_ID",
+   "projectId": "PROJECT_ID",
+   "kinds": [
+    "actor",
+    "screen",
+    "action",
+    "integration",
+    "flow"
+   ],
+   "limit": 100
+  }
+ },
+ {
+  "tool": "flow_get",
+  "input": {
+   "organizationId": "ORG_ID",
+   "projectId": "PROJECT_ID",
+   "ref": "flow/donation-payment"
+  }
+ },
+ {
+  "tool": "flow_save",
+  "input": {
+   "organizationId": "ORG_ID",
+   "projectId": "PROJECT_ID",
+   "ref": "flow/donation-payment",
+   "expectedRevision": 6,
+   "idempotencyKey": "flow-checkout-merchants-donation-payment-1",
+   "changeSummary": "Start, card and Unicef branches, Stripe integration",
+   "graph": {
+    "steps": [
+     {
+      "key": "start",
+      "kind": "start",
+      "title": "Customer chooses a donation and selects “Pay”",
+      "detail": "Customer chooses a donation in the merchant checkout and selects “Pay”.",
+      "actor": "actor/customer"
+     },
+     {
+      "key": "s1",
+      "kind": "step",
+      "title": "Chooses tickets and a donation to Unicef",
+      "detail": "Total updates; no charge yet",
+      "actor": "actor/customer",
+      "screen": "screen/checkout",
+      "action": "action/checkout-elegir-donativo"
+     },
+     {
+      "key": "s2",
+      "kind": "step",
+      "title": "Selects “Pay”",
+      "detail": "Checkout sends the order to the merchant backend",
+      "actor": "actor/customer",
+      "screen": "screen/checkout",
+      "action": "action/checkout-pagar"
+     },
+     {
+      "key": "s3",
+      "kind": "step",
+      "title": "Validates prices, checks Unicef transfer eligibility, and registers the buyer",
+      "detail": "Valid order and linked buyer (customer_account)",
+      "actor": "actor/merchant"
+     },
+     {
+      "key": "u1",
+      "kind": "decision",
+      "title": "Can Unicef receive transfers?",
+      "detail": "GET Unicef v2 account: stripe_transfers active",
+      "actor": "actor/merchant"
+     },
+     {
+      "key": "s4",
+      "kind": "step",
+      "title": "Creates the PaymentIntent on its account with transfer_data to Unicef",
+      "detail": "Stripe returns client_secret",
+      "actor": "actor/merchant",
+      "integration": "integration/stripe-payment-intent-transfer-data"
+     },
+     {
+      "key": "u2",
+      "kind": "end",
+      "title": "Donation is blocked",
+      "detail": "Unicef lacks active stripe_transfers: checkout omits the donation and charges only tickets",
+      "actor": "actor/merchant"
+     },
+     {
+      "key": "s5",
+      "kind": "step",
+      "title": "Confirms card payment (3D Secure if applicable)",
+      "detail": "Bank approves charge",
+      "actor": "actor/customer",
+      "screen": "screen/checkout"
+     },
+     {
+      "key": "c1",
+      "kind": "decision",
+      "title": "Does the bank approve the card?",
+      "detail": "If the bank declines the card, checkout shows the error; no charge or transfer.",
+      "actor": "actor/customer"
+     },
+     {
+      "key": "s6",
+      "kind": "step",
+      "title": "Charges on the merchant account, charges its fee, and transfers the donation to Unicef",
+      "detail": "Charge $189.00 MXN, transfer $100.00 to Unicef, merchant fee $12.47 (sandbox, 14 Oct)",
+      "actor": "actor/stripe",
+      "integration": "integration/stripe-payment-intent-transfer-data"
+     },
+     {
+      "key": "c2",
+      "kind": "end",
+      "title": "Card declined",
+      "detail": "When the bank declines the card, checkout shows the error; no charge or transfer.",
+      "actor": "actor/customer"
+     },
+     {
+      "key": "s7",
+      "kind": "step",
+      "title": "Notifies merchant webhook of payment_intent.succeeded",
+      "detail": "Signed event received",
+      "actor": "actor/stripe"
+     },
+     {
+      "key": "s8",
+      "kind": "step",
+      "title": "Issues booking code",
+      "detail": "booking_code saved on PaymentIntent",
+      "actor": "actor/merchant"
+     },
+     {
+      "key": "s9",
+      "kind": "step",
+      "title": "Sees receipt with booking code",
+      "detail": "Purchase completed",
+      "actor": "actor/customer",
+      "screen": "screen/payment-receipt"
+     },
+     {
+      "key": "s10",
+      "kind": "step",
+      "title": "Sees donation in its panel and Dashboard",
+      "detail": "Paid out to its bank according to its schedule",
+      "actor": "actor/unicef",
+      "screen": "screen/unicef-donations"
+     },
+     {
+      "key": "d2",
+      "kind": "decision",
+      "title": "What happens after charging?",
+      "detail": "Charge refund and dispute webhooks",
+      "actor": "actor/stripe"
+     },
+     {
+      "key": "e1",
+      "kind": "end",
+      "title": "Donation delivered",
+      "detail": "No refund or dispute: Unicef retains $100",
+      "actor": "actor/unicef"
+     },
+     {
+      "key": "r1",
+      "kind": "end",
+      "title": "Reverses the proportional donation amount",
+      "detail": "charge.refunded: a 50 % refund reverses $50 of the donation (transfer reversal)",
+      "actor": "actor/merchant",
+      "integration": "integration/stripe-payment-intent-transfer-data"
+     },
+     {
+      "key": "p1",
+      "kind": "step",
+      "title": "Withholds the donation",
+      "detail": "charge.dispute.created: the $100 transferred to Unicef is withheld",
+      "actor": "actor/merchant",
+      "integration": "integration/stripe-payment-intent-transfer-data"
+     },
+     {
+      "key": "d3",
+      "kind": "decision",
+      "title": "Dispute won?",
+      "detail": "charge.dispute.closed",
+      "actor": "actor/stripe"
+     },
+     {
+      "key": "p2",
+      "kind": "end",
+      "title": "Retransfers $100 to Unicef",
+      "detail": "Dispute won: donation returns to Unicef's account",
+      "actor": "actor/merchant",
+      "integration": "integration/stripe-payment-intent-transfer-data"
+     },
+     {
+      "key": "p3",
+      "kind": "end",
+      "title": "Unicef loses the donation",
+      "detail": "Dispute lost: reversal remains; if Unicef already paid out, its balance is negative and the merchant is liable",
+      "actor": "actor/unicef"
+     }
+    ],
+    "transitions": [
+     {
+      "from": "start",
+      "to": "s1",
+      "kind": "next"
+     },
+     {
+      "from": "s1",
+      "to": "s2",
+      "kind": "next"
+     },
+     {
+      "from": "s2",
+      "to": "s3",
+      "kind": "next"
+     },
+     {
+      "from": "s3",
+      "to": "u1",
+      "kind": "next"
+     },
+     {
+      "from": "u1",
+      "to": "s4",
+      "kind": "branch",
+      "label": "Can receive"
+     },
+     {
+      "from": "u1",
+      "to": "u2",
+      "kind": "branch",
+      "label": "Unicef cannot receive"
+     },
+     {
+      "from": "s4",
+      "to": "s5",
+      "kind": "next"
+     },
+     {
+      "from": "s5",
+      "to": "c1",
+      "kind": "next"
+     },
+     {
+      "from": "c1",
+      "to": "s6",
+      "kind": "branch",
+      "label": "Approved"
+     },
+     {
+      "from": "c1",
+      "to": "c2",
+      "kind": "branch",
+      "label": "Declined"
+     },
+     {
+      "from": "s6",
+      "to": "s7",
+      "kind": "next"
+     },
+     {
+      "from": "s7",
+      "to": "s8",
+      "kind": "next"
+     },
+     {
+      "from": "s8",
+      "to": "s9",
+      "kind": "next"
+     },
+     {
+      "from": "s9",
+      "to": "s10",
+      "kind": "next"
+     },
+     {
+      "from": "s10",
+      "to": "d2",
+      "kind": "next"
+     },
+     {
+      "from": "d2",
+      "to": "e1",
+      "kind": "branch",
+      "label": "No changes"
+     },
+     {
+      "from": "d2",
+      "to": "r1",
+      "kind": "branch",
+      "label": "Partial refund"
+     },
+     {
+      "from": "d2",
+      "to": "p1",
+      "kind": "branch",
+      "label": "Dispute"
+     },
+     {
+      "from": "p1",
+      "to": "d3",
+      "kind": "next"
+     },
+     {
+      "from": "d3",
+      "to": "p2",
+      "kind": "branch",
+      "label": "Won"
+     },
+     {
+      "from": "d3",
+      "to": "p3",
+      "kind": "branch",
+      "label": "Lost"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "tool": "flow_run_start",
+  "input": {
+   "organizationId": "ORG_ID",
+   "projectId": "PROJECT_ID",
+   "ref": "flow/donation-payment",
+   "actor": "actor/customer",
+   "mode": "simulated"
+  }
+ },
+ {
+  "tool": "flow_run_step",
+  "input": {
+   "organizationId": "ORG_ID",
+   "projectId": "PROJECT_ID",
+   "run": "RUN_REF",
+   "stepKey": "u1",
+   "result": "passed",
+   "branchLabel": "Can receive"
+  }
+ },
+ {
+  "tool": "flow_run_step",
+  "input": {
+   "organizationId": "ORG_ID",
+   "projectId": "PROJECT_ID",
+   "run": "RUN_REF",
+   "stepKey": "s6",
+   "result": "passed",
+   "integrationResponse": {
+    "status": "succeeded",
+    "amount": 18900,
+    "transfer_data": {
+     "amount": 10000
+    }
+   }
+  }
+ },
+ {
+  "tool": "flow_run_finish",
+  "input": {
+   "organizationId": "ORG_ID",
+   "projectId": "PROJECT_ID",
+   "run": "RUN_REF",
+   "status": "passed"
+  }
+ },
+ {
+  "tool": "knowledge_update",
+  "input": {
+   "organizationId": "ORG_ID",
+   "projectId": "PROJECT_ID",
+   "ref": "flow/donation-payment",
+   "expectedRevision": 7,
+   "visibility": "client",
+   "changeSummary": "Client can now see the flow"
+  }
+ }
+]

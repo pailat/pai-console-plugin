@@ -1,0 +1,30 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "pai-console-production",
+  "version": "0.0.9",
+  "description": "Pai Console workflows and MCP connection for production.",
+  "author": {
+    "name": "Pai",
+    "email": "alex.sanchez@pai.lat",
+    "url": "https://pai.lat"
+  },
+  "homepage": "https://pai.lat",
+  "repository": "https://github.com/pailat/pai-console-plugin",
+  "license": "UNLICENSED",
+  "extensions": {
+    "com.openai": {
+      "hooks": "./hooks/codex_hooks.json",
+      "onboardingSkill": "./skills/setup/SKILL.md",
+      "interface": {
+        "displayName": "Pai Console (production)",
+        "shortDescription": "Pai Console workflows and MCP connection for production.",
+        "developerName": "Pai",
+        "category": "Productivity",
+        "capabilities": [
+          "Read",
+          "Write"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,210 @@
+{
+  "tool": "page_create",
+  "input": {
+    "organizationId": "ORG_ID",
+    "projectId": "PROJECT_ID",
+    "path": "reports/payment-provider-comparison",
+    "title": "Payment gateway comparison",
+    "description": "Three gateway options for the shop and the recommended choice.",
+    "audience": "internal",
+    "summary": "Payment gateway comparison",
+    "idempotencyKey": "page-shop-reports-payment-provider-comparison",
+    "content": {
+      "schemaVersion": 1,
+      "componentSetVersion": "pai-core-v1",
+      "layout": "canvas",
+      "sections": [
+        {
+          "id": "comparison",
+          "title": "Comparison",
+          "blocks": [
+            {
+              "id": "providersView",
+              "type": "view",
+              "title": "Payment gateways",
+              "spec": {
+                "root": "root",
+                "elements": {
+                  "root": {
+                    "type": "Stack",
+                    "props": {
+                      "direction": "vertical",
+                      "gap": "lg"
+                    },
+                    "children": [
+                      "summary"
+                    ]
+                  },
+                  "options": {
+                    "type": "Grid",
+                    "props": {
+                      "columns": 3,
+                      "gap": "md"
+                    },
+                    "children": [
+                      "optionA",
+                      "optionB",
+                      "optionC"
+                    ]
+                  },
+                  "optionA": {
+                    "type": "Card",
+                    "props": {
+                      "title": "Stripe",
+                      "description": "Cards, OXXO, SPEI"
+                    },
+                    "children": [
+                      "badgeA",
+                      "kvA",
+                      "listA"
+                    ]
+                  },
+                  "badgeA": {
+                    "type": "StatusBadge",
+                    "props": {
+                      "label": "Recommended",
+                      "tone": "success"
+                    }
+                  },
+                  "kvA": {
+                    "type": "KeyValue",
+                    "props": {
+                      "columns": 1,
+                      "items": [
+                        {
+                          "label": "Fee",
+                          "value": "3.6 % + $3"
+                        },
+                        {
+                          "label": "Setup",
+                          "value": "1 day"
+                        }
+                      ]
+                    }
+                  },
+                  "listA": {
+                    "type": "List",
+                    "props": {
+                      "items": [
+                        "Pro: mature API and webhooks",
+                        "Pro: team already operates it",
+                        "Con: slightly higher fee"
+                      ]
+                    }
+                  },
+                  "optionB": {
+                    "type": "Card",
+                    "props": {
+                      "title": "Mercado Pago",
+                      "description": "Cards and interest-free installments"
+                    },
+                    "children": [
+                      "badgeB",
+                      "kvB",
+                      "listB"
+                    ]
+                  },
+                  "badgeB": {
+                    "type": "StatusBadge",
+                    "props": {
+                      "label": "Alternative",
+                      "tone": "info"
+                    }
+                  },
+                  "kvB": {
+                    "type": "KeyValue",
+                    "props": {
+                      "columns": 1,
+                      "items": [
+                        {
+                          "label": "Fee",
+                          "value": "3.49 % + IVA"
+                        },
+                        {
+                          "label": "Setup",
+                          "value": "2–3 days"
+                        }
+                      ]
+                    }
+                  },
+                  "listB": {
+                    "type": "List",
+                    "props": {
+                      "items": [
+                        "Pro: interest-free installments",
+                        "Con: less reliable webhooks"
+                      ]
+                    }
+                  },
+                  "optionC": {
+                    "type": "Card",
+                    "props": {
+                      "title": "Conekta",
+                      "description": "Cards, OXXO, SPEI"
+                    },
+                    "children": [
+                      "badgeC",
+                      "kvC",
+                      "listC"
+                    ]
+                  },
+                  "badgeC": {
+                    "type": "StatusBadge",
+                    "props": {
+                      "label": "Discarded",
+                      "tone": "neutral"
+                    }
+                  },
+                  "kvC": {
+                    "type": "KeyValue",
+                    "props": {
+                      "columns": 1,
+                      "items": [
+                        {
+                          "label": "Fee",
+                          "value": "2.9 % + $2.5 + IVA"
+                        },
+                        {
+                          "label": "Setup",
+                          "value": "5 days"
+                        }
+                      ]
+                    }
+                  },
+                  "listC": {
+                    "type": "List",
+                    "props": {
+                      "items": [
+                        "Pro: lower fee",
+                        "Con: slow setup and SDK without active maintenance"
+                      ]
+                    }
+                  },
+                  "conclusion": {
+                    "type": "Alert",
+                    "props": {
+                      "title": "Recommendation: Stripe",
+                      "message": "Its mature API and the team's operational experience outweigh the fee difference, which does not justify the integration risk.",
+                      "type": "info"
+                    }
+                  },
+                  "summary": {
+                    "type": "Section",
+                    "props": {
+                      "title": "Payment gateways for the shop",
+                      "description": "Public fees accessed on 2026-10-06; MXN amounts per domestic card charge."
+                    },
+                    "children": [
+                      "options",
+                      "conclusion"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

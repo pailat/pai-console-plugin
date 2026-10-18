@@ -4,10 +4,10 @@
     "organizationId": "ORG_ID",
     "projectId": "PROJECT_ID",
     "path": "mockups/loans",
-    "title": "Mockup — Préstamos",
-    "description": "Pantalla de préstamos de la Biblioteca en línea, para validar con el cliente antes de construirla.",
+    "title": "Mockup — Loans",
+    "description": "Online library loans screen, for client validation before implementation.",
     "audience": "client",
-    "summary": "Mockup de la pantalla de préstamos",
+    "summary": "Loans screen mockup",
     "idempotencyKey": "page-library-mockups-loans",
     "content": {
       "schemaVersion": 1,
@@ -16,58 +16,58 @@
       "sections": [
         {
           "id": "screen",
-          "title": "Préstamos",
+          "title": "Loans",
           "blocks": [
             {
               "id": "loansMockup",
               "type": "view",
-              "title": "Mockup — Préstamos",
+              "title": "Mockup — Loans",
               "spec": {
                 "root": "shell",
                 "elements": {
                   "shell": {
                     "type": "AppShell",
                     "props": {
-                      "brand": { "name": "Biblioteca en línea", "detail": "Sucursal Centro" },
+                      "brand": { "name": "Online library", "detail": "Downtown branch" },
                       "nav": [
-                        { "label": "Inicio", "icon": "home" },
-                        { "label": "Catálogo", "icon": "book-open" },
-                        { "label": "Préstamos", "icon": "calendar", "active": true },
-                        { "label": "Socios", "icon": "users" },
-                        { "label": "Reportes", "icon": "reports" }
+                        { "label": "Home", "icon": "home" },
+                        { "label": "Catalog", "icon": "book-open" },
+                        { "label": "Loans", "icon": "calendar", "active": true },
+                        { "label": "Members", "icon": "users" },
+                        { "label": "Reports", "icon": "reports" }
                       ],
-                      "secondaryTitle": "Cuenta",
-                      "secondaryNav": [ { "label": "Configuración", "icon": "settings" }, { "label": "Ayuda", "icon": "help" } ],
-                      "title": "Préstamos",
-                      "user": { "name": "Laura Méndez", "detail": "Bibliotecaria" }
+                      "secondaryTitle": "Account",
+                      "secondaryNav": [ { "label": "Settings", "icon": "settings" }, { "label": "Help", "icon": "help" } ],
+                      "title": "Loans",
+                      "user": { "name": "Laura Méndez", "detail": "Librarian" }
                     },
                     "children": ["content"]
                   },
                   "content": { "type": "Stack", "props": { "direction": "vertical", "gap": "lg" }, "children": ["crumbs", "kpis", "overdueAlert", "loansCard"] },
-                  "crumbs": { "type": "Breadcrumb", "props": { "items": [ { "label": "Inicio", "href": "#home" }, { "label": "Préstamos" } ] } },
+                  "crumbs": { "type": "Breadcrumb", "props": { "items": [ { "label": "Home", "href": "#home" }, { "label": "Loans" } ] } },
                   "kpis": { "type": "Grid", "props": { "columns": 3, "gap": "md" }, "children": ["kpiActive", "kpiOverdue", "kpiToday"] },
-                  "kpiActive": { "type": "Metric", "props": { "label": "Préstamos activos", "value": "87" } },
-                  "kpiOverdue": { "type": "Metric", "props": { "label": "Vencidos", "value": "9", "detail": "vs. 14 la semana pasada", "trend": "down", "tone": "warning" } },
-                  "kpiToday": { "type": "Metric", "props": { "label": "Devoluciones hoy", "value": "12" } },
-                  "overdueAlert": { "type": "Alert", "props": { "title": "9 préstamos vencidos", "message": "Se envió el aviso por correo a cada socio el 2026-10-05.", "type": "warning" } },
+                  "kpiActive": { "type": "Metric", "props": { "label": "Active loans", "value": "87" } },
+                  "kpiOverdue": { "type": "Metric", "props": { "label": "Overdue", "value": "9", "detail": "vs. 14 last week", "trend": "down", "tone": "warning" } },
+                  "kpiToday": { "type": "Metric", "props": { "label": "Returns today", "value": "12" } },
+                  "overdueAlert": { "type": "Alert", "props": { "title": "9 overdue loans", "message": "Email notice sent to each member on 2026-10-05.", "type": "warning" } },
                   "loansCard": {
                     "type": "Card",
-                    "props": { "title": "Préstamos", "description": "Ordenados por fecha de vencimiento.", "action": { "label": "Nuevo préstamo", "icon": "plus" }, "menu": [ { "label": "Exportar", "icon": "download" } ] },
+                    "props": { "title": "Loans", "description": "Sorted by due date.", "action": { "label": "New loan", "icon": "plus" }, "menu": [ { "label": "Export", "icon": "download" } ] },
                     "children": ["filters", "loansTable", "pager"]
                   },
-                  "filters": { "type": "FilterBar", "props": { "search": "Buscar por libro o socio", "filters": [ { "label": "Estado", "value": "Todos", "options": ["Todos", "Activo", "Vence hoy", "Vencido"] } ] } },
+                  "filters": { "type": "FilterBar", "props": { "search": "Search by book or member", "filters": [ { "label": "Status", "value": "All", "options": ["All", "Active", "Due today", "Overdue"] } ] } },
                   "loansTable": {
                     "type": "Table",
                     "props": {
-                      "columns": ["Libro", "Socio", "Prestado", "Vence", "Estado"],
+                      "columns": ["Book", "Member", "Borrowed", "Due", "Status"],
                       "rows": [
-                        ["Pedro Páramo", "Ana Torres", "2026-09-20", "2026-10-04", "Vencido"],
-                        ["Rayuela", "Mario Ruiz", "2026-09-22", "2026-10-06", "Vence hoy"],
-                        ["Ficciones", "Luis Vega", "2026-09-28", "2026-10-12", "Activo"],
-                        ["Aura", "Sofía Ríos", "2026-09-29", "2026-10-13", "Activo"],
-                        ["Santa Evita", "Diego Paz", "2026-09-30", "2026-10-14", "Activo"]
+                        ["Pedro Páramo", "Ana Torres", "2026-09-20", "2026-10-04", "Overdue"],
+                        ["Rayuela", "Mario Ruiz", "2026-09-22", "2026-10-06", "Due today"],
+                        ["Ficciones", "Luis Vega", "2026-09-28", "2026-10-12", "Active"],
+                        ["Aura", "Sofía Ríos", "2026-09-29", "2026-10-13", "Active"],
+                        ["Santa Evita", "Diego Paz", "2026-09-30", "2026-10-14", "Active"]
                       ],
-                      "caption": "5 de 87 préstamos activos"
+                      "caption": "5 of 87 active loans"
                     }
                   },
                   "pager": { "type": "Pagination", "props": { "page": 1, "pages": 18 } }
