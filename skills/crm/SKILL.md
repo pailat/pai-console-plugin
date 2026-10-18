@@ -1,251 +1,232 @@
 ---
 name: crm
-description: "CRM de Pai en Console (staff, o roles de Console con crm:access; MCP corp): leads, calificación, espacio de trabajo, oportunidades, pronóstico y la cadena envío → lead → oportunidad → propuesta → proyecto. Cubre revisar el tablero y lo que requiere atención, crear leads (desde Forms, referidos o a mano) sin duplicados, contactar, calificar, descalificar o ligar duplicados, abrir la organización y el proyecto de Descubrimiento, mover oportunidades por etapa, pausar, perder o ganar, interlocutores y probabilidad, y las tareas del CRM (tablero, detalle en Markdown, prioridad, etiquetas, reprogramar, reasignar y marcar hechas). Úsalo cuando pidan CRM, lead, prospecto, envío de Forms, calificar, pipeline, embudo, oportunidad, trato, pronóstico, forecast, «qué me toca», «mis tareas», tarea, seguimiento, «requiere atención», ganar o perder un trato."
-argument-hint: "[lead, oportunidad u organización]"
-compatibility: "Pai 0.2.5+ (MCP corp, permisos crm:*)"
+description: "Pai Console CRM for staff or Console roles with crm:access through corp MCP: leads, qualification, workspaces, opportunities, forecasting, submission-to-project traceability, and CRM tasks. Use for Forms submissions, duplicate-safe lead creation/import, contacting/qualifying/disqualifying prospects, Discovery workspaces, pipeline stages, holds/wins/losses, contacts/probability, attention queues, or task details, priorities, tags, scheduling, assignment, and completion."
+argument-hint: "[lead, opportunity, or organization]"
+compatibility: "Pai 0.2.5+ (MCP corp, crm:* permissions)"
 ---
 
-# CRM de Pai
+# Pai CRM
 
-Lee antes el skill `pai-console`. El CRM es del equipo de Pai en el MCP corp: lo usa el staff y quien tenga un rol de Console con `crm:access` (sin ser staff, ese corp le da **solo** las tools del CRM). Un cliente nunca lo ve y el edge público no registra estas tools. Las tools no reciben `organizationId`/`projectId` de proyecto: trabajan sobre leads y oportunidades por su id.
+Read shared `pai-console` first through the current client's skill mechanism. CRM belongs to the Pai team on corp MCP: staff and Console roles with `crm:access`; non-staff receive **only CRM tools**. Clients never see CRM; the public edge does not register these tools. CRM tools work by lead/opportunity ID, not project `organizationId`/`projectId`.
 
-Inventario completo: `../pai-console/references/tools.md` § CRM.
+Full inventory: `../pai-console/references/tools.md`, CRM section. Respond in the user's language; preserve Mexican Spanish business formatting, separate MXN/USD amounts, and `America/Mexico_City` dates. Spanish server messages/UI labels and existing identifiers below are intentional literal exceptions.
 
-## Antes de nada: permisos
+## Permissions first
 
-`crm_access_get` (sin argumentos) dice qué puedes hacer. Una lista vacía es sin acceso.
+`crm_access_get` (no arguments) returns capabilities; empty list means no access.
 
-| Permiso | Abre |
+| Permission | Capability |
 |---|---|
-| `crm:access` | Ver el espacio: resumen, leads, envíos, fichas |
-| `crm:edit` | Crear y mover leads, oportunidades, tareas e interlocutores; escribir notas |
-| `crm:convert` | Ganar una oportunidad (`crm_opportunity_win`) |
-| `crm:revenue` | Montos, pronóstico ponderado, `crm_opportunity_list`, `crm_opportunity_event_list` y ajustar probabilidad |
-| `crm:purge` | Purgar basura sin cadena (`crm_lead_purge`) |
-| `crm:import` | Importación histórica de un CRM anterior (`crm_lead_import`) |
-| `crm:join` | Entrar a organizaciones de clientes: `crm_lead_workspace_join` (sin él no aparece), ligar el espacio a una organización **existente** (`link_existing`) y quedar como admin de la que se crea desde el lead. Abre sus proyectos, propuestas, pagos y recursos en el Portal, fuera del CRM (§ Sin `crm:join`) |
+| `crm:access` | Overview, leads, submissions, records |
+| `crm:edit` | Create/move leads, opportunities, tasks, contacts; add notes |
+| `crm:convert` | Win (`crm_opportunity_win`) |
+| `crm:revenue` | Amounts, weighted forecast, `crm_opportunity_list`, `crm_opportunity_event_list`, probability changes |
+| `crm:purge` | Purge chain-free junk (`crm_lead_purge`) |
+| `crm:import` | Historical CRM import (`crm_lead_import`) |
+| `crm:join` | Enter client organizations via `crm_lead_workspace_join` (absent without it), `link_existing`, become admin of lead-created organization; opens projects/proposals/payments/resources outside CRM |
 
-Todo permiso exige además `crm:access`. **Los permisos vienen de roles**, que solo los agrupan; las guardas preguntan por el permiso, nunca por el rol:
+All permissions also require `crm:access`. **Roles group permissions; guards check permissions, not role names.**
 
-| Rol | Permisos |
+| Role | Permissions |
 |---|---|
-| `crm.viewer` (Lector) | `crm:access` |
-| `crm.sales` (Comercial) | `crm:access`, `crm:edit` |
-| `crm.closer` (Cierre) | `crm:access`, `crm:edit`, `crm:convert`, `crm:revenue` |
-| `crm.admin` (Administrador) | Todos menos `crm:join` |
+| `crm.viewer` | `crm:access` |
+| `crm.sales` | `crm:access`, `crm:edit` |
+| `crm.closer` | `crm:access`, `crm:edit`, `crm:convert`, `crm:revenue` |
+| `crm.admin` | All except `crm:join` |
 
-- Un rol propio puede nombrar cualquier permiso, incluido `crm:join`.
-- Mientras Administración no esté en el catálogo de permisos, un admin de plataforma los tiene todos.
-- Una sesión suplantada no tiene ninguno.
-- **Ningún rol limita la visibilidad a lo propio:** con `crm:access` se ven todos los leads, oportunidades y tareas. «Lo mío» es un filtro (`owner: "me"`), no un permiso.
-- **Ser staff de una organización** (sin ser staff de Pai) no da el CRM: ahí cuenta el rol real.
+- Custom roles may include any permission, including `crm:join`.
+- Until Administration appears in the permission catalog, platform admins have all permissions.
+- Impersonated sessions have none.
+- **Visibility is not owner-scoped:** `crm:access` sees all leads/opportunities/tasks; `owner: "me"` is a filter, not a permission.
+- Organization staff without Pai staff status use their real CRM role; organization staff status alone grants no CRM.
+- Without `crm:revenue`, amounts are absent even from history: never invent/estimate them.
 
-Sin `crm:revenue` los montos no llegan, tampoco en el historial: no los inventes ni los estimes.
+**CRM-only users:** start with `crm_access_get`, `crm_overview_get`. No `organization_list`, projects, proposals, Knowledge, or Resources. Staff must handle dependencies such as linking a sent proposal for `proposal_sent` or accessing Discovery projects. Explain this; never bypass.
 
-**Personas solo de CRM.** Quien no es staff pero tiene `crm:access` por un rol de Console recibe en el MCP corp **solo** las tools del CRM. Empieza por `crm_access_get` y `crm_overview_get`:
-- no hay `organization_list`, proyectos, propuestas, Conocimiento ni Recursos;
-- lo que pida eso (ligar una propuesta enviada para `proposal_sent`, ver el proyecto de Descubrimiento) lo hace alguien del staff: díselo, no lo rodees.
+### Without `crm:join`
 
-### Sin `crm:join`
+- `link_existing` in `crm_lead_workspace_open`, `crm_lead_qualify`, `crm_lead_import` yields `FORBIDDEN`: “No tienes permiso para ligar el lead a una organización existente: crea la organización desde el lead”. If the organization **already exists**, never duplicate it with `create_from_lead`; stop and ask someone with `crm:join` to link it or grant permission. `create_from_lead` is only for accounts absent from Pai.
+- `create_from_lead` creates an organization but **does not make you a member**.
+- `crm_opportunity_create` only opens opportunities for CRM-managed organizations with a lead/opportunity.
+- Never enter an organization through an alternative route.
 
-- `link_existing` (en `crm_lead_workspace_open`, `crm_lead_qualify` o `crm_lead_import`) da `FORBIDDEN` «No tienes permiso para ligar el lead a una organización existente: crea la organización desde el lead». Si la organización **ya existe** en Pai, no la dupliques con `create_from_lead`: para y pide a alguien con `crm:join` que la ligue (o que te den el permiso). `create_from_lead` es solo para una cuenta que aún no está en Pai.
-- `create_from_lead` crea la organización, pero **no te hace miembro**.
-- `crm_opportunity_create` solo abre oportunidades en organizaciones que el CRM ya lleva (con un lead o una oportunidad suya).
-- No intentes entrar a la organización por otro camino.
+## Server invariants
 
-## Reglas que el servidor hace cumplir
+- **Every open record needs a next step:** open leads (`new`, `contacted`) and opportunities require a dated task with dependency `{body, dueAt, waitingOn, type?, detail?, priority?, tags?}`; `waitingOn` is `pai` or `client`. Creation requires `firstTask`/`task`; stage changes or completion of the last task require `nextTask`. Agree tasks/dates with the user, never invent dates.
+- **`dueAt` uses CDMX (`-06:00`).** Without a specified time, business-day end `T18:00:00-06:00`, displayed as “Sin hora” (all-day). With a time, use it, e.g. `T10:30:00-06:00`. Never use midnight/noon UTC to mean a day; those appear as timed events.
+- **CAS:** every lead/opportunity write carries `expectedRevision` from `crm_lead_get`, `crm_lead_record`, or `crm_opportunity_get`. On `CONFLICT`, reread and reconsider; shared retry limit applies.
+- **Cents** (`4200000` = $42,000.00) by currency (`mxn`, `usd`). **Never sum MXN and USD**; report separately.
+- Archive is reversible through `*_unarchive`; only `crm_lead_purge` deletes chain-free junk.
+- All changes enter `crm_lead_event_list`/`crm_opportunity_event_list` as MCP actions.
+- **Use staff names** supplied by tools (actor/owner/qualifier), never seek/write staff email. Client lead/contact emails remain CRM data.
 
-- **Nadie se queda sin siguiente paso.** Todo lead abierto (`new`, `contacted`) y toda oportunidad abierta tiene una tarea con fecha y **de quién depende**: `{body, dueAt, waitingOn, type?, detail?, priority?, tags?}` con `waitingOn` `pai` (de nosotros) o `client` (del cliente). La forma completa de la tarea está en § Tareas. Crear exige `firstTask`/`task`; mover de etapa o completar la última tarea exige `nextTask`. Propón la tarea con la persona; no inventes fechas.
-- **`dueAt` en CDMX (`-06:00`).** Sin hora, el cierre del día hábil: `T18:00:00-06:00`, que Console muestra como «Sin hora» (todo el día en el calendario). Con hora (llamada, reunión), la suya: `T10:30:00-06:00`. **Nunca** medianoche ni mediodía UTC para decir «ese día»: salen como eventos con hora.
-- **CAS:** toda escritura de un lead u oportunidad lleva `expectedRevision` (de `crm_lead_get`, `crm_lead_record` o `crm_opportunity_get`). Ante CONFLICT relee y vuelve a decidir.
-- **Montos en centavos** (`4200000` = $42,000.00) y por moneda (`mxn`, `usd`). **MXN y USD nunca se suman**: reporta cada moneda aparte.
-- **Archivar no es borrar.** Leads y oportunidades se archivan y vuelven con `*_unarchive`. Solo `crm_lead_purge` borra, y solo basura sin cadena.
-- Todo cambio queda en el historial (`crm_lead_event_list`, `crm_opportunity_event_list`) marcado como vía MCP.
-- **Nombra a las personas del equipo por su nombre**, como lo dan las tools (actor, propietario, quién calificó). El servidor ya no muestra su correo: no lo busques ni lo escribas. El correo de los contactos del cliente (lead, interlocutores) sí es dato del CRM.
+## Read the situation
 
-## Leer: qué está pasando
-
-| Pregunta | Tool |
+| Question | Tool |
 |---|---|
-| ¿Cómo va el CRM? | `crm_overview_get {from?, to?}`: cifras, embudo de 90 días, «Por atender», tus tareas por día y conversiones. `period`: las series del tablero entre `from` y `to` (YYYY-MM-DD, días de CDMX; por omisión 30 días, máximo 366) contra el mismo número de días previos: leads y oportunidades creadas, ganadas y perdidas, tasa de cierre, mediana del primer contacto, tareas hechas, leads por origen y embudo, por día (≤31), semana (≤180) o mes. `ownerLoad`: lo abierto de cada responsable ahora |
-| ¿Qué tareas tengo? | `crm_task_list` (por omisión, mis abiertas de la más vencida a la más lejana, con conteos por ventana) |
-| ¿Qué requiere atención? | `crm_lead_list {waitingOn: "attention", owner: "me"}` y `crm_opportunity_list {waitingOn: "attention", owner: "me"}`: vencido, sin siguiente paso o en espera de nosotros hoy |
-| Cifras del tablero de leads | `crm_lead_summary`: los tuyos que requieren atención, mediana del tiempo de respuesta (primer contacto), nuevos fuera de SLA (1 h hábil), abiertos sin siguiente paso |
-| Pronóstico | `crm_opportunity_summary`: por moneda, ponderado y sin ponderar, tasa de cierre a 90 días, pausadas |
-| Un lead a fondo | `crm_lead_record` (calificación, envío, espacio, oportunidades, nodos sembrados, actividades) |
-| Una oportunidad a fondo | `crm_opportunity_get` (interlocutores, propuestas y versiones, actividades, historial) |
-| ¿De dónde vino y en qué terminó? | `crm_trace_get {opportunityId, asOf?}`: envío → lead → espacio → oportunidad → propuesta → proyecto → hitos → producto |
-| Propietarios posibles | `crm_owner_list`: quienes tienen `crm:edit`, también personas solo de CRM (ids para `ownerUserId`, `deliveryLeadUserId`). Elige de esa lista; nunca escribas un id a mano |
+| CRM status | `crm_overview_get {from?, to?}`: figures, 90-day funnel, attention queue, daily tasks, conversions. `period` compares `from`–`to` (`YYYY-MM-DD`, CDMX days, default 30, max 366) with equal prior period: created/won/lost leads/opportunities, close rate, median first contact, completed tasks, origin/funnel. Daily ≤31 days, weekly ≤180, otherwise monthly. `ownerLoad`: each owner's current open load |
+| My tasks | `crm_task_list`: default own open tasks, most overdue first, window counts |
+| Needs attention | `crm_lead_list {waitingOn: "attention", owner: "me"}`, `crm_opportunity_list {waitingOn: "attention", owner: "me"}`: overdue, no next step, or waiting on Pai today |
+| Lead metrics | `crm_lead_summary`: own attention queue, median first-contact response, new outside 1-business-hour SLA, open without next step |
+| Forecast | `crm_opportunity_summary`: weighted/unweighted per currency, 90-day close rate, held opportunities |
+| Full lead | `crm_lead_record`: qualification, submission, workspace, opportunities, seeded nodes, activities |
+| Full opportunity | `crm_opportunity_get`: contacts, proposals/versions, activities, history |
+| Origin/outcome chain | `crm_trace_get {opportunityId, asOf?}`: submission → lead → workspace → opportunity → proposal → project → milestones → product |
+| Valid owners | `crm_owner_list`: users with `crm:edit`, including CRM-only; select `ownerUserId`/`deliveryLeadUserId` from here, never invent IDs |
 
-Filtros de `crm_lead_list`: `query`, `source`, `owner` (`me`, `none` o id), `period` (`30d`, `90d`, `year`, `all`; sin `period`, todos), `waitingOn` (`attention` requiere atención, `pai` en espera de nosotros, `client` en espera del cliente, `overdue` vencido, `none` sin siguiente paso, `outsideSla` primer contacto vencido sin importados), `archived: "1"`. `crm_opportunity_list` acepta los mismos `waitingOn` salvo `outsideSla` y suma `serviceLine`, `offering`, `kind`, `currency`, `market` (`mx`, `br`), `closeWindow` (`overdue`, `30d`, `90d`) y `organizationId`.
+`crm_lead_list` filters: `query`, `source`, `owner` (`me`, `none`, ID), `period` (`30d`, `90d`, `year`, `all`; omitted means all), `waitingOn` (`attention`, `pai`, `client`, `overdue`, `none`, `outsideSla` for overdue first contact excluding imports), `archived: "1"`. Opportunities accept the same `waitingOn` except `outsideSla`, plus `serviceLine`, `offering`, `kind`, `currency`, `market` (`mx`, `br`), `closeWindow` (`overdue`, `30d`, `90d`), `organizationId`.
 
-Para mostrarlo visual, compón con el skill `views` (`Stats`, `Kanban`, `DataTable`, `BarList`) y `view_render`, con la fecha de corte.
+For visuals use `views` (`Stats`, `Kanban`, `DataTable`, `BarList`), `view_render`, and as-of date. CLI requires text fallback; never claim a widget rendered without evidence.
 
 ## Leads
 
-Etapas: `new` → `contacted` → `qualified` (o `unqualified`) → `converted` (al ganar la primera oportunidad de su organización). Orígenes: `form`, `onboarding`, `manual`, `referral`, `mcp` e `import` (los de `crm_lead_import`); **no se cambian después**.
+Stages: `new` → `contacted` → `qualified` (or `unqualified`) → `converted` (organization's first win). Immutable sources: `form`, `onboarding`, `manual`, `referral`, `mcp`, `import` (`crm_lead_import`).
 
-### Crear
+### Create
 
-1. **Desde un envío de Forms:** `crm_submission_get` → `crm_lead_create_from_submission {submissionId, ownerUserId, firstTask}`. Los datos vienen del envío; no los reescribas. Un envío basura sin lead: `crm_submission_spam` (lo archiva).
-2. **Referido, manual o MCP:** si tienes correo, primero **`crm_lead_duplicates {email}`** (mismo correo, mismo dominio, organizaciones cliente con ese dominio); sin correo, busca por nombre o empresa con `crm_lead_list {query}`. Si hay coincidencia, muéstrala y decide con la persona. Luego `crm_lead_create {fullName, ownerUserId, firstTask, email?, phone?, company?, role?, source?, referredBy?, need?}`: necesita **al menos un correo, un teléfono o la empresa**. Avisa por correo al propietario (o al equipo con `crm:edit` si no hay).
-3. **Importación histórica de un CRM anterior** (`crm_lead_import`, permiso `crm:import`): un registro por llamada, con su lead en su etapa **real** (también ganada o perdida) y sus fechas originales (`createdAt`, `firstContactedAt`), más `workspace`, `opportunity`, `notes` y `tasks` si los hay. `externalRef` (el id de origen) y `externalSystem` la hacen idempotente: repetirla responde `created: false` y no duplica. Con oportunidad, el lead va `qualified` (o `converted` si se ganó) y `workspace` es obligatorio. Pon el texto completo del origen en `notes`: nada se pierde. Solo para migrar un CRM anterior, nunca para un lead nuevo.
+1. **Forms submission:** `crm_submission_get` → `crm_lead_create_from_submission {submissionId, ownerUserId, firstTask}`. Use submission data unchanged. Junk submission without lead: `crm_submission_spam` archives it.
+2. **Referral/manual/MCP:** if email exists, first `crm_lead_duplicates {email}` for same email/domain and client organizations. Otherwise search name/company with `crm_lead_list {query}`. Show matches and decide with user. Then `crm_lead_create {fullName, ownerUserId, firstTask, email?, phone?, company?, role?, source?, referredBy?, need?}` requires **email, phone, or company**. Emails owner, or `crm:edit` team if no owner.
+3. **Historical CRM migration:** `crm_lead_import`, permission `crm:import`, one record/call in its **actual** stage including won/lost, original `createdAt`/`firstContactedAt`, and available `workspace`, `opportunity`, `notes`, `tasks`. `externalRef` (source ID) plus `externalSystem` make it idempotent: repeat returns `created: false`. With opportunity, lead is `qualified` (`converted` if won), and `workspace` required. Preserve full source text in `notes`. Never use for a new lead.
 
-### Notas
+### Notes
 
-`crm_lead_note_add {id, body}` y `crm_opportunity_note_add {id, body}` (≤20 000 caracteres) dejan una nota en el historial con autor y fecha. **No se editan:** para corregir, escribe otra. No mueven la etapa, el siguiente paso ni el último contacto: para registrar un contacto usa `crm_lead_update {stage: "contacted"}` o completa la tarea.
+`crm_lead_note_add {id, body}`, `crm_opportunity_note_add {id, body}` (≤20 000 characters) append dated/attributed history. **Immutable**: corrections are new notes. They do not change stage, next step, or last contact. Record contact through `crm_lead_update {stage: "contacted"}` or task completion.
 
-### Mover
+### Move
 
-| Paso | Tool | Exige |
+| Step | Tool | Requirement/effect |
 |---|---|---|
-| Contactado | `crm_lead_update {stage: "contacted", nextTask}` | Fija el primer contacto y da por hecha la tarea abierta |
-| Editar datos o propietario | `crm_lead_update` | — |
-| Tareas | `crm_task_create {record: {kind: "lead", id}, task}`, `crm_task_complete {taskId, nextTask?}` (también `crm_lead_task_create` y `crm_lead_task_complete`) | `nextTask` si es la última abierta. Ver § Tareas |
-| **Calificar** | `crm_lead_qualify {qualification, workspace?, opportunity}` | Lead `contacted`, los cuatro criterios y espacio de trabajo |
-| Descalificar | `crm_lead_disqualify {reason, note?, closeOpenTask?}` | Lead `new` o `contacted`; `other` exige `note` |
-| Duplicado | `crm_lead_mark_duplicate {duplicateOfLeadId}` | El que sobrevive no puede ser duplicado de otro |
-| Archivar / volver | `crm_lead_archive`, `crm_lead_unarchive` | — |
+| Contacted | `crm_lead_update {stage: "contacted", nextTask}` | Sets first contact, completes open task |
+| Data/owner edit | `crm_lead_update` | CAS |
+| Tasks | `crm_task_create {record: {kind: "lead", id}, task}`, `crm_task_complete {taskId, nextTask?}`; aliases `crm_lead_task_create`, `crm_lead_task_complete` | Last open task requires `nextTask` |
+| **Qualify** | `crm_lead_qualify {qualification, workspace?, opportunity}` | `contacted` lead, all four criteria, workspace |
+| Disqualify | `crm_lead_disqualify {reason, note?, closeOpenTask?}` | `new`/`contacted`; `other` needs `note` |
+| Duplicate | `crm_lead_mark_duplicate {duplicateOfLeadId}` | Survivor cannot itself be duplicate |
+| Archive/restore | `crm_lead_archive`, `crm_lead_unarchive` | Reversible |
 
-**Calificación (cuatro criterios):** `need` (qué necesita), `budgetRange` (`lt150`, `150-300`, `300-600`, `gt600` miles de MXN, o `unknown`), `timeline` y `decisionMaker`. Calificar siembra en Conocimiento los nodos del envío de Forms y crea la **primera oportunidad en Descubrimiento (10 %)** con su tarea. Pregunta lo que falte; no rellenes criterios.
+**Four qualification criteria:** `need`, `budgetRange` (`lt150`, `150-300`, `300-600`, `gt600` in thousands of MXN, or `unknown`), `timeline`, `decisionMaker`. Qualification seeds Forms Knowledge and creates **first Discovery opportunity (10%)** with task. Ask for missing criteria, never fabricate.
 
 ```json
 { "leadId": "…", "expectedRevision": 3,
-  "qualification": { "need": "Cobro recurrente con Stripe Billing", "budgetRange": "150-300", "timeline": "Arrancar en noviembre", "decisionMaker": "Directora de Finanzas" },
+  "qualification": { "need": "Recurring collection with Stripe Billing", "budgetRange": "150-300", "timeline": "Start in November", "decisionMaker": "Finance Director" },
   "workspace": { "mode": "create_from_lead" },
-  "opportunity": { "title": "Billing para suscripciones", "serviceLine": "stripe", "currency": "mxn", "amountMin": 15000000, "amountMax": 30000000, "expectedCloseAt": "2026-11-30",
-    "task": { "body": "Enviar alcance de Descubrimiento", "dueAt": "2026-10-15T18:00:00-06:00", "waitingOn": "pai" } } }
+  "opportunity": { "title": "Subscription billing", "serviceLine": "stripe", "currency": "mxn", "amountMin": 15000000, "amountMax": 30000000, "expectedCloseAt": "2026-11-30",
+    "task": { "body": "Send Discovery scope", "dueAt": "2026-10-15T18:00:00-06:00", "waitingOn": "pai" } } }
 ```
 
-`workspace` es `{mode: "create_from_lead", organizationName?}` o `{mode: "link_existing", organizationId}`; se omite si el lead ya tiene espacio.
+`workspace`: `{mode: "create_from_lead", organizationName?}` or `{mode: "link_existing", organizationId}`; omit if already assigned.
 
-**Motivos de descalificación:** `not_a_fit`, `no_budget`, `no_response`, `timing`, `competitor`, `other`. Spam no es una descalificación (archiva o purga) y un duplicado se liga. Un lead calificado ya no se descalifica.
+Disqualification reasons: `not_a_fit`, `no_budget`, `no_response`, `timing`, `competitor`, `other`. Spam is archived/purged, not disqualified; duplicates are linked. Qualified leads cannot be disqualified.
 
-### Espacio de trabajo (organización + proyecto)
+### Workspace (organization + project)
 
-1. `crm_lead_organization_suggestions {leadId, query?}`: organizaciones parecidas por dominio, miembros y nombre (o las que coinciden con `query`, por nombre o dominio), con su origen (`self_service`, `client`, `prospect`) y qué campos llenaría. **Nunca liga sola.**
-2. Confirma con la persona: crear una nueva o ligar una existente.
-3. `crm_lead_workspace_open {workspace}` (o dentro de `crm_lead_qualify`): crea o liga la organización (solo llena campos vacíos) y abre el proyecto «Descubrimiento» en borrador. **No se re-liga después.** Ligar una existente exige `crm:join`.
-4. Ligar no te hace miembro. Para entrar: `crm_lead_workspace_join` («Entrar como staff», queda auditado; exige `crm:join`).
+1. `crm_lead_organization_suggestions {leadId, query?}`: similar domain/member/name organizations or query matches, with origin (`self_service`, `client`, `prospect`) and fields to fill. **Never auto-links.**
+2. Confirm new versus existing with user.
+3. `crm_lead_workspace_open {workspace}` (or in qualification) creates/links organization, fills only empty fields, opens draft Discovery project (literal title “Descubrimiento”). **Cannot relink later.** Existing links require `crm:join`.
+4. Linking grants no membership; use audited `crm_lead_workspace_join` (“Entrar como staff”), permission `crm:join`.
 
-### Purgar
+### Purge
 
-`crm_lead_purge {reason: spam|test|mistake}` es **IRREVERSIBLE**: borra en duro un lead **sin cadena** (sin organización, proyecto, oportunidades, nodos ni duplicados) con sus tareas e historial. Con cadena, archívalo. Confirma con la persona siempre, también en staging y develop.
+`crm_lead_purge {reason: spam|test|mistake}` **irreversibly** hard-deletes a **chain-free** lead (no organization/project/opportunities/nodes/duplicates), tasks, and history. Archive chained records. Always confirm, including staging/develop.
 
-## Tareas
+## Tasks
 
-Las tareas viven en un **lead** abierto (`new`, `contacted`), una **oportunidad** abierta (también en pausa) o una **cuenta** (`record.kind: "account"`, `record.id` = `organizationId`). Son el tablero «Tareas» de Console.
+Tasks belong to open leads (`new`, `contacted`), open/held opportunities, or accounts (`record.kind: "account"`, `record.id` = `organizationId`).
 
-**Columnas del tablero:**
-
-| `state` | Columna | De dónde sale |
+| `state` | Board column | Source |
 |---|---|---|
-| `todo` | Por hacer | Abierta y sin empezar |
-| `in_progress` | En curso | `crm_task_update {progress: "in_progress"}`; `progress: "todo"` la regresa |
-| `waiting` | En espera del cliente | `waitingOn: "client"` |
-| `done` | Hecha | `crm_task_complete` |
+| `todo` | To do | Open, not started |
+| `in_progress` | In progress | `crm_task_update {progress: "in_progress"}`; `progress: "todo"` reverses |
+| `waiting` | Waiting for client | `waitingOn: "client"` |
+| `done` | Done | `crm_task_complete` |
 
-### Leer
+### Read
 
-- `crm_task_list`: por omisión, las abiertas del que pregunta, de la más vencida a la más lejana, con `counts` por ventana (`overdue`, `today`, `week`, `later`; días de CDMX).
-  - Filtros: `owner` (`me`, `all` o un id de `crm_owner_list`), `status` (`open` o `done`), `subject` (`lead`, `opportunity` o `account`), `due`, `priority`, `tag` y `query` (texto de la tarea o del registro).
-- `crm_task_get {taskId}`: la tarea completa. Trae `body` (título), `type`, `detail` (Markdown o `null`), `priority` (o `null`), `tags`, `dueAt`, `waitingOn`, `state` (columna del tablero), `startedAt` (cuándo pasó a «En curso»), `doneAt`, `window` (overdue, today, week o later; solo abiertas), `owner`, `record` (`kind`, `id`, `title`, `company`) y `createdAt`. `crm_task_list` trae lo mismo por tarea, más `counts` y `truncated` (hubo más resultados que el límite: afina los filtros).
-- `crm_task_tag_list`: las etiquetas del equipo, la más usada primero. **Revísala antes de inventar una etiqueta.**
+- `crm_task_list`: defaults to own open tasks, most overdue first; `counts` by `overdue`, `today`, `week`, `later` in CDMX.
+  - Filters: `owner` (`me`, `all`, `crm_owner_list` ID), `status` (`open`, `done`), `subject` (`lead`, `opportunity`, `account`), `due`, `priority`, `tag`, `query` matching task/record text.
+- `crm_task_get {taskId}`: `body` title, `type`, Markdown/null `detail`, nullable `priority`, `tags`, `dueAt`, `waitingOn`, board `state`, `startedAt`, `doneAt`, open-only `window` (overdue/today/week/later), `owner`, `record` (`kind`, `id`, `title`, `company`), `createdAt`. List returns same per-task shape plus `counts` and `truncated`; narrow filters if truncated.
+- **Check `crm_task_tag_list` before inventing tags**; ordered by team usage.
 
-### Crear
+### Create
 
-`crm_task_create {record: {kind, id}, task, ownerUserId?}`. Por omisión, el responsable es el propietario del registro, o tú.
+`crm_task_create {record: {kind, id}, task, ownerUserId?}`; owner defaults to record owner or self.
 
-| Campo | Qué va |
+| Field | Content |
 |---|---|
-| `body` | **Título corto** (≤500): «Enviar el NDA», «Llamada de alcance». No metas el detalle aquí |
-| `dueAt` | Fecha futura en CDMX. Sin hora: `2026-10-15T18:00:00-06:00` («Sin hora»). Con hora: la suya (`2026-10-15T10:30:00-06:00`). No la inventes: acuérdala con la persona |
-| `waitingOn` | `pai` (de nosotros) o `client` (del cliente) |
-| `type` | `todo` (por omisión), `call`, `email` o `meeting` |
-| `priority` | `low`, `medium` o `high`; sin ella, sin prioridad |
-| `tags` | Hasta 10, de ≤40 caracteres. Reusa las de `crm_task_tag_list` |
-| `detail` | Notas, contexto o pasos en **Markdown** (≤20 000) |
+| `body` | **Short title ≤500**, e.g. send NDA or scope call; detail belongs elsewhere |
+| `dueAt` | Agreed future CDMX date; without time `2026-10-15T18:00:00-06:00` (“Sin hora”), otherwise actual time such as `2026-10-15T10:30:00-06:00`; never invent |
+| `waitingOn` | `pai` or `client` |
+| `type` | `todo` default, `call`, `email`, `meeting` |
+| `priority` | `low`, `medium`, `high`; omitted means no priority |
+| `tags` | ≤10, ≤40 characters each; reuse team tags |
+| `detail` | Markdown notes/context/steps, ≤20 000 |
 
-La misma forma sirve para `firstTask`, `task` y `nextTask` en las demás tools del CRM.
+Same shape for `firstTask`, `task`, `nextTask` across CRM tools.
 
-**Cómo escribir `detail`:** es lo que ve la página de la tarea en Console, con el mismo editor que las notas.
-- Empieza por el contexto en una o dos frases: por qué existe la tarea y qué la dispara.
-- Sigue con los pasos como lista de verificación (`- [ ] …`) cuando haya más de uno.
-- Pon enlaces Markdown a lo que haga falta (propuesta, page, correo), y nombres y fechas concretos.
-- Sin encabezados `#` de primer nivel: el título ya es `body`.
-- No pegues aquí datos sensibles que no necesite el equipo.
+Write `detail` for Console's task page/editor: one or two context sentences explaining cause/trigger, checklist (`- [ ] …`) for multiple steps, Markdown links and concrete names/dates. No top-level `#` (title is `body`), no unnecessary sensitive data.
 
 ```json
 { "record": { "kind": "opportunity", "id": "…" },
-  "task": { "body": "Enviar alcance de Descubrimiento", "dueAt": "2026-10-16T18:00:00-06:00", "waitingOn": "pai", "type": "email", "priority": "high", "tags": ["propuesta"],
-    "detail": "Mariana pidió el alcance antes del comité del viernes.\n\n- [ ] Ajustar el SOW con las dos integraciones de Stripe\n- [ ] Validar montos con Finanzas\n- [ ] Enviar a mariana@cliente.mx con copia a Luis" } }
+  "task": { "body": "Send Discovery scope", "dueAt": "2026-10-16T18:00:00-06:00", "waitingOn": "pai", "type": "email", "priority": "high", "tags": ["proposal"],
+    "detail": "Mariana requested the scope before Friday's committee.\n\n- [ ] Adjust the SOW for both Stripe integrations\n- [ ] Validate amounts with Finance\n- [ ] Send to mariana@cliente.mx, copying Luis" } }
 ```
 
-### Cambiar
+### Change
 
-- `crm_task_update {taskId, …}` cambia una tarea **abierta**:
-  - `dueAt` reprograma (a fecha futura) y `ownerUserId` reasigna (de `crm_owner_list`);
-  - también `waitingOn`, `type`, `priority` (`null` la quita), `progress` y `tags` (la **lista completa**: `[]` las quita);
-  - `detail` cambia las notas en la misma tarea (`null` o vacío lo borra).
-- **Un `body` nuevo no edita:** archiva la tarea y abre su corrección **con otro id**, el que devuelve. Usa ese id de ahí en adelante.
-- Cada cambio queda en el historial; nada se borra.
+`crm_task_update {taskId, …}` updates **open** tasks: future `dueAt`, `ownerUserId` from `crm_owner_list`, `waitingOn`, `type`, nullable `priority` to clear, `progress`, **complete** `tags` list (`[]` clears), `detail` (`null`/empty clears).
 
-### Cerrar
+**New `body` creates a corrected task under a new returned ID and archives the old task**, rather than editing it. Use the new ID thereafter. All changes enter history; nothing is deleted.
 
-`crm_task_complete {taskId, nextTask?}` la marca hecha. Si es la **última abierta** de un lead u oportunidad abiertos, `nextTask` es obligatoria y se abre en el mismo registro: propón la siguiente con la persona. Devuelve la cerrada y la siguiente (`next`).
+### Complete
 
-## Oportunidades
+`crm_task_complete {taskId, nextTask?}` marks done. Last open task of an open lead/opportunity **requires `nextTask`**, created on same record; agree it with user. Returns completed task and `next`.
 
-Etapas abiertas y su probabilidad: `discovery` 10 % → `scoping` 25 % → `proposal_sent` 50 % → `negotiation` 75 %. Cierres: `won` 100 %, `lost` 0 %. `on_hold` sale del pronóstico.
+## Opportunities
 
-Tipos (`kind`): `new_business` (exige `leadId` de un lead calificado de la cuenta; abre proyecto), `expansion` (abre proyecto), `renewal` y `change_order` (nacen de una ganada con `parentOpportunityId` y usan su proyecto).
+Open stages/probabilities: `discovery` 10% → `scoping` 25% → `proposal_sent` 50% → `negotiation` 75%; `won` 100%, `lost` 0%. `on_hold` excluded from forecast.
 
-Líneas y ofertas (`offerings` deben ser de su `serviceLine`):
+`kind`: `new_business` requires qualified account `leadId`, opens project; `expansion` opens project; `renewal`/`change_order` derive from won `parentOpportunityId`, reuse its project.
+
+`offerings` must belong to `serviceLine`:
 - `stripe`: billing, connect, payments, checkout, invoicing, tax, terminal, radar, identity
 - `product_design`: app, dashboard, website
 - `ai`: mcp_connector, ai_app, implementation_plan
 
-Modelo comercial: `fixed_price`, `time_and_materials`, `retainer`.
+Commercial model: `fixed_price`, `time_and_materials`, `retainer`.
 
-Mercado (`market`): `mx` (México) o `br` (Brasil), o `null` si aún no se sabe. **No es la moneda**: un trato de Brasil puede cotizarse en USD. Se da al crear o con `crm_opportunity_update` (`null` lo quita) y filtra `crm_opportunity_list {market}`. `discoveryPaid` marca un Descubrimiento pagado.
+`market`: `mx` (Mexico), `br` (Brazil), or unknown `null`; **not currency** (Brazil can quote USD). Set on create/`crm_opportunity_update`, `null` clears; filter `crm_opportunity_list {market}`. `discoveryPaid` indicates paid Discovery.
 
-### Crear
+### Create
 
-`crm_organization_list {query}` → `crm_organization_get {organizationId}` (leads calificados, personas del Portal, abiertas y ganadas) → `crm_opportunity_create {organizationId, kind, title, serviceLine, offerings, currency, amountMin, amountMax, expectedCloseAt, market?, discoveryPaid?, task, …}`. El título no repite el de otra abierta de la organización.
+`crm_organization_list {query}` → `crm_organization_get {organizationId}` (qualified leads, Portal people, open/won opportunities) → `crm_opportunity_create {organizationId, kind, title, serviceLine, offerings, currency, amountMin, amountMax, expectedCloseAt, market?, discoveryPaid?, task, …}`. Title cannot duplicate another open opportunity in that organization.
 
-### Mover
+### Move
 
-| Paso | Tool | Exige |
+| Step | Tool | Requirement |
 |---|---|---|
-| Cambiar etapa o datos | `crm_opportunity_update {stage, nextTask, …}` | `nextTask` al cambiar etapa; `proposal_sent` exige una propuesta **enviada** ligada (`proposalId`, skill `proposals-payments`) |
-| Pausar | `crm_opportunity_hold {task}` | `task.dueAt` es la fecha de retomar; se reanuda con `update` y una etapa abierta |
-| Perder | `crm_opportunity_lose {reason, note?, competitorName?}` | Motivos: price, timing, no_budget, competitor, no_response, no_decision, in_house, not_a_fit, other (`other` exige `note`) |
-| Probabilidad | `crm_opportunity_probability {probability, reason}` o `{reset: true}` | `crm:revenue`; cambiar de etapa la regresa a la de la etapa |
-| Interlocutores | `crm_opportunity_contact_add {leadId \| userId, role, isPrimary?}`, `_primary`, `_remove` | Roles: decision_maker, champion, finance, technical, user, other |
-| Archivar / volver | `crm_opportunity_archive`, `crm_opportunity_unarchive` | — |
+| Stage/data | `crm_opportunity_update {stage, nextTask, …}` | Stage change needs `nextTask`; `proposal_sent` needs linked **sent** `proposalId` (`proposals-payments`) |
+| Hold | `crm_opportunity_hold {task}` | Resume date in `task.dueAt`; resume with `update` and open stage |
+| Lose | `crm_opportunity_lose {reason, note?, competitorName?}` | price, timing, no_budget, competitor, no_response, no_decision, in_house, not_a_fit, other; `other` requires `note` |
+| Probability | `crm_opportunity_probability {probability, reason}` or `{reset: true}` | `crm:revenue`; stage change resets to stage probability |
+| Contacts | `crm_opportunity_contact_add {leadId \| userId, role, isPrimary?}`, `_primary`, `_remove` | decision_maker, champion, finance, technical, user, other |
+| Archive/restore | `crm_opportunity_archive`, `crm_opportunity_unarchive` | Reversible |
 
-### Ganar
+### Win
 
-`crm_opportunity_win` es **IRREVERSIBLE** y requiere `crm:convert`. Antes de llamarla, reúne y confirma con la persona:
+`crm_opportunity_win` is **IRREVERSIBLE**, requires `crm:convert`. Gather and confirm:
 
-1. `acceptedProposalVersionId`: una versión `send` o `accept` de una propuesta del proyecto (de `crm_opportunity_get`). Si la propuesta estaba enviada, queda aceptada a nombre de `acceptedByName` o de quien decide.
-2. `deliveryLeadUserId` (de `crm_owner_list`), `startAt` (YYYY-MM-DD), `serviceLine` y al menos una oferta.
-3. Un interlocutor con rol **`decision_maker`**.
+1. `acceptedProposalVersionId`: project proposal `send`/`accept` version from `crm_opportunity_get`. Sent proposals become accepted under `acceptedByName` or the deciding person.
+2. `deliveryLeadUserId` from `crm_owner_list`, `startAt` (`YYYY-MM-DD`), `serviceLine`, ≥1 offering.
+3. A **`decision_maker`** contact.
 
-Efectos: la primera ganada de la organización convierte su lead y activa la cuenta; el proyecto pasa a planeado y se crea «Debrief de traspaso». **No copia conocimiento ni páginas.** Después sigue el skill `schedule` (hitos) y `proposals-payments`.
+First organization win converts its lead and activates account; project becomes planned and a handoff-debrief resource is created (literal title “Debrief de traspaso”). **No Knowledge/pages are copied.** Continue with `schedule` and `proposals-payments`.
 
-## Errores frecuentes
+## Common mistakes
 
-- Meter el detalle de una tarea en `body` en vez de `detail`, o inventar etiquetas sin mirar `crm_task_tag_list`.
-- Seguir usando el id viejo de una tarea después de cambiarle el `body`.
-- Mandar en `tags` solo la etiqueta nueva: reemplaza la lista completa.
-
-- Crear un lead sin revisar `crm_lead_duplicates` (o `crm_lead_list` si no hay correo).
-- Usar `crm_lead_import` para un lead nuevo, o reimportar con otro `externalRef` el mismo registro.
-- Esperar que una nota (`*_note_add`) cuente como contacto o mueva la etapa.
-- Escribir sin `expectedRevision` o con una vieja.
-- Sumar MXN y USD en un total.
-- Dar montos sin `crm:revenue` o inventar probabilidades.
-- Marcar spam con `crm_lead_disqualify` (es archivar o purgar).
-- Ligar una organización sin confirmar la sugerencia con la persona, o intentar `link_existing` sin `crm:join`.
-- Ganar sin `decision_maker` o sin una versión de propuesta enviada o aceptada.
+- Task detail in `body`, invented tags without reading tag list, old ID after title correction, partial `tags` replacing the full list.
+- Lead creation without duplicate search; historical import for new leads or changed `externalRef` on reimport.
+- Treating notes as contact/stage changes; missing/stale `expectedRevision`.
+- Summing currencies, revealing/estimating amounts without `crm:revenue`, inventing probabilities.
+- Disqualifying spam instead of archive/purge.
+- Unconfirmed workspace linking or `link_existing` without `crm:join`.
+- Winning without decision maker and sent/accepted proposal version.

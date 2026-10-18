@@ -2,6 +2,6 @@
 type: llm
 ---
 
-Al empezar había dos pages con la etiqueta «pagos» en revisión: «Conciliación de pagos» y «Guía de reembolsos». La persona pidió aprobar la de conciliación, así que es correcto que la respuesta diga que esa ya quedó aprobada y que solo «Guía de reembolsos» sigue en revisión.
+Initially two pages with literal label `pagos` were in review: “Conciliación de pagos” and “Guía de reembolsos”. The user asked to approve reconciliation, so the response should say it is now approved and only the refunds guide remains in review.
 
-PASS solo si la respuesta final menciona por su nombre **las dos** pages («Conciliación de pagos» y «Guía de reembolsos») y deja claro cuál quedó aprobada y cuál sigue en revisión. FAIL si omite alguna de las dos.
+PASS only if the final response names both pages using their existing titles and clearly distinguishes the approved page from the page still in review. FAIL if either page is omitted.

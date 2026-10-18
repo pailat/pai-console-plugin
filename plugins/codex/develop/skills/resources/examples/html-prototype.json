@@ -1,0 +1,34 @@
+{
+  "tool": "page_create",
+  "input": {
+    "organizationId": "ORG_ID",
+    "projectId": "PROJECT_ID",
+    "path": "prototypes/payment-simulator",
+    "title": "Installment simulator",
+    "description": "Interactive prototype: amount, term, monthly payment at 18 % annual interest.",
+    "audience": "internal",
+    "summary": "Installment simulator prototype",
+    "idempotencyKey": "page-acme-prototypes-payment-simulator",
+    "content": {
+      "schemaVersion": 1,
+      "componentSetVersion": "pai-core-v1",
+      "layout": "canvas",
+      "sections": [
+        {
+          "id": "prototype",
+          "title": "Prototype",
+          "blocks": [
+            {
+              "id": "simulator",
+              "type": "html",
+              "title": "Installment simulator",
+              "description": "Adjust the amount and choose a term; the chart compares all three terms.",
+              "height": "auto",
+              "html": "<style>\nbody{margin:0;padding:16px;font-family:var(--font-sans,system-ui,sans-serif);background:var(--background);color:var(--foreground)}\n.card{border:1px solid var(--border);border-radius:var(--radius,8px);background:var(--card);padding:16px;display:grid;gap:12px}\nlabel{display:grid;gap:4px;font-size:14px;color:var(--muted-foreground)}\noutput{font-size:28px;font-weight:600;color:var(--foreground)}\n</style>\n<div class=\"card\">\n<label>Amount <input id=\"amount\" type=\"range\" min=\"10000\" max=\"500000\" step=\"5000\" value=\"120000\"></label>\n<label>Term <select id=\"term\"><option>6</option><option selected>12</option><option>24</option></select></label>\n<output id=\"payment\"></output>\n<canvas id=\"chart\" height=\"160\"></canvas>\n</div>\n<script src=\"https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js\"></script>\n<script>\nconst RATE = 0.18 / 12;\nconst css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();\nconst fmt = new Intl.NumberFormat(\"es-MX\", { style: \"currency\", currency: \"MXN\" });\nconst pay = (p, n) => (p * RATE) / (1 - Math.pow(1 + RATE, -n));\nconst chart = new Chart(document.getElementById(\"chart\"), {\n  type: \"bar\",\n  data: { labels: [\"6 months\", \"12 months\", \"24 months\"], datasets: [{ label: \"Monthly payment\", data: [], backgroundColor: css(\"--primary\") }] },\n  options: { plugins: { legend: { display: false } } }\n});\nfunction update() {\n  const p = Number(amount.value), n = Number(term.value);\n  payment.textContent = fmt.format(pay(p, n)) + \" per month\";\n  chart.data.datasets[0].data = [6, 12, 24].map((m) => Math.round(pay(p, m)));\n  chart.update();\n}\namount.oninput = update; term.onchange = update; update();\n</script>"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

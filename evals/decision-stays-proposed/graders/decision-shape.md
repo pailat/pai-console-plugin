@@ -3,4 +3,4 @@ type: llm
 focus: mock_calls
 ---
 
-PASS solo si la llamada a `knowledge_create` con `kind: "decision"` lleva en `properties` `context`, `decision`, `consequences` con al menos una consecuencia positiva y una negativa, `decidedBy` (Ana López) y `decidedAt` (2026-10-06); y si lleva `sources` no vacío, de preferencia `{type: "meeting", title, date}` por la reunión de arquitectura.
+PASS only if the `knowledge_create` call for `kind: "decision"` includes `properties.context`, `decision`, `consequences` with at least one positive and one negative consequence, `decidedBy` Ana López, and `decidedAt` 2026-10-06. It must include nonempty `sources`, preferably `{type: "meeting", title, date}` for the architecture meeting.

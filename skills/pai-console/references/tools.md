@@ -1,164 +1,164 @@
-# Inventario de tools del MCP corp de Pai (0.2.5+)
+# Pai corp MCP tool inventory (0.2.5+)
 
-**Fuente:** pai-portal `feat/0.2.5/reui` @ 04278b49d (incluye CRM-1..4, el bloque html de ATE-204, CRM #178 y la Pizarra de ATE-224..227) (`apps/api/src/modules/mcp/tools/*.ts`).
+**Source:** pai-portal `feat/0.2.5/reui` @ 04278b49d, including CRM-1..4, ATE-204 HTML blocks, CRM #178 and ATE-224..227 whiteboards (`apps/api/src/modules/mcp/tools/*.ts`).
 
-Las tools declaran sus anotaciones, y la guarda las lee de `hooks/tools.json`, que se genera desde el servidor. Todas las tools de proyecto reciben `organizationId` y `projectId`. Las `knowledge_*`, `task_board` y `knowledge_view` aceptan además `productId` para trabajar sobre el conocimiento de un producto que el proyecto toca. Con el proyecto cerrado, toda escritura de contenido responde `CONFLICT` «El proyecto está cerrado…».
+Tools declare annotations, read by the guard from server-generated `hooks/tools.json`. All project tools take `organizationId` and `projectId`. `knowledge_*`, `task_board` and `knowledge_view` also accept `productId` for product knowledge linked to the project. Content writes to a closed project return `CONFLICT`.
 
 **Leyenda:**
-- **L**: lectura. Pasa libre en cualquier entorno.
-- **E**: escritura. En producción pide confirmación.
-- **IRR**: irreversible. En producción la confirmación dice qué arrastra.
+- **L**: read. Allowed without confirmation in any environment.
+- **E**: write. Requires confirmation in production.
+- **IRR**: irreversible. Production confirmation explains its consequences.
 
 ## Identidad y descubrimiento
 
-| Tool | Tipo | Nota |
+| Tool | Tipo | Note |
 |---|---|---|
 | `whoami` | L | Staff o cliente, scopes |
 | `organization_list` | L | `query`, `limit` ≤100 |
 | `organization_get` | L | Miembros, invitaciones y proyectos |
-| `organization_create` | E | Quien llama entra como admin; con `ownerEmail` envía una invitación |
-| `organization_slug_set` | E | Staff. Cambia el slug de la organización en las URLs del Portal; el anterior redirige y no se reutiliza |
-| `organization_update` | E | Requiere ser owner o admin de esa organización, como el resto de ajustes de la organización. Nombre visible o logo (`logo` = `fileKey` de `organization_logo_upload_url`, "" lo quita); el slug no cambia |
-| `organization_logo_upload_url` | E | URL firmada para el PUT del logo de la organización: **solo PNG** ≤10 MB. Es el avatar del selector y de Ajustes › General, no el logo del tema (que acepta SVG): sube los dos |
-| `organization_member_role_set` | E | owner, admin o member (`memberId` de `organization_get`); nunca deja la organización sin owner |
-| `organization_member_remove` | E | Quita al miembro y libera su asiento; no quita al último owner |
-| `organization_invitation_cancel` | E | El enlace del correo deja de servir |
-| `me_profile_update` | E | Tu nombre visible o tu foto (`image` = `fileKey` de `me_avatar_upload_url`) |
-| `me_avatar_upload_url` | E | URL firmada para el PUT de tu foto (PNG ≤10 MB) |
+| `organization_create` | E | Caller becomes admin; ownerEmail sends an invitation |
+| `organization_slug_set` | E | Staff. Change the organization slug in Portal URLs; the old slug redirects and cannot be reused |
+| `organization_update` | E | Requires organization owner/admin, like other organization settings. Update display name or logo (fileKey from organization_logo_upload_url; empty string removes it); slug stays unchanged |
+| `organization_logo_upload_url` | E | Signed organization-logo PUT URL: PNG only, ≤10 MB. Used for the selector avatar and Settings > General, distinct from the SVG-capable theme logo; upload both |
+| `organization_member_role_set` | E | owner, admin or member (memberId from organization_get); never leaves the organization without an owner |
+| `organization_member_remove` | E | Remove a member and free a seat; cannot remove the last owner |
+| `organization_invitation_cancel` | E | Invalidate the emailed invitation link |
+| `me_profile_update` | E | Update your display name or image (fileKey from me_avatar_upload_url) |
+| `me_avatar_upload_url` | E | Signed avatar PUT URL (PNG ≤10 MB) |
 | `project_list` | L | |
 | `project_summary` | L | |
 | `project_status` | L | |
 | `project_activity` | L | |
-| `project_create` | E | `status` empieza en draft; las fechas van en ISO |
+| `project_create` | E | Initial status is draft; dates are ISO |
 | `project_update` | E | |
-| `project_slug_set` | E | Staff. Cambia el slug del proyecto en las URLs del Portal; el anterior redirige |
-| `project_invite_client` | E | Envía un correo con la invitación |
-| `project_delete` | E · IRR | **Borra en cascada los pagos y los CFDI** |
-| `project_close_review` | L | Lo pendiente antes de cerrar (tareas, preguntas, riesgos, sugerencias), con la acción que lo cierra; no bloquea |
-| `project_close` | E | Deja el proyecto en solo lectura (`completed` o `cancelled`); cada producto registra `knowledge_merged` |
-| `project_reopen` | E | Reabre un proyecto cerrado; queda auditado |
+| `project_slug_set` | E | Staff. Change project slug in Portal URLs; the old slug redirects |
+| `project_invite_client` | E | Email a client invitation |
+| `project_delete` | E · IRR | **Cascade-deletes payments and CFDI records** |
+| `project_close_review` | L | Outstanding tasks, questions, risks and suggestions before closure, with their resolution actions; informational, not blocking |
+| `project_close` | E | Make project read-only (completed or cancelled); each product records knowledge_merged |
+| `project_reopen` | E | Reopen a closed project; audited |
 | `status_update_list` | L | |
-| `status_update_publish` | E | El cliente lo ve al momento |
+| `status_update_publish` | E | Immediately visible to the client |
 | `brief_list` | L | |
 | `brief_get` | L | |
 | `brief_agenda` | L | |
 | `brief_update_status` | E | new → reviewing → converted |
 
-## Tema de la organización
+## Organization theme
 
-Detalle, flujo, errores, mapa de tokens y verificación en el Portal en el skill `theme`. La marca que ven el Portal y las vistas del cliente: colores, fuente, radio, sombra, logos y `shell`, el app shell del Portal (ATE-212). Es lo mismo que edita Ajustes › Apariencia en el Portal (área `organization:appearance`, solo staff). Flujo: `organization_theme_get` → `organization_theme_preview` → `organization_theme_save_draft` → `organization_theme_publish`.
+See skill `theme` for workflow, errors, tokens and Portal verification. The organization brand controls Portal and client views: colors, font, radius, shadow, logos and Portal app `shell` (ATE-212). This matches Settings > Appearance (`organization:appearance`, staff only). Workflow: `organization_theme_get` → `organization_theme_preview` → `organization_theme_save_draft` → `organization_theme_publish`.
 
-`theme` va completo: `{schemaVersion: 1, light, dark, font, radius, shadow, shell, logo: {light, dark}}`. `shell` es un preset (`sidebar`, `floating`, `header`, `dual-rail`, `section-tabs`, `framed`, `topbar`, `icon-rail`) o `null` (el de Pai); otro valor da un problema `shell`. Las pantallas `PortalShell` de las vistas lo toman del tema publicado.
+Supply the complete `theme`: `{schemaVersion: 1, light, dark, font, radius, shadow, shell, logo: {light, dark}}`. `shell` is `sidebar`, `floating`, `header`, `dual-rail`, `section-tabs`, `framed`, `topbar`, `icon-rail`, or null for Pai; other values produce a shell issue. View `PortalShell` uses the published theme.
 
-| Tool | Tipo | Nota |
+| Tool | Tipo | Note |
 |---|---|---|
-| `organization_theme_get` | L | Tema publicado, borrador con sus problemas (AA, esquema, logo) y versiones. Léelo antes de editar |
-| `organization_theme_preview` | L | Valida un tema (o el borrador) sin guardar: problemas de contraste AA, CSS, los `shells` que puede elegir (`id` null = el de Pai) y muestra |
-| `organization_theme_save_draft` | E | Borrador nuevo; lo publicado no cambia. Los problemas de AA se permiten en borrador |
-| `organization_theme_publish` | E | El cliente lo ve en su siguiente carga. Se rechaza si no cumple AA, esquema o logos |
-| `organization_theme_revert` | E | Copia una versión como borrador y, salvo `publish: false`, la publica |
-| `organization_theme_logo_upload_url` | E | URL firmada (5 min) para el PUT del logo: PNG, WebP o SVG ≤512 KB, con el `contentType` y `size` declarados |
-| `organization_theme_logo_confirm` | E | Tras el PUT (`storageKey` = `fileKey`): valida el logo y devuelve el objeto `{storageKey, contentType, bytes}`. Va **completo** en `theme.logo.light` o `theme.logo.dark`; un string da «se esperaba objeto, recibido texto» |
+| `organization_theme_get` | L | Published theme, draft with AA/schema/logo issues, and versions; read before editing |
+| `organization_theme_preview` | L | Validate a theme or draft without saving: AA contrast issues, CSS, available shells (null id means Pai), and preview |
+| `organization_theme_save_draft` | E | Create a new draft without changing the published theme; AA issues are allowed in drafts |
+| `organization_theme_publish` | E | Visible on next client load; rejects invalid AA contrast, schema or logos |
+| `organization_theme_revert` | E | Copy a version to a draft and publish unless publish is false |
+| `organization_theme_logo_upload_url` | E | Five-minute signed logo PUT URL: PNG, WebP or SVG ≤512 KB with declared contentType and size |
+| `organization_theme_logo_confirm` | E | After PUT (storageKey equals fileKey), validate and return {storageKey, contentType, bytes}. Supply this complete object in theme.logo.light/dark; a string is rejected |
 
-## Recursos
+## Resources
 
-| Tool | Tipo | Nota |
+| Tool | Tipo | Note |
 |---|---|---|
-| `folder_create` | E | Carpeta vacía en Recursos (`parent` "" = la raíz de Recursos, «Recursos (raíz)» en el selector); devuelve su `path` para `note_create` |
-| `folder_delete` | E · IRR | Solo carpetas vacías a cualquier profundidad (páginas y archivos, internos incluidos); se lleva sus subcarpetas vacías. `summary` obligatorio (≤80, queda en la auditoría). La raíz (`""`) no se borra (`invalid_input`); con contenido → `CONFLICT`; no es tuya o la bloquea contenido que no ves → `FORBIDDEN` |
-| `note_create` | E | Nota Markdown; la del staff nace interna salvo `audience: client` |
-| `note_update` | E | Cuerpo y atributos con `expectedRevision`. En la nota de un cliente, un agente de Pai solo **propone** sugerencias (`{suggested: true}`) |
-| `note_audience_set` | E | `client` la publica para la organización; `internal` la deja al equipo de Pai |
-| `whiteboard_create` | E | Pizarra (Excalidraw) en Recursos, vacía o con `content` `{graph}` o `{mermaid}`; nunca coordenadas. Regla de las notas: la del staff nace interna salvo `audience: client`. Skill `resources` §3 |
-| `whiteboard_read` | L | Lo que dice (nodos con id, conexiones, grupos, `otherCount`), `revision` y `preview` (vista `WhiteboardSketch`) |
-| `whiteboard_update` | E | `expectedRevision` e `idempotencyKey` obligatorias; `mode: append` agrega a la derecha (aristas a nodos existentes por id o texto); `mode: replace` **borra lo dibujado por las personas**: solo si te lo piden. Las personas con la pizarra abierta lo ven en vivo |
-| `page_frontmatter_update` | E | Merge-patch del frontmatter: audiencia y atributos (date, owner, status, labels) con `expectedRevision` |
-| `page_projection` | L | Dibuja un bloque `projection` de una page (C4, ERD, pantalla, flujo) como el lector del Portal |
-| `page_suggest` | E | Propone cambios revisables («Antes / Después») a una page o nota en vez de escribirlos; `baseRevision` de `page_read` |
-| `page_suggestion_decide` | E | Acepta o rechaza las sugerencias de un set; las aceptadas se aplican juntas |
-| `quiz_respond` | E | Responde un bloque quiz en nombre de la persona; cada intento cuenta |
-| `page_catalog` | L | Unos 35 KB: bloques, reglas, JSON Schema y vistas. Prefiere las referencias de los skills `resources` y `views` |
-| `page_types` | L | Lista, o el detalle de un `slug` con su `authoringGuide` |
-| `page_validate` | L | Valida sin guardar `content` y/o `frontmatter` (atributos); devuelve `issues` y `warnings` (avisos del bloque `html`; del bloque `whiteboard`, `WHITEBOARD_NOT_FOUND`, `WHITEBOARD_NOT_A_BOARD` y `WHITEBOARD_NOT_CLIENT_VISIBLE`) |
-| `page_list` | L | Filtros `status`, `owner`, `labels`, `dateFrom`/`dateTo`, `audience`, `pathPrefix`; `sort` path, date o status; sigue `nextCursor` con el mismo `sort`. Trae `attributes` |
-| `page_search` | L | `limit` ≤50, sin cursor ni orden; mismos filtros que `page_list` (busca 50 y filtra: puede traer menos que `limit`) |
-| `page_read` | L | `view`: summary, content o full. Solo `full` sirve para escribir. Trae `attributes` tipados, las `projections` resueltas y `whiteboards` (título y resumen de cada pizarra embebida, o `hidden`) |
-| `page_versions` | L | Pagina con `nextCursor` |
+| `folder_create` | E | Create an empty Resources folder (parent empty string means Resources root); returns path for note_create |
+| `folder_delete` | E · IRR | Only empty folders at any depth, including internal pages/files; removes empty descendants. summary required (≤80, audited). Root cannot be deleted (invalid_input); nonempty is CONFLICT; inaccessible or not yours is FORBIDDEN |
+| `note_create` | E | Markdown note; staff notes default to internal unless audience is client |
+| `note_update` | E | Update body/attributes with expectedRevision. A Pai agent can only propose suggestions on client notes ({suggested: true}) |
+| `note_audience_set` | E | client publishes to the client organization; internal limits visibility to the Pai team |
+| `whiteboard_create` | E | Resources whiteboard (Excalidraw), empty or content {graph}/{mermaid}; never coordinates. Staff boards default internal unless audience is client. See resources §3 |
+| `whiteboard_read` | L | Semantic nodes, connections, groups, otherCount, revision and WhiteboardSketch preview |
+| `whiteboard_update` | E | expectedRevision and idempotencyKey required; append adds on the right, linking existing nodes by id/text; replace erases human drawings and requires an explicit request. Open boards update live |
+| `page_frontmatter_update` | E | Merge-patch audience and frontmatter attributes (date, owner, status, labels) with expectedRevision |
+| `page_projection` | L | Render a page projection block (C4, ERD, screen, flow) like the Portal reader |
+| `page_suggest` | E | Propose reviewable Before/After changes instead of applying them; baseRevision from page_read |
+| `page_suggestion_decide` | E | Accept/reject suggestions in a set; accepted changes apply together |
+| `quiz_respond` | E | Answer a quiz on behalf of the user; every attempt counts |
+| `page_catalog` | L | About 35 KB: blocks, rules, JSON Schema and views. Prefer local resources/views references |
+| `page_types` | L | List types, or fetch one slug with its authoringGuide |
+| `page_validate` | L | Validate content/frontmatter without saving; returns issues and warnings (HTML warnings and WHITEBOARD_NOT_FOUND, WHITEBOARD_NOT_A_BOARD, WHITEBOARD_NOT_CLIENT_VISIBLE) |
+| `page_list` | L | Filters status, owner, labels, dateFrom/dateTo, audience, pathPrefix; sort path/date/status. Follow nextCursor with the same sort. Includes attributes |
+| `page_search` | L | limit ≤50, no cursor/order; page_list filters apply after selecting 50 results, so fewer than limit may return |
+| `page_read` | L | view summary/content/full; use full before writing. Includes typed attributes, resolved projections and whiteboards (title/summary or hidden) |
+| `page_versions` | L | Paginate with nextCursor |
 | `page_version` | L | |
-| `page_comprehension` | L | Antes de reescribir una page |
-| `page_create` | E | `summary` ≤80; `idempotencyKey` obligatoria; sin imágenes; `derivedFromPageId` liga la page a la nota de origen. Avisos en `warnings` |
-| `page_update` | E | Reemplazo completo, con CAS |
-| `page_restore` | E | Restaura una versión como revisión nueva |
-| `page_move` | E | Reescribe los enlaces; revisa los `warnings` |
+| `page_comprehension` | L | Read before rewriting a page |
+| `page_create` | E | summary ≤80; idempotencyKey required; no images; derivedFromPageId links the source note; warnings returned |
+| `page_update` | E | Full replacement with CAS |
+| `page_restore` | E | Restore a version as a new revision |
+| `page_move` | E | Rewrite links; inspect warnings |
 | `page_migrate` | E | Convierte Markdown legacy a Pages |
-| `page_asset_upload` | E | URL firmada para subir con PUT una imagen de una page ya creada (png/jpeg/webp/gif ≤10 MB). Queda `pending` hasta que un `page_create`/`page_update` la referencia (ahí se revisan sus bytes); no lleva `asset_confirm` |
-| `asset_list` | L | Assets del proyecto (imágenes y videos) que ves: `kind` (image/video/other), `q`, `cursor`; trae `href` y `usedIn`. Búscalo antes de subir. Se dibuja como vista |
-| `asset_get` | L | Un asset: medidas o duración, quién lo subió, `usedIn`, `canDelete` |
-| `asset_upload` | E | Prepara la subida: PNG/JPEG/WebP/GIF ≤10 MB, SVG ≤1 MB, MP4/WebM ≤200 MB; `size` exacto; `documentId` = page, nota o pizarra que editas (sin él, galería: solo staff). Devuelve `signedUrl` (PUT, 300 s), `headers`, `href`. No idempotente |
-| `asset_confirm` | E | Después del PUT: sniff de los primeros bytes contra el tipo declarado, SVG saneado; lo deja `ready`. Si falla, `invalid_input` con `reason` y el archivo se borra |
-| `asset_delete` | E · IRR | Solo sin usos (`CONFLICT` `ASSET_IN_USE`); solo staff o quien lo subió |
+| `page_asset_upload` | E | Signed image PUT URL for an existing page (png/jpeg/webp/gif ≤10 MB). Remains pending until page_create/page_update references and checks it. Does not use asset_confirm |
+| `asset_list` | L | Visible project image/video assets: kind (image/video/other), q, cursor; includes href and usedIn. Search before upload. Returns a view |
+| `asset_get` | L | Asset dimensions/duration, uploader, usedIn and canDelete |
+| `asset_upload` | E | Prepare upload: PNG/JPEG/WebP/GIF ≤10 MB, SVG ≤1 MB, MP4/WebM ≤200 MB; exact size; documentId targets the edited page/note/whiteboard, omitted for staff-only gallery. Returns signedUrl (PUT, 300s), headers and href; not idempotent |
+| `asset_confirm` | E | After PUT, sniff bytes against declared type and sanitize SVG; marks ready. Failure returns invalid_input with reason and deletes the file |
+| `asset_delete` | E · IRR | Only unused assets (otherwise CONFLICT ASSET_IN_USE), by staff or uploader |
 | `page_comment_reply` | E | |
-| `page_delete` | E · IRR | Borrado duro, sin papelera |
+| `page_delete` | E · IRR | Hard delete, no trash |
 | `file_list` | L | |
 | `file_get` | L | |
 | `file_download_url` | L | |
-| `file_upload` | E | URL firmada (≤100 MiB, caduca en 5 min) |
-| `file_create` | E | Registra el archivo subido |
+| `file_upload` | E | Signed upload URL (≤100 MiB, expires after five minutes) |
+| `file_create` | E | Register an uploaded file |
 | `file_update` | E | |
 | `file_delete` | E · IRR | |
 
-## Conocimiento
+## Knowledge
 
-| Tool | Tipo | Nota |
+| Tool | Tipo | Note |
 |---|---|---|
-| `knowledge_query` | L | Consulta el grafo por propiedad, etiqueta, contención (`scope`), vecindad (`related`) o camino tipado (`pattern`, ≤4 pasos); `limit` ≤200 |
-| `knowledge_batch` | E | Hasta 200 operaciones atómicas (create, update, link, unlink, supersede, archive, resolve) con refs `$nombre` e `idempotencyKey`; `set-status` lo decide una persona y un agente recibe `HUMAN_CONFIRMS` |
-| `knowledge_kinds` | L | Catálogo de kinds, plantillas y ontología. Referencia local: `skills/knowledge/references/` |
-| `knowledge_search` | L | Búsqueda por tema; `limit` ≤25, sin cursor |
-| `knowledge_library` | L | **Inventario y tabla de la organización:** `projectId` + `kinds`, paginado con `limit`/`offset` hasta `total`; búsqueda híbrida con `query` |
-| `knowledge_graph` | L | Nodos, aristas y hubs de la organización o de un proyecto |
+| `knowledge_query` | L | Query by property, label, containment scope, related neighbors or typed pattern path (≤4 steps); limit ≤200 |
+| `knowledge_batch` | E | Up to 200 atomic create/update/link/unlink/supersede/archive/resolve operations with $name refs and idempotencyKey; set-status requires a person and returns HUMAN_CONFIRMS to agents |
+| `knowledge_kinds` | L | Kinds, templates and ontology catalog. Local reference: skills/knowledge/references/ |
+| `knowledge_search` | L | Topic search, limit ≤25, no cursor |
+| `knowledge_library` | L | **Organization inventory/table:** projectId plus kinds, paginate limit/offset to total; hybrid search with query |
+| `knowledge_graph` | L | Organization or project nodes, edges and hubs |
 | `knowledge_get` | L | `ref`: uuid, slug, `kind/slug` o `kb:` |
 | `knowledge_context` | L | |
 | `knowledge_impact` | L | |
 | `knowledge_audit` | L | |
-| `knowledge_view` | L | Vista ERD (`view: "erd"`) o C4 (`view: "c4"`, `level`) derivada del grafo: datos, Mermaid y `url` del Portal |
-| `task_board` | L | Tablero de Tareas: columnas, `revision` y `moves` de cada tarea |
-| `knowledge_create` | E | Un agente debe dar `sources` |
-| `knowledge_update` | E | Con `expectedRevision`; si llevas `properties`, las reemplaza completas |
+| `knowledge_view` | L | Graph-derived ERD (view erd) or C4 (view c4, level), data, Mermaid and Portal URL |
+| `task_board` | L | Task board columns plus each task revision and moves |
+| `knowledge_create` | E | Agents must supply sources |
+| `knowledge_update` | E | expectedRevision required; supplied properties replace the complete object |
 | `knowledge_link` | E | |
-| `knowledge_observe` | E | Señal de uso; no cambia la revisión |
-| `knowledge_resolve` | E | Cierra una question, assumption, risk o task |
-| `knowledge_supersede` | E | El nodo nuevo debe estar `active` |
+| `knowledge_observe` | E | Record a usage signal without changing revision |
+| `knowledge_resolve` | E | Resolve a question, assumption, risk or task |
+| `knowledge_supersede` | E | Replacement node must be active |
 | `knowledge_revive` | E | |
-| `knowledge_archive` | E | Reversible con `knowledge_revive` |
+| `knowledge_archive` | E | Reversible using knowledge_revive |
 | `knowledge_unlink` | E · IRR | |
 
-El cliente tiene Conocimiento en solo lectura (ATE-237): `knowledge_kinds`, `knowledge_search`, `knowledge_get`, `knowledge_impact` y `knowledge_view`, sobre nodos `client`. Los kinds `action`, `integration` y `flow_run` son nuevos; `flow_run` solo lo crea `flow_run_start`.
+Clients have read-only Knowledge access (ATE-237): `knowledge_kinds`, `knowledge_search`, `knowledge_get`, `knowledge_impact` and `knowledge_view` for client-visible nodes. New kinds include `action`, `integration` and `flow_run`; only `flow_run_start` creates flow_run.
 
-## Flujos (skill `flows`)
+## Flows (skill `flows`)
 
-| Tool | Tipo | Nota |
+| Tool | Tipo | Note |
 |---|---|---|
-| `flow_list` | L | Flujos del proyecto: ref, versión, pasos, roles y última prueba |
-| `flow_get` | L | Pasos con sus refs (actor, pantalla, acción, integración), transiciones, `revision`, versión y últimas pruebas. Se dibuja como vista (`Flow`) |
-| `flow_create` | E | Staff; `sources` obligatorio. Sin `graph` nace con inicio y fin |
-| `flow_save` | E | Staff. **Reemplaza el grafo completo** (`graph` o `mermaid`) con `expectedRevision` e `idempotencyKey`; los pasos que no vienen se borran |
-| `flow_version_bump` | E | Staff. v1 → v2 con etiqueta; no cambia la `revision` |
-| `flow_run_start` | E | Inicia una prueba: `actor` (nodo actor) y `mode` `sample` o `simulated` (`real` aún no) |
-| `flow_run_step` | E | `stepKey`, `result` (`passed`, `noted`, `failed`, `skipped`), `branchLabel`, `integrationResponse`; solo quien la inició |
-| `flow_run_finish` | E | `passed`, `passed_with_notes`, `failed` (con `stoppedAtKey`) o `abandoned` |
-| `flow_run_list` | L | Pruebas de un flujo, de la más reciente |
-| `flow_run_get` | L | Una prueba con sus pasos |
+| `flow_list` | L | Project flows: ref, version, steps, roles and latest run |
+| `flow_get` | L | Steps with actor/screen/action/integration refs, transitions, revision, version and recent runs; renders Flow view |
+| `flow_create` | E | Staff; sources required. Without graph, initialize start/end |
+| `flow_save` | E | Staff. Replace the complete graph (graph or mermaid) with expectedRevision and idempotencyKey; omitted steps are deleted |
+| `flow_version_bump` | E | Staff. Labeled v1-to-v2 increment without changing revision |
+| `flow_run_start` | E | Start a run with actor node and mode sample or simulated; real not yet supported |
+| `flow_run_step` | E | stepKey, result passed/noted/failed/skipped, branchLabel and integrationResponse; only the initiator |
+| `flow_run_finish` | E | Finish as passed, passed_with_notes, failed (stoppedAtKey), or abandoned |
+| `flow_run_list` | L | Flow runs, newest first |
+| `flow_run_get` | L | Run details and steps |
 
 ## Cronograma
 
-| Tool | Tipo | Nota |
+| Tool | Tipo | Note |
 |---|---|---|
 | `timeline_get` | L | |
 | `milestone_list` | L | |
 | `milestone_get` | L | |
 | `milestone_owner_options` | L | |
-| `milestone_create` | E | `amount` en centavos; moneda por defecto **usd** |
+| `milestone_create` | E | amount in cents; default currency **usd** |
 | `milestone_update` | E | |
 | `milestone_reorder` | E | |
 | `milestone_dependency_create` | E | finish_to_start; rechaza ciclos |
@@ -167,147 +167,147 @@ El cliente tiene Conocimiento en solo lectura (ATE-237): `knowledge_kinds`, `kno
 | `task_dependency_create` | E | Entre nodos `task`; rechaza ciclos |
 | `task_dependency_update` | E | |
 | `task_dependency_delete` | E | |
-| `milestone_baseline_capture` | E · IRR | Una sola vez por hito |
-| `milestone_delete` | E · IRR | Sus CFDI quedan sin hito |
+| `milestone_baseline_capture` | E · IRR | Once per milestone |
+| `milestone_delete` | E · IRR | Its CFDI records lose their milestone |
 
 ## Propuestas y pagos
 
-| Tool | Tipo | Nota |
+| Tool | Tipo | Note |
 |---|---|---|
 | `proposal_list` | L | |
 | `proposal_get` | L | |
 | `payment_list` | L | |
-| `payment_file_download_url` | L | URL firmada de 60 s para un comprobante o el PDF/XML de una factura (`fileId` de `payment_list`); úsala de inmediato y no la guardes |
-| `proposal_save` | E | Solo borradores; moneda por defecto **mxn** |
+| `payment_file_download_url` | L | 60-second signed URL for receipt/invoice PDF/XML (fileId from payment_list); use immediately, never persist |
+| `proposal_save` | E | Drafts only; default currency **mxn** |
 | `proposal_set_status` | E · IRR | draft → sent → accepted/rejected |
 | `milestone_proposal_link` | E | |
-| `payment_file_upload` | E | PDF ≤10 MB; PUT antes de 5 min |
-| `payment_cfdi_import` | E · IRR | El emisor debe ser el RFC de Pai |
-| `payment_record` | E · IRR | Dinero; recalcula el estado de pago de los hitos |
-| `payment_void` | E · IRR | Anula el pago para siempre |
+| `payment_file_upload` | E | PDF ≤10 MB; PUT within five minutes |
+| `payment_cfdi_import` | E · IRR | Issuer must be the Pai RFC |
+| `payment_record` | E · IRR | Record money and recalculate milestone payment status |
+| `payment_void` | E · IRR | Permanently void the payment |
 
 ## Productos
 
-| Tool | Tipo | Nota |
+| Tool | Tipo | Note |
 |---|---|---|
-| `product_list` | L | `missing[]` y `hint` dicen qué falta |
+| `product_list` | L | missing[] and hint explain missing configuration |
 | `product_get` | L | |
 | `product_provisioning_get` | L | |
 | `product_logs` | L | |
 | `product_member_list` | L | |
 | `product_create` | E | |
 | `product_update` | E | |
-| `product_environment_set` | E | Solo registro en la base de datos de Pai |
-| `product_environment_remove` | E | Solo registro en la base de datos de Pai |
-| `product_domain_set` | E | Solo registro en la base de datos de Pai |
-| `product_domain_remove` | E | Solo registro: no desconecta en Railway |
+| `product_environment_set` | E | Change only the Pai database record |
+| `product_environment_remove` | E | Remove only the Pai database record |
+| `product_domain_set` | E | Change only the Pai database record |
+| `product_domain_remove` | E | Remove only the record; does not disconnect Railway |
 | `product_link_set` | E | |
 | `product_link_remove` | E | |
-| `product_link_project` | E | `role` creates, improves (por defecto) o maintains; habilita `productId` en `knowledge_*` desde el proyecto |
+| `product_link_project` | E | role creates, improves (default), or maintains; enables productId in project knowledge_* tools |
 | `product_unlink_project` | E | |
 | `product_member_add` | E | |
 | `product_member_update` | E | |
-| `product_request_status` | E | `live` necesita que otra persona lo apruebe |
+| `product_request_status` | E | live requires approval by another person |
 | `product_decide_status` | E | |
-| `product_provision` | E · IRR | Crea el repo en GitHub y el proyecto en Railway |
-| `product_deploy` | E · IRR | En production exige `commitSha` |
-| `product_variables_set` | E · IRR | Los valores nunca se devuelven; `redeploy` |
-| `product_domain_attach` | E · IRR | Devuelve los `dnsRecords` |
-| `product_production_access_set` | E · IRR | Redespliega producción |
+| `product_provision` | E · IRR | Create GitHub repository and Railway project |
+| `product_deploy` | E · IRR | Production requires commitSha |
+| `product_variables_set` | E · IRR | Values never returned; optional redeploy |
+| `product_domain_attach` | E · IRR | Return dnsRecords |
+| `product_production_access_set` | E · IRR | Redeploy production |
 | `product_member_remove` | E · IRR | |
 
 ## Vistas (UI generativa)
 
-| Tool | Tipo | Nota |
+| Tool | Tipo | Note |
 |---|---|---|
-| `view_catalog` | L | Catálogo `pai-view@1` (componentes, props, reglas, ejemplo); con `types`/`group`, `recipe` o `recipeGroup`, uno a la vez. Prefiere la referencia del skill `views` |
-| `view_render` | L | Dibuja en la conversación una vista que compones (`{title, spec}`); la valida y no guarda nada. `organizationId` la pinta con el tema de esa organización |
+| `view_catalog` | L | pai-view@1 components/props/rules/examples; supply only one of types/group, recipe or recipeGroup. Prefer the views skill reference |
+| `view_render` | L | Validate/render a composed {title, spec} in the conversation without persistence; organizationId applies the organization theme |
 
-Además, en los hosts con MCP Apps, las lecturas con una vista propia se dibujan solas como una vista de Pai: `project_summary`, `project_list`, `project_activity`, `project_close_review`, `status_update_list`, `timeline_get`, `milestone_list`, `payment_list`, `proposal_list`, `task_board`, `file_list`, `page_list`, `page_suggestions`, `page_comprehension`, `page_knowledge_health`, `page_projection`, `whiteboard_read`, `asset_list`, `flow_get`, `agent_inbox`, `knowledge_library`, `knowledge_graph`, `knowledge_view`, `organization_theme_preview`, las lecturas del CRM (`crm_overview_get`, `crm_lead_list`, `crm_lead_summary`, `crm_lead_get`, `crm_lead_record`, `crm_lead_event_list`, `crm_lead_duplicates`, `crm_lead_organization_suggestions`, `crm_submission_get`, `crm_opportunity_list`, `crm_opportunity_summary`, `crm_opportunity_get`, `crm_opportunity_event_list`, `crm_trace_get`) y `view_render`. `knowledge_view` y `page_projection` se dibujan en el lienzo (`ui://pai/canvas.html`). Las demás lecturas (detalles, búsquedas, validaciones, catálogos) devuelven solo datos y texto (ATE-203).
+On hosts supporting MCP Apps, reads with a built-in view render automatically: `project_summary`, `project_list`, `project_activity`, `project_close_review`, `status_update_list`, `timeline_get`, `milestone_list`, `payment_list`, `proposal_list`, `task_board`, `file_list`, `page_list`, `page_suggestions`, `page_comprehension`, `page_knowledge_health`, `page_projection`, `whiteboard_read`, `asset_list`, `flow_get`, `agent_inbox`, `knowledge_library`, `knowledge_graph`, `knowledge_view`, `organization_theme_preview`, CRM reads (`crm_overview_get`, `crm_lead_list`, `crm_lead_summary`, `crm_lead_get`, `crm_lead_record`, `crm_lead_event_list`, `crm_lead_duplicates`, `crm_lead_organization_suggestions`, `crm_submission_get`, `crm_opportunity_list`, `crm_opportunity_summary`, `crm_opportunity_get`, `crm_opportunity_event_list`, `crm_trace_get`) and `view_render`. `knowledge_view` and `page_projection` use `ui://pai/canvas.html`. Other reads (details, searches, validation and catalogs) return data and text only (ATE-203).
 
-## CRM (staff, o roles de Console con `crm:access`; permisos `crm:*`)
+## CRM (staff or Console roles with `crm:access`; `crm:*` permissions)
 
-Detalle y reglas en el skill `crm`. Toda escritura de lead u oportunidad lleva `expectedRevision`; montos en centavos, MXN y USD nunca se suman.
+See skill `crm`. Every lead/opportunity write carries `expectedRevision`. Amounts are cents; never sum MXN and USD.
 
-| Tool | Tipo | Nota |
+| Tool | Tipo | Note |
 |---|---|---|
-| `crm_access_get` | L | Tus permisos: crm:access, edit, convert, revenue, purge, import, join. Vienen de roles (`crm.viewer`, `crm.sales`, `crm.closer`, `crm.admin` o propios) |
-| `crm_overview_get` | L | Portada de /crm: cifras, embudo, «Por atender», tus tareas, conversiones. `from`/`to` (YYYY-MM-DD, ≤366 días) dan las series del periodo contra el anterior; `ownerLoad` es lo abierto de cada responsable |
-| `crm_owner_list` | L | Propietarios posibles (ids para `ownerUserId`) |
-| `crm_submission_get` | L | Un envío de Forms y el lead que generó |
-| `crm_submission_spam` | E | Archiva el envío sin crear lead |
-| `crm_lead_list` | L | Filtros `query`, `source`, `owner`, `period`, `waitingOn` (`attention` = requiere atención, `none`, `outsideSla`…), `archived` |
-| `crm_lead_summary` | L | Tuyos que requieren atención, tiempo de respuesta, fuera de SLA, sin siguiente paso |
-| `crm_lead_get` | L | El lead con su `revision`, siguiente paso y cadena |
-| `crm_lead_record` | L | Ficha completa: calificación, envío, espacio, oportunidades, nodos sembrados, actividades |
-| `crm_lead_event_list` | L | Historial del lead (≤200); los montos, solo con `crm:revenue` |
-| `crm_lead_duplicates` | L | **Antes de crear:** mismo correo, mismo dominio, organizaciones cliente |
-| `crm_lead_organization_suggestions` | L | Organizaciones parecidas y qué campos llenaría; nunca liga |
-| `crm_lead_create` | E | Referido, manual o MCP; `firstTask` obligatoria; `phone` opcional; avisa por correo |
-| `crm_lead_import` | E | `crm:import`. Importación histórica de un CRM anterior (lead, organización, oportunidad, notas y tareas en su etapa real y con sus fechas); `externalRef` la hace idempotente (`created: false` al repetir) |
-| `crm_lead_note_add` | E | Nota en el historial del lead (≤20 000 caracteres); no se edita: para corregir, escribe otra. No mueve etapa ni siguiente paso |
-| `crm_lead_create_from_submission` | E | Lead desde un envío de Forms |
+| `crm_access_get` | L | Permissions crm:access/edit/convert/revenue/purge/import/join from crm.viewer, crm.sales, crm.closer, crm.admin or custom roles |
+| `crm_overview_get` | L | CRM overview, funnel, attention queue, tasks and conversions. from/to (YYYY-MM-DD, ≤366 days) compare periods; ownerLoad counts open records per owner |
+| `crm_owner_list` | L | Possible owners (ids for ownerUserId) |
+| `crm_submission_get` | L | Forms submission and generated lead |
+| `crm_submission_spam` | E | Archive submission without creating a lead |
+| `crm_lead_list` | L | query, source, owner, period, waitingOn (attention, none, outsideSla...), archived filters |
+| `crm_lead_summary` | L | Your attention queue, response time, SLA breaches and missing next steps |
+| `crm_lead_get` | L | Lead revision, next step and chain |
+| `crm_lead_record` | L | Complete qualification, submission, workspace, opportunities, seeded nodes and activity |
+| `crm_lead_event_list` | L | Lead history (≤200); amounts require crm:revenue |
+| `crm_lead_duplicates` | L | **Before creating:** same email, same domain and customer organizations |
+| `crm_lead_organization_suggestions` | L | Similar organizations and fields that would be populated; never links |
+| `crm_lead_create` | E | Referral/manual/MCP lead; firstTask required, phone optional; emails owner/team |
+| `crm_lead_import` | E | crm:import. Historical lead/organization/opportunity/notes/tasks with original stages/dates; externalRef ensures idempotency (created false on replay) |
+| `crm_lead_note_add` | E | Append-only lead history note ≤20,000 characters; corrections require another note. Does not move stage or next step |
+| `crm_lead_create_from_submission` | E | Create lead from Forms submission |
 | `crm_lead_update` | E | Datos, propietario o `stage: contacted` (exige `nextTask`) |
-| `crm_lead_task_create` | E | Tarea en un lead (`crm_task_create` sirve también para oportunidades y cuentas) |
-| `crm_lead_task_complete` | E | Cierra una tarea; `nextTask` si es la última |
-| `crm_lead_qualify` | E | Cuatro criterios + espacio; siembra nodos y crea la primera oportunidad (Descubrimiento) |
-| `crm_lead_disqualify` | E | Motivo de la lista; archiva |
-| `crm_lead_mark_duplicate` | E | Liga al lead que sobrevive y archiva |
-| `crm_lead_workspace_open` | E | Crea o liga la organización y abre el proyecto «Descubrimiento»; no se re-liga |
-| `crm_lead_workspace_join` | E | `crm:join`. Te agrega como admin de la organización del lead; auditado. Sin el permiso no aparece |
-| `crm_lead_archive` | E | Sale del tablero sin borrarse |
+| `crm_lead_task_create` | E | Lead task; crm_task_create also supports opportunities/accounts |
+| `crm_lead_task_complete` | E | Complete a task; nextTask required for the last task |
+| `crm_lead_qualify` | E | Four qualification criteria plus workspace; seed knowledge and first Discovery opportunity |
+| `crm_lead_disqualify` | E | Disqualify with a listed reason and archive |
+| `crm_lead_mark_duplicate` | E | Link to surviving lead and archive duplicate |
+| `crm_lead_workspace_open` | E | Create/link organization and open Discovery project; cannot relink |
+| `crm_lead_workspace_join` | E | crm:join. Audited membership as admin of lead organization; unavailable without permission |
+| `crm_lead_archive` | E | Remove from board without deleting |
 | `crm_lead_unarchive` | E | |
-| `crm_lead_purge` | E · IRR | Borrado duro de basura sin cadena (`spam`, `test`, `mistake`); `crm:purge` |
-| `crm_organization_list` | L | Organizaciones para abrir una oportunidad (≤20) |
-| `crm_organization_get` | L | Leads, personas del Portal, oportunidades abiertas y ganadas de la cuenta |
-| `crm_opportunity_list` | L | `crm:revenue`. Filtros de etapa, propietario, siguiente paso (`waitingOn`), línea, oferta, tipo, moneda, mercado (`market` mx/br), cierre |
-| `crm_opportunity_summary` | L | Pronóstico por moneda, tasa de cierre, las tuyas que requieren atención, pausadas |
-| `crm_opportunity_get` | L | Con `revision`, interlocutores, propuestas y versiones, actividades, historial |
-| `crm_opportunity_event_list` | L | Cambios recientes de todas las oportunidades; `crm:revenue` |
-| `crm_trace_get` | L | La cadena envío → … → producto, con `asOf` |
-| `crm_opportunity_create` | E | `kind`, línea y ofertas, montos en centavos, `market` (mx/br, no es la moneda), `discoveryPaid`, `task` obligatoria |
-| `crm_opportunity_update` | E | Etapa abierta (exige `nextTask`), datos (también `market` y `discoveryPaid`), propietario o propuesta ligada |
-| `crm_opportunity_hold` | E | En pausa; `task.dueAt` = fecha de retomar |
-| `crm_opportunity_lose` | E | Perdida con motivo de la lista |
-| `crm_opportunity_probability` | E | Ajuste 0–100 con motivo, o `reset`; `crm:revenue` |
-| `crm_opportunity_note_add` | E | Nota en el historial de la oportunidad (≤20 000 caracteres); no se edita ni mueve la etapa |
-| `crm_opportunity_contact_add` | E | Interlocutor por `leadId` o `userId` con su rol |
-| `crm_opportunity_contact_primary` | E | Marca el principal |
-| `crm_opportunity_contact_remove` | E | Lo quita (queda en la historia) |
-| `crm_opportunity_archive` | E | Sale del tablero y del pronóstico |
+| `crm_lead_purge` | E · IRR | Hard-delete unlinked junk (spam, test, mistake); crm:purge required |
+| `crm_organization_list` | L | Organizations eligible for a new opportunity (≤20) |
+| `crm_organization_get` | L | Account leads, Portal people, open and won opportunities |
+| `crm_opportunity_list` | L | crm:revenue. Filter stage, owner, waitingOn, line, offer, kind, currency, market mx/br and close date |
+| `crm_opportunity_summary` | L | Forecast per currency, win rate, your attention queue and paused opportunities |
+| `crm_opportunity_get` | L | Revision, contacts, proposals/versions, activity and history |
+| `crm_opportunity_event_list` | L | Recent changes across opportunities; crm:revenue |
+| `crm_trace_get` | L | Submission-to-product chain with asOf |
+| `crm_opportunity_create` | E | kind, line/offers, amounts in cents, market mx/br (not currency), discoveryPaid and required task |
+| `crm_opportunity_update` | E | Open stage change requires nextTask; update data (including market/discoveryPaid), owner or linked proposal |
+| `crm_opportunity_hold` | E | Pause; task.dueAt is the resume date |
+| `crm_opportunity_lose` | E | Mark lost with listed reason |
+| `crm_opportunity_probability` | E | Set probability 0–100 with reason, or reset; crm:revenue |
+| `crm_opportunity_note_add` | E | Append-only opportunity note ≤20,000 characters; does not move stage |
+| `crm_opportunity_contact_add` | E | Contact by leadId/userId with role |
+| `crm_opportunity_contact_primary` | E | Mark primary contact |
+| `crm_opportunity_contact_remove` | E | Remove contact while preserving history |
+| `crm_opportunity_archive` | E | Remove from board and forecast |
 | `crm_opportunity_unarchive` | E | |
-| `crm_opportunity_win` | E · IRR | Gana con versión de propuesta aceptada, responsable de entrega, inicio y `decision_maker`; `crm:convert` |
+| `crm_opportunity_win` | E · IRR | Win with accepted proposal version, delivery owner, start and decision_maker; crm:convert |
 
-### Tareas del CRM
+### CRM tasks
 
-La tarea es `{body, dueAt, waitingOn, type?, detail?, priority?, tags?}`: `body` es el título corto, `detail` las notas en Markdown (≤20 000), `type` todo|call|email|meeting, `priority` low|medium|high y `tags` hasta 10. La misma forma vale en `firstTask`, `task` y `nextTask`. `dueAt` va en CDMX: sin hora, `T18:00:00-06:00` («Sin hora»); con hora, la suya. Nunca medianoche ni mediodía UTC.
+Task shape: `{body, dueAt, waitingOn, type?, detail?, priority?, tags?}`. `body` is the short title; `detail` is Markdown (≤20,000); type is todo|call|email|meeting; priority is low|medium|high; tags has at most ten entries. This shape applies to firstTask, task and nextTask. Use Mexico City time for dueAt: without a time, use T18:00:00-06:00 (the no-time convention); otherwise use the actual time. Never use midnight or noon UTC.
 
-| Tool | Tipo | Nota |
+| Tool | Tipo | Note |
 |---|---|---|
-| `crm_task_list` | L | Tablero de Console (todo, in_progress, waiting, done). Por omisión, tus abiertas de la más vencida, con `counts` (overdue, today, week, later). Filtros `owner` (me, all o id), `status`, `subject`, `due`, `priority`, `tag`, `query` |
-| `crm_task_get` | L | Una tarea con `detail`, tipo, prioridad, etiquetas, estado y registro |
-| `crm_task_tag_list` | L | Etiquetas del equipo, la más usada primero; revísalas antes de crear una |
-| `crm_task_create` | E | En un lead abierto, una oportunidad abierta o en pausa, o una cuenta (`record.kind` account, `id` = organizationId). Fecha futura; `ownerUserId` opcional |
-| `crm_task_update` | E | Reprograma, reasigna, cambia `waitingOn`, `type`, `priority`, `tags` (lista completa), `detail` o `progress` (todo ↔ in_progress). Un `body` nuevo archiva la tarea y abre su corrección **con otro id** |
-| `crm_task_complete` | E | La marca hecha; `nextTask` obligatoria si es la última abierta de un lead u oportunidad abiertos |
+| `crm_task_list` | L | Console board (todo, in_progress, waiting, done). Defaults to your open tasks, most overdue first, with counts overdue/today/week/later. Filters owner (me/all/id), status, subject, due, priority, tag and query |
+| `crm_task_get` | L | Task detail, type, priority, tags, status and record |
+| `crm_task_tag_list` | L | Team tags by usage; inspect before creating |
+| `crm_task_create` | E | Open lead, open/paused opportunity or account (record.kind account, id organizationId); future date; optional ownerUserId |
+| `crm_task_update` | E | Reschedule/reassign waitingOn, type, priority, full tags, detail or progress (todo ↔ in_progress). New body archives and replaces the task with a different id |
+| `crm_task_complete` | E | Complete; nextTask required if this is the last open task on an open lead/opportunity |
 
 ## Otros
 
-| Tool | Tipo | Nota |
+| Tool | Tipo | Note |
 |---|---|---|
-| `comment_list` | L | Pagina con cursor |
+| `comment_list` | L | Cursor pagination |
 | `comment_history` | L | |
 | `comment_recipients` | L | |
-| `comment_create` | E | `audience` agent, team (por omisión para staff), client o person (`audienceUserId`); `needsAgent`; una page exige `anchor` |
+| `comment_create` | E | audience agent, team (staff default), client or person (audienceUserId); needsAgent; page comments require anchor |
 | `comment_reply` | E | |
-| `comment_edit` | E | Solo comentarios propios; queda «(editado)» |
-| `comment_resolve` | E | Solo en hilos de page |
-| `comment_reopen` | E | Solo en hilos de page |
-| `comment_send_to_agent` | E | Solo en hilos de page; abre un hilo `agent` nuevo (con `body` opcional) sin tocar el original |
+| `comment_edit` | E | Own comments only; marked edited |
+| `comment_resolve` | E | Page threads only |
+| `comment_reopen` | E | Page threads only |
+| `comment_send_to_agent` | E | Page threads only; create a separate agent thread with optional body, preserving the original |
 | `agent_list` | L | |
 | `agent_get` | L | |
 | `agent_create` | E | |
 | `agent_update` | E | |
-| `agent_delete` | E · IRR | Para retirarlo, usa `status: archived` |
+| `agent_delete` | E · IRR | To retire an agent, set status archived |
 | `credit_balance` | L | |
-| `credit_transactions` | L | No hay compra ni ajuste |
+| `credit_transactions` | L | No purchase or balance adjustment |

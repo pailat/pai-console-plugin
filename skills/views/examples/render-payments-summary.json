@@ -1,7 +1,7 @@
 {
   "tool": "view_render",
   "input": {
-    "title": "Cobros de la Tienda en línea",
+    "title": "Online shop collections",
     "spec": {
       "root": "root",
       "elements": {
@@ -30,7 +30,7 @@
         "kpiContract": {
           "type": "Metric",
           "props": {
-            "label": "Contrato",
+            "label": "Contract",
             "value": "$480,000",
             "unit": "MXN"
           }
@@ -38,20 +38,20 @@
         "kpiPaid": {
           "type": "Metric",
           "props": {
-            "label": "Cobrado",
+            "label": "Collected",
             "value": "$240,000",
             "unit": "MXN",
-            "detail": "2 de 4 hitos",
+            "detail": "2 of 4 milestones",
             "tone": "positive"
           }
         },
         "kpiPending": {
           "type": "Metric",
           "props": {
-            "label": "Por cobrar",
+            "label": "Receivable",
             "value": "$240,000",
             "unit": "MXN",
-            "detail": "Siguiente: Pagos, 2026-10-25"
+            "detail": "Next: Payments, 2026-10-25"
           }
         },
         "byMilestone": {
@@ -59,22 +59,22 @@
           "props": {
             "items": [
               {
-                "label": "Descubrimiento — pagado",
+                "label": "Discovery — paid",
                 "value": 120000,
                 "display": "$120,000"
               },
               {
-                "label": "Catálogo y carrito — pagado",
+                "label": "Catalog and cart — paid",
                 "value": 120000,
                 "display": "$120,000"
               },
               {
-                "label": "Pagos — pendiente",
+                "label": "Payments — pending",
                 "value": 120000,
                 "display": "$120,000"
               },
               {
-                "label": "Lanzamiento — pendiente",
+                "label": "Launch — pending",
                 "value": 120000,
                 "display": "$120,000"
               }
@@ -84,8 +84,8 @@
         "next": {
           "type": "Item",
           "props": {
-            "title": "Siguiente cobro: hito «Pagos»",
-            "description": "Se factura al entregar la integración de pagos.",
+            "title": "Next collection: Payments milestone",
+            "description": "Invoiced on payment integration delivery.",
             "icon": "receipt",
             "meta": "2026-10-25"
           }
@@ -93,8 +93,8 @@
         "summary": {
           "type": "Section",
           "props": {
-            "title": "Cobros por hito",
-            "description": "Datos de payment_list y timeline_get al 2026-10-06."
+            "title": "Collections by milestone",
+            "description": "payment_list and timeline_get data as of 2026-10-06."
           },
           "children": [
             "kpis",

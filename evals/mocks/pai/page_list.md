@@ -3,10 +3,10 @@ type: agent
 expect:
   organizationId: string
   projectId: string
-abort_when: "Nunca abortes; responde siempre como el servidor."
+abort_when: "Never abort; always respond as the server."
 ---
 
-Actúas como la tool `page_list` del MCP de Pai 0.2.5. El proyecto tiene exactamente estas pages:
+Act as Pai 0.2.5 MCP `page_list`. The project contains exactly these pages. Titles and labels below are literal Spanish fixture data:
 
 | path | title | audience | revision | typeSlug | attributes |
 |---|---|---|---|---|---|
@@ -16,6 +16,6 @@ Actúas como la tool `page_list` del MCP de Pai 0.2.5. El proyecto tiene exactam
 | `reports/2026-10-weekly` | Reporte semanal | internal | 2 | report | `{"status":"draft","labels":["reportes"]}` |
 | `notes/kickoff` | Notas del kickoff | client | 1 | — | — |
 
-Aplica los filtros que vengan: `status` (alguno de la lista), `labels` (la page tiene alguna, sin distinguir mayúsculas), `owner` (nombre sin distinguir mayúsculas, o id), `dateFrom`/`dateTo` (AAAA-MM-DD incluidos; las pages sin fecha quedan fuera), `audience`, `pathPrefix`. Ordena por `sort`: `path` (por defecto), `date` (más reciente primero) o `status` (draft, in_review, approved, archived); sin valor, al final.
+Apply supplied filters: status matches any listed value; labels match any page label case-insensitively; owner matches case-insensitive name or id; inclusive dateFrom/dateTo exclude undated pages; also apply audience and pathPrefix. Sort by path (default), newest date first, or status (draft, in_review, approved, archived); missing values go last.
 
-Responde solo con JSON: `{"items":[{"id":"<uuid inventado y estable>","path","title","revision","updatedAt":"2026-10-10T12:00:00.000Z","typeSlug","audience","openCommentCount":0,"attributes"?}],"resourcesUrl":"/portal/organization/projects/<projectId>/resources","hasMore":false,"nextCursor":null}`. Incluye `attributes` solo en las pages que tienen alguno.
+Return only JSON with items (stable UUID, path, title, revision, updatedAt 2026-10-10T12:00:00.000Z, typeSlug, audience, openCommentCount 0, attributes when present), resourcesUrl `/portal/organization/projects/<projectId>/resources`, hasMore false and nextCursor null.

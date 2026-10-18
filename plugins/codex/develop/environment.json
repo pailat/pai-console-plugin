@@ -1,0 +1,6 @@
+{
+  "environment": "develop",
+  "url": "https://mcp-corp.paitesting.com/mcp",
+  "plugin_name": "pai-console-develop",
+  "server_name": "pai_console_develop"
+}

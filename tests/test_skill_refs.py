@@ -31,7 +31,7 @@ class SkillReferencesTest(unittest.TestCase):
                 with self.subTest(skill=skill.parent.name, line=number):
                     self.assertIsNone(
                         ROOTED.search(line),
-                        f"{skill.relative_to(ROOT)}:{number} cita desde la raíz del plugin; usa una ruta relativa al skill",
+                        f"{skill.relative_to(ROOT)}:{number} references the plugin root; use a skill-relative path",
                     )
 
     def test_relative_references_exist(self) -> None:
@@ -45,11 +45,11 @@ class SkillReferencesTest(unittest.TestCase):
                     with self.subTest(skill=skill.parent.name, cited=cited):
                         self.assertTrue(
                             target.is_relative_to(ROOT),
-                            f"{skill.relative_to(ROOT)}:{number} sale del plugin: {cited}",
+                            f"{skill.relative_to(ROOT)}:{number} escapes the plugin: {cited}",
                         )
                         self.assertTrue(
                             target.exists(),
-                            f"{skill.relative_to(ROOT)}:{number} cita {cited}, que no existe",
+                            f"{skill.relative_to(ROOT)}:{number} references missing file {cited}",
                         )
 
 

@@ -1,8 +1,8 @@
 {
   "name": "pai-console",
   "displayName": "Pai Console",
-  "version": "0.0.8",
-  "description": "Trabaja con Pai Console (0.2.5+) por el MCP corp: UI generativa (pai-view@1 y view_render), Recursos, Conocimiento (ERD, C4, pantallas, de proyecto y de organización), Flujos, Cronograma y tablero, Propuestas, Pagos/CFDI, Productos, CRM y el tema de marca, con skills opinados y una guarda de escrituras en producción.",
+  "version": "0.0.9",
+  "description": "Work with Pai Console (0.2.5+) through the corporate MCP: generative UI (pai-view@1 and view_render), Resources, Knowledge (ERD, C4, screens, project and organization knowledge), Flows, Schedule and task board, Proposals, Payments/CFDI, Products, CRM and brand themes, with focused skills and production write confirmations.",
   "author": {
     "name": "Pai",
     "email": "alex.sanchez@pai.lat",
@@ -24,8 +24,8 @@
   "userConfig": {
     "mcp_url": {
       "type": "string",
-      "title": "Entorno del MCP de Pai",
-      "description": "URL del edge corp. Staging: https://mcp-edge-corp-staging.up.railway.app/mcp (por defecto). Develop: https://mcp-corp.paitesting.com/mcp (sin guarda de producción; la anterior, https://mcp-edge-corp-develop.up.railway.app/mcp, sigue aceptada mientras dura la transición). Producción: https://mcp-corp.pai.lat/mcp. Al cambiarla, vuelve a iniciar sesión en /mcp.",
+      "title": "Pai MCP environment",
+      "description": "Corporate edge URL. Staging: https://mcp-edge-corp-staging.up.railway.app/mcp (default). Develop: https://mcp-corp.paitesting.com/mcp (without production write confirmations; the former URL, https://mcp-edge-corp-develop.up.railway.app/mcp, remains accepted during migration). Production: https://mcp-corp.pai.lat/mcp. After switching, authenticate again in /mcp.",
       "required": false,
       "default": "https://mcp-edge-corp-staging.up.railway.app/mcp",
       "options": [

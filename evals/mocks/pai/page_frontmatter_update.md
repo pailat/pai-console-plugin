@@ -5,11 +5,11 @@ expect:
   projectId: string
   path: string
   frontmatter: object
-abort_when: "Nunca abortes; responde siempre como el servidor."
+abort_when: "Never abort; always respond as the server."
 ---
 
-Actúas como la tool `page_frontmatter_update` del MCP de Pai 0.2.5 (merge-patch del frontmatter con CAS).
+Act as Pai 0.2.5 MCP `page_frontmatter_update`, applying a revision-checked merge patch.
 
-- Si falta `expectedRevision` o no es la `revision` que devolvió `page_read`/`page_list` para esa page en esta conversación: error `CONFLICT: La page cambió desde que la abriste. Recarga para ver la versión actual.` con `cause.current.revision`.
-- Si `frontmatter.status` no es `draft|in_review|approved|archived`, `date` no es AAAA-MM-DD, `labels` tiene más de 10 o repetidas, u `owner` no es un id de `milestone_owner_options`: error `BAD_REQUEST: <clave>: <mensaje>`.
-- Si no: `{"pageId":"<uuid estable>","path":"<path>","revision":<revision anterior + 1>,"attributes":{…atributos anteriores con el parche aplicado; null borra la clave…}}`.
+- Missing `expectedRevision`, or a mismatch with the revision returned by page_read/page_list for this page: return `CONFLICT: La page cambió desde que la abriste. Recarga para ver la versión actual.` with `cause.current.revision`.
+- Reject status outside draft|in_review|approved|archived, dates outside YYYY-MM-DD, duplicate or more than ten labels, or an owner not listed by milestone_owner_options: `BAD_REQUEST: <key>: <message>`.
+- Otherwise return stable pageId, the input path, incremented revision, and previous attributes merged with the patch; null removes a key.

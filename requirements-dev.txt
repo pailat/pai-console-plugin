@@ -1,0 +1,2 @@
+# Used by shared Claude/Codex trace graders and evaluation-tool tests.
+PyYAML>=6,<7

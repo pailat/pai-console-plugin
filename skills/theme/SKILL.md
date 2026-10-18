@@ -1,62 +1,52 @@
 ---
 name: theme
-description: "Tema de marca de una organización en Pai (Ajustes › Apariencia; organization_theme_*, solo staff en el MCP corp): colores claro y oscuro, fuente, radio, sombra, logos y el app shell del Portal (shell), con contraste AA. Cubre leer el tema, extraer los tokens del producto real del cliente (o de una marca, un logo o colores), convertirlos a OKLCH y mapearlos a los tokens del Portal, previsualizar, guardar el borrador, publicar, volver a una versión anterior, subir los logos del tema y de la organización, y verificar en el Portal en claro y oscuro. Úsalo cuando pidan tema, marca, branding, white-label, colores del Portal o de la organización, tokens de diseño, tipografía, radio, logo del cliente, Apariencia, app shell, layout del Portal o «que el Portal se vea como su marca»."
-argument-hint: "[organización] [sitio, app, marca, logo o colores del cliente]"
-compatibility: "Pai 0.2.5+ (MCP corp, staff de Pai miembro de la organización)"
+description: "Organization branding in Pai Portal Appearance through staff-only corp organization_theme_* tools: light/dark colors, font, radius, shadow, logos, Portal shell, and AA contrast. Read/extract real product or brand tokens, convert to OKLCH, map Portal tokens, preview, save drafts, publish/revert versions, upload theme/organization logos, and verify both modes in Portal. Use for themes, branding, white-label, design tokens, typography, logos, Portal colors/layout, or matching a client's brand."
+argument-hint: "[organization] [client site, app, brand, logo, or colors]"
+compatibility: "Pai 0.2.5+ (MCP corp, Pai staff with organization membership)"
 ---
 
-# Tema de la organización (Apariencia)
+# Organization theme (Appearance)
 
-Lee antes el skill `pai-console`. El tema es la marca que el cliente ve en **su Portal** y en las vistas de Pai pintadas para su organización. Es lo mismo que edita Ajustes › Apariencia en el Portal: los mismos casos de uso y la misma auditoría.
+Read shared `pai-console` first through the current client's skill mechanism. The theme brands the client's **Portal** and organization-scoped Pai views, with the same use cases/audit as Portal Appearance settings.
 
-**Referencias:**
-- `examples/brand-theme.json`: ejemplo completo y validado (get → preview → save_draft).
-- `references/token-map.md`: claves del tema, dónde pinta el Portal cada token, los shells y los pares que exige el validador.
-- `references/contrast-audit.js`: auditoría de contraste para correr en el Portal.
+**References:**
+- `examples/brand-theme.json`: complete validated get → preview → save_draft example.
+- `references/token-map.md`: keys, actual Portal token usage, shells, validator pairs.
+- `references/contrast-audit.js`: Portal contrast audit.
 
-Lo de §4, §5 y §8 se midió en el Portal de develop al tematizar Abraxa, Ditto y Latitude.sh. El preview del MCP valida pares abstractos; el Portal es la prueba.
+§4, §5, §8 derive from develop Portal measurements for Abraxa, Ditto, Latitude.sh. MCP preview checks abstract pairs; Portal is the actual verification surface.
 
-## 1. Quién puede y qué ve el cliente
+## 1. Access and client visibility
 
-- **Solo el staff de Pai** en el MCP corp (área `organization:appearance`, staff only). Las tools `organization_theme_*` no existen para un cliente ni para una persona solo de CRM.
-- Además, debes **ser miembro** de la organización (`organizationId` de `organization_list`). Si no lo eres, `FORBIDDEN`: pide que te agreguen y no lo rodees.
-- El logo de la organización (`organization_update`, §7) pide además ser owner o admin de esa organización.
+- **Pai staff only**, corp MCP area `organization:appearance` (staff only). `organization_theme_*` are absent for clients/CRM-only users.
+- **Organization membership** required (`organization_list` → `organizationId`); on `FORBIDDEN`, request membership rather than bypassing.
+- Organization logo `organization_update` (§7) additionally requires owner/admin.
 
-| Estado | Lo ve el cliente | Dónde |
+| State | Client-visible | Surface |
 |---|---|---|
-| Borrador (`save_draft`) | **No** | Solo en `organization_theme_get` y `organization_theme_preview` |
-| Publicado (`publish`, `revert`) | **Sí, desde su siguiente carga** | Todo su Portal (colores, fuente, radio, sombra, logo y shell), las vistas de `view_render` con su `organizationId` y las pantallas `PortalShell` de las pages canvas |
+| Draft (`save_draft`) | **No** | Only `organization_theme_get` / `organization_theme_preview` |
+| Published (`publish`, `revert`) | **Yes, on next load** | Entire Portal (colors/font/radius/shadow/logo/shell), `view_render` with `organizationId`, canvas-page `PortalShell` views |
 
-Las vistas con `PortalShell` toman el shell **del tema publicado** y no tienen prop para elegirlo. `organization_theme_preview` es el único lugar donde se ve un borrador.
+`PortalShell` uses the **published theme's shell**, with no shell-selection prop. Only `organization_theme_preview` displays a draft.
 
-## 2. Flujo
+## 2. Workflow
 
-1. **Descubre:** `organization_list` → `organizationId`.
-2. **Lee:** `organization_theme_get {organizationId}`. Da lo publicado, el borrador con sus `issues` y las últimas 10 versiones.
-   - Si hay borrador, **parte de él**; si no, de lo publicado.
-   - Si no hay ninguno, parte de `schemaVersion: 1` con `light: {}`, `dark: {}` y todo lo demás en `null`.
-3. **Extrae los tokens de la fuente real** (§4) y conviértelos a **OKLCH** (`"oklch(L C H)"`).
-4. **Compón el tema completo** con la semántica de shadcn (§5) y el mapa del Portal (`token-map.md`). Si vas a iterar mucho, delega al agente `theme-designer`: hace el ciclo de preview sin llenar tu contexto y te devuelve el JSON.
-5. **Previsualiza:** `organization_theme_preview {organizationId, theme}`. No guarda nada. Devuelve:
-   - `ok` e `issues`;
-   - el CSS que se aplicaría;
-   - `shells`;
-   - en hosts con MCP Apps, una vista con la muestra de componentes y el selector de shells.
+1. Discover `organization_list` → `organizationId`.
+2. `organization_theme_get {organizationId}` returns published theme, draft/`issues`, last 10 versions. **Start from draft if present**, otherwise published. If neither exists, start `schemaVersion: 1`, `light: {}`, `dark: {}`, everything else `null`.
+3. **Extract real-source tokens** (§4), convert to **OKLCH** (`"oklch(L C H)"`).
+4. Compose **complete theme** using shadcn semantics (§5) and `references/token-map.md`. In Claude, delegate heavy preview iteration to retained `theme-designer` when available/authorized; it returns JSON. In Codex, use the generated package's theme adapter if available/authorized; otherwise iterate directly. Never assume Claude `Skill`/`Read` tools or agents exist in Codex; packaging owns those variants.
+5. `organization_theme_preview {organizationId, theme}` saves nothing; returns `ok`, `issues`, prospective CSS, `shells`, and an MCP Apps component/shell-selector view where supported. Correct issues (§6) until `ok: true`. Without `theme`, previews draft, published, or Pai default. **CLI needs text fallback**; do not claim a widget rendered without client evidence.
+6. Show principal colors/font/shell/differences and confirm with user. For subjective choices, offer options with preview; do not iterate blindly.
+7. Upload logos (§7), place in `theme.logo`.
+8. `organization_theme_save_draft {organizationId, theme}` leaves published theme unchanged. Schema/font/shell/cross-organization logo rejection: `BAD_REQUEST`, `cause.code: "THEME_REJECTED"`, `cause.issues`. Contrast issues return in `issues` but **do not block draft**.
+9. **Explicit approval before publish**: `organization_theme_publish {organizationId}` publishes draft, or historical `version`. Rejects with issues for AA/schema/logo failures.
+10. Verify `organization_theme_get` published version and **both modes in Portal** (§8). Conversation preview: `view_render` with `organizationId`, e.g. `PortalShell` with area/breadcrumb/user, uses published shell/colors. State any unavailable browser/desktop verification; preview is not proof of Portal rendering.
 
-   Corrige cada `issue` (§6) hasta `ok: true`. Sin `theme`, previsualiza el borrador (o lo publicado, o el de Pai).
-6. **Muéstralo y confirma** con la persona: los colores principales, la fuente, el shell y lo que cambia contra lo publicado. Si lo que decide es el gusto (por ejemplo, el color del acento), pregunta con opciones y una previsualización. No iteres a ciegas.
-7. **Sube los logos** (§7) y ponlos en `theme.logo`.
-8. **Guarda el borrador:** `organization_theme_save_draft {organizationId, theme}`. Lo publicado no cambia.
-   - Se rechaza (`BAD_REQUEST`, `cause.code: "THEME_REJECTED"`, con `cause.issues`) por esquema, fuente, shell o un logo de otra organización.
-   - El contraste **no** bloquea el borrador: vuelve en `issues`.
-9. **Publica solo con un sí explícito** de la persona: `organization_theme_publish {organizationId}`. Publica el borrador, o `version` del historial. Se rechaza con la lista de problemas si no cumple AA, el esquema o sus logos.
-10. **Comprueba:** `organization_theme_get` (el publicado es tu versión) y **verifica en el Portal** en claro y oscuro (§8). Para mostrarlo en la conversación, `view_render` con `organizationId` (por ejemplo un `PortalShell` con su `area`, migas y usuario: tomará el shell y los colores publicados).
+**Revert:** `organization_theme_revert {organizationId, version, publish?}` copies version to a new draft and publishes unless `publish: false`. Revalidates AA/logos; failure changes nothing. Confirm before revert, including draft-only reverts.
 
-**Volver atrás:** `organization_theme_revert {organizationId, version, publish?}` copia la versión como borrador nuevo y, salvo `publish: false`, la publica. Se valida de nuevo: si ya no cumple AA o sus logos, se rechaza y nada cambia.
+## 3. Theme contract
 
-## 3. El tema
-
-`theme` va **completo** en cada `preview` y `save_draft`. No es un patch: lo que no mandes se pierde del borrador, y una clave de color que no pongas queda con el valor de Pai.
+Send **complete** `theme` on every `preview`/`save_draft`, not a patch. Omitted fields disappear from draft; omitted colors fall back to Pai.
 
 ```json
 { "schemaVersion": 1,
@@ -66,153 +56,122 @@ Las vistas con `PortalShell` toman el shell **del tema publicado** y no tienen p
   "logo": { "light": null, "dark": null } }
 ```
 
-- **Colores** (`light` y `dark`): solo `#rrggbb` u `oklch(L C H)`, sin alfa, `var()` ni nombres. Las editables son:
-  - superficies: `background`, `foreground`, `card`, `card-foreground`, `popover`, `popover-foreground`;
-  - acentos: `primary`, `primary-foreground`, `secondary`, `secondary-foreground`, `muted`, `muted-foreground`, `accent`, `accent-foreground`, `border`, `ring`;
-  - azul de marca: `brand`, `brand-foreground`, `brand-text`;
-  - gráficas: `chart-1` a `chart-5`;
-  - barra lateral: `sidebar`, `sidebar-foreground`, `sidebar-primary`, `sidebar-primary-foreground`, `sidebar-accent`, `sidebar-accent-foreground`, `sidebar-border`, `sidebar-ring`.
-- **Pai conserva** los colores semánticos (`destructive`, `success`, `warning`, `info`), los bordes de campos y controles y el resaltado de código: un error se lee como error en toda organización. No intentes cambiarlos.
-- `font`: `inter` (la de Pai), `dm-sans`, `manrope`, `plus-jakarta-sans`, `figtree`, `source-serif-4`, `lora`, o `null`. Equivalencias en `token-map.md`; si no hay una exacta, dilo.
-- `radius`: rem de 0 a 1.25, en pasos de 0.0625 (1 px), o `null` (Pai: 0.5). El botón mide ≈ `radius`, el item del menú ≈ `radius − 2px` y el panel ≈ `2 × radius`. Para igualar un botón de 5px, usa `0.3125`.
-- `shadow`: `none`, `soft`, `default`, `strong`, o `null`.
-- `logo.light` / `logo.dark`: la referencia que devuelve `organization_theme_logo_confirm` (`{storageKey, contentType, bytes}`) tal cual, o `null` (§7).
+- `light`/`dark` colors: only `#rrggbb` or `oklch(L C H)`, no alpha/`var()`/names. Editable keys:
+  - surfaces: `background`, `foreground`, `card`, `card-foreground`, `popover`, `popover-foreground`;
+  - accents: `primary`, `primary-foreground`, `secondary`, `secondary-foreground`, `muted`, `muted-foreground`, `accent`, `accent-foreground`, `border`, `ring`;
+  - brand blue: `brand`, `brand-foreground`, `brand-text`;
+  - charts: `chart-1` through `chart-5`;
+  - sidebar: `sidebar`, `sidebar-foreground`, `sidebar-primary`, `sidebar-primary-foreground`, `sidebar-accent`, `sidebar-accent-foreground`, `sidebar-border`, `sidebar-ring`.
+- **Pai retains** semantic colors (`destructive`, `success`, `warning`, `info`), field/control borders, syntax highlighting. Never attempt to change them; errors must look like errors across organizations.
+- `font`: `inter` (Pai), `dm-sans`, `manrope`, `plus-jakarta-sans`, `figtree`, `source-serif-4`, `lora`, or `null`. Equivalents in token map; disclose imperfect matches.
+- `radius`: 0–1.25 rem in 0.0625 (1 px) steps, or `null` (Pai 0.5). Button ≈ radius, menu item ≈ radius − 2px, panel ≈ 2 × radius; 5px button → `0.3125`.
+- `shadow`: `none`, `soft`, `default`, `strong`, `null`.
+- `logo.light`/`logo.dark`: **unchanged complete** `organization_theme_logo_confirm` object `{storageKey, contentType, bytes}`, or `null` (§7).
 
-### El shell (app shell del Portal)
+### Portal shell
 
-`shell` elige el marco del Portal. `null` es el de Pai: barra lateral insertada y la página en una tarjeta. `organization_theme_preview` devuelve la lista en `shells`; manda esa.
+`shell` chooses the Portal frame; `null` means Pai inset sidebar with page in a card. Use the authoritative `organization_theme_preview.shells` list.
 
-| `shell` | Es |
+| `shell` | Appearance |
 |---|---|
-| `sidebar` | Barra lateral pegada al borde que se contrae a íconos; la página sobre el fondo |
-| `floating` | Barra lateral flotante con borde y sombra, que se contrae a íconos |
-| `header` | Encabezado de ancho completo (organización, búsqueda, usuario) y debajo la barra lateral |
-| `dual-rail` | Riel de íconos con las áreas y un panel con el menú del área, que se oculta |
-| `section-tabs` | Barra superior con las áreas como píldoras y debajo la barra lateral del área |
-| `framed` | Áreas como pestañas arriba y un solo panel redondeado con el menú y la página |
-| `topbar` | Sin barra lateral: áreas arriba y el menú del área como pestañas |
-| `icon-rail` | Solo un riel angosto de íconos; la página ocupa el resto |
+| `sidebar` | Edge-aligned, icon-collapsible sidebar; page on background |
+| `floating` | Floating bordered/shadowed, icon-collapsible sidebar |
+| `header` | Full-width organization/search/user header above sidebar |
+| `dual-rail` | Area icon rail and collapsible area-menu panel |
+| `section-tabs` | Top area pills with area sidebar beneath |
+| `framed` | Area tabs above one rounded menu/page panel |
+| `topbar` | No sidebar; areas above area-menu tabs |
+| `icon-rail` | Narrow icon rail; page takes remaining width |
 
-- Elige el que más se parezca a la app del cliente y a cómo trabaja, no por gusto. Con muchas secciones conviene `sidebar` o `header`; con pocas y pantallas anchas, `topbar` o `icon-rail`. Si no hay razón para cambiarlo, deja `null`.
-- El shell cambia la estructura, no el menú: las secciones son las del Portal.
-- El mapa de tokens se midió con el shell de Pai: si lo cambias, **vuelve a medir** marco, panel y menú en el Portal.
+Choose by client app/workflow, not taste. Many sections: `sidebar`/`header`; fewer sections and wide screens: `topbar`/`icon-rail`. Without a reason, keep `null`. Shell changes structure, not Portal menu sections. Token map measurements use Pai shell: **remeasure** frame/panel/menu after switching.
 
-## 4. De dónde sacar los tokens
+## 4. Token sources
 
-En este orden:
+Use this priority:
+1. **Client dashboard/app**, if user has a session: the product system most like Portal. Latitude.sh marketing used olive/black/Space Grotesk; dashboard used neutral gray/Inter/5px radius and produced the useful theme. Read only; if login required, user signs in; **never enter credentials**.
+2. Public site/login.
+3. Supplied brand/logo/guide/colors. Never invent supplied brand colors; derive other tones from a single given color and disclose.
 
-1. **El dashboard o app del cliente**, si la persona tiene sesión. Es el sistema de producto y el que más se parece al Portal.
-   - En Latitude.sh, el sitio de marketing era oliva y negro con Space Grotesk; el dashboard, gris neutro con Inter y radio 5px. El buen tema salió del dashboard.
-   - Solo lectura. Si pide login, que la persona inicie sesión; **nunca escribas credenciales**.
-2. El sitio público o el login.
-3. Una marca, un logo, una guía o colores que te pasen. No inventes colores de marca que no te dieron: si solo hay uno, deriva los demás de él y dilo.
+Browser inspection:
+- CSS variables: `getComputedStyle(document.documentElement)`, inspect `document.styleSheets` rules.
+- Computed styles of real primary button, active menu item, input, card, border. Sites may ship unused default shadcn variables; **trust computed styles**.
+- Accent frequency by color occurrences; typography by rendered character counts, not CSS rule counts.
 
-**Cómo leer en el navegador:**
-- **Variables CSS:** `getComputedStyle(document.documentElement)`, recorriendo las reglas de `document.styleSheets`.
-- **Estilos computados de componentes reales:** botón primario, item activo del menú, input, card y borde. Muchos sitios traen las variables de shadcn por defecto sin usarlas; **confía en lo computado**.
-- **Acento:** cuenta los colores por frecuencia.
-- **Tipografía:** cuéntala por caracteres renderizados, no por reglas.
+**Conversion:** CSS `lab()` is CIE Lab, D50 white. Bradford-adapt to D65 before OKLab/OKLCH or hue shifts.
 
-**Conversión:** un `lab()` de CSS es CIE Lab con blanco D50. Adáptalo a D65 (Bradford) antes de pasarlo a OKLab y OKLCH; si no, el matiz se corre.
+## 5. shadcn practices
 
-## 5. Buenas prácticas (shadcn)
+- OKLCH colors; brand-hued low-chroma (0.004–0.02) neutrals, like shadcn Mist/Olive.
+- One primary accent; pair every `*-foreground` with its surface.
+- `secondary`, `muted`, `accent` are similar subtle surfaces for hover/selection/headers.
+- **Light:** pure-white `background`; tint sidebar/borders/grays. `sidebar` is **outer frame**, `background` **inner panel**. Colored frame/white surfaces means color in `sidebar`.
+- **Dark:** independent tones, brighter brand/darker backgrounds, not inverted light. `card`, `popover`, `sidebar` +0.035–0.07 L above `background`; match frame/page when the real app does (Latitude).
+- Inactive menu text uses `accent-foreground` at 80%; brand coloring here tints the entire menu.
+- Charts: five-tone accent ramp or actual brand data palette.
+- If supplied dark mode is generic (Ditto's default shadcn neutral), build a branded mode with these rules and disclose.
 
-- Colores en OKLCH. Los neutros, **tintados** con el matiz de la marca a croma bajo (0.004–0.02), como las bases Mist y Olive de shadcn.
-- Un solo acento, en `primary`. Cada `*-foreground` junto a su superficie.
-- `secondary`, `muted` y `accent` son casi la misma superficie sutil (hover, selección, cabeceras).
-- **Claro:** `background` blanco puro; el tinte vive en `sidebar`, bordes y grises.
-  - `sidebar` es el **marco exterior** y `background` el **panel interior**. Si la marca es «base de color con superficies blancas», el color va en `sidebar`.
-- **Oscuro:** no es el claro invertido. Dale tonos propios (la marca más clara, los fondos más oscuros).
-  - `card`, `popover` y `sidebar` van un escalón (+0.035 a +0.07 de L) sobre `background`.
-  - Si la marca usa marco y página del mismo color (el dashboard de Latitude), iguálalos.
-- **Menú:** el texto de los items inactivos es `accent-foreground` al 80 %. Si lo pones del color de marca, todo el menú se pinta de ese color.
-- **Charts:** una rampa de 5 tonos del acento, o la paleta de datos real de la marca si existe.
-- **No inventes.** Si el cliente tiene un modo oscuro genérico (Ditto: el neutral de shadcn por defecto), construye uno de marca con estas reglas y dilo.
+## 6. AA contrast (publication gate)
 
-## 6. Contraste AA (lo que bloquea publicar)
+Server checks **light and dark**, full list in token map:
+- **Text 4.5:1**: each foreground/surface (`foreground`/`background`, `card-foreground`/`card`, `primary-foreground`/`primary`, `secondary-foreground`/`secondary`, `accent-foreground`/`accent`, `brand-foreground`/`brand`…); `muted-foreground` on `background`, `card`, `muted`, **`accent`**; `primary` text on `background`/`card`; `brand-text` on `background`/`muted`; sidebar text on `sidebar`, `sidebar-primary`, `sidebar-accent`, active item (dark fixed `#232323`); Pai semantic text on `background`/`card`.
+- **Non-text 3:1**: `ring` on `background`/`card`/`muted`; `sidebar-ring`/`sidebar-primary` on `sidebar`; `primary` on `muted`; internal control on `background`/`card`/`muted`.
+- Borders/charts are not measured.
 
-El servidor mide cada par en claro **y** en oscuro (lista completa en `token-map.md`):
-- **Texto, 4.5:1:**
-  - cada texto sobre su superficie (`foreground`/`background`, `card-foreground`/`card`, `primary-foreground`/`primary`, `secondary-foreground`/`secondary`, `accent-foreground`/`accent`, `brand-foreground`/`brand`…);
-  - `muted-foreground` sobre `background`, `card`, `muted` **y `accent`**;
-  - `primary` como texto sobre `background` y `card`;
-  - `brand-text` sobre `background` y `muted`;
-  - el texto de la barra lateral sobre `sidebar`, `sidebar-primary`, `sidebar-accent` y el ítem activo, que en oscuro es fijo `#232323`;
-  - los textos semánticos de Pai sobre `background` y `card`.
-- **No texto, 3:1:** `ring` sobre `background`, `card` y `muted`; `sidebar-ring` y `sidebar-primary` sobre `sidebar`; `primary` sobre `muted`; el «control» sobre `background`, `card` y `muted`.
-- No se miden los bordes ni las gráficas.
+Issues: `{path, code: "contrast", message, ratio, required, mode, pair}`. Example: dark muted-foreground/accent 4.22:1 versus required 4.5:1, `path: "dark.accent"`. **`path` identifies the supplied key**: adjust that surface/text brightness, preview again.
 
-Cada problema llega como `{path, code: "contrast", message, ratio, required, mode, pair}`, por ejemplo «`muted-foreground` sobre `accent` en oscuro: 4.22:1; el mínimo es 4.5:1» con `path: "dark.accent"`. `path` señala **la clave que tú pusiste**: corrige esa, oscureciendo o aclarando el fondo o el texto, y vuelve a previsualizar.
-
-Errores típicos:
-- **Un acento claro** (lima, amarillo, crema) no puede ser `primary` en claro: falla como texto sobre `background`.
-  - **Invierte el par:** `primary` oscuro con `primary-foreground` del color de marca (Latitude: negro oliva con texto lima), o un tono más oscuro de la marca, y deja el claro en `chart-*` o `brand`.
-  - En oscuro, el acento sí va como `primary`, con texto oscuro.
-- Un `accent` oscuro de marca rompe el texto secundario de Pai: `accent` también es fondo de `muted-foreground` (fila con hover).
-- Poner solo `primary` y olvidar `primary-foreground`, o `sidebar` sin `sidebar-foreground`.
-- **«control»** es un gris interno de Pai, no del tema: `#8f8f8f` en claro y `#6f6f6f` en oscuro.
-  - En claro, `muted` no puede ser más oscuro que ≈ L 0.975, y `background` que ≈ L 0.976 con croma ~0.02.
-  - Por eso el track de progreso y las cajas de stats quedan casi invisibles. **No se arregla desde el tema.**
+Typical failures:
+- Light lime/yellow/cream cannot be light-mode `primary` text on background. **Invert pair:** dark primary with brand-colored foreground (Latitude olive-black/lime), or darker brand primary; use pale brand for `chart-*`/`brand`. In dark mode use bright primary/dark text.
+- Dark branded `accent` breaks Pai secondary text because hover rows put `muted-foreground` on `accent`.
+- Missing paired `primary-foreground` or `sidebar-foreground`.
+- Internal **control** gray is Pai-owned: light `#8f8f8f`, dark `#6f6f6f`. In light, `muted` cannot be darker than ≈ L 0.975; `background` ≈ L 0.976 at chroma ~0.02. Progress tracks/stats boxes become almost invisible; **theme cannot fix this**.
 
 ## 7. Logos
 
-Hay **dos logos distintos**; sube los dos:
+**Two distinct logos; upload both:**
 
-| | Tema | Organización |
+| | Theme | Organization |
 |---|---|---|
-| Dónde se ve | Portal y vistas, en claro y oscuro | Avatar del selector de organizaciones y Ajustes › General |
-| Formato | PNG, WebP o **SVG** ≤ 512 KB | **Solo PNG** ≤ 10 MB |
-| Subida | `organization_theme_logo_upload_url {organizationId, variant, contentType, size}` → PUT → `organization_theme_logo_confirm {organizationId, storageKey: fileKey}` | `organization_logo_upload_url {organizationId, size}` → PUT → `organization_update {organizationId, logo: fileKey}` |
-| Va en | `theme.logo.light` / `theme.logo.dark`: el **objeto completo** de `logo_confirm`, `{storageKey, contentType, bytes}` | `logo`: el `fileKey` (string) |
+| Surface | Portal/views, light/dark | Organization switcher avatar, General settings |
+| Format | PNG/WebP/**SVG**, ≤512 KB | **PNG only**, ≤10 MB |
+| Upload | `organization_theme_logo_upload_url {organizationId, variant, contentType, size}` → PUT → `organization_theme_logo_confirm {organizationId, storageKey: fileKey}` | `organization_logo_upload_url {organizationId, size}` → PUT → `organization_update {organizationId, logo: fileKey}` |
+| Reference | `theme.logo.light`/`.dark`: complete `{storageKey, contentType, bytes}` | `logo`: `fileKey` string |
 
-- `size` son los bytes exactos (`stat -f %z` en macOS, `wc -c`).
-- La URL firmada caduca en **5 min**: haz el PUT de inmediato con exactamente ese `contentType` y esos bytes, por ejemplo `curl -X PUT -H "Content-Type: image/svg+xml" --data-binary @logo.svg "<url>"`.
-- `logo_confirm` lee el archivo, comprueba el tipo, sanea el SVG y devuelve la referencia. Si pasas el `storageKey` como string en `theme.logo`, da «se esperaba objeto, recibido texto».
-- **El logo claro es la versión oscura de la marca**, y viceversa (Abraxa: «A» negra en claro, blanca en oscuro). Sube cada uno con su `variant`: la clave del claro no sirve en `logo.dark`. Si no hay versión para fondo oscuro, pídela o deja `dark: null`.
-- **Buenas fuentes:** el `favicon.svg` del sitio, los logos del repo del cliente o el SVG inline del login. **Míralo antes de subirlo:** el `apple-touch-icon` de Ditto era un genérico ajeno a la marca.
-- Para pasar de SVG a PNG, o subir sin pasar el archivo por la conversación, dibújalo en un `<canvas>` en el navegador y haz el PUT desde la página; el CORS del storage lo permite.
+- Exact byte `size` (`stat -f %z` macOS, `wc -c`). Signed URL expires in **5 min**: immediately PUT exact bytes/type, e.g. `curl -X PUT -H "Content-Type: image/svg+xml" --data-binary @logo.svg "<url>"`.
+- Confirm reads/type-checks/sanitizes SVG. String `storageKey` in `theme.logo` yields literal “se esperaba objeto, recibido texto”.
+- **Light-mode logo is dark brand artwork**, dark-mode logo light artwork (Abraxa black/white A). Correct `variant` mandatory; light key cannot serve `logo.dark`. Ask for dark-background variant or keep `dark: null`.
+- Sources: `favicon.svg`, client repo logos, inline login SVG. **Inspect before upload**: Ditto apple-touch-icon was generic/unbranded.
+- For SVG→PNG or avoiding file transfer through chat, draw on browser `<canvas>` and PUT from page; storage CORS permits it.
 
-## 8. Verificar en el Portal
+## 8. Verify in Portal
 
-El preview no ve opacidades reales ni superficies casi idénticas. Después de publicar:
+Preview misses real opacity and near-identical surfaces. Measure Portal before publication as the existing brand baseline, then after authorized publication verify the result:
+1. Open organization Portal, **reload**.
+2. Run `references/contrast-audit.js` through available browser JavaScript tool/console; measure light.
+3. `paiForceDark()`, wait 1–2 s, `paiContrastAudit()`; does not change user preference.
+4. Inspect minimum contrast/AA failures and token-map reference surfaces: border/background ≈1.25, ≈1.35–1.4 for cream/tinted surfaces.
+5. Inspect screenshots of menu, form, table, progress-bar page.
 
-1. Abre el Portal de la organización y **recarga**.
-2. Pega `contrast-audit.js` (javascript_tool de Chrome o la consola). Mide claro.
-3. Llama `paiForceDark()`, espera 1–2 s y llama `paiContrastAudit()`. Mide oscuro sin cambiar la preferencia de la persona.
-4. Lee:
-   - el contraste mínimo y los fallos AA;
-   - las superficies, comparadas con las de referencia de `token-map.md`: `border`/`background` ≈ 1.25, o ≈ 1.35–1.4 con fondos crema o tintados.
-5. Mira también capturas: el menú, un formulario, una tabla y una página con barras de progreso.
+Report verification limits if browser/session unavailable; never equate MCP preview or CLI output with actual Portal verification.
 
-## 9. Errores frecuentes
+## 9. Common errors
 
-| Mensaje | Causa |
+Literal server messages below remain Spanish deliberately:
+
+| Message | Cause |
 |---|---|
-| `El tema no es válido; revisa los problemas indicados.` | Esquema, fuente, shell o logo; cada problema viene en `cause.issues` con su `path` |
-| `Color no válido: usa #rrggbb u oklch(L C H).` | Un color con alfa, nombre, `rgb()` o `var()` |
-| `Ese shell no existe.` / `Esa fuente no está permitida.` | Un `shell` o `font` fuera de las listas de §3 |
-| `El radio va en pasos de 1px (0.0625rem).` | `radius` que no es múltiplo de 0.0625 |
-| `El tema no se puede publicar: no cumple el contraste AA o tiene problemas.` | Publicar con `issues` de contraste: corrige, guarda otro borrador y publica |
-| `No hay un borrador del tema que publicar.` | `publish` sin borrador ni `version` |
-| `La clave del logo … es de la otra variante.` | Un logo `light` subido como `dark` o al revés |
-| `La clave del logotipo no pertenece al tema de esta organización.` | Una referencia de logo de otra organización: súbelo aquí |
-| `No se encontró el logotipo subido; vuelve a subirlo.` | `confirm` sin el `PUT`, o la URL caducó |
-| `Esta versión del tema guardada ya no es válida; guarda un borrador nuevo.` | Una versión vieja que ya no pasa el esquema actual |
+| `El tema no es válido; revisa los problemas indicados.` | Schema/font/shell/logo; `cause.issues` with paths |
+| `Color no válido: usa #rrggbb u oklch(L C H).` | Alpha/name/`rgb()`/`var()` |
+| `Ese shell no existe.` / `Esa fuente no está permitida.` | Unsupported shell/font |
+| `El radio va en pasos de 1px (0.0625rem).` | Radius not multiple of 0.0625 |
+| `El tema no se puede publicar: no cumple el contraste AA o tiene problemas.` | Contrast/issues: correct, save draft, publish |
+| `No hay un borrador del tema que publicar.` | No draft or `version` |
+| `La clave del logo … es de la otra variante.` | Wrong light/dark variant |
+| `La clave del logotipo no pertenece al tema de esta organización.` | Cross-organization reference; upload here |
+| `No se encontró el logotipo subido; vuelve a subirlo.` | Missing PUT/expired URL |
+| `Esta versión del tema guardada ya no es válida; guarda un borrador nuevo.` | Old version fails current schema |
 
-## 10. Conducta
+## 10. Conduct
 
-- Publicar y volver atrás cambian lo que ve el cliente: **confirma siempre** antes de `publish` o `revert`, también en develop y staging.
-- Al terminar, di siempre **qué no se pudo igualar** y a quién le toca:
-  - la fuente, si no está disponible;
-  - el item activo `#232323` y el campo `#161616` en oscuro, que son fijos;
-  - el track de progreso y las cajas de stats sobre `muted`;
-  - degradados, blur o glass, y botones ghost contra sólidos.
+Always confirm before `publish`/`revert`, including develop/staging. Finish by naming **unmatched features and their owner**: unavailable font; fixed dark active item `#232323` and field `#161616`; muted progress tracks/stats boxes; gradients/blur/glass; ghost versus solid buttons. Portal-owned limitations belong to the product team, not theme.
 
-  Lo que es del Portal le toca al equipo de producto, no al tema.
-- **Nunca:**
-  - escribas credenciales en el sitio del cliente;
-  - publiques sin confirmación ni sin medir en el Portal;
-  - inventes una referencia de logo o pongas el `storageKey` como string en `theme.logo`;
-  - mandes un tema parcial creyendo que se fusiona;
-  - uses un acento claro como `primary` en claro;
-  - oscurezcas `muted` en claro para que se vea el track: el validador lo rechaza.
+Never enter client credentials, publish without confirmation or Portal measurement, fabricate logo references, pass logo key strings instead of objects, send partial themes expecting merge, use pale light-mode primary, or darken light-mode muted to expose tracks (validator rejects).

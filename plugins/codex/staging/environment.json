@@ -1,0 +1,6 @@
+{
+  "environment": "staging",
+  "url": "https://mcp-edge-corp-staging.up.railway.app/mcp",
+  "plugin_name": "pai-console-staging",
+  "server_name": "pai_console_staging"
+}

@@ -1,316 +1,290 @@
 ---
 name: resources
-description: "Crea y mantiene Recursos de un proyecto de Pai Console. Cubre pages (pai-page) con tipo y bloques, vistas con layout canvas y bloque view (catálogo pai-view@1), mockups y prototipos HTML (bloque html), pizarras (Excalidraw: whiteboard_* y bloque whiteboard), proyecciones de Conocimiento, atributos (fecha, responsable, estatus, etiquetas) y filtros, notas, carpetas, sugerencias, comentarios, imágenes y videos (assets: asset_list, asset_upload, asset_confirm, asset_delete; bloques figure y video) y archivos. Úsalo cuando pidan una page, documento, nota, carpeta, reporte, guía, PRD, SOW, arquitectura, tablero, dashboard, vista, mockup o prototipo HTML, pizarra, whiteboard, diagrama editable, lluvia de ideas o un diagrama desde Mermaid, marcar una page como aprobada o asignarle responsable, filtrar pages por estatus, responsable o etiqueta, sugerir cambios, comentar, subir imágenes, videos o documentos, reutilizar o borrar un asset, o mover, restaurar o borrar una page o una carpeta vacía."
-argument-hint: "[proyecto] [tema o tipo de recurso]"
+description: "Create and maintain Pai Console project Resources: typed pages, canvas view blocks, HTML prototypes, Excalidraw whiteboards, live Knowledge projections, attributes and filters, notes, folders, suggestions, comments, image/video assets, and files. Use for documents, reports, PRDs/SOWs, dashboards, mockups, editable diagrams, page approval/ownership/filtering, suggestions, comments, uploads, asset reuse/deletion, or moving/restoring/deleting pages and empty folders."
+argument-hint: "[project] [topic or resource type]"
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
-# Recursos en Pai: pages, vistas, pizarras, imágenes y archivos
+# Resources: pages, views, whiteboards, images, files
 
-Lee antes el skill `pai-console`.
+Read shared `pai-console` first through the current client's skill mechanism. Replies follow the user's language; preserve Mexican Spanish business formatting, MXN amounts, and `America/Mexico_City` dates where required. Spanish section identifiers, server errors, and established paths quoted here are intentional contract exceptions.
 
-**Referencias, generadas desde los contratos:**
-- `references/page-types.md`: tipos built-in con sus secciones y bloques permitidos, límites y reglas;
-- para componer vistas (`pai-view@1`), el skill **`views`**, con su catálogo y sus recetas.
+**References:** contract-generated `references/page-types.md` for built-in sections, blocks, limits, and rules; **`views`** for `pai-view@1` catalogs/recipes. Prefer these over the ~35 KB `page_catalog`; call `page_catalog`/`page_types` only for a suspected version difference or organization/project custom types.
 
-Úsalas en lugar de `page_catalog`, que pesa unos 35 KB. Llama a `page_catalog` o a `page_types` solo si sospechas que el entorno tiene otra versión, o para ver los tipos propios de la organización o del proyecto.
+## 1. Choose the resource
 
-## 1. Decide qué recurso es
-
-| Necesitas… | Recurso |
+| Need | Resource |
 |---|---|
-| Un documento con estructura conocida (nota, guía, decisión, reporte, proceso, overview, PRD, SOW, arquitectura, discovery, inventario de diseño) | Page `layout: "document"` **con `typeSlug`** del tipo built-in. Sus secciones obligatorias mandan |
-| Un tablero, reporte visual, mockup de pantalla o página libre con los componentes de Pai | Page `layout: "canvas"` con un bloque **`view`**, **sin `typeSlug`**: ningún tipo built-in admite `view` |
-| Un mockup o prototipo con JavaScript libre (canvas, simulación, maqueta interactiva o pixel a pixel) | Page con un bloque **`html`** (§3), **sin `typeSlug`**: ningún tipo built-in lo admite. **No sirve como prototipo de una pantalla:** ese es siempre un bloque `view` (skill `screens`) |
-| Un diagrama que el equipo o el cliente van a seguir editando a mano (lluvia de ideas, flujo, mapa, arquitectura en borrador), o un flowchart de Mermaid | **Pizarra** (`whiteboard_create`, §3): Excalidraw colaborativo en Recursos; se muestra en una page con un bloque `whiteboard`. Si solo se ve y no se edita, una vista `Flow` (skill `views`) |
-| Mostrar en una page lo que ya vive en Conocimiento (C4, ERD, pantallas, flujos, decisiones, riesgos, glosario…) | Bloque **`projection`** en una page v2 (§3): se dibuja al leer, no copia datos |
-| Una nota rápida en Markdown, que el cliente también puede escribir | Nota (`note_create`, §8) |
-| Un archivo binario (PDF, hoja de cálculo, contrato) | Archivo de Recursos (§6), no una page |
-| Conocimiento atómico (decisión, regla, entidad, componente) | Un nodo de Knowledge (skill `knowledge`), no una page |
+| Known document structure (note, guide, decision, report, process, overview, PRD, SOW, architecture, discovery, design inventory) | `layout: "document"` page **with built-in `typeSlug`**; required sections govern |
+| Dashboard, visual report, screen mockup, freeform Pai components | `layout: "canvas"` page with **`view`**, **without `typeSlug`**; no built-in type allows it |
+| Free JavaScript, simulation, interactive/pixel-precise mockup | **`html`** block (§3), **without `typeSlug`**; no built-in type allows it. **Not a screen prototype:** screens require `view` (`screens`) |
+| Manually editable brainstorming, flow, map, draft architecture, Mermaid flowchart | **Whiteboard** (`whiteboard_create`, §3), collaborative Excalidraw in Resources, embedded through `whiteboard`. For display only, use `Flow` (`views`) |
+| Existing Knowledge (C4, ERD, screens, flows, decisions, risks, glossary…) | Live **`projection`** in a v2 page (§3), resolved at read time rather than copied |
+| Quick Markdown, including client-authored notes | Note (`note_create`, §9) |
+| PDF, spreadsheet, contract, binary | Resources file (§6), not a page |
+| Atomic decision, rule, entity, component | Knowledge node (`knowledge`), not a page |
 
-Si dudas entre page y nodo, piensa en el uso. **Una page se lee de corrido; un nodo se consulta, se enlaza y se reemplaza.** Una page puede citar nodos y un nodo puede citar una page (`sources: [{type:"page", pageId}]`).
+A **page is read continuously; a node is queried, linked, and superseded**. Pages cite nodes; nodes cite pages through `sources: [{type:"page", pageId}]`.
 
-## 2. Crear una page
+## 2. Create a page
 
-1. **Busca:** `page_search` con el tema y `page_list` (sigue `nextCursor`) para ver la estructura de rutas. Si existe una page para lo mismo, actualízala (§4).
-2. **Elige el tipo:** `references/page-types.md`, o `page_types {slug}` para el `authoringGuide` completo y su ejemplo.
-3. **Elige la ruta**, en inglés, kebab-case y por carpetas: `architecture/payments`, `reports/checkout-performance`, `dashboards/project-status`, `guides/deploy-staging`. Sin extensión y sin fechas en la ruta, salvo en las series (`reports/2026-10-weekly`).
-4. **Compón el contenido:**
+1. **Search:** `page_search` by topic and `page_list` following `nextCursor` for paths. Update equivalents (§4).
+2. **Choose type:** `references/page-types.md`, or `page_types {slug}` for full `authoringGuide` and example.
+3. **Choose path:** English kebab-case folders, no extension/dates except series: `architecture/payments`, `reports/checkout-performance`, `dashboards/project-status`, `guides/deploy-staging`, `reports/2026-10-weekly`.
+4. **Compose:**
    ```json
    { "schemaVersion": 1, "componentSetVersion": "pai-core-v1", "layout": "document",
-     "sections": [ { "id": "resumen", "title": "Resumen", "blocks": [ { "id": "intro", "type": "text", "markdown": "…" } ] } ] }
+     "sections": [ { "id": "resumen", "title": "Summary", "blocks": [ { "id": "intro", "type": "text", "markdown": "…" } ] } ] }
    ```
-   - Los ids de sección son los del tipo (por ejemplo `resumen`, `hallazgos`), en el orden del tipo.
-   - Los ids de bloque siguen `^[a-zA-Z][a-zA-Z0-9_-]{0,79}$` y son únicos en toda la page. Usa nombres que digan qué es (`summaryCallout`, no `b1`).
-   - Límites: 40 secciones, 200 bloques y 500 000 caracteres de JSON.
-5. **`page_validate {content, typeSlug}`** hasta que no haya `issues`. Además del contrato, revisa la estructura (secciones faltantes o desordenadas, bloques no permitidos) y la calidad (fuentes con URL y fecha, texto mínimo).
-6. **`page_create`** con:
-   - `path`, `title` (en español), `description`, `typeSlug`;
-   - `audience`: `internal` (solo el equipo) o `client` (la ve el cliente). Si no te lo dijeron, pregunta; si nadie decide, usa `internal`;
-   - `content`, `summary` (≤80, como un mensaje de commit);
-   - `idempotencyKey`: `page-<proyecto>-<ruta-con-guiones>`.
-7. **Lee la respuesta** (`warnings`, `document.revision`) y da a la persona:
-   - la ruta y la revisión;
-   - el enlace del Portal: el `url` de la respuesta con el host del Portal delante (`https://app.pai.lat` en producción; en staging, el Portal de staging).
+   - Section IDs match the type (`resumen`, `hallazgos`) in its order.
+   - Block IDs match `^[a-zA-Z][a-zA-Z0-9_-]{0,79}$`, unique page-wide; use meaningful names (`summaryCallout`, not `b1`).
+   - Limits: 40 sections, 200 blocks, 500 000 JSON characters.
+5. **`page_validate {content, typeSlug}`** until no `issues`. Check contract, missing/misordered sections, prohibited blocks, and quality (dated URL sources, minimum text).
+6. **`page_create`** with:
+   - `path`, Spanish business `title`, `description`, `typeSlug`;
+   - `audience`: `internal` (team) or `client`. Ask if unspecified; absent a decision, use `internal`;
+   - `content`, commit-style `summary` (≤80);
+   - stable `idempotencyKey`: `page-<project>-<hyphenated-path>`.
+7. Inspect `warnings`, `document.revision`; return path/revision and response `url` prefixed by the Portal host (`https://app.pai.lat` production; staging Portal in staging).
 
-Ejemplos validados:
-- `examples/report-page.json`: tipo `report`, con sus cinco secciones obligatorias;
-- vistas en canvas: ejemplos en `../views/examples/`.
+Validated report with five required sections: `examples/report-page.json`. Canvas examples: `../views/examples/`.
 
-## 3. Vistas, HTML, proyecciones y pizarras
+## 3. Views, HTML, projections, whiteboards
 
-**Elige el bloque:** datos o un tablero con los componentes de Pai → `view`; interacción con JavaScript libre o una maqueta pixel a pixel → `html`; datos vivos de Conocimiento → `projection`; un enlace a Figma, Slides, Miro, YouTube o Loom → `embed` (solo la URL https, nunca HTML ni `<iframe>`).
+Choose `view` for Pai component dashboards/data; `html` for free JavaScript/pixel-precise interactions; `projection` for live Knowledge; `embed` for Figma/Slides/Miro/YouTube/Loom **https URLs only**, never HTML or `<iframe>`.
 
-### `view` (catálogo `pai-view@1`)
+### `view` (`pai-view@1`)
 
-Tableros, mockups de pantallas, reportes visuales y comparativos se componen con el skill **`views`**: catálogo, recetas validadas, reglas de datos y diseño, y errores frecuentes. Aquí solo lo esencial de la page que la contiene:
-- `layout: "canvas"` y un bloque `{id, type: "view", title, spec}`;
-- **sin `typeSlug`**;
-- valida con `page_validate` antes de guardar.
+Use **`views`** for catalog, validated recipes, data/design rules, errors. Container page: `layout: "canvas"`, block `{id, type: "view", title, spec}`, **no `typeSlug`**, `page_validate` before saving. MCP Apps support is client-dependent; CLI requires text fallback, and a successful call does not prove rendering (`pai-console` §6).
 
-### `html` (mockups y prototipos interactivos)
+### `html` (interactive mockups/prototypes)
 
-El Portal lo pinta como un artifact de Claude: un iframe aislado (`sandbox="allow-scripts"`, sin cookies, storage, popups, formularios ni red).
+Portal displays an isolated iframe (`sandbox="allow-scripts"`), without cookies, storage, popups, forms, or network. This behavior belongs to Portal and is not a guarantee that a Claude/Codex client rendered anything.
 
 ```json
-{ "id": "flowMockup", "type": "html", "title": "Mockup del flujo", "description": "Elige un paso para ver su detalle.", "height": "auto",
-  "html": "<style>body{margin:0;padding:16px;background:var(--background);color:var(--foreground)}button{border:1px solid var(--border);border-radius:8px;background:var(--card);color:inherit}</style><button id=b>Aprobar</button><p id=d></p><script>b.onclick=()=>d.textContent='Aprobado';</script>" }
+{ "id": "flowMockup", "type": "html", "title": "Flow mockup", "description": "Choose a step to see its details.", "height": "auto",
+  "html": "<style>body{margin:0;padding:16px;background:var(--background);color:var(--foreground)}button{border:1px solid var(--border);border-radius:8px;background:var(--card);color:inherit}</style><button id=b>Approve</button><p id=d></p><script>b.onclick=()=>d.textContent='Approved';</script>" }
 ```
 
-- **Campos:** `title` (1-240, es el nombre accesible y el título en el índice), `description?` (≤240), `html` (documento completo o fragmento), `height`: `"auto"` (crece con el contenido hasta 4000) o un entero en px de **120 a 4000**.
-- **Topes:** **512 KB por bloque** y **1 MB entre todos los bloques html de la page**, en bytes UTF-8. Cada versión guarda el contenido entero.
-- **Scripts:** inline, o con `src` https solo desde `https://cdnjs.cloudflare.com/`, `https://cdn.jsdelivr.net/npm/`, `https://unpkg.com/` y `https://cdn.tailwindcss.com/`. Estilos inline o de `fonts.googleapis.com`; fuentes de `fonts.gstatic.com`. Imágenes `data:`, `blob:` o https.
-- **Sin red:** la CSP lleva `connect-src 'none'`: `fetch`, XHR, WebSocket, EventSource y `sendBeacon` fallan. **Pon los datos dentro del HTML.**
-- **Tema:** el Portal inyecta los tokens de Pai y del tema de la organización como variables CSS y los cambia en vivo con el tema. Usa `var(--background)`, `var(--foreground)`, `var(--card)`, `var(--muted)`, `var(--muted-foreground)`, `var(--border)`, `var(--primary)`, `var(--primary-foreground)`, `var(--success)`, `var(--warning)`, `var(--destructive)`, `var(--chart-1)`…`var(--chart-5)`, `var(--radius)`, `var(--font-sans)`: los mismos nombres sirven en claro y en oscuro. No fijes colores a mano.
-- **Errores** (rechazan la escritura; en `page_create`/`page_update` llegan como `BAD_REQUEST` con `ruta: mensaje`, en `page_validate` en `issues`):
-  - `HTML_BLOCK_TOO_LARGE` y `HTML_PAGE_TOO_LARGE`: recorta o parte en varias pages;
-  - `HTML_SCRIPT_HOST`: un `src` fuera de la lista, sin https, relativo al protocolo (`//…`) o con usuario, contraseña o puerto. Cambia al CDN permitido o mete el script inline;
-  - `HTML_PREVIEW_IN_MARKDOWN`: un fence ```` ```html preview ```` dentro del Markdown de un bloque; escríbelo como bloque `html`.
-- **Avisos** (se guarda igual, en `warnings`, también en `page_validate`):
-  - `html-network-blocked`: el HTML llama a la red y fallará. Corrígelo: mete los datos;
-  - `html-sensitive-field`: pide contraseñas, tarjetas o códigos de un solo uso (`type=password`, `autocomplete=cc-*` o `one-time-code`). Que sea un mockup evidente; nunca pidas datos reales.
-- **Citas:** un `kb:` dentro del `html` no es una cita ni se indexa. Para citar Conocimiento usa `refs` del bloque (v2), o cítalo en `title`/`description`.
-- **Cliente:** en una page `audience: client` el cliente ve el bloque (sin el botón «Ver código», que es de staff) y `page_read` le da el `html` íntegro: no metas nada interno. En una page v2, todo `kb:` del html se le reemplaza por su texto.
-- **Console no lo edita:** no crea el bloque ni cambia su HTML o altura (solo título y descripción). Lo crea y lo cambia el agente con `page_create`/`page_update`.
-- `page_read view=content` y la búsqueda lo resumen como «HTML interactivo · ábrelo en el Portal», sin el código.
-- Una nota Markdown con un fence ```` ```html preview h=400px ```` de primer nivel se convierte en bloque `html` al migrarla (`page_migrate`); dentro de una lista o una cita la conversión falla: sácalo a primer nivel.
+- Fields: `title` (1–240, accessible name/index title), optional `description` (≤240), `html` (full document/fragment), `height` `"auto"` (content growth to 4000) or integer **120–4000 px**.
+- Limits: **512 KB/block**, **1 MB total HTML/page**, UTF-8 bytes. Each version retains full content.
+- Scripts: inline or https `src` only from `https://cdnjs.cloudflare.com/`, `https://cdn.jsdelivr.net/npm/`, `https://unpkg.com/`, `https://cdn.tailwindcss.com/`. Inline styles or `fonts.googleapis.com`; fonts `fonts.gstatic.com`; images `data:`, `blob:`, or https.
+- **No network:** CSP `connect-src 'none'` blocks `fetch`, XHR, WebSocket, EventSource, `sendBeacon`. **Embed data in HTML.**
+- Theme: Portal injects live Pai/organization CSS variables. Use `var(--background)`, `var(--foreground)`, `var(--card)`, `var(--muted)`, `var(--muted-foreground)`, `var(--border)`, `var(--primary)`, `var(--primary-foreground)`, `var(--success)`, `var(--warning)`, `var(--destructive)`, `var(--chart-1)`…`var(--chart-5)`, `var(--radius)`, `var(--font-sans)` for both modes; never hardcode colors.
+- Write-rejecting errors (`page_create`/`page_update`: `BAD_REQUEST`, `path: message`; `page_validate`: `issues`):
+  - `HTML_BLOCK_TOO_LARGE`, `HTML_PAGE_TOO_LARGE`: reduce/split pages;
+  - `HTML_SCRIPT_HOST`: disallowed host, non-https, protocol-relative `//…`, credentials, or port; use permitted CDN/inline;
+  - `HTML_PREVIEW_IN_MARKDOWN`: a ```` ```html preview ```` fence in block Markdown; use `html` block.
+- Nonblocking `warnings`, also in validation:
+  - `html-network-blocked`: network calls will fail; embed data;
+  - `html-sensitive-field`: passwords, cards, OTP (`type=password`, `autocomplete=cc-*`, `one-time-code`); make the mockup explicit, never request real data.
+- `kb:` inside `html` is neither citation nor indexed. Use v2 block `refs` or cite in `title`/`description`.
+- In `audience: client` pages, clients see the block (without staff code-view button) and receive full `html` through `page_read`; include no internal data. V2 replaces HTML `kb:` references with their text for clients.
+- Console cannot create/edit HTML or height, only title/description; agent uses `page_create`/`page_update`.
+- `page_read view=content`/search return a Portal-opening summary (literal “HTML interactivo · ábrelo en el Portal”), not code.
+- `page_migrate` converts a top-level Markdown note fence ```` ```html preview h=400px ```` into `html`. Nested list/quote conversion fails; move it to top level.
 
-### `projection` (Conocimiento vivo en una page)
+### `projection` (live Knowledge)
 
-En una page `schemaVersion: 2`, un bloque `{id, type: "projection", format, selection: {refs} | {query}, params?}` dibuja al leer lo que el lector puede ver: no guarda datos propios. Formatos: `c4`, `erd`, `screen`, `screen-list`, `use-case`, `use-case-list`, `flow`, `decision-table`, `requirement-list`, `risk-list`, `assumption-list`, `glossary`, `fact-list`, `actor-list`, `task-timeline`, `node-cards`, `knowledge-table`. Valida con `page_validate` y guarda con `page_update`.
+In `schemaVersion: 2`, `{id, type: "projection", format, selection: {refs} | {query}, params?}` resolves only what the reader can see, storing no own data. Formats: `c4`, `erd`, `screen`, `screen-list`, `use-case`, `use-case-list`, `flow`, `decision-table`, `requirement-list`, `risk-list`, `assumption-list`, `glossary`, `fact-list`, `actor-list`, `task-timeline`, `node-cards`, `knowledge-table`. `page_validate`, then `page_update`.
 
-Para **ver** uno ya guardado:
-- `page_projection {path, blockId}` lo dibuja en el lienzo como el lector del Portal (el `blockId` sale de `page_read`). Devuelve `projection.state`: `ready`, `empty` (nada visible para quien lee) o `broken` (con `message`; staff ve además `missing`). También lo tiene el cliente, que solo ve pages y nodos para el cliente.
-- `page_read view=full` trae las `projections` resueltas como datos, sin dibujo: úsala para razonar o editar.
-- `knowledge_view` (staff) dibuja un ERD o C4 directo del grafo, sin page.
-- Errores: un `blockId` que no existe es `NOT_FOUND`; un bloque que no es `projection` es `BAD_REQUEST` (léelo con `page_read`).
+- Show an existing projection with `page_projection {path, blockId}` (`blockId` from `page_read`), using Portal reader visibility. `projection.state`: `ready`, `empty` (nothing visible), `broken` (`message`, plus staff-only `missing`). Clients can use it for client-visible pages/nodes.
+- `page_read view=full` returns resolved `projections` as data for reasoning/editing, without drawing.
+- Staff `knowledge_view` projects ERD/C4 directly without a page.
+- Missing block → `NOT_FOUND`; non-projection block → `BAD_REQUEST`; read with `page_read`.
 
-### Pizarras (`whiteboard_*` y bloque `whiteboard`)
+### Whiteboards (`whiteboard_*`, `whiteboard`)
 
-Una pizarra es una page de formato `whiteboard`: una escena de Excalidraw en Recursos que se edita en vivo en el Portal (**Nuevo → Pizarra**). Sigue la regla de las notas: la crea el staff o un miembro de la organización cliente; la de un cliente la ve toda su organización y Pai y la edita su organización; la del staff nace `internal` salvo `audience: "client"`.
+A `whiteboard` format page stores a live collaborative Excalidraw scene in Resources. Like notes: staff or client-organization members can create; a client's board is visible to its organization and Pai, editable by its organization; staff boards default to `internal` unless `audience: "client"`.
 
-**Nunca escribes coordenadas.** Mandas `content` como `{graph}` o `{mermaid}` y el servidor acomoda y dibuja:
-- `graph`: `{direction?: "TB"|"LR"|"RL"|"BT", nodes: [{id, label, shape?, group?, tone?}], edges?: [{from, to, label?, dashed?}], groups?: [{id, label}]}`. `shape`: `rectangle`, `ellipse`, `diamond`, `note` o `text`; `tone`: `default`, `info`, `success`, `warning`, `destructive` o `muted`. Ids con letras, números, `_ . : -`. Hasta 300 nodos, 600 aristas, 50 grupos y textos de 280 caracteres.
-- `mermaid`: un `flowchart` (nodos `A[texto]`, `A(texto)`, `A([texto])`, `A{texto}`, `A((texto))`, `A>texto]`; aristas `-->`, `---`, `-.->`, `==>`, `-->|texto|`; `subgraph … end`), hasta 20 000 caracteres.
+**Never write coordinates.** Send `{graph}` or `{mermaid}`; server lays it out:
+- `graph`: `{direction?: "TB"|"LR"|"RL"|"BT", nodes: [{id, label, shape?, group?, tone?}], edges?: [{from, to, label?, dashed?}], groups?: [{id, label}]}`. `shape`: `rectangle`, `ellipse`, `diamond`, `note`, `text`; `tone`: `default`, `info`, `success`, `warning`, `destructive`, `muted`. IDs use letters/digits/`_ . : -`. Limits: 300 nodes, 600 edges, 50 groups, 280-character texts.
+- `mermaid`: `flowchart` with nodes `A[text]`, `A(text)`, `A([text])`, `A{text}`, `A((text))`, `A>text]`; edges `-->`, `---`, `-.->`, `==>`, `-->|text|`; `subgraph … end`; ≤20 000 characters.
 
-**Flujo:**
-1. Crear: `whiteboard_create {path, title, content?, audience?, summary?, idempotencyKey?}`. `path` es la ruta completa (`diagramas/flujo-de-ventas`); sin `content` nace vacía. Devuelve `path`, `revision`, `url` y `summary` (lo que dice).
-2. Leer: `whiteboard_read {path}` devuelve lo que dice (nodos con su id, texto, forma y grupo; conexiones; grupos; textos sueltos; `otherCount` cuenta trazos y formas que no son nodos), su `revision` y un boceto (`preview`). En hosts con MCP Apps se dibuja como vista `WhiteboardSketch`. Lee siempre antes de escribir: las personas dibujan a mano.
-3. Escribir: `whiteboard_update {path, expectedRevision, mode, content, idempotencyKey, summary?, versionName?}`.
-   - **`mode: "append"` por omisión:** agrega el contenido a la derecha de lo que hay; sus aristas pueden apuntar a nodos existentes por id o por texto, y los ids nuevos no pueden repetir los de la pizarra.
-   - **`mode: "replace"` borra lo que dibujaron las personas:** úsalo solo si te lo piden explícitamente.
-   - `idempotencyKey` es obligatoria: repítela solo para reintentar la misma escritura («La clave de idempotencia ya se usó con otro contenido» si cambias el contenido). `versionName` la nombra como «Guardar versión».
-   - Quien tenga la pizarra abierta ve tu edición en vivo.
-4. Errores: `CONFLICT` («La pizarra cambió desde que la leíste…»): relee con `whiteboard_read` e integra. `UNAVAILABLE` («la colaboración no está disponible»): reintenta con la misma clave. `page_update` o `note_update` sobre una pizarra dan «Esta página es una pizarra: se edita en el Portal o con whiteboard_update».
-- `note_audience_set` (solo staff) la publica al cliente, y `page_move` la mueve sin perder la escena.
-- `WhiteboardSketch` solo dibuja el `preview` que devuelve `whiteboard_read`: no lo inventes ni lo armes a mano.
+1. Create: `whiteboard_create {path, title, content?, audience?, summary?, idempotencyKey?}`. Full path, e.g. `diagrams/sales-flow`; no `content` creates empty. Returns `path`, `revision`, `url`, semantic `summary`.
+2. Read: `whiteboard_read {path}` returns node IDs/text/shapes/groups, connections, groups, free text, `otherCount` for non-node strokes/shapes, `revision`, and `preview`; MCP Apps hosts can show `WhiteboardSketch`. **Always read before writing:** people draw manually.
+3. Write: `whiteboard_update {path, expectedRevision, mode, content, idempotencyKey, summary?, versionName?}`.
+   - Default **`append`** adds to the right; edges can target existing IDs/text; new IDs cannot collide.
+   - **`replace` erases people's drawings**; only when explicitly requested.
+   - Required `idempotencyKey`: reuse only for identical retries; changed content yields literal “La clave de idempotencia ya se usó con otro contenido”. `versionName` names the saved version.
+   - Open boards receive live edits.
+4. On `CONFLICT` (literal “La pizarra cambió desde que la leíste…”), reread with `whiteboard_read`, integrate, retry once. On `UNAVAILABLE` (“la colaboración no está disponible”), retry with the same key. `page_update`/`note_update` reject boards with “Esta página es una pizarra: se edita en el Portal o con whiteboard_update”.
+5. Staff `note_audience_set` publishes a board to clients; `page_move` preserves its scene.
+6. `WhiteboardSketch` accepts only server `whiteboard_read.preview`; never invent/assemble it manually.
 
-**Mostrarla en una page:** un bloque `{id, type: "whiteboard", page, title?}`, donde `page` es el `document.id` (uuid) de la pizarra del mismo proyecto, no su ruta. Se dibuja su vista previa con «Abrir» y, para quien puede editarla, «Editar aquí». Ningún tipo built-in lo admite: va en una page sin `typeSlug`.
-- `page_validate` da `WHITEBOARD_NOT_FOUND` (no existe en el proyecto) o `WHITEBOARD_NOT_A_BOARD` (no es pizarra), y avisa `WHITEBOARD_NOT_CLIENT_VISIBLE`: una page `client` no puede mostrar una pizarra solo del equipo.
-- `page_read view=full` trae `whiteboards`: título y resumen de cada pizarra embebida, o `hidden` si no la ves.
+Embed with `{id, type: "whiteboard", page, title?}`: `page` is same-project board **`document.id` UUID**, not path. Shows preview/open and, for editors, inline edit. No built-in type permits it: omit `typeSlug`.
+- Validation: `WHITEBOARD_NOT_FOUND` (absent in project), `WHITEBOARD_NOT_A_BOARD`, warning `WHITEBOARD_NOT_CLIENT_VISIBLE` (client page cannot show team-only board).
+- `page_read view=full` returns `whiteboards` titles/summaries or `hidden` for invisible boards.
 
-### Flujos (bloque `flow`)
+### Flow block
 
-**Un flujo en una page:** bloque `{id, type: "flow", node, title?, height?}`. `node` es el uuid de un nodo `flow` del mismo proyecto y `height` los px del lienzo (240 a 1200; 480 por omisión). Se dibuja su lienzo en solo lectura con «Abrir». Los flujos se arman con el skill `flows`.
+`{id, type: "flow", node, title?, height?}`: same-project `flow` node **UUID**; height 240–1200 px, default 480. Read-only canvas/open control; build with `flows`.
 
-## 4. Actualizar una page
+## 4. Update a page
 
-1. Si vas a reescribir, primero `page_comprehension` (staff ve el agregado; los demás, lo suyo): sus preguntas más falladas dicen qué explicar mejor. Es señal de práctica, nunca calificación de personas. `page_knowledge_health {path}` dice qué citas `kb:` quedaron reemplazadas, archivadas, contradichas o sin validar; sin `path`, cuenta por page.
-   - `quiz_respond {path, blockId, answers | responses}` responde un cuestionario **en nombre de la persona**: cada intento cuenta y es suyo. Úsalo solo si ella te lo pide y con sus respuestas.
-2. `page_read {path, view: "full"}`. Guarda `document.id` y `document.revision`.
-3. Modifica **sobre ese contenido completo**. `page_update` **reemplaza** la page entera: nunca partas de `summary`, `content` parcial ni de `page_version`.
-4. `page_validate` → `page_update {path, expectedDocumentId, expectedRevision, content, summary}`.
-   - Para quitar el tipo: `detachType: true`. `typeSlug: null` no se acepta.
-5. Ante `CONFLICT`: relee, integra y reintenta una vez.
-6. Si `page_create` respondió con `replayed`, la page ya existía con esa clave: **relee** antes de actualizar, porque la revisión de la respuesta puede ser vieja.
+1. Before rewriting, `page_comprehension` (staff aggregate; others own data): missed questions suggest explanations to improve, **never personal grading**. `page_knowledge_health {path}` identifies superseded/archived/contradicted/unvalidated `kb:` citations; without path, counts by page.
+   - `quiz_respond {path, blockId, answers | responses}` acts **as the user**, and attempts count as theirs. Only on explicit request with their answers.
+2. `page_read {path, view: "full"}`; retain `document.id`, `document.revision`.
+3. Modify **that complete content**. `page_update` replaces the entire page; never start from summary, partial content, or `page_version`.
+4. `page_validate` → `page_update {path, expectedDocumentId, expectedRevision, content, summary}`. Detach type with `detachType: true`; `typeSlug: null` is invalid.
+5. `CONFLICT`: reread, integrate, retry once.
+6. After `page_create` returns `replayed`, **reread** before updating; its revision may be stale.
 
-## 5. Imágenes y videos (assets)
+## 5. Image/video assets
 
-Las imágenes y los videos son **assets del proyecto**: se suben una vez y se usan por id en pages, notas y pizarras del mismo proyecto. Se ven en Recursos › Assets, con «Usado en». Nunca van como URL externa ni dataURL.
+Project assets upload once and are reused by ID in same-project pages, notes, whiteboards. Never use external URLs/dataURLs as asset references.
 
-| Tool | Para |
+| Tool | Behavior |
 |---|---|
-| `asset_list {kind?, q?, cursor?, limit?}` | Buscar uno para reutilizarlo antes de subirlo otra vez: `kind` es `image`, `video` u `other` y `q` busca en el nombre; pagina con `nextCursor` (máx. 100). Trae `id`, nombre, tipo, tamaño, `href` y `usedIn`. En hosts con MCP Apps se dibuja como vista |
-| `asset_get {assetId}` | Detalle: medidas o duración, quién lo subió, `href`, `usedIn` y `canDelete` |
-| `asset_upload {filename, contentType, size, documentId?}` | Prepara la subida (no idempotente: cada llamada reserva un asset nuevo) |
-| `asset_confirm {assetId}` | Confirma después del PUT; lo deja `ready` (idempotente) |
-| `asset_delete {assetId}` | Lo borra para siempre (irreversible) |
+| `asset_list {kind?, q?, cursor?, limit?}` | Search name/`kind` (`image`, `video`, `other`) before reupload; `nextCursor`, max 100; returns `id`, name/type/size, `href`, `usedIn`; can render on MCP Apps hosts |
+| `asset_get {assetId}` | Dimensions/duration, uploader, `href`, `usedIn`, `canDelete` |
+| `asset_upload {filename, contentType, size, documentId?}` | Non-idempotent preparation: each call reserves a new asset |
+| `asset_confirm {assetId}` | Idempotent confirmation after PUT; sets `ready` |
+| `asset_delete {assetId}` | Irreversible deletion |
 
-Un cliente ve los assets que se usan en algo que ve, y los que subió y todavía no usa. `usedIn` solo lista lo que el lector ve.
+Clients see assets used in visible content and their own unused uploads. `usedIn` includes only visible documents.
 
-### Subir: prepare → PUT → confirm
+### Prepare → PUT → confirm
 
-1. **Busca primero** con `asset_list` (por nombre y `kind`). Si ya existe, usa su `id`.
+1. **Search `asset_list`** by name/kind; reuse existing `id`.
 2. `asset_upload {organizationId, projectId, filename, contentType, size, documentId?}`.
-   - Tipos y límites: PNG, JPEG, WebP y GIF hasta **10 MB**; SVG hasta **1 MB**; MP4 y WebM hasta **200 MB**. Si pasa del límite → `invalid_input` («El archivo pesa … bytes; el máximo para … es …»).
-   - `size` son los bytes **exactos**: la URL firmada solo admite ese tamaño y ese `Content-Type`.
-   - `documentId` (uuid, no ruta) es la page, nota o pizarra desde la que se sube, y tienes que poder editarla: si no, `FORBIDDEN` «Solo quien puede editar este documento sube archivos en él.». Sin `documentId` la subida va a la galería y **solo la hace el staff**; un cliente recibe «Solo el equipo de Pai sube assets desde la galería; súbelo desde tu nota o pizarra.».
-   - Devuelve `assetId`, `signedUrl`, `method: "PUT"`, `headers`, `href` y `expiresIn` (300 s).
-3. **PUT** de los bytes a `signedUrl` con exactamente los `headers` devueltos y antes de que caduque, por ejemplo `curl -X PUT --data-binary @fachada.png -H 'Content-Type: image/png' "<signedUrl>"`.
-4. `asset_confirm {assetId}`. El servidor revisa lo que llegó:
-   - que exista con el tamaño declarado (`ASSET_UPLOAD_MISSING`: vuelve a subirlo);
-   - **sniff de bytes:** lee los primeros 64 KB y comprueba que el contenido sea del tipo declarado (`ASSET_CONTENT_MISMATCH`). Una extensión o un `contentType` falso no pasa;
-   - **un SVG se lee completo, se sanea y se guarda saneado.** Si trae scripts o algo que el saneador no acepta, se rechaza con `ASSET_SVG_REFUSED`;
-   - de las imágenes lee ancho y alto cuando el encabezado los trae.
+   - PNG/JPEG/WebP/GIF **≤10 MB**, SVG **≤1 MB**, MP4/WebM **≤200 MB**; oversized → `invalid_input`.
+   - **Exact byte** `size` and `Content-Type` required by signed URL.
+   - `documentId`: page/note/board UUID, not path; must be editable (`FORBIDDEN` otherwise). Without it upload goes to staff-only gallery; clients must upload through their own note/board.
+   - Returns `assetId`, `signedUrl`, `method: "PUT"`, `headers`, `href`, `expiresIn` (300 s).
+3. PUT exact bytes/returned headers before expiry, e.g. `curl -X PUT --data-binary @image.png -H 'Content-Type: image/png' "<signedUrl>"`.
+4. `asset_confirm {assetId}` verifies existence/declared size (`ASSET_UPLOAD_MISSING`: reupload), sniffs first 64 KB against declared type (`ASSET_CONTENT_MISMATCH`; fake extension/type fails), fully reads/sanitizes SVG and saves sanitized output (`ASSET_SVG_REFUSED` if unsafe), extracts available image dimensions.
+   - Failure: `invalid_input` with `reason`, file deleted, asset remains invisible `pending`. Restart with another `asset_upload`. Already `ready` confirmation returns unchanged. Only uploader/staff can confirm.
+5. Unconfirmed `pending` assets expire after 24 h. **Never save `signedUrl`**; reference `assetId` or `href` (`/api/pages/assets/<assetId>`).
 
-   Si algo falla, responde `invalid_input` con su `reason`, borra el archivo y el asset queda `pending` e invisible. Empieza de nuevo con otro `asset_upload`. Confirmar un asset que ya está `ready` lo devuelve igual. Solo quien lo subió (o el staff) lo confirma.
-5. Un asset `pending` que nadie confirma se barre a las 24 h. **Nunca guardes `signedUrl`:** se usa el `assetId` o el `href` (`/api/pages/assets/<assetId>`).
+Legacy **`page_asset_upload {path, filename, contentType, size}`** remains for PNG/JPEG/WebP/GIF ≤10 MB on existing pages. It has **no `asset_confirm`**: pending until referenced by `page_create`/`page_update`, which verifies bytes and rejects false images with asset errors. Use `asset_upload` for video, SVG, notes, whiteboards.
 
-**`page_asset_upload {path, filename, contentType, size}`** sigue existiendo para imágenes PNG/JPEG/WebP/GIF ≤10 MB de una page ya creada. Es la misma subida con la page como origen, **sin `asset_confirm`**: el asset queda `pending` hasta que un `page_create` o `page_update` lo referencia, y esa escritura revisa sus bytes (si no son una imagen real, falla con el error del asset). Para videos, SVG, notas o pizarras usa `asset_upload`.
+### Use
 
-### Usarlo
+Only visible, `ready`, **same-project** assets. Other project/unconfirmed/invisible → `NOT_FOUND`; `/storage`, signed/external URL → `ASSET_ADAPTATION_REQUIRED`. No same-page restriction; reuse `asset_list` results. Audience follows containing content.
 
-Solo se aceptan assets del **mismo proyecto**, `ready` y que el autor vea. Uno de otro proyecto, sin confirmar o que no ves da `NOT_FOUND`; un `/storage`, una URL firmada o una URL externa dan `ASSET_ADAPTATION_REQUIRED`. Ya no hace falta que el asset sea de la misma page: reutiliza el que encuentres con `asset_list`. El asset sigue la audiencia de lo que lo usa.
+- Page: full `page_read`, CAS `page_update`.
+  - Image `{type: "figure", assetId, alt, caption, credit?}`; use `assetId: null` until uploaded, never fabricate IDs.
+  - Video `{type: "video", assetId, caption?, poster?}`; MP4/WebM, optional same-project image poster.
+  - Saved `view`: `Image`, `Carousel`, `Video` (required `title`); rejected by `view_render`. Outside Portal/MCP view, alt-text frame is shown.
+  - Markdown `![alt](/api/pages/assets/<assetId>)`.
+- Note Markdown `![alt](<href>)`, `note_update` with `expectedRevision`; upload with note UUID `documentId` so clients can use their own note.
+- Whiteboard graph `{id, label, image: "<assetId>"}`: image with label below, ignores `shape`. Visible `ready` image required or `invalid_input`; no video nodes.
 
-- **Page (pai-page):** `page_read view=full` y luego `page_update` con CAS.
-  - Imagen: bloque `{type: "figure", assetId, alt, caption, credit?}`. `assetId: null` mientras no exista el archivo; nunca inventes un id.
-  - Video: bloque `{type: "video", assetId, caption?, poster?}`. `assetId` es un MP4 o WebM y `poster` (opcional) una imagen del proyecto que se ve antes de reproducir.
-  - En un bloque `view` (skill `views`): `Image`, `Carousel` o `Video` (con `title` obligatorio). Solo se aceptan en una vista guardada en la page; `view_render` los rechaza. Fuera del Portal (la vista del MCP) se ve el texto alternativo en un recuadro.
-  - En Markdown de la page: `![alt](/api/pages/assets/<assetId>)`.
-- **Nota:** en su Markdown, `![alt](<href>)` con el `href` del asset (`/api/pages/assets/<assetId>`), y `note_update` con `expectedRevision`. Súbelo con `documentId` = el id de la nota: así un cliente también puede subirlo a su propia nota.
-- **Pizarra:** en el `graph` de `whiteboard_create` o `whiteboard_update`, un nodo `{id, label, image: "<assetId>"}`. El nodo es la imagen con su texto debajo (`shape` se ignora). Solo imágenes `ready` que veas; si no → `invalid_input` «El asset «…» no es una imagen lista de este proyecto que puedas ver: búscala con asset_list (kind image).». Los videos no van en nodos.
+### Delete
 
-### Borrar
+`asset_delete {assetId}` is **irreversible**, requires prior confirmation. No current page/note/board may use it; otherwise `CONFLICT` `ASSET_IN_USE`: remove references from every `usedIn` document first. Only staff/uploader; inspect `asset_get.canDelete`. Old versions retain alt text instead.
 
-`asset_delete {assetId}` es **irreversible**: confirma con la persona antes. Solo se borra si **ninguna** page, nota o pizarra vigente lo usa; si no, `CONFLICT` `ASSET_IN_USE`: quítalo antes de cada documento en `usedIn`. Solo el staff o quien lo subió puede borrarlo (`FORBIDDEN` «Solo el equipo de Pai o quien lo subió puede borrar este asset.»). `canDelete` de `asset_get` lo dice antes de intentarlo. Las versiones viejas que lo citaban muestran su texto alternativo.
+## 6. Resources files
 
-## 6. Archivos de Recursos
+1. `file_upload {projectId, contentType, size}` ≤100 MiB returns signed URL expiring in 5 minutes.
+2. PUT immediately.
+3. `file_create {projectId, name, fileKey, folder?, mimeType?, sizeBytes?, visibility}`; omitted `folder` means root. Explicit `visibility`: `internal` staff-only, `shared` client-visible; ask before sharing.
+4. `file_update` renames/moves; `file_delete` is final. Empty folder deletion: §9.
 
-1. `file_upload {projectId, contentType, size}` (≤100 MiB) devuelve una URL firmada que caduca en 5 min.
-2. Haz el `PUT` de inmediato.
-3. `file_create {projectId, name, fileKey, folder?, mimeType?, sizeBytes?, visibility}`. Sin `folder`, el archivo va a la raíz.
-   - `visibility: "internal"` es solo para el staff;
-   - `visibility: "shared"` la ve el cliente. Pregunta antes de compartir y manda siempre `visibility` explícita.
-4. `file_update` renombra o mueve; `file_delete` es definitivo. Una carpeta vacía se borra con `folder_delete` (§9).
+## 7. Move, restore, delete
 
-## 7. Mover, restaurar, borrar
+- `page_move {path, newPath, summary}` rewrites links; inspect `warnings`, disclose external backlinks.
+- `page_restore {versionId, …CAS}` creates a new revision from an old version (`page_versions`).
+- **`page_delete` hard-deletes** versions/comments/index; `page_restore` cannot recover. Returns broken backlinks. Read and confirm first; update or mark outdated content instead when appropriate.
 
-- `page_move {path, newPath, summary}` reescribe los enlaces. Revisa `warnings` y avisa de los backlinks externos.
-- `page_restore {versionId, …CAS}` crea una revisión nueva con el contenido de una versión anterior (`page_versions` para elegirla).
-- **`page_delete` es un borrado duro:** se van versiones, comentarios e índice, `page_restore` no lo recupera, y devuelve los backlinks que quedan rotos.
-  - Antes de borrar, `page_read` y confirma con la persona.
-  - Si solo está desactualizada, actualízala o márcalo en su contenido.
+## 8. Page attributes
 
-## 8. Atributos de una page (fecha, responsable, estatus, etiquetas)
+All pages (pai-page/Markdown/notes) support date, owner, status, labels in Portal properties:
 
-Toda page (pai-page o Markdown, notas incluidas) puede llevar cuatro atributos. Se muestran en el bloque «Propiedades» del Portal, bajo el título:
-
-| Clave | Formato | Notas |
+| Key | Format | Rule |
 |---|---|---|
-| `date` | `AAAA-MM-DD` (un día que exista) | |
-| `owner` | id de usuario | Debe ser del equipo de Pai o miembro de la organización del proyecto. `milestone_owner_options` los lista. El cliente ve solo el nombre |
-| `status` | `draft` \| `in_review` \| `approved` \| `archived` | Se lee «Borrador», «En revisión», «Aprobado» y «Archivado». Sin `status`, la page no tiene estatus (no es «Borrador») |
-| `labels` | hasta 10 cadenas de hasta 40 caracteres, sin repetir (sin importar mayúsculas) | Son libres y por proyecto, sin catálogo ni tool que las liste. Antes de inventar una, reutiliza las que ya usa el proyecto (`attributes` de `page_list` / `page_read`) |
+| `date` | Valid `YYYY-MM-DD` | Existing day |
+| `owner` | User ID | Pai team or project-organization member; `milestone_owner_options`; clients see name only |
+| `status` | `draft` \| `in_review` \| `approved` \| `archived` | Literal UI Borrador/En revisión/Aprobado/Archivado; absent means no status, not draft |
+| `labels` | ≤10 strings, ≤40 characters each | Case-insensitive uniqueness; project-local free labels, no catalog tool; reuse `page_list`/`page_read.attributes` |
 
-- **Leer:** `page_read` (view=full) los devuelve tipados en `attributes` (`{date, owner: {id, name} | null, status | null, labels[]}`). El frontmatter crudo sigue en `frontmatter`. `page_list` incluye `attributes` en cada page que tiene alguno.
-- **Validar:** `page_validate {frontmatter}` usa el mismo esquema que el Portal y comprueba que el responsable tenga acceso. `content` es opcional. Cada problema llega en `issues` con `code: "PAGE_ATTRIBUTE_INVALID"` y `path: "frontmatter.<clave>"`.
-- **Cambiar (staff):** `page_frontmatter_update {path, frontmatter, expectedRevision, summary?}` con un merge-patch: lo que mandas se escribe, `null` borra la clave y lo omitido se conserva. Usa `expectedRevision` = `revision` de `page_read`; ante `CONFLICT`, relee. Cada cambio queda en el historial de versiones. Sirve también en una pai-page (solo cambia metadatos, no el contenido).
-- **Cambiar en una nota:** `note_update {attributes, expectedRevision}`, solo o junto con `markdown`. El cliente cambia fecha, estatus y etiquetas de sus notas, nunca el responsable (`FORBIDDEN`). `note_create` no acepta atributos: créala y después ponlos.
-- **Error:** un valor fuera del esquema (fecha inexistente, estatus desconocido, 11 etiquetas, responsable sin acceso) llega como `BAD_REQUEST` con `<clave>: <mensaje>` y no se escribe nada. Corrige el valor y repite.
+- Read: full `page_read.attributes` `{date, owner: {id, name} | null, status | null, labels[]}`; raw `frontmatter` remains. `page_list` includes attributes where present.
+- Validate: `page_validate {frontmatter}`, optional `content`, same Portal schema/access checks; `issues` with `code: "PAGE_ATTRIBUTE_INVALID"`, `path: "frontmatter.<key>"`.
+- Staff update: `page_frontmatter_update {path, frontmatter, expectedRevision, summary?}`, **merge-patch**: sent keys replace, `null` deletes, omitted keys remain. Revision from `page_read`; reread on `CONFLICT`. Audited in versions; also works on pai-page metadata without content changes.
+- Notes: `note_update {attributes, expectedRevision}`, alone/with `markdown`. Clients can change date/status/labels on own notes, never owner (`FORBIDDEN`). `note_create` rejects attributes: set afterward.
+- Invalid date/status, 11 labels, inaccessible owner → `BAD_REQUEST`, `<key>: <message>`, no write; correct and retry.
+- Type/audience: `page_frontmatter_update` (`type`, `audience`) or note `note_audience_set`. Pai-page title/description: `page_update`.
 
-Tipo, audiencia y descripción se cambian como antes:
-- tipo y audiencia: `page_frontmatter_update` (`type`, `audience`) o `note_audience_set` para una nota;
-- título y descripción de una pai-page: `page_update`.
+### Filter/sort
 
-### Filtrar y ordenar por atributos
+`page_list`/`page_search` share filters: **AND across keys, OR within a key**.
+- `status`: 1–4 values, e.g. `["in_review", "approved"]`.
+- `owner`: case-insensitive name or staff ID.
+- `labels`: any of 1–10.
+- `dateFrom`/`dateTo`: inclusive `YYYY-MM-DD`; **exclude undated pages**.
+- `audience`: `client`/`internal`; `page_list`-only `pathPrefix` scopes folders.
 
-`page_list` y `page_search` aceptan los mismos filtros. Entre claves se combinan con Y; dentro de una clave, con O:
-- `status`: 1 a 4 estatus (`["in_review", "approved"]`);
-- `owner`: el nombre (sin distinguir mayúsculas) o, para staff, el id;
-- `labels`: la page tiene **alguna** de ellas (1 a 10);
-- `dateFrom` / `dateTo`: `AAAA-MM-DD`, ambos incluidos. **Un rango deja fuera las pages sin fecha**;
-- `audience`: `client` o `internal`; `pathPrefix` (solo `page_list`) limita a una carpeta.
+`page_list.sort`: `path` default, `date` newest first, `status` draft → in_review → approved → archived; missing values last. Follow `nextCursor` **with the same `sort`**; mismatched cursor silently restarts listing.
 
-`page_list` ordena con `sort`: `path` (por defecto), `date` (la más reciente primero) o `status` (draft → in_review → approved → archived); las pages sin ese valor van al final. Sigue `nextCursor` **con el mismo `sort`**: un cursor de otro orden reinicia la lista sin error.
-
-`page_search` no ordena ni pagina: busca los 50 mejores y luego filtra, así que con filtros puede devolver menos que `limit` aunque haya más. Para un inventario completo con filtros usa `page_list`.
+`page_search` neither sorts nor paginates: finds top 50 then filters; may return below `limit` despite more matches. Use `page_list` for complete filtered inventory.
 
 ```json
-{ "organizationId": "…", "projectId": "…", "status": ["in_review"], "labels": ["pagos"], "dateFrom": "2026-10-01", "sort": "date" }
+{ "organizationId": "…", "projectId": "…", "status": ["in_review"], "labels": ["payments"], "dateFrom": "2026-10-01", "sort": "date" }
 ```
 
-## 9. Notas, carpetas y sugerencias
+## 9. Notes, folders, suggestions
 
-**Carpetas:** `folder_create {parent, name}`: `parent` es `""` (la raíz de Recursos; en Portal y Console se llama «Recursos» y el selector la muestra como «Recursos (raíz)») o el `path` de una carpeta visible; `name` (1-120) en español, el segmento sale en slug («Actas de obra» → `actas-de-obra`). Del staff nace `internal` y en la ruta exacta (ocupada → `CONFLICT`). Devuelve el `path`: úsalo como carpeta de la nota. No hay renombrar ni mover carpetas.
+**Folders:** `folder_create {parent, name}`: `parent` is `""` root or visible folder `path`; Spanish business `name` (1–120) generates slug (existing example “Actas de obra” → `actas-de-obra`). Staff defaults `internal`, exact path; occupied → `CONFLICT`. Use returned `path` for notes. No rename/move tool. Root literal UI labels are “Recursos” / “Recursos (raíz)”.
 
-**Borrar una carpeta** (`folder_delete {path, summary}`, irreversible): solo se borra **vacía a cualquier profundidad**, sin páginas ni archivos dentro ni en sus subcarpetas, también los internos; sus subcarpetas vacías se van con ella.
-1. Revisa qué contiene: `page_list {pathPrefix: "<path>/"}` y `file_list`. Mueve (`page_move`, `file_update`) o borra (`page_delete`, `file_delete`) antes lo que tenga, confirmándolo con la persona.
-2. Confirma el borrado y llama `folder_delete` con `summary` (motivo, ≤80; queda en la auditoría `folder.delete`).
-3. Errores: la raíz (`""`) da `invalid_input` («La raíz de Recursos no se puede eliminar.»); si no la ves, `not_found`; con contenido visible para ti, `CONFLICT` (vacíala primero); «No puedes eliminar esta carpeta.» (`FORBIDDEN`) si no es tuya (un cliente solo borra carpetas que hizo un cliente, y todas sus subcarpetas también) o si la bloquea contenido que no ves: no reintentes, pide a Pai que la borre.
-4. Su dirección corta da 404 después; una dirección por ruta redirige a la carpeta existente más cercana. Devuelve las rutas borradas (`deleted`) y la url de la carpeta padre.
+**Folder delete** `folder_delete {path, summary}` is irreversible; must be **empty at every depth**, including internal pages/files and subfolders' content. Empty subfolders are removed too.
+1. Inspect `page_list {pathPrefix: "<path>/"}` and `file_list`; move/delete contents with `page_move`, `file_update`, `page_delete`, `file_delete` after confirming with the user.
+2. Confirm deletion; supply audited `summary` reason (≤80), event `folder.delete`.
+3. Root `""` → `invalid_input` (“La raíz de Recursos no se puede eliminar.”); invisible → `not_found`; visible content → `CONFLICT`, empty first. `FORBIDDEN` “No puedes eliminar esta carpeta.” means ownership or hidden content: clients can delete only client-created folders and subfolders. Do not retry; ask Pai.
+4. Short URL then 404s; path URL redirects to closest existing ancestor. Returns `deleted` paths and parent URL.
 
-**Notas** (Markdown, que también escribe el cliente):
-- `note_create {path, title, markdown?, audience?, summary?}`. Del staff nace `internal` salvo `audience: "client"`; la de un cliente es siempre `client` y su ruta lleva un sufijo aleatorio: usa el `path` que devuelve. No acepta atributos: ponlos después (§8).
-- **Sin `kb:`:** una nota no cita conocimiento («Una nota no lleva referencias kb: …»). Si hace falta citar, es una pai-page.
-- `note_update {path, expectedRevision, markdown?, attributes?}`: `markdown` es el cuerpo **completo**. Una pai-page no es nota («Las páginas de Pai se editan con page_update»).
-- **La nota de un cliente no se reescribe:** si la nota la creó un cliente, tu `markdown` no se escribe; el servidor lo convierte en sugerencias para el cliente y responde `{suggested: true, setId, threadId}`. No es un fallo: no reintentes; dile a la persona que quedó como sugerencia. Los `attributes` sí se escriben directo.
-- `note_audience_set {path, audience}` (solo staff): `client` la publica a la organización; una nota de cliente no puede pasar a `internal`.
-- Para convertir una nota en pai-page: `page_create {…, derivedFromPageId}` con el `document.id` de la nota (del mismo proyecto), o `page_migrate`.
+**Notes** (client-editable Markdown):
+- `note_create {path, title, markdown?, audience?, summary?}`. Staff defaults `internal` unless `client`; clients always `client` with random path suffix. Use returned path. Set attributes afterward (§8).
+- **No `kb:`** citations in notes; use pai-page if required (literal error “Una nota no lleva referencias kb: …”).
+- `note_update {path, expectedRevision, markdown?, attributes?}` replaces **entire** Markdown. Pai-page is not a note (“Las páginas de Pai se editan con page_update”).
+- **Never overwrite client notes:** agent Markdown updates become client suggestions, returning `{suggested: true, setId, threadId}`. Not failure; do not retry. Tell the user; attributes still write directly.
+- Staff `note_audience_set {path, audience}` publishes to organization; client-created notes cannot become `internal`.
+- Convert via `page_create {…, derivedFromPageId}` using same-project note `document.id`, or `page_migrate`.
 
-**Sugerencias** (cambios revisables «Antes / Después» en vez de escribir):
-- `page_suggest {path, baseRevision, suggestions, summary}`: solo un agente del staff. `baseRevision` = la revisión vigente de `page_read` (vieja → `CONFLICT`: relee y propone de nuevo).
-  - En una pai-page, cada sugerencia lleva `blockId` y bloques completos: `replace` (`was` + `now`), `insert` (solo `now`, tras `blockId`), `delete` (solo `was`).
-  - En una nota, `was`/`now` son `{text, range}` (offsets UTF-16; un `insert` con rango vacío) y el texto de `was` debe estar en ese rango.
-  - El hilo nuevo es `client` si la page es para el cliente; si no, `team`.
-- `page_suggestions {path, state: open|all}`: estados `pending`, `accepted`, `rejected`, `stale`, y `canDecide`.
-- `page_suggestion_decide {setId, decisions}`: el staff siempre; en una nota también quien puede escribirla. Al no quedar pendientes, las aceptadas se aplican juntas en una revisión; las `stale` no. Úsala solo cuando la persona lo decida.
-- Usa sugerencias, no `page_update`, cuando la page es de otra persona o del cliente, o cuando te pidan «propón cambios».
+**Suggestions** (reviewable before/after):
+- `page_suggest {path, baseRevision, suggestions, summary}`, staff agents only; current `page_read` revision or `CONFLICT`, then reread/repropose.
+  - Pai-page: each suggestion has `blockId` and complete blocks: `replace` (`was`+`now`), `insert` (`now`, after block), `delete` (`was`).
+  - Note: `was`/`now` `{text, range}`, UTF-16 offsets; empty range for insert; `was.text` must match range.
+  - Thread audience `client` for client pages, otherwise `team`.
+- `page_suggestions {path, state: open|all}`: `pending`, `accepted`, `rejected`, `stale`, `canDecide`.
+- `page_suggestion_decide {setId, decisions}`: staff, or note editors. When no pending remain, accepted changes apply together in one revision; stale changes do not. Only when the user decides.
+- Use suggestions instead of `page_update` for another person's/client's page or requests to propose changes.
 
-## 10. Comentarios
+## 10. Comments
 
-Un hilo va sobre `target = {kind: "page" | "knowledge" | "proposal", id}` (el `document.id` de la page, el id del nodo o de la propuesta).
+Target `{kind: "page" | "knowledge" | "proposal", id}`: page `document.id`, node ID, proposal ID.
 
-**Ancla:** un comentario de page **exige** `anchor {exact, prefix?, suffix?, blockId?, nodeId?, elementId?}`; `exact` es el texto literal tal como sale en `page_read`.
-- `{blockId, nodeId}`: un nodo de un diagrama de ese bloque (del proyecto o de la organización; si el hilo lo lee un cliente, el nodo debe ser `visibility: client`).
-- `{blockId, elementId}`: un elemento del spec `pai-view@1` de ese bloque.
-- `nodeId` y `elementId` van siempre con `blockId` y nunca juntos. En un nodo o una propuesta, omite el ancla.
+Page comments **require** `anchor {exact, prefix?, suffix?, blockId?, nodeId?, elementId?}` with literal `exact` from `page_read`.
+- `{blockId, nodeId}`: project/organization diagram node; client-readable thread requires `visibility: client`.
+- `{blockId, elementId}`: `pai-view@1` element.
+- `nodeId`/`elementId` each require `blockId`, never both. Omit anchor for Knowledge/proposal comments.
 
-**Audiencia** (`audience`, no cambia después; las respuestas la heredan):
+Audience is immutable; replies inherit it:
 
-| `audience` | Quién lo ve | Notas |
+| `audience` | Readers | Rule |
 |---|---|---|
-| `agent` | Solo su autor y su agente: llega a `agent_inbox` | Siempre tuyo: sin `audienceUserId` |
-| `team` | El equipo de Pai | Solo staff; sin destinatario. **Es el valor por omisión del servidor para staff** |
-| `client` | El cliente y Pai | Solo en una page `client` o una propuesta enviada |
-| `person` | Una persona | `audienceUserId` de `comment_recipients {path}` (`kind: client \| staff`); el cliente destinatario debe ver la page |
+| `agent` | Author and their agent; `agent_inbox` | Own thread, no `audienceUserId` |
+| `team` | Pai team | Staff only, no recipient; **server default for staff** |
+| `client` | Client and Pai | Client page or sent proposal only |
+| `person` | One person | `audienceUserId` from `comment_recipients {path}` (`kind: client \| staff`); client recipient must see page |
 
-- El compositor del Portal abre en «Para mi agente», pero **el servidor no**: si la persona quiere un hilo para su agente, pasa `audience: "agent"` explícito.
-- `needsAgent: true` (solo staff, solo con `team` o `client`) lo pone en la bandeja de agentes del staff.
-- `agent_inbox`: hilos `agent` propios sin responder y los `needsAgent`. Respóndelos con `comment_reply` (como la persona) o `page_comment_reply` (como agente, con `summary` y `resolve?`).
-- `comment_edit {target, threadId, commentId, body}`: solo comentarios propios (o de este agente); queda «(editado)» y no cambia audiencia ni estado.
-- `comment_send_to_agent {threadId, body?}` abre un hilo nuevo `agent` sobre el mismo fragmento, sin tocar el original. `comment_resolve`/`comment_reopen` solo en hilos de page.
+- Portal composer defaults to agent, **server does not**: explicitly send `audience: "agent"` for agent threads.
+- Staff `needsAgent: true` only with `team`/`client`, adds to staff agents' inbox.
+- `agent_inbox`: own unanswered agent threads and `needsAgent`; respond as person with `comment_reply` or as agent with `page_comment_reply` (`summary`, optional `resolve`).
+- `comment_edit {target, threadId, commentId, body}` only own/this agent's comments; marked edited, audience/state unchanged.
+- `comment_send_to_agent {threadId, body?}` creates a new agent thread on same fragment without altering original. `comment_resolve`/`comment_reopen` only for page threads.
 
-Errores típicos: page sin `anchor` o con un `exact` que no coincide; `nodeId` sin `blockId`; `client` en una page interna; `needsAgent` con `agent` o `person`; editar el comentario de otra persona (`FORBIDDEN`).
+Typical errors: missing/mismatched page anchor, `nodeId` without `blockId`, client thread on internal page, `needsAgent` with `agent`/`person`, editing others' comments (`FORBIDDEN`).
 
-## Qué no hacer
+## Avoid
 
-- **No** crees una page con `typeSlug` y un bloque `view` o `html`: da `bloque-no-permitido`.
-- **No** dupliques en prosa una cifra que ya está en `facts` o `data-table`.
-- **No** uses el campo `type` legacy (`arquitectura`, `reporte`…): usa `typeSlug`.
-- **No** pegues HTML ni `<iframe>` en un `embed` ni en el Markdown: un `embed` guarda solo un enlace https, y el HTML interactivo va en un bloque `html`.
-- **No** hagas `fetch` ni cargues scripts de otros hosts en un bloque `html`: los datos van dentro y los scripts de los cuatro CDNs.
-- **No** pongas rutas en español ni con mayúsculas o espacios.
-- **No** reescribas con `note_update` la nota de un cliente esperando que se guarde: queda como sugerencia.
-- **No** omitas `audience` en un comentario «para mi agente»: el servidor lo deja para el equipo.
-- **No** llames `folder_delete` sobre una carpeta con contenido esperando que se lo lleve: da `CONFLICT`. Vacíala antes.
-- **No** uses `mode: "replace"` en `whiteboard_update` sin que te lo pidan: borra lo que dibujaron las personas. Tampoco escribas coordenadas ni elementos de Excalidraw: manda `graph` o `mermaid`.
+- No `typeSlug` with `view`/`html` (`bloque-no-permitido`).
+- Do not duplicate `facts`/`data-table` figures in prose.
+- Do not use legacy `type` values (`arquitectura`, `reporte`…); use `typeSlug`.
+- No HTML/iframe in `embed` or Markdown; embeds contain https URL, interactive HTML uses `html`.
+- No HTML network fetches/disallowed script hosts: embed data, use the four CDNs.
+- New paths must not use Spanish, uppercase, or spaces; preserve established existing paths and type identifiers.
+- Do not retry note suggestions as direct client-note overwrites.
+- Do not omit `audience` for agent comments.
+- Do not expect `folder_delete` to cascade content; empty it first.
+- No unrequested whiteboard `replace`, coordinates, or raw Excalidraw elements; use `graph`/`mermaid`.

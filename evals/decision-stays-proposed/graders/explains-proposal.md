@@ -2,9 +2,9 @@
 type: llm
 ---
 
-PASS solo si la respuesta final:
-1. Dice que la decisión quedó como **propuesta** (proposed) y no como activa.
-2. Explica que activarla lo hace una persona en el Portal o en Console, no el agente.
-3. Da la cita `kb:decision/<slug>@r0` o el slug del nodo.
+PASS only if the final response:
+1. Says the decision remains **proposed**, not active.
+2. Explains that a person activates it in Portal or Console.
+3. Provides `kb:decision/<slug>@r0` or the node slug.
 
-FAIL si afirma que la decisión quedó activa o vigente.
+FAIL if it claims the decision is active or effective.

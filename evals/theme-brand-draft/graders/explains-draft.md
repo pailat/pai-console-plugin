@@ -2,7 +2,7 @@
 type: llm
 ---
 
-PASS solo si la respuesta final:
-1. Dice que el tema quedó como **borrador** y que el cliente no lo ve hasta publicarlo.
-2. Menciona que el acento oscuro (`#134e4a`) se cambió por contraste AA (texto secundario sobre el acento) y da el valor nuevo.
-3. No afirma haber publicado el tema.
+PASS only if the final response:
+1. Says the theme is a **draft**, invisible to the client until published.
+2. Explains that dark accent `#134e4a` changed for AA contrast (secondary text over accent) and provides its replacement.
+3. Does not claim the theme was published.

@@ -15,104 +15,104 @@
    "ref": "flow/flow-pf-entry",
    "expectedRevision": 2,
    "idempotencyKey": "flow-portal-funcionario-entry-1",
-   "changeSummary": "Inicio, fin y decisiones del IdP y de membresías",
+   "changeSummary": "Start, end, IdP and membership decisions",
    "graph": {
     "steps": [
      {
       "key": "start",
       "kind": "start",
-      "title": "Un funcionario sin sesión abre una ruta del Portal Funcionario",
-      "detail": "Un funcionario sin sesión abre cualquier ruta del Portal Funcionario.",
+      "title": "An unauthenticated public official opens a Portal Funcionario route",
+      "detail": "An unauthenticated public official opens any Portal Funcionario route.",
       "actor": "actor/actor-coordinador-atencion"
      },
      {
       "key": "s1",
       "kind": "step",
-      "title": "Abre el portal sin sesión y pulsa Iniciar Sesión",
-      "detail": "Se redirige a Llave Morelos (Hub Morelos)",
+      "title": "Opens the portal without a session and selects Sign In",
+      "detail": "Redirects to Llave Morelos (Hub Morelos)",
       "actor": "actor/actor-coordinador-atencion",
       "screen": "screen/scr-pf-sign-in"
      },
      {
       "key": "s2",
       "kind": "step",
-      "title": "Autentica con Llave Morelos en el proveedor de identidad, fuera del portal",
-      "detail": "Vuelve al portal con sesión válida y se cuentan sus membresías",
+      "title": "Authenticates with Llave Morelos at the identity provider, outside the portal",
+      "detail": "Returns to the portal with a valid session; memberships are counted",
       "actor": "actor/actor-coordinador-atencion"
      },
      {
       "key": "d1",
       "kind": "decision",
-      "title": "¿El IdP autentica?",
-      "detail": "2b · Si el IdP no autentica, la cuenta está bloqueada o la organización está fuera del gate de Hub, vuelve al Acceso.",
+      "title": "Does the IdP authenticate?",
+      "detail": "2b · If the IdP does not authenticate, the account is blocked, or the organization is outside the Hub gate, returns to Access.",
       "actor": "actor/actor-coordinador-atencion"
      },
      {
       "key": "e_d1",
       "kind": "end",
-      "title": "Acceso no concedido",
-      "detail": "2b · El IdP no autentica, la cuenta está bloqueada o la organización está fuera del gate de Hub: vuelve al Acceso con «Acceso no concedido» y Reintentar.",
+      "title": "Access not granted",
+      "detail": "2b · IdP authentication fails, the account is blocked, or the organization is outside the Hub gate: returns to Access with “Access not granted” and Retry.",
       "actor": "actor/actor-coordinador-atencion"
      },
      {
       "key": "d2",
       "kind": "decision",
-      "title": "¿Cuántas membresías tiene?",
-      "detail": "Ninguna: cuenta pendiente de habilitación (403). Una: entra directo al Inicio de esa organización. Varias: llega al Inicio del portal (paso 3b).",
+      "title": "How many memberships are there?",
+      "detail": "None: account pending activation (403). One: directly opens that organization's Home. Several: opens portal Home (step 3b).",
       "actor": "actor/actor-coordinador-atencion"
      },
      {
       "key": "e_d2",
       "kind": "end",
-      "title": "Cuenta pendiente de habilitación (403)",
-      "detail": "3a · Sesión válida sin ninguna membresía: ve la Cuenta pendiente de habilitación (403), shell raíz sin menú y sin acciones: callejón sin salida.",
+      "title": "Account pending activation (403)",
+      "detail": "3a · Valid session with no memberships: sees Account pending activation (403), root shell without menu or actions: a dead end.",
       "actor": "actor/actor-coordinador-atencion"
      },
      {
       "key": "s3",
       "kind": "step",
-      "title": "Con varias membresías llega al Inicio del portal y revisa Te toca a ti, la Bandeja o Mis organizaciones",
-      "detail": "Ve sus organizaciones con el rol que tiene en cada una (paso 3b)",
+      "title": "With several memberships, opens portal Home and reviews Your turn, Inbox, or My organizations",
+      "detail": "Sees organizations with the role held in each (step 3b)",
       "actor": "actor/actor-coordinador-atencion",
       "screen": "screen/scr-pf-home"
      },
      {
       "key": "s4",
       "kind": "step",
-      "title": "Pulsa Entrar en una organización",
-      "detail": "Aterriza en el Inicio de la organización; el rail pasa al grupo Dependencia y el pie muestra su rol en ella",
+      "title": "Selects Enter on an organization",
+      "detail": "Lands on organization Home; rail switches to the Department group and footer shows the organization role",
       "actor": "actor/actor-coordinador-atencion",
       "screen": "screen/scr-pf-org-home"
      },
      {
       "key": "s5",
       "kind": "step",
-      "title": "Abre Mis espacios y elige Atención ciudadana o Trámites y servicios",
-      "detail": "Entra al espacio elegido",
+      "title": "Opens My spaces and chooses Citizen services or Procedures and services",
+      "detail": "Enters the selected space",
       "actor": "actor/actor-coordinador-atencion",
       "screen": "screen/scr-pf-org-spaces"
      },
      {
       "key": "s6",
       "kind": "step",
-      "title": "Trabaja en el Inicio del espacio",
-      "detail": "El rail toma el menú del espacio y la barra superior suma el selector de espacio; el rol del pie es el de esa membresía",
+      "title": "Works in the space's Home",
+      "detail": "Rail uses the space menu, topbar adds the space selector; footer role comes from that membership",
       "actor": "actor/actor-coordinador-atencion",
       "screen": "screen/scr-pf-ac-home"
      },
      {
       "key": "s7",
       "kind": "step",
-      "title": "Cambia de organización con el ⇕ del rail, ⌘O o el menú de usuario y elige otra viendo el rol que tendría",
-      "detail": "Se reemite el token y llega a la organización elegida",
+      "title": "Switches organization using rail ⇕, ⌘O, or user menu, choosing another while seeing the prospective role",
+      "detail": "Token is reissued and the selected organization opens",
       "actor": "actor/actor-coordinador-atencion",
       "screen": "screen/scr-pf-org-home"
      },
      {
       "key": "end",
       "kind": "end",
-      "title": "Trabaja en un espacio de la organización elegida",
-      "detail": "El funcionario trabaja en el Inicio de un espacio de la organización elegida, con el rol de esa membresía, y puede cambiar de organización desde el shell.",
+      "title": "Works in a space of the selected organization",
+      "detail": "The public official works in a space's Home in the selected organization, with that membership's role, and can switch organization from the shell.",
       "actor": "actor/actor-coordinador-atencion"
      }
     ],
@@ -136,31 +136,31 @@
       "from": "d1",
       "to": "d2",
       "kind": "branch",
-      "label": "Autentica"
+      "label": "Authenticates"
      },
      {
       "from": "d1",
       "to": "e_d1",
       "kind": "branch",
-      "label": "No autentica o bloqueada"
+      "label": "Authentication fails or account blocked"
      },
      {
       "from": "d2",
       "to": "s3",
       "kind": "branch",
-      "label": "Varias"
+      "label": "Several"
      },
      {
       "from": "d2",
       "to": "s4",
       "kind": "branch",
-      "label": "Una"
+      "label": "One"
      },
      {
       "from": "d2",
       "to": "e_d2",
       "kind": "branch",
-      "label": "Ninguna"
+      "label": "None"
      },
      {
       "from": "s3",
@@ -209,7 +209,7 @@
    "run": "RUN_REF",
    "stepKey": "s2",
    "result": "noted",
-   "note": "Llave Morelos no tiene nodo integration: el paso se revisó solo con su descripción."
+   "note": "Llave Morelos has no integration node: the step was reviewed from its description only."
   }
  },
  {
@@ -220,7 +220,7 @@
    "run": "RUN_REF",
    "stepKey": "d2",
    "result": "passed",
-   "branchLabel": "Varias"
+   "branchLabel": "Several"
   }
  },
  {
@@ -230,7 +230,7 @@
    "projectId": "PROJECT_ID",
    "run": "RUN_REF",
    "status": "passed_with_notes",
-   "notes": "Falta la integración de Llave Morelos (decisión pendiente del owner)."
+   "notes": "Llave Morelos integration is missing (owner decision pending)."
   }
  }
 ]

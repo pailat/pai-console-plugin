@@ -3,10 +3,10 @@ type: llm
 focus: mock_calls
 ---
 
-`payment_list` devolvió: contrato $480,000 MXN, cobrado $240,000, pendiente $240,000, cuatro hitos de $120,000 (Descubrimiento y Catálogo y carrito pagados; Pagos y Lanzamiento sin pagar) y siguiente cobro «Pagos» el 2026-10-25, al 2026-10-06.
+`payment_list` returned a $480,000 MXN contract, $240,000 collected, $240,000 outstanding, and four $120,000 milestones. “Descubrimiento” and “Catálogo y carrito” are paid; “Pagos” and “Lanzamiento” are unpaid. The next collection is “Pagos” on 2026-10-25, with data as of 2026-10-06.
 
-PASS solo si en la llamada a `view_render`:
-1. Todas las cifras y fechas del `spec` coinciden con esos datos o se calculan directamente de ellos. Son válidos, por ejemplo, «50 %» cobrado, «2 de 4 hitos» o la suma de montos. FAIL solo si aparece una cifra o una fecha que no está en los datos ni se calcula de ellos.
-2. Hay al menos un `Metric` con un monto ya formateado (por ejemplo «$240,000» con unidad MXN, o «$240,000 MXN»).
-3. La vista dice la fecha de corte 2026-10-06 o que los datos vienen de payment_list.
-4. Usa solo componentes del catálogo pai-view@1 (por ejemplo Section, Grid, Metric, BarList, Table, Stages, StatusBadge, Progress, Item); los estados de pago, si aparecen, van con StatusBadge o StatusDot, no con colores.
+PASS only if the `view_render` call satisfies every condition:
+1. Every spec amount and date comes from or is directly calculated from those data. Examples include 50% collected, 2 of 4 milestones, or sums. FAIL only for unsupported amounts or dates.
+2. At least one `Metric` contains a formatted amount, such as $240,000 with MXN as its unit.
+3. The view states the 2026-10-06 cutoff or attributes the data to payment_list.
+4. Only pai-view@1 catalog components are used. Payment states use StatusBadge or StatusDot, not color alone.

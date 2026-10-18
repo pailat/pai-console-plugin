@@ -1,271 +1,238 @@
 ---
 name: views
-description: "UI generativa de Pai (catálogo pai-view@1, 152 componentes del sistema de diseño de Pai sobre ReUI: pantallas reales de Portal, Console y pai.lat, patrones de pantalla con regiones (tablero, detalle, lista, chat, formulario, wizard…), formularios, chat, comercio, las piezas de datos del Portal —Pagos, Cronograma, Tareas, Proyectos, Actividad, Biblioteca— y diagramas de Conocimiento). Dibuja vistas en la conversación con view_render (dashboards, comparativos, resúmenes visuales de datos ya obtenidos) o guárdalas en Recursos como bloque view de una page canvas (tableros, mockups de pantallas con AppShell, reportes visuales). Úsalo cuando pidan ver, mostrar, graficar o comparar datos de Pai de forma visual, un tablero, dashboard, mockup, wireframe o pantalla (de una app de cliente, del Portal, de Console o del sitio), dibujar un ERD, un C4 o el grafo, o editar una vista existente."
-argument-hint: "[proyecto] [qué vista: tablero, pantalla, comparativo…]"
+description: "Compose Pai generative UI with pai-view@1: real Portal/Console/pai.lat screens, region layouts, forms/chat/commerce, data components, and Knowledge diagrams. Use view_render for conversational dashboards, comparisons, or summaries, or save canvas-page view blocks in Resources for dashboards, screen mockups, and visual reports. Applies to visual Pai data requests, dashboards, wireframes, app/Portal/Console/site screens, ERD/C4/graph rendering, or editing existing views."
+argument-hint: "[project] [dashboard, screen, comparison, or other view]"
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
-# UI generativa de Pai (`pai-view@1`)
+# Pai generative UI (`pai-view@1`)
 
-Lee antes el skill `pai-console`: entorno, descubrimiento, buscar antes de crear, CAS.
+Read shared `pai-console` first through the current client's skill mechanism: environment, discovery, search before create, CAS.
 
-**Catálogo completo**, generado desde el código: `references/view-catalog.md`. Tiene los layouts de raíz, los 15 grupos, los 152 componentes con sus props, límites y un ejemplo de cada uno, y las 68 recetas del servidor completas.
+**Code-generated catalog:** `references/view-catalog.md`: root layouts, 15 groups, 152 components, props/limits/examples, 68 full server recipes. `view_catalog` is authoritative:
+- No arguments: **index**, rules/layouts, component props by name.
+- `{types: [...]}` / `{group}`: full schemas/examples.
+- `{recipeGroup}` (`application`, `data-grid`, `chart`, `solutions`, `ecommerce`, `marketing`, `ai-agents`): recipe summaries, without views.
+- `{recipe}` (`dashboard`, `list-filters`, `record-detail`, `crm-pipeline`, `site-pricing`, `shop-checkout`, `ai-chat`…): complete screen ready for new data.
 
-`view_catalog` es la fuente del servidor:
-- sin argumentos devuelve el **índice** (reglas, layouts y los componentes con sus props por nombre);
-- con `{types: [...]}` o `{group}` devuelve el **esquema completo y un ejemplo** de esos componentes;
-- con `{recipeGroup}` (`application`, `data-grid`, `chart`, `solutions`, `ecommerce`, `marketing`, `ai-agents`) devuelve el resumen de las recetas de ese grupo, sin su vista;
-- con `{recipe}` (por ejemplo `dashboard`, `list-filters`, `record-detail`, `crm-pipeline`, `site-pricing`, `shop-checkout` o `ai-chat`) devuelve una **pantalla completa** lista para cambiarle los datos.
+When missing from references or unsure of a prop, **fetch detail** with `view_catalog {types}` before use. For large catalog reads, use Claude `pai-explorer` or the Codex generated package's explorer adapter only if available/authorized; otherwise read directly. Never assume Claude agents/tools exist in Codex.
 
-Si un componente no está en la referencia o dudas de una prop, **pide su detalle** con `view_catalog {types}` antes de usarlo. Si lo vas a hacer para muchos componentes, delégalo a `pai-explorer`.
+## Three presentation modes
 
-## Tres formas en que aparece una vista
-
-| Forma | Cuándo | Cómo |
+| Mode | When | Behavior |
 |---|---|---|
-| **Automática** | Solo las lecturas con vista propia (`project_summary`, `timeline_get`, `payment_list`, `task_board`, `knowledge_library`, `knowledge_view`…; lista en el skill `pai-console` §6). Detalles, búsquedas, validaciones y catálogos no traen vista | Solo en los hosts con MCP Apps, el resultado crudo de esa tool se dibuja solo. No sustituye un resumen: **si la persona pide ver, mostrar, graficar o comparar, compón la vista y dibújala con `view_render`**, aunque ya hayas leído los datos |
-| **En la conversación** | «Muéstrame», «compara», «resume visualmente», un dashboard para responder ahora | **`view_render {title, spec}`**: dibuja la vista que compones, la valida y no guarda nada. Es una lectura: no pide confirmación ni en producción |
-| **Guardada en Recursos** | Un tablero, mockup o reporte visual que el equipo o el cliente van a volver a abrir | Bloque `view` en una page `layout: "canvas"` (§ Guardar). Previsualízala antes con `view_render` |
+| **Automatic** | Dedicated-view reads (`project_summary`, `timeline_get`, `payment_list`, `task_board`, `knowledge_library`, `knowledge_view`…; `pai-console` §6). No views for details/search/validation/catalogs | Raw tool result may render on MCP Apps hosts. For explicit show/chart/compare requests, compose `view_render` even after reading data |
+| **Conversation** | Immediate visual answer/comparison/dashboard | `view_render {title, spec}` validates/renders without saving; a read requiring no write confirmation, even in production |
+| **Saved Resources** | Reusable dashboard/mockup/report | `view` block in `layout: "canvas"` page; preview with `view_render` first |
 
-Si dudas entre dibujar y guardar, dibuja y ofrece guardarla.
+When unsure, render first and offer saving; do not save without authorization. **CLI requires a text fallback** with supported figures/diagram structure, citations, and Portal links. Tool success/spec validity does not prove widget rendering; claim it only with observable client evidence. If a visual tool is absent, explain the limitation and provide text without inventing components or substituting a write.
 
-## Reglas de datos (las tres formas)
+## Data rules (all modes)
 
-- **Solo datos que obtuviste de las tools**, en esta conversación o en la fuente que citas. Una vista no consulta nada ni inventa cifras. La excepción son los mockups, cuyos datos de ejemplo deben ser verosímiles y se marca que son mockup.
-- **Valores ya formateados** en español de México: `"1 240"`, `"$412,300"` con `unit: "MXN"`, `"68 %"`, `"3.4 s"`. `Metric.value` admite como máximo 40 caracteres y `unit` como máximo 12.
-- **Fecha de corte y origen siempre**, en la `description` de la `Section`, en el `detail` de una `Metric` o en el `caption` de una `Table`. Por ejemplo: «Datos de payment_list al 2026-10-06».
-- **Tema del cliente:** pasa `organizationId` a `view_render` cuando la vista es de un cliente: se pinta con el tema publicado de esa organización (si no eres miembro, con el de Pai). Sin él, se usa tu única organización, o Pai si tienes varias.
-- Una vista no cita fuentes formales. Si cada cifra debe ir citada, usa una page de documento con `facts` o `data-table` (skill `resources`).
+- **Only tool data** from this conversation or a cited source. Views query nothing and invent no figures. Mockups may use plausible example data, explicitly labeled mockup.
+- Preserve **Mexican Spanish business formatting**: `"1 240"`, `"$412,300"` with `unit: "MXN"`, `"68 %"`, `"3.4 s"`. `Metric.value` ≤40 characters, `unit` ≤12. Replies follow user's language; keep required business locale, currencies, `America/Mexico_City` dates.
+- **Always include source/as-of date** in `Section.description`, `Metric.detail`, or `Table.caption`, e.g. data from payment_list as of 2026-10-06.
+- For client views send `organizationId` to `view_render` to use the published organization theme (nonmembers get Pai). Without it, uses sole organization or Pai when multiple.
+- Views do not provide formal source citations; if each figure requires one, use a document page with `facts`/`data-table` (`resources`).
 
-## El spec
+## Spec
 
 ```json
 { "root": "root",
   "elements": {
-    "root": { "type": "Section", "props": { "title": "…", "description": "Corte al 2026-10-06" }, "children": ["kpis"] },
+    "root": { "type": "Section", "props": { "title": "…", "description": "As of 2026-10-06" }, "children": ["kpis"] },
     "kpis": { "type": "Grid", "props": { "columns": 3, "gap": "md" }, "children": ["kpiA"] },
-    "kpiA": { "type": "Metric", "props": { "label": "Cobrado", "value": "$240,000", "unit": "MXN" } }
+    "kpiA": { "type": "Metric", "props": { "label": "Collected", "value": "$240,000", "unit": "MXN" } }
   } }
 ```
 
-- **Plano:** cada elemento se declara una vez en `elements` y se referencia por id en `children`. Tiene un solo padre, todo cuelga de `root` y no hay ciclos ni elementos sueltos.
-- **Ids** en inglés y camelCase, que digan qué son (`kpiCollected`, `loansTable`). Al editar, **conserva los ids** de lo que no cambia.
-- **La raíz elige el layout:**
-  - una pantalla completa empieza con un shell, que va **solo en la raíz** (tabla de abajo);
-  - un documento, reporte, tablero o resumen empieza con **`Stack`**.
-- **Tienen hijos** solo los shells (AppShell, PortalShell, ConsoleShell, SiteShell, AuthFrame), los patrones (`*Layout`, `SplitView`), Stack, Grid, Section, Card, Frame, DialogFrame, DetailSheet, Collapsible, Tabs, UnderlinedTabs, Tooltip, Popover, ButtonGroup, Stepper, ContactSection y ProposalSummary. La lista exacta está en las reglas de la referencia.
-  - Tabs y UnderlinedTabs llevan un hijo por pestaña, en orden; normalmente cada hijo es un Stack.
-  - Tooltip lleva un solo hijo, no interactivo.
-- **Slots con nombre:** ChatComposer, Card e Item llevan, además de `children`, `slots: {nombre: ["id", …]}`. Mismas reglas que `children` (un padre, conectado a la raíz, sin ciclos) y cada slot admite solo ciertos tipos; otro tipo, o un slot que el componente no tiene, es un error de validación. `view_catalog` lista los slots en el índice (`slots: [nombres]`) y sus tipos en el detalle.
+- **Flat:** declare each element once in `elements`, reference IDs in `children`; one parent, connected to `root`, no cycles/orphans.
+- Meaningful English camelCase IDs (`kpiCollected`, `loansTable`); **preserve unchanged IDs** while editing.
+- **Root chooses layout:** full screen uses a shell **at root only**; documents/reports/dashboards/summaries use **`Stack`**.
+- Only these accept children: shells (AppShell, PortalShell, ConsoleShell, SiteShell, AuthFrame), patterns (`*Layout`, `SplitView`), Stack, Grid, Section, Card, Frame, DialogFrame, DetailSheet, Collapsible, Tabs, UnderlinedTabs, Tooltip, Popover, ButtonGroup, Stepper, ContactSection, ProposalSummary. Exact list in catalog rules. Tabs/UnderlinedTabs: one ordered child per tab, usually Stack. Tooltip: one noninteractive child.
+- **Named slots:** ChatComposer, Card, Item also accept `slots: {name: ["id", …]}` with the same parent/root/cycle rules. Only permitted component types per slot; unknown slot/type fails validation. Index lists slot names; detail lists types.
 
-  | Componente | Slot | Admite | Dónde se pinta |
-  |---|---|---|---|
-  | ChatComposer | `toolbar` | Select, Button, Badge, Popover | en la barra bajo el texto, después de adjuntar |
-  | ChatComposer | `leading` | Select, Button, Badge | antes de adjuntar |
-  | ChatComposer | `trailing` | Select, Button, Badge | antes de enviar |
-  | Card | `header` | Badge, StatusBadge, Button, Select, Avatar | junto al título, antes de `action` y `menu` |
-  | Item | `trailing` | Badge, StatusBadge, Button, Switch | a la derecha, en lugar de `meta`; con `trailing` la fila no es enlace aunque tenga `href` |
+| Component | Slot | Types | Placement |
+|---|---|---|---|
+| ChatComposer | `toolbar` | Select, Button, Badge, Popover | Below text, after attachment |
+| ChatComposer | `leading` | Select, Button, Badge | Before attachment |
+| ChatComposer | `trailing` | Select, Button, Badge | Before send |
+| Card | `header` | Badge, StatusBadge, Button, Select, Avatar | Beside title, before `action`/`menu` |
+| Item | `trailing` | Badge, StatusBadge, Button, Switch | Right instead of `meta`; disables row link even with `href` |
 
-  Lo que va dentro de un componente (el selector de alcance de un chat, un badge en el encabezado de una Card) va en su slot, no en un Stack al lado.
-- **Ancho y lugar de un bloque** (solo Stack y Grid; valores cerrados, sin ellas se ve como antes):
-  - `width: "fit" | "full"`: `full` ocupa el ancho del padre, también dentro de `align: "center"`, donde si no se encoge;
-  - `maxWidth: "sm" | "md" | "lg" | "xl" | "full"`: ancho legible;
-  - `grow: true`: ocupa el espacio que deja su Stack padre; directo en un shell, llena la pantalla bajo la barra;
-  - `selfAlign: "start" | "center" | "end" | "stretch"`: su lugar propio, sobre el `align` del padre;
-  - `minHeight: "screen" | "half"` (solo Stack): para centrar en vertical fuera de un shell.
+Put controls belonging inside a component (chat scope selector, card-header badge) in its slot, not an adjacent Stack.
 
-  `justify` centra en vertical cuando el Stack tiene altura (`grow` dentro de un shell, `minHeight` fuera). Para mover o limitar otro componente, envuélvelo en un Stack con estas props. Receta para centrar un bloque en una pantalla:
+**Sizing/placement** (Stack/Grid only; closed values, omission preserves prior behavior):
+- `width: "fit" | "full"`; full fills parent even inside `align: "center"`, where it otherwise shrinks.
+- `maxWidth: "sm" | "md" | "lg" | "xl" | "full"`: readable width.
+- `grow: true`: consumes remaining parent Stack space; direct shell child fills below topbar.
+- `selfAlign: "start" | "center" | "end" | "stretch"`: overrides parent alignment for self.
+- Stack-only `minHeight: "screen" | "half"`: vertical centering outside shells.
 
-  ```json
-  "body":   { "type": "Stack", "props": { "direction": "vertical", "grow": true }, "children": ["top", "center"] },
-  "center": { "type": "Stack", "props": { "direction": "vertical", "grow": true, "align": "center", "justify": "center" }, "children": ["title", "box"] },
-  "box":    { "type": "Stack", "props": { "width": "full", "maxWidth": "lg" }, "children": ["composer"] }
-  ```
-- **Props estrictas:** cada objeto de props es cerrado y solo lleva las del catálogo. Nada de `className`, `style`, colores, HTML ni expresiones. Las props que admiten `null` se pueden omitir.
-- **Iconos:** solo los del catálogo, por ejemplo `home`, `users`, `calendar`, `wallet`, `receipt`, `reports`, `book-open`, `plus`, `download`, `check`. La lista completa está en la referencia.
-- Límites: ≤300 elementos y ≤12 niveles; `KnowledgeGraph` ≤1500 aristas; `Flow` ≤60 nodos y ≤120 flechas; `Grid` de 1 a 6 columnas; `Table` ≤10 columnas y ≤200 filas; `Chart` ≤6 series y ≤60 categorías (radar y radial, ≤12).
-
-## Layouts: la raíz
-
-| Raíz | Es | Úsala para |
-|---|---|---|
-| `Stack` | Contenido sin pantalla alrededor | Tableros, reportes, resúmenes, comparativos y todo `view_render` de datos |
-| `PortalShell` | **El Portal de Pai, idéntico al real.** `area` (home, organization, project, product), `audience` (client o staff), `active` (ítem del menú), `organization`, `project`, `breadcrumb`, `user`. El marco es el app shell del tema publicado de la organización (el de `organizationId` en `view_render`; en `organization_theme_preview`, el del borrador), como sus colores; sin tema, el de Pai. No hay prop para elegirlo | Mockups de pantallas nuevas o cambios del Portal. `menu` reemplaza el menú real solo para secciones que el Portal aún no tiene |
-| `ConsoleShell` | **Console, idéntico al real.** `area` (admin, workforce o all), `active` (`admin.users`, `workforce.payments`…), `breadcrumb`, `title`, `action`, `user` | Mockups del back office |
-| `SiteShell` | **pai.lat, idéntico al real.** `lang`, `page`, con hijos del grupo Sitio web: `SiteHero`, `LogoGrid`, `SectionIntro`, `ServiceCards`, `HowItWorks`, `Testimonials`, `BlogList`, `CtaBand`, `ContactSection` | Páginas o secciones del sitio |
-| `AuthFrame` | **Login, registro e invitación de Pai** | Pantallas de identidad, con `Input` y `Button` dentro |
-| `AppShell` | **La app de un cliente**, con su marca y su menú | Mockups de los productos que Pai construye para un cliente |
-
-**Nunca recrees una pantalla de Pai con `AppShell`:** para el Portal usa `PortalShell` y para Console `ConsoleShell`. Ya traen el menú, las migas y el usuario reales, así que no los dibujes a mano. Para piezas sueltas del chrome fuera de un shell están `PageBar`, `OrgSwitcher`, `ProjectSwitcher` y `ProjectHeader`.
-
-## Piezas de pantalla de Pai: con los datos de su tool
-
-Estos componentes son las pantallas reales del Portal y de Console. Se alimentan con la respuesta de una tool: **dásela casi tal cual, sin inventar filas.** El ejemplo de cada uno en la referencia muestra la forma exacta.
-
-| Componente | Datos de | Es |
-|---|---|---|
-| `ProjectsTable` | `project_list` | «Proyectos» de una organización |
-| `OrganizationsGrid` / `OrganizationMembers` | `organization_list` / `organization_get` | Inicio del Portal / miembros e invitaciones |
-| `ActivityFeed` | `project_activity` | Actividad por día (`variant`: recent en Portal, log en Console) |
-| `MilestoneTimeline` | `timeline_get` | El Cronograma real: hitos, tareas, dependencias y línea base |
-| `TaskBoard` | `task_board` | El tablero de Tareas real (cuatro columnas fijas) |
-| `Payments` | `payment_list` | «Pagos»: facturas abiertas, siguiente cobro y pagado; montos en unidades, nunca datos bancarios |
-| `ProposalSummary` / `ProposalLifecycle` | `proposal_get` | Resumen comercial / ciclo enviada, aceptada o rechazada |
-| `ProductsList` / `ProductDetail` | `product_list` / `product_get` | Productos y el Inicio de un producto |
-| `Resources` | `page_list` / `file_list` | Una carpeta de Recursos |
-| `KnowledgeTable` | `knowledge_library` / `knowledge_search` | La biblioteca de Conocimiento |
-| `CommentsPanel` / `HistoryPanel` | `comment_list` / `page_versions` | Los paneles del riel de un documento |
-
-Genéricos que imitan esas pantallas con datos propios:
-- `DataTable`: columnas tipadas, búsqueda, filtros, orden y páginas;
-- `Kanban`: un tablero sin dominio; para tareas de Pai usa `TaskBoard`;
-- `DetailSheet`: el panel lateral de detalle;
-- `KnowledgeKindBadge`: el tipo de un nodo.
-
-En el sitio, `ContactSection` es el «Hablemos» de pai.lat, dentro de `SiteShell`.
-
-Todos funcionan **dentro de la vista** (filtran, ordenan, arrastran, abren) y **nada se guarda ni navega**.
-
-Úsalos para combinar varias piezas en una vista (por ejemplo `ProjectHeader` + `MilestoneTimeline` + `Payments`), para mockups de pantallas nuevas dentro de `PortalShell` o `ConsoleShell`, o para guardar un tablero en Recursos.
-
-## Qué componente usar
-
-| Necesito… | Usa | No uses |
-|---|---|---|
-| Un KPI | `Metric`, con `unit` y `tone` (`positive`, `warning`, `negative`, `info`) | Texto suelto con la cifra |
-| El estado de algo | **`StatusBadge`** con su tono (neutral, info, progress, success, warning, danger), como en el Portal; `StatusDot` en filas | `Badge` para estados: `Badge` es para categorías |
-| Partes de un total o un ranking | `BarList` (con `display` para el valor formateado) | `Chart` `pie` con muchas porciones |
-| Evolución en el tiempo | `Chart` `line`, `area` o `bar` | `Table` |
-| Detalle tabular | `Table` (simple, con `caption` del corte o del top N) o `DataTable` (tipada, con búsqueda, filtros y páginas) | |
-| Datos clave de una ficha | `KeyValue` (1–3 columnas) | |
-| Un proceso por etapas | **`Stages`** (done, current, upcoming) | `Timeline`, que es para fechas y eventos |
-| Un flujo con decisiones o un mapa de dependencias | **`Flow`** (nodos `start`, `step`, `decision`, `end`, `note` y flechas con etiqueta; ≤60 nodos) | Cajas con `Card` y flechas de texto. Si la van a seguir editando a mano, una **Pizarra** (`whiteboard_create`, skill `resources`) |
-| Un perfil de varias dimensiones o un avance contra una meta | `Chart` `radar` o `radial` (≤12 categorías; `max`, y en radial `center` con la cifra) | `Progress` repetidos |
-| Una imagen, capturas o un video en un reporte guardado | **`Image`**, **`Carousel`** o **`Video`** con el `assetId` de un asset `ready` del proyecto (`asset_list` para reutilizar, `asset_upload` + `asset_confirm` para subir; skill `resources` §5) | Una URL: no se acepta. En `view_render` se rechazan |
-| Requisitos o entregables con estado | **`Checklist`** | `List` |
-| Hitos con fecha | `Timeline`; el Cronograma completo, `MilestoneTimeline` | |
-| Una lista de archivos, personas o integraciones | `Item` apilados en un `Stack` `gap: "sm"` | `List` |
-| Secciones de un proyecto como en el Portal | `UnderlinedTabs` | `Tabs` |
-| Una conclusión o un riesgo | `Alert` (uno; el que hay que atender) | Varios `Alert` |
-| La cabecera de un proyecto (estado, arquitecto, fechas, salud) | `ProjectHeader` | KeyValue + Badge armados a mano |
-| Un ERD | **`ErdDiagram`**, con `view` = la proyección `erd` de `knowledge_view {format:"json"}` **tal cual** | Tablas o Mermaid a mano |
-| Un C4 | **`C4Diagram`**, con `view` = la proyección `c4` de `knowledge_view` tal cual | Cajas con Card |
-| El grafo de Conocimiento | **`KnowledgeGraph`**, con `nodes` y `edges` de `knowledge_graph` (o de `knowledge_get` / `knowledge_context`), ≤1500 aristas | |
-
-**Controles y estados son de mockup:**
-- Button, ButtonGroup, ActionMenu, FilterBar, ToggleGroup, Input, Select, Textarea, Checkbox, RadioGroup, Switch, Calendar, Command, Dropzone, Pagination, Breadcrumb, OrgSwitcher y ProjectSwitcher **no envían, guardan ni navegan**: responden dentro de la vista y nada más. Un `Button` o un `Link` con `href` solo navega.
-- `ChatComposer` está deshabilitado (con sus slots) salvo con **`interactive: true`**: entonces se escribe en el cuadro y se pulsan adjuntar y enviar, sin enviar ni guardar nada. Dentro de un formulario de maqueta sigue deshabilitado. **No** lo cambies por un `Textarea` con botones sueltos para poder escribir: deforma la pantalla.
-- EmptyState, ErrorState, LoadingState, Skeleton, Spinner, MilestoneGanttLegend y MilestoneGanttSkeleton dibujan los estados de una pantalla.
-
-Úsalos para **mockups de pantallas**, no en un dashboard de datos reales: ahí darían a entender que se puede filtrar o actuar.
-
-## Diagramas de Conocimiento
-
-Los diagramas se dibujan con los datos del servidor, **nunca escritos a mano**.
-
-**ERD:**
-1. `knowledge_view {view: "erd", scope: "data_model/<slug>", format: "json"}`.
-2. `view_render` con la respuesta **tal cual** en `view`:
+`justify` vertically centers when Stack has height (`grow` inside shell, `minHeight` outside). Wrap other components in Stack for placement/limits. Centering recipe:
 
 ```json
-{ "title": "ERD — Modelo de ventas",
-  "spec": { "root": "root", "elements": {
-    "root": { "type": "Stack", "props": { "direction": "vertical", "gap": "md" }, "children": ["erd"] },
-    "erd": { "type": "ErdDiagram", "props": { "view": <respuesta de knowledge_view>, "height": "lg" } } } } }
+"body":   { "type": "Stack", "props": { "direction": "vertical", "grow": true }, "children": ["top", "center"] },
+"center": { "type": "Stack", "props": { "direction": "vertical", "grow": true, "align": "center", "justify": "center" }, "children": ["title", "box"] },
+"box":    { "type": "Stack", "props": { "width": "full", "maxWidth": "lg" }, "children": ["composer"] }
 ```
 
-- `href`: la ruta del nodo con `{id}`, para que cada tabla enlace a su página.
-- `focus`: resalta una tabla.
+- **Strict props:** catalog only; no `className`, `style`, colors, HTML, expressions. Nullable props may be omitted.
+- **Icons:** catalog only, e.g. `home`, `users`, `calendar`, `wallet`, `receipt`, `reports`, `book-open`, `plus`, `download`, `check`; full list in reference.
+- Limits: ≤300 elements, ≤12 levels; `KnowledgeGraph` ≤1500 edges; `Flow` ≤60 nodes/120 arrows; `Grid` 1–6 columns; `Table` ≤10 columns/200 rows; `Chart` ≤6 series/60 categories (radar/radial ≤12).
 
-**C4:** igual, con `view: "c4"` y su `level`, en un `C4Diagram`.
+## Root layouts
 
-**El diagrama de una page:** si el ERD o el C4 ya está guardado en una page como bloque `projection`, dibújalo con `page_projection {path, blockId}` (el `blockId` sale de `page_read`): se ve como en el lector del Portal, con lo que quien lee puede ver, y también funciona en el MCP del cliente. No lo reconstruyas con `knowledge_view` + `view_render`.
+| Root | Contract | Use |
+|---|---|---|
+| `Stack` | Content without screen chrome | Dashboards/reports/summaries/comparisons, all data `view_render` |
+| `PortalShell` | Actual Pai Portal: `area` home/organization/project/product, `audience` client/staff, `active`, `organization`, `project`, `breadcrumb`, `user`; published organization shell/colors (`organizationId` in `view_render`), draft in theme preview, Pai default if none; no shell-selector prop | New/changed Portal screens; `menu` override only for nonexistent Portal sections |
+| `ConsoleShell` | Actual Console: `area` admin/workforce/all, `active` such as `admin.users`/`workforce.payments`, `breadcrumb`, `title`, `action`, `user` | Back-office mockups |
+| `SiteShell` | Actual pai.lat: `lang`, `page`; SiteHero, LogoGrid, SectionIntro, ServiceCards, HowItWorks, Testimonials, BlogList, CtaBand, ContactSection | Site pages/sections |
+| `AuthFrame` | Pai login/registration/invitations | Identity screens with Input/Button |
+| `AppShell` | Client app's own brand/menu | Client product mockups |
 
-## Patrones: pantallas con regiones
+**Never use AppShell for Pai screens.** PortalShell/ConsoleShell already provide menu/breadcrumb/user; never redraw. Separate chrome components: PageBar, OrgSwitcher, ProjectSwitcher, ProjectHeader.
 
-Dentro de un shell (o en la raíz), un **patrón** reparte la pantalla en regiones con nombre: lleva **un hijo por región, en el orden de sus regiones**, y `regions` elige cuáles usa (en ese mismo orden). Cada región trae su marco, así que no envuelvas los hijos en `Card`.
+## Real Pai screen components
 
-| Patrón | Para |
+Supply tool response **nearly unchanged, never invented rows**; exact shape in reference examples.
+
+| Component | Tool | Content |
+|---|---|---|
+| `ProjectsTable` | `project_list` | Organization projects |
+| `OrganizationsGrid` / `OrganizationMembers` | `organization_list` / `organization_get` | Portal home / members/invitations |
+| `ActivityFeed` | `project_activity` | Daily activity; variant recent in Portal, log in Console |
+| `MilestoneTimeline` | `timeline_get` | Milestones/tasks/dependencies/baseline |
+| `TaskBoard` | `task_board` | Four fixed columns |
+| `Payments` | `payment_list` | Open invoices/next collection/paid; amounts in units, no banking data |
+| `ProposalSummary` / `ProposalLifecycle` | `proposal_get` | Commercial summary / sent-accepted-rejected lifecycle |
+| `ProductsList` / `ProductDetail` | `product_list` / `product_get` | Products/product home |
+| `Resources` | `page_list` / `file_list` | Resources folder |
+| `KnowledgeTable` | `knowledge_library` / `knowledge_search` | Knowledge library |
+| `CommentsPanel` / `HistoryPanel` | `comment_list` / `page_versions` | Document rail panels |
+
+Generic alternatives: `DataTable` typed columns/search/filter/sort/pagination; `Kanban` for domain-free boards (Pai tasks use TaskBoard); `DetailSheet` for side detail; `KnowledgeKindBadge` for node kind. `ContactSection` is pai.lat contact section within SiteShell.
+
+Interactions **stay inside the view** (filter/sort/drag/open), with **no persistence/navigation**. Combine pieces (ProjectHeader + MilestoneTimeline + Payments), mock new Portal/Console screens, or save dashboards.
+
+## Component selection
+
+| Need | Use | Avoid |
+|---|---|---|
+| KPI | `Metric`, `unit`, intentional `tone` (positive, warning, negative, info) | Loose numeric text |
+| State | `StatusBadge` tone neutral/info/progress/success/warning/danger; row `StatusDot` | `Badge`, which is categorical |
+| Ranking/parts of total | `BarList`, formatted `display` | Many-slice pie |
+| Time evolution | `Chart` line/area/bar | Table |
+| Tabular detail | `Table` with as-of/top-N `caption`, or typed/searchable/paginated `DataTable` | |
+| Record key facts | `KeyValue`, 1–3 columns | |
+| Process stages | `Stages` done/current/upcoming | Timeline, for dates/events |
+| Decisions/dependency flow | `Flow`, labeled arrows, start/step/decision/end/note, ≤60 nodes | Cards/text arrows; use whiteboard_create (`resources`) for manual editing |
+| Multidimensional profile/progress to goal | Chart radar/radial ≤12 categories, `max`, radial `center` | Repeated Progress |
+| Saved images/screenshots/video | `Image`, `Carousel`, `Video` with visible ready project `assetId`; reuse asset_list or asset_upload/confirm (`resources` §5) | URLs; `view_render` rejects media |
+| Stateful requirements/deliverables | `Checklist` | List |
+| Dated milestones | Timeline; full schedule MilestoneTimeline | |
+| Files/people/integrations | Item in Stack gap sm | List |
+| Portal project sections | UnderlinedTabs | Tabs |
+| Conclusion/risk | One actionable Alert | Many Alerts |
+| Project header/status/architect/dates/health | ProjectHeader | Hand-built KeyValue/Badge |
+| ERD | ErdDiagram with unmodified `knowledge_view {format:"json"}` ERD `view` | Manual tables/Mermaid |
+| C4 | C4Diagram with unmodified C4 `view` | Card boxes |
+| Knowledge graph | KnowledgeGraph with knowledge_graph nodes/edges (or knowledge_get/context), ≤1500 edges | |
+
+**Mockup controls/states:** Button, ButtonGroup, ActionMenu, FilterBar, ToggleGroup, Input, Select, Textarea, Checkbox, RadioGroup, Switch, Calendar, Command, Dropzone, Pagination, Breadcrumb, OrgSwitcher, ProjectSwitcher respond locally, **never submit/save/navigate**, except Button/Link with `href` navigate only. `ChatComposer`/slots disabled unless **`interactive: true`**, which enables typing/attachment/send controls without sending/saving. Inside a mock form it remains disabled. Never substitute Textarea plus loose buttons to force typing; it distorts the screen. EmptyState, ErrorState, LoadingState, Skeleton, Spinner, MilestoneGanttLegend, MilestoneGanttSkeleton represent screen states. Use these in screen mockups, not live-data dashboards where they imply working filters/actions.
+
+## Knowledge diagrams
+
+Always use **server data, never hand-authored diagrams**.
+
+ERD:
+1. `knowledge_view {view: "erd", scope: "data_model/<slug>", format: "json"}`.
+2. `view_render` with unchanged response as `view`:
+
+```json
+{ "title": "ERD — Sales model",
+  "spec": { "root": "root", "elements": {
+    "root": { "type": "Stack", "props": { "direction": "vertical", "gap": "md" }, "children": ["erd"] },
+    "erd": { "type": "ErdDiagram", "props": { "view": <knowledge_view response>, "height": "lg" } } } } }
+```
+
+`href` supplies node path with `{id}` to link tables; `focus` highlights a table. C4 works the same with `view: "c4"`, its `level`, and C4Diagram.
+
+For an already saved page `projection` ERD/C4, use **`page_projection {path, blockId}`**, with `blockId` from page_read, preserving reader visibility and client MCP support. Never rebuild through knowledge_view/view_render.
+
+## Region patterns
+
+Patterns inside a shell/root have **one child per chosen region in region order**; `regions` selects them in that order. Regions already frame content; do not wrap children in Card. Fetch `view_catalog {types}` before using a pattern; descriptions define regions/content.
+
+| Pattern | Regions/content |
 |---|---|
-| `DashboardLayout` | Tablero: `kpis` (Stats), `main` (Chart o DataTable), `side` (BarList, Timeline, Item), `footer` (DataTable) |
-| `PageLayout` | Sección de producto: `header` (PageHeader, ProjectHeader), `toolbar` (FilterBar, botones), `main` (DataTable, Kanban…), `aside` |
-| `DetailLayout` | Detalle de un registro: `header`, `summary` (KeyValue, Stats), `main` (Tabs, Section…), `aside` |
-| `SplitView` | Lista y lectura: `list` y `detail` |
-| `BoardLayout` | Tablero o agenda: `toolbar`, `board` (Kanban, Gantt, TaskBoard, EventCalendar), `aside` |
-| `FilesLayout` | Explorador: `tree` (Tree), `list` (FileList, DataTable), `preview` |
-| `DocLayout` | Documento largo: `header`, `toc`, `content` |
-| `FormLayout` | Formulario de maqueta: `intro`, `fields`, `actions` |
-| `WizardLayout` | Alta guiada: `steps` (Stages), `main`, `actions` |
-| `SettingsLayout` | Ajustes: `nav` y `main` |
-| `ChatLayout` | Chat de maqueta con un agente: `thread` (ChatThread), `composer` (ChatComposer, con sus controles en `slots`), `aside`. Para un «Nuevo chat» sin hilo, centra el ChatComposer con la receta de `grow` y `maxWidth: "lg"` |
-| `AuthLayout` | Acceso o registro de **la app de un cliente** (para Pai usa `AuthFrame`): `brand`, `form`, `aside` |
-| `EmptyLayout` | Estado vacío rico: `visual`, `message`, `actions`, `preview` |
+| DashboardLayout | `kpis` Stats, `main` Chart/DataTable, `side` BarList/Timeline/Item, `footer` DataTable |
+| PageLayout | `header` PageHeader/ProjectHeader, `toolbar` FilterBar/buttons, `main` DataTable/Kanban…, `aside` |
+| DetailLayout | `header`, `summary` KeyValue/Stats, `main` Tabs/Section…, `aside` |
+| SplitView | `list`, `detail` |
+| BoardLayout | `toolbar`, `board` Kanban/Gantt/TaskBoard/EventCalendar, `aside` |
+| FilesLayout | `tree` Tree, `list` FileList/DataTable, `preview` |
+| DocLayout | `header`, `toc`, `content` |
+| FormLayout | Mock form: `intro`, `fields`, `actions` |
+| WizardLayout | `steps` Stages, `main`, `actions` |
+| SettingsLayout | `nav`, `main` |
+| ChatLayout | `thread` ChatThread, `composer` ChatComposer with control slots, `aside`; new empty chat centers composer using grow/maxWidth lg recipe |
+| AuthLayout | **Client app** login/registration: `brand`, `form`, `aside`; Pai uses AuthFrame |
+| EmptyLayout | `visual`, `message`, `actions`, `preview` |
 
-Antes de usar un patrón pide su esquema con `view_catalog {types}`: las regiones y qué va en cada una están en su descripción.
+Graph: `knowledge_graph {projectId}`; adapt nodes to `{id, title, kind}`, edges to `{source, target, rel}` for KnowledgeGraph, ≤1500 edges. Show modeled ERD/C4 in conversation or saved Resources architecture report.
 
-**Grafo:** `knowledge_graph {projectId}`. Convierte sus nodos a `{id, title, kind}` y sus aristas a `{source, target, rel}`, y pásalos a `KnowledgeGraph` (≤1500 aristas).
+## Recipes
 
-Úsalos para mostrar en la conversación lo que modelaste (skills `erd` y `c4`) o, guardados, en un reporte de arquitectura en Recursos.
+Server: 68 recipes/7 groups, `view_catalog {recipeGroup}` summaries, `{recipe}` complete; also at reference end. Examples: dashboard (AppShell + DashboardLayout), list-filters, record-detail, list-reading (SplitView), crm-pipeline, settings, wizard, flow, questionnaire, site-*, shop-*. For client app screens, **start from closest recipe and replace data**.
 
-## Recetas
+Useful components:
+- Image/Carousel (≤12 slides), Video MP4/WebM use **project `assetId`, never URL**; required image `alt`, video `title`. Reuse visible ready assets across pages/notes/gallery. **Saved page views only**; view_render rejects them.
+- Flow: horizontal/vertical processes/approvals/dependencies; start/end/step/decision/note, labeled arrows; ≤60 nodes/120 arrows.
+- ShellPicker displays theme shell presets from organization_theme_preview, never saves.
 
-**Del servidor** (68, en 7 grupos; `view_catalog {recipeGroup}` para el resumen de un grupo y `{recipe}` para la vista completa; también completas al final de la referencia). Por ejemplo `dashboard` (AppShell + DashboardLayout), `list-filters`, `record-detail`, `list-reading` (SplitView), `crm-pipeline`, `settings`, `wizard`, `flow`, `questionnaire`, las `site-*` del sitio y las `shop-*` de comercio. Para la pantalla de una app de cliente, **parte de la receta más cercana** y cambia sus datos.
+Plugin validated examples in `examples/`; start from them:
+1. `render-payments-summary.json`: Stack → Section source/as-of → Grid/Metric → BarList → Item next step, conversational view_render.
+2. `kpi-dashboard.json`: Section/health StatusBadge/Alert → Grid of 4 Metric → UnderlinedTabs with Stages/Table and Chart/BarList.
+3. `portal-screen.json`: PortalShell project area/audience/org/project/breadcrumb/user → Stack/ProjectHeader/Card/FilterBar/Item; Console equivalent uses ConsoleShell.
+4. `app-screen.json`: AppShell brand/nav (one active)/title/user → Breadcrumb/KPIs/Alert/Card action/menu with FilterBar/Table/Pagination. Desktop/tablet/mobile frame/fullscreen; use EmptyState/ErrorState variants. Screen prototype page follows existing `pantallas/<product>/<screen>` convention and screen `prototype: {pageId, blockId?}` (`screens`); always `view`, never `html`.
+5. `visual-report.json`: Heading h1/Text lead → Stages/KeyValue/Progress/Checklist/Timeline/Accordion.
+6. `comparison.json`: Stack/Section/Grid of one Card per option with StatusBadge, KeyValue, List → info Alert conclusion. No Card inside Card.
 
-**Componentes nuevos que conviene conocer:**
-- `Image` y `Carousel` (≤12 slides) muestran imágenes y `Video` un MP4 o WebM, siempre **assets del proyecto** por `assetId` (nunca una URL): `alt` obligatorio en las imágenes y `title` en el video. El asset puede venir de cualquier page, nota o de la galería del mismo proyecto, si está `ready` y lo ves. **Solo en vistas guardadas dentro de una page**: `view_render` los rechaza.
-- `Flow` dibuja procesos, aprobaciones o dependencias como nodos (`start`, `end`, `step`, `decision`, `note`) y flechas con etiqueta, en horizontal o vertical (≤60 nodos, ≤120 flechas).
-- `ShellPicker` muestra los app shells que puede elegir un tema (los presets de `organization_theme_preview`); solo muestra, no guarda.
+## Design
 
-**Del plugin**: cada una tiene un ejemplo completo y validado en `examples/`. Parte de él.
+- One Section/Heading h1 title, equal-level blocks; Grid for parallel, Stack sequential, tabs for alternate views of same data.
+- Each element answers a question. No chart/table duplicating figures in one tab; 3–4 metrics/row.
+- `trend` requires actual comparison explained in `detail`; negative/warning tones only for issues requiring attention.
+- Short Spanish business labels where required; no IDs/technical jargon in client views. Maintained synthetic examples use English; conversation follows user's language.
 
-1. **Resumen en la conversación** (`render-payments-summary.json`, `view_render`): `Stack` → `Section` con origen y corte → `Grid` de `Metric` → `BarList` → `Item` con lo siguiente.
-2. **Tablero de KPIs** (`kpi-dashboard.json`): `Section` con `StatusBadge` de salud y un `Alert` → `Grid` de 4 `Metric` → `UnderlinedTabs` con `Stages` + `Table` y `Chart` + `BarList`.
-3. **Pantalla del Portal** (`portal-screen.json`): `PortalShell` (`area: "project"`, `audience`, organización, proyecto, migas y usuario) → `Stack` con `ProjectHeader` y una `Card` con `FilterBar` e `Item`. Para Console es igual, con `ConsoleShell`.
-4. **Mockup de app de cliente** (`app-screen.json`): `AppShell` (brand, `nav` con uno `active`, `title`, `user`) → `Breadcrumb` → KPIs → `Alert` → `Card` con `action` y `menu`, que contiene `FilterBar` + `Table` + `Pagination`.
-   - Se ve en un marco de escritorio, tableta o móvil y se abre a pantalla completa.
-   - Para los estados vacíos o de error de la pantalla, haz variantes con `EmptyState` o `ErrorState`.
-   - Si es el prototipo de una pantalla, guárdalo en `pantallas/<producto>/<pantalla>` y lígalo desde el nodo `screen` con `prototype: {pageId, blockId?}` (skill `screens`). El prototipo de una pantalla es siempre un bloque `view`, nunca `html`.
-5. **Reporte visual o ficha** (`visual-report.json`): `Heading` h1 + `Text` lead → `Stages` → `KeyValue` → `Progress` → `Checklist` de entregables → `Timeline` → `Accordion`.
-6. **Comparativo** (`comparison.json`): `Stack` → `Section` → `Grid` de `Card`, una por opción, con `StatusBadge` (Recomendada, Alternativa o Descartada), `KeyValue` y `List` → `Alert` `info` con la conclusión. No anides `Card` dentro de `Card`.
+## Save in Resources
 
-## Diseño
+Use `view` for catalog-only, no-JavaScript dashboards/reports/comparisons/Pai/client screen mockups. For custom JS/simulation/canvas/pixel-precise or unsupported interactions use isolated, network-free **`html`** with CSS theme variables (`resources` §3). `view_render` never renders HTML; saved HTML displays in Portal.
 
-- **Jerarquía:** un título (`Section` o `Heading` h1) y debajo bloques del mismo nivel. `Grid` para lo paralelo, `Stack` para lo secuencial, pestañas para vistas alternativas del mismo dato.
-- **Menos es más:** cada elemento responde una pregunta. No pongas gráfica y tabla con los mismos números en la misma pestaña. Usa 3 o 4 métricas por fila.
-- **`tone` y `trend` con intención:** `trend` solo con comparación real (di contra qué en `detail`), y `tone: "negative"` o `"warning"` solo para lo que exige atención.
-- Etiquetas cortas y en español. Sin ids ni jerga técnica en vistas para el cliente.
+1. Search page_search/page_list; edit equivalents.
+2. Compose and **preview `view_render`**; correct reported errors, disclose CLI presentation limits.
+3. `page_validate`: `layout: "canvas"`, `{id, type: "view", title, spec}`, **no `typeSlug`** (no built-in type permits view).
+4. `page_create`: English folder path `dashboards/…`, `mockups/…`, `reports/…`; explicit `audience` internal/client; summary ≤80; stable idempotencyKey.
 
-## Guardar en Recursos
+Edit: full page_read → modify copy preserving IDs → view_render/page_validate → page_update with expectedDocumentId/expectedRevision.
 
-**¿`view` o `html`?** Una vista `pai-view@1` usa solo los componentes del catálogo, sin JavaScript, y es lo indicado para tableros, reportes, comparativos y mockups de pantallas de Pai o de apps de clientes. Si hace falta JavaScript libre (una simulación, un canvas, una maqueta pixel a pixel o una interacción que el catálogo no tiene), usa un bloque **`html`** en la page (skill `resources` §3): iframe aislado, sin red y con los tokens de Pai como variables CSS. `view_render` no dibuja HTML: el bloque `html` solo se ve guardado, en el Portal.
+## Common errors
 
-1. Busca (`page_search`, `page_list`) si ya existe la vista; si existe, edítala.
-2. Compón el spec y **previsualízalo con `view_render`**. Si da errores, corrige lo que dice.
-3. `page_validate` con la page: `layout: "canvas"`, un bloque `{id, type: "view", title, spec}` y **sin `typeSlug`**, porque ningún tipo built-in admite `view`.
-4. `page_create`:
-   - `path` en inglés por carpeta: `dashboards/…`, `mockups/…`, `reports/…`;
-   - `audience`: `internal` o `client`;
-   - `summary` ≤80 e `idempotencyKey` estable.
+Literal server messages are deliberately preserved:
 
-**Editar:**
-1. `page_read {view: "full"}`.
-2. Cambia el spec sobre esa copia, conservando los ids.
-3. `view_render` para revisar, luego `page_validate`.
-4. `page_update` con `expectedDocumentId` y `expectedRevision`.
-
-## Errores frecuentes (de `view_render` y `page_validate`)
-
-| Mensaje | Causa |
+| Message | Cause |
 |---|---|
-| `Componente desconocido «X». Consulta el catálogo de vistas.` | Un `type` fuera de `pai-view@1` |
-| `Unrecognized key: "className"` | Prop fuera del catálogo |
-| `El hijo «x» no existe.` | Un id de `children` que no está en `elements` |
-| `«x» ya es hijo de «y»; cada elemento tiene un solo padre.` | El mismo id en dos `children` |
-| `«x» no está conectado a la raíz; enlázalo como hijo o elimínalo.` | Un elemento suelto |
-| `Tabs declara N pestaña(s) y tiene M hijo(s): pon uno por pestaña.` | `tabs` y `children` de distinto largo (también en UnderlinedTabs) |
-| `La serie «S» tiene N valor(es) y hay M categoría(s).` | Una serie de `Chart` sin un valor por categoría |
-| `bloque-no-permitido` | La page lleva `typeSlug`: quítalo |
-| `ASSET_ADAPTATION_REQUIRED: …` | Una URL (`/storage`, firmada o externa) donde va un `assetId`: sube el archivo como asset (skill `resources` §5) |
-| `NOT_FOUND` en un `assetId` | El asset no es del proyecto, no está confirmado (`pending`) o no lo ves: búscalo con `asset_list` o confírmalo con `asset_confirm` |
+| `Componente desconocido «X». Consulta el catálogo de vistas.` | Type outside pai-view@1 |
+| `Unrecognized key: "className"` | Unsupported prop |
+| `El hijo «x» no existe.` | children ID absent from elements |
+| `«x» ya es hijo de «y»; cada elemento tiene un solo padre.` | Multiple parents |
+| `«x» no está conectado a la raíz; enlázalo como hijo o elimínalo.` | Orphan |
+| `Tabs declara N pestaña(s) y tiene M hijo(s): pon uno por pestaña.` | Tab/child counts differ (also UnderlinedTabs) |
+| `La serie «S» tiene N valor(es) y hay M categoría(s).` | Chart series/category lengths differ |
+| `bloque-no-permitido` | Remove page typeSlug |
+| `ASSET_ADAPTATION_REQUIRED: …` | URL instead of assetId; upload asset (`resources` §5) |
+| `NOT_FOUND` for assetId | Wrong project/pending/invisible; asset_list or asset_confirm |
 
-**Nunca inventes componentes, props ni iconos.** Si algo no está en el catálogo, compónlo con lo que hay o dilo. Si el servidor (`view_catalog`) ofrece algo que la referencia no tiene, manda el servidor.
+**Never invent components, props, or icons.** Compose from catalog or explain missing support. Server `view_catalog` takes precedence over stale references.

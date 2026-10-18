@@ -4,10 +4,10 @@
     "organizationId": "ORG_ID",
     "projectId": "PROJECT_ID",
     "path": "reports/phase-0-summary",
-    "title": "Ficha de la Fase 0",
-    "description": "Resumen visual del descubrimiento: alcance, equipo, avance e hitos.",
+    "title": "Phase 0 brief",
+    "description": "Visual Discovery summary: scope, team, progress, milestones.",
     "audience": "client",
-    "summary": "Ficha visual de la Fase 0 al 2026-10-06",
+    "summary": "Phase 0 visual brief as of 2026-10-06",
     "idempotencyKey": "page-shop-reports-phase-0-summary",
     "content": {
       "schemaVersion": 1,
@@ -16,12 +16,12 @@
       "sections": [
         {
           "id": "summary",
-          "title": "Ficha",
+          "title": "Brief",
           "blocks": [
             {
               "id": "phaseView",
               "type": "view",
-              "title": "Fase 0 — Descubrimiento",
+              "title": "Phase 0 — Discovery",
               "spec": {
                 "root": "root",
                 "elements": {
@@ -45,14 +45,14 @@
                   "title": {
                     "type": "Heading",
                     "props": {
-                      "text": "Fase 0 — Descubrimiento",
+                      "text": "Phase 0 — Discovery",
                       "level": "h1"
                     }
                   },
                   "lead": {
                     "type": "Text",
                     "props": {
-                      "text": "Entendimos el proceso de venta, priorizamos los módulos y dejamos lista la propuesta de la Fase 1. Corte al 2026-10-06.",
+                      "text": "We understood the sales process, prioritized modules, and prepared the Phase 1 proposal. As of 2026-10-06.",
                       "variant": "lead"
                     }
                   },
@@ -62,27 +62,27 @@
                       "columns": 3,
                       "items": [
                         {
-                          "label": "Inicio",
+                          "label": "Home",
                           "value": "2026-09-01"
                         },
                         {
-                          "label": "Cierre previsto",
+                          "label": "Expected close",
                           "value": "2026-10-17"
                         },
                         {
-                          "label": "Responsable Pai",
+                          "label": "Pai owner",
                           "value": "Alejandro Sánchez"
                         },
                         {
-                          "label": "Entrevistas",
-                          "value": "11 de 12"
+                          "label": "Interviews",
+                          "value": "11 of 12"
                         },
                         {
-                          "label": "Módulos priorizados",
+                          "label": "Prioritized modules",
                           "value": "6"
                         },
                         {
-                          "label": "Inversión",
+                          "label": "Investment",
                           "value": "$180,000 MXN"
                         }
                       ]
@@ -92,7 +92,7 @@
                     "type": "Progress",
                     "props": {
                       "value": 80,
-                      "label": "Avance de la fase: 80 %"
+                      "label": "Phase progress: 80 %"
                     }
                   },
                   "milestones": {
@@ -101,24 +101,24 @@
                       "items": [
                         {
                           "date": "2026-09-05",
-                          "title": "Arranque",
-                          "description": "Reunión de inicio y acceso a sistemas.",
+                          "title": "Kickoff",
+                          "description": "Kickoff meeting and system access.",
                           "status": "done"
                         },
                         {
                           "date": "2026-09-26",
-                          "title": "Entrevistas",
-                          "description": "Ventas, cobranza y dirección.",
+                          "title": "Interviews",
+                          "description": "Sales, collections, and management.",
                           "status": "done"
                         },
                         {
                           "date": "2026-10-10",
-                          "title": "Mapa de procesos",
+                          "title": "Process map",
                           "status": "current"
                         },
                         {
                           "date": "2026-10-17",
-                          "title": "Propuesta de Fase 1",
+                          "title": "Phase 1 proposal",
                           "status": "upcoming"
                         }
                       ]
@@ -130,12 +130,12 @@
                       "type": "multiple",
                       "items": [
                         {
-                          "title": "¿Qué queda fuera de la fase?",
-                          "content": "Integraciones con el ERP y migración de datos históricos; se cotizan en la Fase 1."
+                          "title": "What is outside this phase?",
+                          "content": "ERP integrations and historical data migration; quoted in Phase 1."
                         },
                         {
-                          "title": "¿Qué necesitamos del cliente?",
-                          "content": "La entrevista pendiente con Finanzas y el catálogo de productos vigente."
+                          "title": "What do we need from the client?",
+                          "content": "Pending Finance interview and current product catalog."
                         }
                       ]
                     }
@@ -145,22 +145,22 @@
                     "props": {
                       "items": [
                         {
-                          "label": "Arranque",
+                          "label": "Kickoff",
                           "status": "done",
                           "detail": "2026-09-05"
                         },
                         {
-                          "label": "Entrevistas",
+                          "label": "Interviews",
                           "status": "done",
                           "detail": "2026-09-26"
                         },
                         {
-                          "label": "Mapa de procesos",
+                          "label": "Process map",
                           "status": "current",
                           "detail": "2026-10-10"
                         },
                         {
-                          "label": "Propuesta",
+                          "label": "Proposal",
                           "status": "upcoming",
                           "detail": "2026-10-17"
                         }
@@ -172,23 +172,23 @@
                     "props": {
                       "items": [
                         {
-                          "label": "Minutas de entrevistas",
+                          "label": "Interview minutes",
                           "status": "done"
                         },
                         {
-                          "label": "Inventario de sistemas",
+                          "label": "System inventory",
                           "status": "done"
                         },
                         {
-                          "label": "Mapa de procesos de venta",
+                          "label": "Sales process map",
                           "status": "pending",
-                          "detail": "En revisión con Ventas"
+                          "detail": "Under review with Sales"
                         },
                         {
-                          "label": "Catálogo de productos",
+                          "label": "Product catalog",
                           "status": "warning",
-                          "detail": "Falta la lista vigente del cliente",
-                          "statusLabel": "Con observaciones"
+                          "detail": "Client's current list is missing",
+                          "statusLabel": "With observations"
                         }
                       ]
                     }

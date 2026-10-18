@@ -6,12 +6,12 @@
       "projectId": "PROJECT_ID",
       "kind": "action",
       "slug": "order-detail-back-to-shop",
-      "title": "Volver a la tienda",
-      "summary": "Regresa del detalle del pedido al catálogo.",
+      "title": "Back to shop",
+      "summary": "Returns from order detail to catalog.",
       "properties": {
         "trigger": "link",
-        "effect": "Navega al catálogo de productos.",
-        "outcome": "La persona ve el catálogo."
+        "effect": "Navigates to the product catalog.",
+        "outcome": "The user sees the catalog."
       },
       "sources": [
         {
@@ -20,7 +20,7 @@
           "ref": "main"
         }
       ],
-      "changeSummary": "Alta de la acción Volver a la tienda",
+      "changeSummary": "Create Back to shop action",
       "idempotencyKey": "kn-shop-action-order-detail-back-to-shop"
     }
   },
@@ -31,19 +31,19 @@
       "projectId": "PROJECT_ID",
       "kind": "action",
       "slug": "checkout-pay",
-      "title": "Pagar",
-      "summary": "Crea el pedido y el cobro con la tarjeta capturada.",
+      "title": "Pay",
+      "summary": "Creates the order and charges the entered card.",
       "properties": {
         "trigger": "button",
-        "effect": "Crea el pedido en la API y el cobro en la pasarela; al aprobarse navega al detalle del pedido.",
+        "effect": "Creates the order in the API and charge in the gateway; approval navigates to order detail.",
         "inputs": [
           {
-            "field": "Tarjeta",
+            "field": "Card",
             "type": "Stripe Elements",
             "required": true
           }
         ],
-        "outcome": "La persona ve su pedido pagado."
+        "outcome": "The user sees the paid order."
       },
       "sources": [
         {
@@ -52,7 +52,7 @@
           "ref": "main"
         }
       ],
-      "changeSummary": "Alta de la acción Pagar",
+      "changeSummary": "Create Pay action",
       "idempotencyKey": "kn-shop-action-checkout-pay"
     }
   },
@@ -63,11 +63,11 @@
       "projectId": "PROJECT_ID",
       "kind": "action",
       "slug": "checkout-edit-cart",
-      "title": "Editar carrito",
-      "summary": "Vuelve al carrito para cambiar productos o cantidades.",
+      "title": "Edit cart",
+      "summary": "Returns to cart to change products or quantities.",
       "properties": {
         "trigger": "link",
-        "effect": "Vuelve al carrito sin crear el pedido."
+        "effect": "Returns to cart without creating the order."
       },
       "sources": [
         {
@@ -76,7 +76,7 @@
           "ref": "main"
         }
       ],
-      "changeSummary": "Alta de la acción Editar carrito",
+      "changeSummary": "Create Edit cart action",
       "idempotencyKey": "kn-shop-action-checkout-edit-cart"
     }
   },
@@ -87,31 +87,31 @@
       "projectId": "PROJECT_ID",
       "kind": "screen",
       "slug": "order-detail",
-      "title": "Detalle del pedido",
-      "summary": "Estado y contenido de un pedido del comprador.",
+      "title": "Order detail",
+      "summary": "Status and contents of a buyer's order.",
       "properties": {
         "route": "/orders/[orderId]",
-        "purpose": "Muestra al comprador el estado de su pedido, lo que compró y el total pagado.",
+        "purpose": "Shows the buyer their order status, purchased items, and total paid.",
         "actors": [
           "actor/shopper"
         ],
         "states": [
-          "Cargando",
-          "Pedido pagado",
-          "Pedido cancelado",
-          "No encontrado"
+          "Loading",
+          "Order paid",
+          "Order canceled",
+          "Not found"
         ],
         "content": [
           {
-            "block": "Encabezado",
-            "data": "Número de pedido, fecha y estado",
+            "block": "Header",
+            "data": "Order number, date, and status",
             "source": {
               "ref": "entity/order"
             }
           },
           {
-            "block": "Líneas",
-            "data": "Producto, cantidad y precio",
+            "block": "Lines",
+            "data": "Product, quantity, and price",
             "source": {
               "ref": "entity/order-line"
             }
@@ -132,7 +132,7 @@
           "ref": "main"
         }
       ],
-      "changeSummary": "Alta de la pantalla detalle de pedido",
+      "changeSummary": "Create order detail screen",
       "idempotencyKey": "kn-shop-screen-order-detail"
     }
   },
@@ -144,30 +144,30 @@
       "kind": "screen",
       "slug": "checkout",
       "title": "Checkout",
-      "summary": "Confirmación y pago del carrito.",
+      "summary": "Cart confirmation and payment.",
       "properties": {
         "route": "/checkout",
-        "purpose": "El comprador revisa su carrito, confirma la dirección y paga con tarjeta.",
+        "purpose": "Buyer reviews cart, confirms address, and pays by card.",
         "actors": [
           "actor/shopper"
         ],
         "states": [
-          "Carrito vacío",
-          "Listo para pagar",
-          "Procesando pago",
-          "Pago rechazado"
+          "Empty cart",
+          "Ready to pay",
+          "Processing payment",
+          "Payment declined"
         ],
         "content": [
           {
-            "block": "Resumen del carrito",
-            "data": "Productos, cantidades y total",
+            "block": "Cart summary",
+            "data": "Products, quantities, and total",
             "source": {
               "ref": "entity/order-line"
             }
           },
           {
-            "block": "Formulario de pago",
-            "data": "Tarjeta (Stripe Elements)",
+            "block": "Payment form",
+            "data": "Card (Stripe Elements)",
             "source": {
               "ref": "action/checkout-pay"
             }
@@ -192,7 +192,7 @@
           "ref": "main"
         }
       ],
-      "changeSummary": "Alta de la pantalla checkout",
+      "changeSummary": "Create checkout screen",
       "idempotencyKey": "kn-shop-screen-checkout"
     }
   }

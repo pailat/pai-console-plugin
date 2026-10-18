@@ -5,19 +5,19 @@
     "projectId": "PROJECT_ID",
     "kind": "task",
     "slug": "integrate-payment-webhook",
-    "title": "Integrar el webhook de pagos",
-    "summary": "Recibir y verificar el webhook de la pasarela para marcar pedidos como pagados.",
+    "title": "Integrate payment webhook",
+    "summary": "Receive and verify gateway webhook to mark orders paid.",
     "status": "active",
     "properties": {
-      "statement": "Recibir el webhook de la pasarela de pagos, verificar su firma y marcar el pedido como pagado.",
-      "rationale": "Sin el webhook, un pedido pagado fuera del checkout queda abierto.",
-      "owner": "Equipo Pai",
+      "statement": "Receive the payment gateway webhook, verify its signature, and mark the order paid.",
+      "rationale": "Without the webhook, orders paid outside checkout remain open.",
+      "owner": "Pai team",
       "startDate": "2026-10-12",
       "dueDate": "2026-10-16",
       "milestoneId": "3f2b8c1e-5d4a-4b6f-9c2e-1a7d8e9f0b12"
     },
     "sources": [{ "type": "chat" }],
-    "changeSummary": "Alta de la tarea del webhook de pagos",
+    "changeSummary": "Create payment webhook task",
     "idempotencyKey": "kn-shop-task-integrate-payment-webhook"
   }
 }

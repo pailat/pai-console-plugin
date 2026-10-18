@@ -72,27 +72,27 @@ const PLACEHOLDERS = new Set(["ORG_ID", "PROJECT_ID"]);
 
 function schemaProblems(call: Call): string[] {
 	const schema = toolSchemas.get(call.tool);
-	if (!schema) return [`tool ${call.tool}: no existe en el servidor`];
+	if (!schema) return [`tool ${call.tool}: does not exist on the server`];
 	const problems: string[] = [];
 	const properties = schema.properties ?? {};
 	for (const key of schema.required ?? [])
-		if (!(key in call.input)) problems.push(`${key}: obligatorio en ${call.tool}`);
+		if (!(key in call.input)) problems.push(`${key}: required by ${call.tool}`);
 	for (const [key, value] of Object.entries(call.input)) {
 		const property = properties[key];
 		if (!property) {
 			if (schema.additionalProperties === false)
-				problems.push(`${key}: ${call.tool} no admite esta clave`);
+				problems.push(`${key}: ${call.tool} does not allow this key`);
 			continue;
 		}
 		if (typeof value === "string" && PLACEHOLDERS.has(value)) continue;
 		const options = property.enum ?? property.anyOf?.flatMap((o) => o.enum ?? []);
 		if (options?.length && !options.includes(value))
-			problems.push(`${key}: ${JSON.stringify(value)} no está en ${JSON.stringify(options)}`);
+			problems.push(`${key}: ${JSON.stringify(value)} is not in ${JSON.stringify(options)}`);
 		if (typeof value === "string") {
 			if (property.maxLength !== undefined && value.length > property.maxLength)
-				problems.push(`${key}: más de ${property.maxLength} caracteres`);
+				problems.push(`${key}: more than ${property.maxLength} characters`);
 			if (property.minLength !== undefined && value.length < property.minLength)
-				problems.push(`${key}: menos de ${property.minLength} caracteres`);
+				problems.push(`${key}: fewer than ${property.minLength} characters`);
 		}
 	}
 	return problems;
@@ -139,7 +139,7 @@ function knowledgeCreate(input: Record<string, unknown>): string[] {
 		return problems;
 	}
 	if (!parsed.data.sources?.length)
-		problems.push("sources: un agente debe dar al menos una fuente (SOURCE_REQUIRED)");
+		problems.push("sources: an agent must provide at least one source (SOURCE_REQUIRED)");
 	const template = getTemplate(parsed.data.kind);
 	const properties = template.schema.safeParse(parsed.data.properties);
 	if (!properties.success)
@@ -151,24 +151,24 @@ function knowledgeCreate(input: Record<string, unknown>): string[] {
 function pageWrite(input: Record<string, unknown>, allowed: Set<string>): string[] {
 	const problems = Object.keys(input)
 		.filter((key) => !allowed.has(key))
-		.map((key) => `${key}: clave no admitida por la tool`);
+		.map((key) => `${key}: key not accepted by this tool`);
 	const slug = input.typeSlug as string | undefined;
 	const type = slug ? findBuiltinPageType(slug) : null;
-	if (slug && !type) problems.push(`typeSlug: ${slug} no es un tipo built-in`);
+	if (slug && !type) problems.push(`typeSlug: ${slug} is not a built-in type`);
 	const result = validatePageContent(input.content, type);
 	for (const issue of result.issues)
 		problems.push(`content.${issue.path} [${issue.code}]: ${issue.message}`);
 	if (typeof input.summary === "string" && input.summary.length > 80)
-		problems.push("summary: más de 80 caracteres");
+		problems.push("summary: more than 80 characters");
 	return problems;
 }
 
 function viewRender(input: Record<string, unknown>): string[] {
 	const problems = Object.keys(input)
 		.filter((key) => !["title", "spec", "organizationId"].includes(key))
-		.map((key) => `${key}: clave no admitida por la tool`);
+		.map((key) => `${key}: key not accepted by this tool`);
 	if (typeof input.title !== "string" || !input.title || input.title.length > 160)
-		problems.push("title: obligatorio, de 1 a 160 caracteres");
+		problems.push("title: required, 1 to 160 characters");
 	const result = validateViewSpec(input.spec);
 	for (const issue of result.issues ?? [])
 		problems.push(`spec.${issue.path ?? ""}: ${issue.message}`);
@@ -212,11 +212,11 @@ function flowGraph(input: Record<string, unknown>): string[] {
 	const problems: string[] = [];
 	const starts = steps.filter((step) => step.kind === "start");
 	if (starts.length !== 1)
-		problems.push(`readiness: ${starts.length} pasos start; debe haber uno`);
+		problems.push(`readiness: ${starts.length} start steps; exactly one is required`);
 	if (!steps.some((step) => step.kind === "end"))
-		problems.push("readiness: sin paso end");
+		problems.push("readiness: missing end step");
 	for (const step of steps)
-		if (!step.actor) problems.push(`readiness: el paso ${step.key} no tiene actor`);
+		if (!step.actor) problems.push(`readiness: step ${step.key} has no actor`);
 	const exits = new Map<string, FlowTransition[]>();
 	for (const transition of transitions)
 		exits.set(transition.from, [...(exits.get(transition.from) ?? []), transition]);
@@ -224,7 +224,7 @@ function flowGraph(input: Record<string, unknown>): string[] {
 		const out = exits.get(step.key) ?? [];
 		if (out.length < 2 || out.some((transition) => !transition.label))
 			problems.push(
-				`readiness: la decisión ${step.key} necesita 2 o más ramas con etiqueta`,
+				`readiness: decision ${step.key} needs at least two labeled branches`,
 			);
 	}
 	if (starts.length === 1) {
@@ -240,7 +240,7 @@ function flowGraph(input: Record<string, unknown>): string[] {
 		}
 		for (const step of steps)
 			if (!seen.has(step.key))
-				problems.push(`readiness: el paso ${step.key} no se alcanza desde el inicio`);
+				problems.push(`readiness: step ${step.key} is unreachable from the start`);
 	}
 	return problems;
 }
@@ -283,7 +283,7 @@ function checkContract(call: Call): string[] {
 		case "organization_theme_revert":
 			return [];
 		default:
-			return [`tool ${call.tool}: el validador no la conoce`];
+			return [`tool ${call.tool}: unknown to the validator`];
 	}
 }
 
@@ -314,5 +314,5 @@ for (const file of files) {
 		for (const problem of problems) console.log(`     ${problem}`);
 	});
 }
-console.log(`\n${files.length} archivos, ${failures} fallos`);
+console.log(`\n${files.length} files, ${failures} failures`);
 process.exit(failures === 0 ? 0 : 1);

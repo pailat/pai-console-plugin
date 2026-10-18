@@ -1,0 +1,941 @@
+{
+  "generatedFrom": "pai-portal 53d255b53 (2026-10-15 Merge feat/0.2.5/flows: un solo ScreenFrame para pantallas, con dispositivos y hotspots (ATE-230 D))",
+  "tools": {
+    "agent_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "agent_delete": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "agent_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "agent_inbox": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "agent_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "agent_update": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "asset_confirm": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "asset_delete": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "asset_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "asset_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "asset_upload": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "brief_agenda": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "brief_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "brief_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "brief_update_status": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "comment_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "comment_edit": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "comment_history": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "comment_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "comment_recipients": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "comment_reopen": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "comment_reply": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "comment_resolve": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "comment_send_to_agent": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "credit_balance": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "credit_transactions": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_access_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_lead_archive": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_lead_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_lead_create_from_submission": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_lead_disqualify": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_lead_duplicates": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_lead_event_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_lead_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_lead_import": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_lead_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_lead_mark_duplicate": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_lead_note_add": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_lead_organization_suggestions": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_lead_purge": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "crm_lead_qualify": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_lead_record": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_lead_summary": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_lead_task_complete": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_lead_task_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_lead_unarchive": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_lead_update": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_lead_workspace_join": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_lead_workspace_open": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_opportunity_archive": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_opportunity_contact_add": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_opportunity_contact_primary": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_opportunity_contact_remove": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_opportunity_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_opportunity_event_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_opportunity_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_opportunity_hold": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_opportunity_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_opportunity_lose": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_opportunity_note_add": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_opportunity_probability": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_opportunity_summary": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_opportunity_unarchive": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_opportunity_update": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_opportunity_win": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "crm_organization_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_organization_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_overview_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_owner_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_submission_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_submission_spam": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_task_complete": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_task_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_task_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_task_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_task_tag_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "crm_task_update": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_trace_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "file_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "file_delete": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "file_download_url": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "file_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "file_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "file_update": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "file_upload": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "flow_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "flow_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "flow_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "flow_run_finish": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "flow_run_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "flow_run_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "flow_run_start": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "flow_run_step": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "flow_save": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "flow_version_bump": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "folder_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "folder_delete": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "knowledge_archive": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "knowledge_audit": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "knowledge_batch": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "knowledge_context": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "knowledge_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "knowledge_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "knowledge_graph": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "knowledge_impact": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "knowledge_kinds": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "knowledge_library": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "knowledge_link": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "knowledge_observe": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "knowledge_query": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "knowledge_resolve": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "knowledge_revive": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "knowledge_search": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "knowledge_supersede": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "knowledge_unlink": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "knowledge_update": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "knowledge_view": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "me_avatar_upload_url": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "me_profile_update": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "milestone_baseline_capture": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "milestone_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "milestone_delete": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "milestone_dependency_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "milestone_dependency_delete": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "milestone_dependency_update": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "milestone_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "milestone_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "milestone_owner_options": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "milestone_proposal_link": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "milestone_reorder": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "milestone_update": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "note_audience_set": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "note_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "note_update": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "organization_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "organization_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "organization_invitation_cancel": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "organization_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "organization_logo_upload_url": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "organization_member_remove": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "organization_member_role_set": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "organization_slug_set": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "organization_theme_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "organization_theme_logo_confirm": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "organization_theme_logo_upload_url": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "organization_theme_preview": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "organization_theme_publish": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "organization_theme_revert": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "organization_theme_save_draft": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "organization_update": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "page_asset_upload": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "page_catalog": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "page_comment_reply": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "page_comprehension": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "page_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "page_delete": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "page_frontmatter_update": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "page_knowledge_health": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "page_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "page_migrate": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "page_move": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "page_projection": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "page_read": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "page_restore": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "page_search": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "page_suggest": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "page_suggestion_decide": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "page_suggestions": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "page_types": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "page_update": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "page_validate": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "page_version": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "page_versions": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "payment_cfdi_import": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "payment_file_download_url": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "payment_file_upload": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "payment_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "payment_record": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "payment_void": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "product_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_decide_status": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_deploy": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "product_domain_attach": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_domain_remove": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "product_domain_set": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_environment_remove": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "product_environment_set": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "product_link_project": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_link_remove": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "product_link_set": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "product_logs": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "product_member_add": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_member_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "product_member_remove": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "product_member_update": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_production_access_set": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_provision": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_provisioning_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "product_request_status": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_unlink_project": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "product_update": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_variables_set": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "project_activity": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "project_close": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "project_close_review": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "project_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "project_delete": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "project_invite_client": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "project_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "project_reopen": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "project_slug_set": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "project_status": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "project_summary": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "project_update": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "proposal_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "proposal_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "proposal_save": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "proposal_set_status": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "quiz_respond": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "status_update_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "status_update_publish": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "task_board": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "task_dependency_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "task_dependency_delete": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "task_dependency_update": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "timeline_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "view_catalog": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "view_render": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "whiteboard_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "whiteboard_read": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "whiteboard_update": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "whoami": {
+      "readOnly": true,
+      "destructive": false
+    }
+  }
+}
