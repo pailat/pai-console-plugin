@@ -6,6 +6,7 @@
  * - skills/knowledge/references/ontology.md   rels and their allowed kind pairs
  * - skills/views/references/view-catalog.md   pai-view@1 components and props
  * - skills/resources/references/page-types.md built-in page types and blocks
+ * - skills/pai-console/references/tools.md   complete English tool/schema index
  * - hooks/tools.json                          every MCP tool of the corp server
  *                                             (staff) with its annotations: the
  *                                             production guard reads it
@@ -468,9 +469,22 @@ if (referencesOnly) {
 
 // ---------------------------------------------------------------- tools ----
 
+// This is a synthetic inventory actor, not a real account or role bypass.
+// Current identity resolution supplies evaluator-derived flags and permissions.
+const { PLATFORM_ADMIN_ROLE, predefinedRoleByKey } = await import(
+    join(contracts, "iam/roles.ts")
+);
+const inventoryPermissions = predefinedRoleByKey(PLATFORM_ADMIN_ROLE)?.permissions;
+if (!inventoryPermissions?.length) throw new Error("Missing upstream platform-admin fixture permissions");
+
 const { createMcpToolServer } = await import(
 	join(portal, "apps/api/src/modules/mcp/index.ts")
 );
+const { MCP_TOOL_PERMISSIONS, IAM_TOOL_PERMISSIONS } = await import(
+    join(portal, "apps/api/src/modules/mcp/tool-permissions.ts")
+);
+const permissionNotes: Record<string, readonly string[]> = { ...MCP_TOOL_PERMISSIONS, ...IAM_TOOL_PERMISSIONS };
+
 const silent = {
 	info() {},
 	error() {},
@@ -509,6 +523,9 @@ const response = await serve(
 		name: "gen-references",
 		email: null,
 		role: "admin",
+        platformOrganizationAccess: true,
+        iamAccess: true,
+        permissions: inventoryPermissions,
 		clientId: "gen-references",
 		scopes: ["pai:manage"],
 	},
@@ -528,6 +545,18 @@ if (tools.length === 0) {
 	console.error("tools/list returned no tools:", body.slice(0, 300));
 	process.exit(1);
 }
+// Fail rather than silently shipping a partial inventory or missing annotations.
+const { MCP_TOOL_NAMES } = await import(join(contracts, "mcp-tools.ts"));
+const clientOnlyTools = new Set(["proposal_accept", "proposal_reject"]);
+const expectedTools = MCP_TOOL_NAMES.filter((name: string) => !clientOnlyTools.has(name));
+const actualNames = new Set(tools.map((tool) => tool.name));
+const missing = expectedTools.filter((name: string) => !actualNames.has(name));
+const extra = [...actualNames].filter((name) => !MCP_TOOL_NAMES.includes(name));
+if (rpc.result?.nextCursor || missing.length || extra.length || actualNames.size !== tools.length)
+    throw new Error(`Incomplete corp inventory: missing=${missing}, extra=${extra}, nextCursor=${rpc.result?.nextCursor ?? "none"}`);
+if (tools.some((tool) => typeof tool.annotations?.readOnlyHint !== "boolean"))
+    throw new Error("Every upstream tool must explicitly declare readOnlyHint");
+
 const inventory = {
 	generatedFrom: `pai-portal ${revision} (${describe})`,
 	tools: Object.fromEntries(
@@ -543,4 +572,29 @@ const inventory = {
 	),
 };
 write("hooks/tools.json", JSON.stringify(inventory, null, 2));
-write("evals/mocks/pai/_tools.json", JSON.stringify(rpc.result, null, 1));
+// Compact literal schemas fit Claude's 1 MiB mock-file limit without dropping contract data.
+write("evals/mocks/pai/_tools.json", JSON.stringify(rpc.result));
+
+// Identifier-only index: upstream descriptions remain literal in the contract fixture.
+const inventoryLines = [
+    header("Pai corp MCP tool inventory", "apps/api/src/modules/mcp/index.ts"),
+    "This is the complete tools/list for a synthetic platform-admin inventory actor with upstream-defined permissions. Real users only see tools their effective IAM grants expose; listing never grants access.",
+    "",
+    "Exact input schemas, descriptions and annotations are source-owned contract data in `../../../evals/mocks/pai/_tools.json`. Those literal server descriptions retain their source language. Read the corresponding shared workflow before invoking a tool. Permission notes aid discovery; actual resource authorization and conditional permissions remain authoritative at invocation.",
+    "",
+    "Unknown tools and environments require conservative handling. Writes retain production confirmation, authorization, CAS and idempotency requirements. Native approval policy is generated from annotations, never from tool names.",
+    "",
+    "| Tool | Access | Required inputs | Other inputs | Discovery permissions |",
+    "|---|---|---|---|---|",
+    ...[...tools].sort((a, b) => a.name.localeCompare(b.name)).map((tool) => {
+        const schema = (tool as Tool & { inputSchema: { required?: string[]; properties?: Record<string, unknown> } }).inputSchema;
+        const required = schema.required ?? [];
+        const optional = Object.keys(schema.properties ?? {}).filter((key) => !required.includes(key));
+        const code = (items: readonly string[]) => items.map((item) => "`" + item + "`").join(", ") || "—";
+        const access = tool.annotations?.readOnlyHint === true ? "Read" : "Write";
+        return "| `" + tool.name + "` | " + access + (tool.annotations?.destructiveHint ? " · destructive" : "") + " | " + code(required) + " | " + code(optional) + " | " + code(permissionNotes[tool.name] ?? []) + " |";
+    }),
+    "",
+    "Client-only proposal_accept/proposal_reject are not staff tools. Do not substitute a client credential or change memberships to bypass actor or resource restrictions.",
+];
+write("skills/pai-console/references/tools.md", inventoryLines.join("\n"));

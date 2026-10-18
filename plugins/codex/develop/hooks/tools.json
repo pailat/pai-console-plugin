@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "pai-portal 53d255b53 (2026-10-15 Merge feat/0.2.5/flows: un solo ScreenFrame para pantallas, con dispositivos y hotspots (ATE-230 D))",
+  "generatedFrom": "pai-portal 203000f869 (archived contract snapshot)",
   "tools": {
     "agent_create": {
       "readOnly": false,
@@ -61,6 +61,30 @@
       "readOnly": false,
       "destructive": true
     },
+    "chat_cancel": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "chat_close": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "chat_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "chat_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "chat_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "chat_send": {
+      "readOnly": false,
+      "destructive": false
+    },
     "comment_create": {
       "readOnly": false,
       "destructive": false
@@ -108,6 +132,10 @@
     "crm_access_get": {
       "readOnly": true,
       "destructive": false
+    },
+    "crm_lead_anonymize": {
+      "readOnly": false,
+      "destructive": true
     },
     "crm_lead_archive": {
       "readOnly": false,
@@ -171,14 +199,6 @@
     },
     "crm_lead_summary": {
       "readOnly": true,
-      "destructive": false
-    },
-    "crm_lead_task_complete": {
-      "readOnly": false,
-      "destructive": false
-    },
-    "crm_lead_task_create": {
-      "readOnly": false,
       "destructive": false
     },
     "crm_lead_unarchive": {
@@ -277,35 +297,15 @@
       "readOnly": true,
       "destructive": false
     },
+    "crm_submission_anonymize": {
+      "readOnly": false,
+      "destructive": true
+    },
     "crm_submission_get": {
       "readOnly": true,
       "destructive": false
     },
     "crm_submission_spam": {
-      "readOnly": false,
-      "destructive": false
-    },
-    "crm_task_complete": {
-      "readOnly": false,
-      "destructive": false
-    },
-    "crm_task_create": {
-      "readOnly": false,
-      "destructive": false
-    },
-    "crm_task_get": {
-      "readOnly": true,
-      "destructive": false
-    },
-    "crm_task_list": {
-      "readOnly": true,
-      "destructive": false
-    },
-    "crm_task_tag_list": {
-      "readOnly": true,
-      "destructive": false
-    },
-    "crm_task_update": {
       "readOnly": false,
       "destructive": false
     },
@@ -389,6 +389,138 @@
       "readOnly": false,
       "destructive": true
     },
+    "folder_reorder": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "iam_access_explain": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "iam_access_test": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "iam_audit_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "iam_binding_add": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "iam_binding_remove": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "iam_boundary_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "iam_boundary_set": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "iam_deny_create": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "iam_deny_delete": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "iam_deny_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "iam_deny_update": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "iam_group_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "iam_group_delete": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "iam_group_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "iam_group_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "iam_group_member_add": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "iam_group_member_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "iam_group_member_remove": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "iam_group_update": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "iam_pai_access_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "iam_permission_catalog": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "iam_policy_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "iam_policy_set": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "iam_principal_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "iam_principal_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "iam_role_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "iam_role_delete": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "iam_role_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "iam_role_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "iam_role_update": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "iam_settings_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "iam_settings_update": {
+      "readOnly": false,
+      "destructive": true
+    },
     "knowledge_archive": {
       "readOnly": false,
       "destructive": true
@@ -432,6 +564,14 @@
     "knowledge_link": {
       "readOnly": false,
       "destructive": false
+    },
+    "knowledge_merge": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "knowledge_move": {
+      "readOnly": false,
+      "destructive": true
     },
     "knowledge_observe": {
       "readOnly": false,
@@ -540,6 +680,10 @@
     "organization_create": {
       "readOnly": false,
       "destructive": false
+    },
+    "organization_domain_set": {
+      "readOnly": false,
+      "destructive": true
     },
     "organization_get": {
       "readOnly": true,
@@ -893,8 +1037,24 @@
       "readOnly": false,
       "destructive": false
     },
+    "task_archive": {
+      "readOnly": false,
+      "destructive": false
+    },
     "task_board": {
       "readOnly": true,
+      "destructive": false
+    },
+    "task_cancel": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "task_complete": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "task_create": {
+      "readOnly": false,
       "destructive": false
     },
     "task_dependency_create": {
@@ -908,6 +1068,30 @@
     "task_dependency_update": {
       "readOnly": false,
       "destructive": false
+    },
+    "task_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "task_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "task_list_mine": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "task_restore": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "task_tag_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "task_update": {
+      "readOnly": false,
+      "destructive": true
     },
     "timeline_get": {
       "readOnly": true,

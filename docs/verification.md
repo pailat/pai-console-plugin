@@ -1,22 +1,28 @@
 # Compatibility verification
 
-Verified on 2026-10-17 using Linux, Codex CLI 0.163.0, and the installed Claude Code CLI. Implementation was coordinated through Herdr with three GPT-6.1-Sol agents and an independent review of runtime and packaging.
+The 0.0.9 upstream integration was verified on 2026-10-18 on Linux with Codex CLI 0.163.0 and Claude Code CLI 2.1.302. Source compatibility is pinned to published pai-portal revision `203000f869ef56f22da8a18e0f2e51a48a2293cd`; see [integration details](upstream-sync-0.0.9.md). The initial Claude/Codex refactor was reviewed separately before this synchronization.
 
 ## Automated results
 
-- `make check`: 99 tests discovered, 98 passed, one opt-in native probe skipped by default. Package byte reproducibility and the English authoring check passed, with zero language findings.
-- `PAI_RUN_CODEX_RUNTIME=1 python3 -m unittest discover -s tests -p test_codex_runtime.py -v`: the optional probe passed separately. It uses a temporary Codex home, local mock model and local mock MCP, with no bypass flags or credentials. Known reads `whoami` and `page_read` ran; `page_update` and unknown `future_write` prompted. Rejecting both resulted in zero received writes. The server identity was `pai_console_production`.
-- All four Claude strict validations passed: marketplace/root, plugin manifest, skills and agents.
-- The mocked Claude `erd-from-description` evaluation passed at 1.00: search order, model-before-entities order, typed columns, FK columns, sources, no manual edges and final diagram verification. This is one behavioral regression case, not a claim that the entire evaluation suite was run.
-- All 15 translated example files passed the actual pai-portal contracts from archived revision `a4ece4fcf`, including C4, ERD, flows, pages/HTML, tasks, screens, themes and views. Dependencies were installed only in a temporary snapshot; the external pai-portal checkout was not changed.
-- English reference generation succeeded against the same archived contracts using `--references-only --source-revision a4ece4fcf`. Source hashes bind reviewed translations to their input prose. Literal upstream JSON examples remain source data.
-- `hooks/hooks.json`, `hooks/tools.json` and `evals/mocks/pai/_tools.json` remain byte-for-byte identical to the original revision. Claude write confirmation behavior remains covered by regression tests.
+- `make check`: 104 tests discovered, 103 passed, one opt-in native probe skipped by default. Package byte reproducibility and English authoring checks passed with zero language findings.
+- `PAI_RUN_CODEX_RUNTIME=1 python3 -m unittest discover -s tests -p test_codex_runtime.py -v`: the native probe passed separately. It uses a temporary Codex home, local mock model and local mock MCP, with no bypass flags or credentials. Known reads whoami and page_read ran; page_update and unknown future_write prompted. Rejecting both resulted in zero received writes. Server identity was pai_console_production. This is native client enforcement against local fixtures, not deployed hook trust.
+- All four Claude strict validations passed: marketplace/root, plugin manifest, skills and agents. The three new skills also passed the skill-creator metadata validator.
+- All 18 example files passed actual pai-portal contracts from archived revision 203000f869, including new unified-task creation, owned-chat listing and IAM access-test examples. Nested inputs for the new examples use the actual upstream Zod contracts. The snapshot under /tmp links existing dependencies without modifying an external checkout.
+- Full English reference and literal inventory generation succeeded against that snapshot; regenerating both a second time produced identical bytes. The in-memory tools/list has 280 tools and matches all corporate names in the upstream declaration; the two client-only proposal operations are deliberately excluded. Source hashes bind reviewed reference translations. Literal upstream schemas/descriptions/examples retain their original content and language.
+- Claude's tool fixture remains below its 1 MiB mock-file limit using compact JSON without removing contract data. Regression coverage checks the size, annotations, retired aliases, search-before-create in new domains and native policy generation for new IAM/chat/task/privacy writes.
+- The original Claude hooks declaration is unchanged. Shared policy and inventory intentionally include current upstream operations; the Claude explorer still permits only annotated reads. Production writes continue to prompt, with regression coverage for anonymization, IAM policy replacement and credit-charging sends.
+
+## Mocked behavioral evaluations
+
+The unified-task-completion and crm-link-needs-join cases each passed at 1.00 with one run, local MCP stand-ins, no baseline arm and no published report. Task evaluation confirms task_list → task_get → task_complete with expectedRevision 7, no duplicate creation and no Knowledge resolution. CRM evaluation uses actual granular permission identifiers and confirms that missing iam.staffAssignments.create does not justify creating a duplicate organization. These are simulated behavioral regressions, not live authorization checks or an exhaustive suite.
+
+The updated erd-from-description evaluation also passed at 1.00 with one mocked run: search order, model-before-entities order, typed columns, FK columns, sources, no manual edges and final diagram verification. These three cases do not establish that the entire evaluation suite passed.
 
 Helper tests include idempotent switching, unrelated TOML/comment preservation, exact approval identities, Git marketplace snapshots, ordinary-failure rollback, preservation of concurrent external edits, and refusal to replace symlinked or dangling configuration files.
 
 ## Public OAuth discovery
 
-Read-only unauthenticated GET checks passed for staging, develop and production:
+The refactor baseline on 2026-10-17 included read-only unauthenticated GET checks for staging, develop and production; these were not rerun as part of the 2026-10-18 source sync:
 
 - Each corporate MCP returned HTTP 401 and advertised protected-resource metadata matching its endpoint.
 - Each issuer advertised a dynamic registration endpoint, PKCE S256, authorization_code and refresh_token grants, and scope `pai:manage`.

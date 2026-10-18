@@ -144,20 +144,20 @@ Project assets upload once and are reused by ID in same-project pages, notes, wh
 
 Clients see assets used in visible content and their own unused uploads. `usedIn` includes only visible documents.
 
-### Prepare → PUT → confirm
+### Choose the upload path
 
-1. **Search `asset_list`** by name/kind; reuse existing `id`.
-2. `asset_upload {organizationId, projectId, filename, contentType, size, documentId?}`.
-   - PNG/JPEG/WebP/GIF **≤10 MB**, SVG **≤1 MB**, MP4/WebM **≤200 MB**; oversized → `invalid_input`.
-   - **Exact byte** `size` and `Content-Type` required by signed URL.
-   - `documentId`: page/note/board UUID, not path; must be editable (`FORBIDDEN` otherwise). Without it upload goes to staff-only gallery; clients must upload through their own note/board.
-   - Returns `assetId`, `signedUrl`, `method: "PUT"`, `headers`, `href`, `expiresIn` (300 s).
-3. PUT exact bytes/returned headers before expiry, e.g. `curl -X PUT --data-binary @image.png -H 'Content-Type: image/png' "<signedUrl>"`.
-4. `asset_confirm {assetId}` verifies existence/declared size (`ASSET_UPLOAD_MISSING`: reupload), sniffs first 64 KB against declared type (`ASSET_CONTENT_MISMATCH`; fake extension/type fails), fully reads/sanitizes SVG and saves sanitized output (`ASSET_SVG_REFUSED` if unsafe), extracts available image dimensions.
-   - Failure: `invalid_input` with `reason`, file deleted, asset remains invisible `pending`. Restart with another `asset_upload`. Already `ready` confirmation returns unchanged. Only uploader/staff can confirm.
-5. Unconfirmed `pending` assets expire after 24 h. **Never save `signedUrl`**; reference `assetId` or `href` (`/api/pages/assets/<assetId>`).
+Search `asset_list` by name/kind first and reuse existing IDs. Use the actual returned URLs and headers; never hardcode a storage or MCP origin.
 
-Legacy **`page_asset_upload {path, filename, contentType, size}`** remains for PNG/JPEG/WebP/GIF ≤10 MB on existing pages. It has **no `asset_confirm`**: pending until referenced by `page_create`/`page_update`, which verifies bytes and rejects false images with asset errors. Use `asset_upload` for video, SVG, notes, whiteboards.
+1. **PUT, with shell:** `asset_upload {organizationId,projectId,filename,contentType,size,sha256?,documentId?}` prepares an asset. Size is exact bytes; SHA-256 is original-file hex or base64url. PNG/JPEG/WebP/GIF ≤10 MB, SVG ≤1 MB, MP4/WebM ≤200 MB. Execute returned `upload.curl`, replacing `<archivo>` with the safely quoted local path, before `upload.expiresIn` (300 seconds). Send binary bytes and exactly the returned headers; do not add x-amz-checksum-* headers. The single-use ticket targets the MCP domain; sandbox/domain permission may be required. `signedUrl` is the direct bucket alternative. After HTTP 200, finalize with `asset_upload {organizationId,projectId,assetId}` or `asset_confirm {organizationId,projectId,assetId}`.
+2. **Inline, without shell:** for files ≤100 KB, provide filename, contentType, raw base64 `data` without a data: prefix, and mandatory original-file `sha256`. The asset becomes ready in that call. Never invent or re-encode bytes to imitate an unavailable file.
+3. **Chat attachment:** pass the actual host-provided `file` object: required `download_url` and `file_id`, optional `mime_type` and `file_name`. ChatGPT supplies this through openai/fileParams; the server downloads and finalizes it. Never fabricate an attachment URL or ID. Server download restrictions remain authoritative.
+4. **Portal fallback:** without shell or usable inline/attachment bytes, ask the person to upload in the project's Resources gallery at returned `portalUrl`, then locate it with `asset_list`. Report missing sandbox permission rather than claiming an upload succeeded.
+
+`documentId` is an editable page/note/whiteboard UUID, not a path. Without it, uploads go to the staff-only gallery; clients use a document they can edit. Finalization is idempotent for ready assets and verifies declared size/type, optional digest, image bytes and SVG safety. Pending assets expire after 24 hours. Never persist upload URLs; save assetId or href.
+
+A ticket's `UPLOAD_TICKET_INVALID` means expired, unknown or already used: prepare again. Fix `UPLOAD_TYPE_MISMATCH` / `UPLOAD_SIZE_MISMATCH` against the returned request before retrying the still-valid ticket. Content/digest mismatches are failures, not successful assets. Inspect actual errors; never silently substitute different bytes. An already uploaded asset missing from the gallery may still need finalization.
+
+Legacy `page_asset_upload {path,filename,contentType,size}` remains for PNG/JPEG/WebP/GIF ≤10 MB on existing pages and also returns upload instructions. It has no asset_confirm step: referencing it in page_create/page_update verifies pending bytes. Prefer asset_upload for SVG, video, notes and whiteboards.
 
 ### Use
 
@@ -177,10 +177,14 @@ Only visible, `ready`, **same-project** assets. Other project/unconfirmed/invisi
 
 ## 6. Resources files
 
-1. `file_upload {projectId, contentType, size}` ≤100 MiB returns signed URL expiring in 5 minutes.
-2. PUT immediately.
-3. `file_create {projectId, name, fileKey, folder?, mimeType?, sizeBytes?, visibility}`; omitted `folder` means root. Explicit `visibility`: `internal` staff-only, `shared` client-visible; ask before sharing.
+1. Search `file_list` before uploading. `file_upload {organizationId,projectId,contentType,size,sha256?}` accepts ≤104857600 bytes (100 MiB), with exact size and optional original-file digest.
+2. Execute returned `upload.curl` with the actual local path within five minutes, preserving returned headers and binary bytes. It uses an MCP-origin single-use ticket; signedUrl is the direct bucket alternative. Apply the same ticket/error/domain rules as asset uploads. Without shell, use Resources in Portal.
+3. `file_create {organizationId,projectId,name,fileKey,folder?,mimeType?,sizeBytes?,visibility}` registers the successful upload. Omitted folder means root. Set visibility explicitly: internal is staff-only, shared is client-visible; agree before sharing. Never fabricate fileKey.
 4. `file_update` renames/moves; `file_delete` is final. Empty folder deletion: §9.
+
+### Manual folder order
+
+`folder_reorder {organizationId,projectId,folder,items}` is staff-only. Read the folder's direct children first. folder is its path, or an empty string for the Resources root. items contains at most 500 direct-child shortIds or paths, including pages, files and subfolders. File paths are folder/name. This replaces the complete manual order; omitted children appear afterward by title. An empty items array clears manual order. Preserve existing unrelated ordering and inspect the returned complete ordered children, including each ordered flag.
 
 ## 7. Move, restore, delete
 
@@ -288,3 +292,7 @@ Typical errors: missing/mismatched page anchor, `nodeId` without `blockId`, clie
 - Do not omit `audience` for agent comments.
 - Do not expect `folder_delete` to cascade content; empty it first.
 - No unrequested whiteboard `replace`, coordinates, or raw Excalidraw elements; use `graph`/`mermaid`.
+
+## Inline Knowledge citations
+
+Use Markdown links `[label](kb:...)` for Knowledge references in page text. Never hide a kb: citation in backticks or raw HTML: schemaVersion 2 rejects citations outside links with KNOWLEDGE_CITATION_OUTSIDE_LINK. Read current page types; PRD v2 permits the documented additional metric/risk blocks without inventing section IDs.

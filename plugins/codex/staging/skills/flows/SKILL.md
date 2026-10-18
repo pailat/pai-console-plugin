@@ -164,3 +164,7 @@ Synthetic graph excerpt, preserving identifiers:
 - Never leave clearly specified alternatives only in `notes`; model branches.
 - Never invent actors, decisions, or integration responses to pass readiness checks; record uncertainty.
 - Never publish `client` before finishing and testing the graph.
+
+## Preserve canvas and screen state
+
+`flow_create` and `flow_save` accept `graph.viewport {x,y,zoom}` (zoom >0) and step `position {x,y}`. Preserve these from a complete flow_get when editing an existing graph. `screenState` selects a linked screen prototype state by its actual key or name; read screen.prototype.states from flow_get, never invent a state. Keep layoutDirection TB by default or the existing value; use LR when requested. These are graph fields, not top-level tool keys. Full graph replacement still deletes omitted steps/transitions and requires fresh CAS and stable idempotencyKey.

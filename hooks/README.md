@@ -8,7 +8,7 @@ Claude transcript-based search check. All maintained messages are English.
 
 ## Codex packaging contract
 
-Set the generated plugin manifest's `hooks` field explicitly to
+Set the generated plugin manifest's `extensions.com.openai.hooks` explicitly to
 `"./hooks/codex_hooks.json"`. The default `hooks/hooks.json` belongs to Claude.
 Package all Python files and `tools.json` alongside the Codex manifest. The
 packaging adapter must configure native MCP approval policies for production
@@ -52,11 +52,11 @@ package metadata and namespace; it does not independently attest the client's
 effective transport configuration. Do not reuse these server names for unrelated
 connections.
 
-The adapter never reads Claude options or user MCP endpoint settings. CRM-only
+The adapter never reads Claude options or user MCP endpoint settings. CRM/IAM-only
 sessions use the validated packaged endpoint and exact namespace without requiring unavailable
-`whoami`. Non-CRM writes require a successful same-server `whoami` reporting the
+`whoami`; this also applies to known unified task writes. Other writes require a successful same-server `whoami` reporting the
 packaged environment. Missing, unknown, or mismatched identity after a `whoami`
-result blocks all writes, including CRM writes, until a successful matching
+result blocks all writes, including restricted-domain writes, until a successful matching
 `whoami`. Unknown Pai tools are denied in every environment.
 
 ## Event and state contract
@@ -121,7 +121,7 @@ PAI_RUN_CODEX_RUNTIME=1 python3 -m unittest discover -s tests -p test_codex_runt
 Set `PAI_CODEX_RUNTIME_ARTIFACTS` to a new directory to retain native request,
 response, config, and MCP-call evidence. Without explicit opt-in the test skips.
 Python contract tests cover environment-specific namespaces, production identity
-reported on staging (blocking CRM and non-CRM writes), concurrent state writes,
+reported on staging (blocking CRM and writes outside the restricted CRM/IAM and unified task families), concurrent state writes,
 all inventory policies, lifecycle events, malformed results, and isolation.
 
 The native probe passed on Codex CLI **0.163.0** with observed tool names

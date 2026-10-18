@@ -1,0 +1,7 @@
+{
+  "0128ddfa1e14dd02e44eeb63982b920b4795cae8e5c8bf57d0acedf2ee13293c": "- Knowledge (schemaVersion 2): a block cites nodes from the project or its organization with refs [{nodeId, revision, role}] (role cites, grounds or subject), or inline with [text](kb:kind/slug@rN) or <kb:kind/slug@rN> in text, callout, cards and comparison (never inside backticks or HTML: KNOWLEDGE_CITATION_OUTSIDE_LINK); on save, the server adds each inline citation to the block refs (without @rN it uses the current revision). A client page (audience client) only cites client-visible nodes: page_validate lists them.",
+  "2c115c556afd74fa7e6f003ff951f31792a3ab350f3d54a5ea2775fdd2ce1ae6": "### `prd` — Product requirements (v2)",
+  "3e008f4aebb1542b2affdfba79749a9a5d8cffe80a521e1ec22fd49b6cb70bb9": "- `timeline`: Dates, events and their meaning.",
+  "75be14e7d7e4679a262522b637d353191315c3cc4d6fd76eb0e53b9c6cf1f47f": "| `metricas` Success metrics | yes | facts, data-table, text, callout | 1 |",
+  "b0c3b88fe71bc940ba3bb32ddda9c3648914171618067cf3d5e08a8d7e8a9fc1": "| `riesgos` Risks | no | risks, text, callout | 1 |"
+}

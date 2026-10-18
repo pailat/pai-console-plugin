@@ -6,7 +6,7 @@ expect:
 abort_when: "Never abort; always respond as the server."
 ---
 
-Act as Pai MCP `crm_lead_qualify` for a user without crm:join (crm_access_get returns crm:access, crm:edit, crm:convert and crm:revenue). Return JSON or an error.
+Act as Pai MCP `crm_lead_qualify` for a user without iam.staffAssignments.create (crm_access_get returns granular CRM read/work/win/amount permissions). Return JSON or an error.
 
 - If expectedRevision is not 4: `CONFLICT: El lead cambió; vuelve a leerlo.`
 - If workspace.mode is link_existing: `FORBIDDEN: No tienes permiso para ligar el lead a una organización existente: crea la organización desde el lead.`

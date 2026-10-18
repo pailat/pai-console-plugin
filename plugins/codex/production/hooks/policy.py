@@ -31,6 +31,11 @@ READ_TOOLS = load_read_tools()
 
 # Create tool -> tools that count as "looked for what exists first".
 SEARCH_BEFORE_CREATE = {
+    "task_create": ("task_list", "task_list_mine"),
+    "chat_create": ("chat_list",),
+    "iam_group_create": ("iam_group_list",),
+    "iam_role_create": ("iam_role_list",),
+    "iam_deny_create": ("iam_deny_list",),
     "page_create": ("page_search", "page_list", "page_read"),
     "note_create": ("page_search", "page_list", "page_read"),
     "knowledge_create": (
@@ -51,6 +56,10 @@ SEARCH_BEFORE_CREATE = {
 
 # Irreversible writes: what the confirmation must say they drag along.
 IRREVERSIBLE = {
+    "crm_lead_anonymize": "Irreversibly anonymizes the lead and associated personal data for an explicit ARCO request; retain only the server-defined audit and metrics records.",
+    "crm_submission_anonymize": "Irreversibly anonymizes a Forms submission for an explicit ARCO request; this is not ordinary archival.",
+    "chat_close": "Finally closes the owned session and revokes its agent tokens; resuming creates another session.",
+    "knowledge_merge": "Replaces the duplicate with the surviving node and transfers eligible edges; pages still cite the historical duplicate and require human review.",
     "project_delete": "Permanently deletes the project and all dependent records, including payments and CFDI (cascade deletion). There is no trash.",
     "milestone_delete": "Permanently deletes the milestone; its CFDI lose their milestone and their payments no longer count. There is no trash.",
     "page_delete": "Hard deletes the page, versions, comments, and index. page_restore cannot recover it; backlinks break.",
@@ -76,6 +85,14 @@ IRREVERSIBLE = {
 
 # High-impact but reversible (or outward-facing) writes.
 ATTENTION = {
+    "knowledge_move": "Moves Knowledge across scopes, possibly a complete subtree and released page provenance; inspect destination access and returned conflicts.",
+    "chat_send": "Sends a remote Pai Agent turn and charges organization credits. On timeout read the session before retrying.",
+    "iam_policy_set": "Replaces all explicit resource bindings using the current etag; preserve unrelated bindings and verify effective access.",
+    "iam_binding_add": "Grants the selected principal access at the selected resource scope.",
+    "iam_binding_remove": "Revokes the selected explicit binding; inherited access may remain.",
+    "iam_deny_delete": "Removes a denial and can broaden effective access.",
+    "iam_boundary_set": "Changes the organization permission ceiling; inspect current boundary and etag.",
+    "iam_settings_update": "Changes which organization projects members can see.",
     "product_request_status": "Requests a product status transition; retired can only return to draft.",
     "product_decide_status": "Approves or rejects the product status transition.",
     "status_update_publish": "Publishes the project status to the client immediately.",

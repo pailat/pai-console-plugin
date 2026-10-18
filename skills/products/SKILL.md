@@ -69,6 +69,14 @@ Read shared `pai-console` first through the current client's skill mechanism. Se
 - `product_member_list`; `product_member_add {userId | email, role, appRoles}` / `_update` / `_remove`. Cannot remove/demote the last owner.
 - **`product_production_access_set {access}`** (`public`, `protected`) changes production app access, updates Railway `PAI_PRODUCTION_ACCESS`, and **redeploys production** if already online. Confirm first and disclose the redeploy.
 
+## Product work and architecture
+
+Use `../tasks/SKILL.md` for task_list {section:"product",productId} and product-first contexts; filter by productId to include project tasks working on that product. A project task may link to one of its organization's products; a product backlog task cannot change products.
+
+Use `../knowledge/SKILL.md` for product-scoped architecture, cross-scope lookup, atomic subtree movement and deduplication. knowledge_view {view:"c4",productId} without scope renders the product context; product linkage does not grant cross-organization access.
+
+product_update accepts recipeKey and recipeVersion. Hosting/class changes are allowed only in draft before provisioning; changing to external removes the recipe. Read product_get and actual permissions before applying this change; do not provision infrastructure as a workaround for a rejected update.
+
 ## Avoid
 
 - Never deploy an unverified staging commit to production or deploy without user approval.

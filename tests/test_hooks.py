@@ -173,6 +173,28 @@ class GuardTest(HookCase):
         searched = self.transcript(PLUGIN + "flow_list")
         self.assertIsNone(self.guard(PLUGIN + "flow_create", STAGING, transcript=searched))
 
+    def test_new_domain_creates_require_the_corresponding_completed_search(self) -> None:
+        for create, search in (("task_create", "task_list"), ("chat_create", "chat_list"),
+                               ("iam_group_create", "iam_group_list"), ("iam_role_create", "iam_role_list"),
+                               ("iam_deny_create", "iam_deny_list")):
+            with self.subTest(tool=create):
+                decision, _ = self.decision(self.guard(PLUGIN + create, STAGING, transcript=self.transcript(PLUGIN + "page_list")))
+                self.assertEqual(decision, "deny")
+                searched = self.transcript(PLUGIN + search)
+                self.assertIsNone(self.guard(PLUGIN + create, STAGING, transcript=searched))
+                decision, _ = self.decision(self.guard(PLUGIN + create, PRODUCTION, transcript=searched))
+                self.assertEqual(decision, "ask")
+
+    def test_new_reads_pass_but_privacy_access_and_agent_writes_prompt(self) -> None:
+        for tool in ("iam_policy_get", "iam_access_test", "chat_list", "chat_get", "task_list_mine"):
+            self.assertIsNone(self.guard(PLUGIN + tool, PRODUCTION), tool)
+        for tool, expected in (("crm_lead_anonymize", "ARCO"), ("knowledge_merge", "duplicate"),
+                               ("chat_send", "credits"), ("iam_policy_set", "etag"),
+                               ("knowledge_move", "subtree"), ("folder_reorder", "PRODUCTION")):
+            decision, reason = self.decision(self.guard(PLUGIN + tool, PRODUCTION))
+            self.assertEqual(decision, "ask")
+            self.assertIn(expected, reason)
+
     def test_note_create_needs_a_pages_search(self) -> None:
         decision, _ = self.decision(self.guard(PLUGIN + "note_create", STAGING, transcript=self.transcript()))
         self.assertEqual(decision, "deny")
@@ -230,7 +252,7 @@ class InventoryTest(HookCase):
 
     def test_every_read_passes_and_every_write_asks_in_production(self) -> None:
         for name, hints in self.tools.items():
-            output = self.guard(PLUGIN + name, PRODUCTION, transcript=self.transcript(PLUGIN + "page_search", PLUGIN + "knowledge_search", PLUGIN + "timeline_get", PLUGIN + "project_list", PLUGIN + "organization_list", PLUGIN + "product_list", PLUGIN + "agent_list", PLUGIN + "crm_lead_duplicates", PLUGIN + "crm_organization_get"))
+            output = self.guard(PLUGIN + name, PRODUCTION, transcript=self.transcript(PLUGIN + "page_search", PLUGIN + "knowledge_search", PLUGIN + "timeline_get", PLUGIN + "project_list", PLUGIN + "organization_list", PLUGIN + "product_list", PLUGIN + "agent_list", PLUGIN + "crm_lead_duplicates", PLUGIN + "crm_organization_get", PLUGIN + "chat_list", PLUGIN + "task_list", PLUGIN + "iam_group_list", PLUGIN + "iam_role_list", PLUGIN + "iam_deny_list", PLUGIN + "flow_list"))
             if hints["readOnly"]:
                 self.assertIsNone(output, name)
             else:
@@ -249,7 +271,9 @@ class InventoryTest(HookCase):
     def test_explorer_agent_only_reads(self) -> None:
         header = (ROOT / "agents" / "pai-explorer.md").read_text().split("\n---", 1)[0]
         names = __import__("re").findall(r"mcp__plugin_pai-console_pai__(\w+)", header)
-        self.assertIn("crm_task_list", names)
+        self.assertIn("task_list", names)
+        self.assertIn("iam_access_test", names)
+        self.assertIn("chat_get", names)
         self.assertEqual(sorted(n for n in names if not self.tools.get(n, {}).get("readOnly")), [])
 
     def test_flow_tools_are_known(self) -> None:
@@ -267,12 +291,11 @@ class InventoryTest(HookCase):
             self.assertFalse(self.tools[tool]["destructive"], tool)
         self.assertTrue(self.tools["asset_delete"]["destructive"])
 
-    def test_crm_task_tools_are_known(self) -> None:
-        for tool in ("crm_task_list", "crm_task_get", "crm_task_tag_list"):
+    def test_unified_task_tools_are_known(self) -> None:
+        for tool in ("task_list", "task_get", "task_tag_list", "task_list_mine"):
             self.assertTrue(self.tools[tool]["readOnly"], tool)
-        for tool in ("crm_task_create", "crm_task_update", "crm_task_complete"):
+        for tool in ("task_create", "task_update", "task_complete", "task_cancel", "task_archive", "task_restore"):
             self.assertFalse(self.tools[tool]["readOnly"], tool)
-            self.assertFalse(self.tools[tool]["destructive"], tool)
 
 
 class SessionStartTest(HookCase):

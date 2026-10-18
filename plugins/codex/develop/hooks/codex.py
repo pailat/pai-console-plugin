@@ -215,7 +215,7 @@ def handle(event: dict) -> dict | None:
         if kind == "SessionStart":
             text = (f"Pai MCP: {config['environment'].upper()} ({config['url']}); "
                     f"plugin {config['plugin_name']}, server {config['server_name']}. This package uses a fixed endpoint. "
-                    "Call whoami before non-CRM writes. CRM-only access uses this packaged endpoint. "
+                    "Call whoami before writes when exposed. CRM/IAM-only and unified task access use this packaged endpoint. "
                     "Search before creating. Native MCP approval policies must confirm production writes; "
                     "hooks do not grant approval or replace server authorization, CAS, or idempotency.")
             return {"systemMessage": f"Pai MCP: {config['environment'].upper()} ({config['url']})",
@@ -261,7 +261,12 @@ def handle(event: dict) -> dict | None:
                 raise PolicyError("Pai session has ended; start a new session.")
             if state["identity"] not in (None, config["environment"]):
                 raise PolicyError("whoami environment does not match the packaged endpoint; repeat whoami before writing.")
-            if not tool.startswith("crm_") and state["identity"] is None:
+            # Restricted CRM/IAM users can have task writes without whoami discovery.
+            # The packaged endpoint, native approval policy and server IAM still apply.
+            restricted_write = tool.startswith(("crm_", "iam_")) or tool in {
+                "task_create", "task_update", "task_complete", "task_cancel", "task_archive", "task_restore",
+            }
+            if not restricted_write and state["identity"] is None:
                 raise PolicyError("Call whoami on this server before writing and verify its environment.")
             if tool in SEARCH_BEFORE_CREATE and not set(SEARCH_BEFORE_CREATE[tool]).intersection(state["searches"]):
                 raise PolicyError(f"Search before creating: call {' / '.join(SEARCH_BEFORE_CREATE[tool])} successfully on this server in this session before {tool}.")

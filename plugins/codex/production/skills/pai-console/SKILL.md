@@ -37,16 +37,16 @@ The same Pai MCP can have different prefixes depending on its connection:
 
 ## 1. Discover first
 
-1. `whoami`: confirm staff access (`access: "staff"`) and environment (§0). Non-staff normally have no corp tools, with the CRM exception below.
-   - **CRM only:** non-staff with `crm:access` through Console roles receive **only `crm_*` tools**, without `whoami` or projects. If only `crm_*` are available, use `crm`; do not discover organizations or projects.
-   - **Organization staff** may not be Pai staff. `whoami` still says `staff`, but tools are scoped to those organizations: `organization_list` lists only them, and `organization_create`, `brief_*`, and cross-organization tools are absent. CRM follows the actual CRM role. They cannot change Pai staff memberships; `product_provision` accepts only a new template repository, not an existing repository. An organization's `FORBIDDEN` means it is outside their scope.
+1. Call `whoami` when exposed and verify environment (§0). Discover the actual actor-specific tools and effective IAM grants. `access: "staff"` is not a universal permission.
+   - **Restricted spaces:** CRM/IAM-only users may see crm_*, iam_* and permitted unified task_* tools without whoami or projects. Use `../crm/SKILL.md`, `../iam/SKILL.md` and `../tasks/SKILL.md`; do not require unrelated organization/project tools.
+   - **Organization-scoped users:** only authorized organizations/resources are exposed. Platform-wide organization access is an evaluator result from stored bindings, never inferred from the platform role. 404 can hide inaccessible resources; FORBIDDEN/404 is not permission to try another identity or broader scope.
 2. `organization_list`: obtain `organizationId` and the user's role.
 3. `project_list`: obtain `projectId`.
 4. `project_summary`, plus `status_update_list` for the declared status when needed.
 
-All project tools require **explicit `organizationId` and `projectId`**. Read them; do not invent them or reuse another conversation's IDs.
+Project-scoped operations require the organization/project IDs in their actual schema. Unified task and chat detail operations use taskId/sessionId; IAM has its own resource shapes. Read IDs from current responses; do not invent them or reuse another conversation's IDs.
 
-`FORBIDDEN` with “no eres miembro” means the user lacks organization membership even if staff. **Never create organizations or memberships to bypass it.** Ask for access.
+`FORBIDDEN` with “no eres miembro” means this actor cannot enter that organization under its current grants. **Never create organizations or memberships to bypass it.** Ask for access.
 
 ## 2. Search before create
 
@@ -56,6 +56,9 @@ The Claude hook rejects a `*_create` without a preceding domain search in the se
 |---|---|
 | `page_create` / `note_create` | `page_search` and `page_list` (follow `nextCursor`) |
 | `knowledge_create` | `knowledge_search` (topic), `knowledge_library` (project inventory by `kinds`), `knowledge_context`, or `task_board` for tasks |
+| `task_create` | `task_list` or `task_list_mine` in the same context |
+| `chat_create` | `chat_list` for the selected scope |
+| `iam_group_create` / `iam_role_create` / `iam_deny_create` | Corresponding IAM group/role/deny list |
 | `flow_create` | `flow_list` (or `flow_get`, `knowledge_search`, `knowledge_library`) |
 | `milestone_create` | `timeline_get` or `milestone_list` |
 | `project_create` / `organization_create` / `product_create` / `agent_create` | Corresponding `*_list` |
@@ -165,7 +168,10 @@ Distinguish supported facts, inferences, and open questions.
 | Flow steps, branches, simulated integrations, role-based tests (`flow_*`, `flow_run_*`) | `flows` |
 | Milestones, tasks, dependencies, baseline, board, project closure/reopening | `schedule` |
 | SOW proposals, CFDI, payments | `proposals-payments` |
-| CRM leads, qualification, opportunities, forecast (staff or CRM roles) | `crm` |
+| CRM leads, qualification, opportunities and forecast | `crm` |
+| Unified project/product/CRM tasks and My Tasks | `tasks` |
+| Pai Agent owned chat sessions and chargeable turns | `chats` |
+| IAM permissions, policies, groups, roles, denies, boundaries and audit | `iam` |
 | Organization brand theme: colors, font, logos, Portal shell, AA (staff) | `theme` |
 | Products: registration, provisioning, deploy, domains, access | `products` |
 

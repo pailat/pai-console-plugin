@@ -43,6 +43,27 @@ const { flowGraphInputSchema } = await import(
 	join(contracts, "flows/graph.ts")
 );
 
+const { taskCreateInputSchema } = await import(join(contracts, "tasks/index.ts"));
+const { hiveSessionListQuerySchema } = await import(join(contracts, "hive/index.ts"));
+const { testIamPermissionsInputSchema } = await import(join(contracts, "iam/policy.ts"));
+
+// Substitute only documented synthetic IDs; validate nested inputs with real contracts.
+function contractInput(value: unknown): unknown {
+    if (value === "ORG_ID") return "00000000-0000-4000-8000-000000000001";
+    if (value === "PROJECT_ID") return "00000000-0000-4000-8000-000000000002";
+    if (Array.isArray(value)) return value.map(contractInput);
+    if (value && typeof value === "object")
+        return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, contractInput(item)]));
+    return value;
+}
+
+function upstreamInput(schema: { safeParse: (value: unknown) => any }, input: unknown): string[] {
+    const result = schema.safeParse(contractInput(input));
+    return result.success ? [] : result.error.issues.map(
+        (issue: { path: (string | number)[]; message: string }) => `${issue.path.join(".")}: ${issue.message}`,
+    );
+}
+
 type Call = { tool: string; input: Record<string, unknown> };
 
 /**
@@ -251,6 +272,12 @@ function check(call: Call): string[] {
 
 function checkContract(call: Call): string[] {
 	switch (call.tool) {
+        case "task_create":
+            return upstreamInput(taskCreateInputSchema, call.input);
+        case "chat_list":
+            return upstreamInput(hiveSessionListQuerySchema, call.input);
+        case "iam_access_test":
+            return upstreamInput(testIamPermissionsInputSchema, call.input);
 		case "knowledge_create":
 			return knowledgeCreate(call.input);
 		case "page_create":

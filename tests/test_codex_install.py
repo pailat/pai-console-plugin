@@ -88,6 +88,18 @@ class CodexHelperTest(unittest.TestCase):
         unknown = helper.policy_updates({}, "unrecognized", TOOLS)
         self.assertFalse(any(value is True for key, value in unknown.items() if key[-1] == "enabled" and len(key) == 3))
 
+    def test_synced_iam_chats_and_tasks_use_native_production_prompts(self):
+        tools = json.loads((ROOT / "hooks/tools.json").read_text())["tools"]
+        parsed = tomllib.loads(helper.update_toml(CONFIG, helper.policy_updates({}, "production", tools)))
+        for env in helper.ENVIRONMENTS:
+            server = parsed["plugins"][f"pai-console-{env}@{helper.MARKETPLACE}"]["mcp_servers"][f"pai_console_{env}"]
+            self.assertEqual(server["default_tools_approval_mode"], "prompt")
+            for tool in ("iam_access_test", "iam_policy_get", "task_list_mine", "chat_get"):
+                self.assertEqual(server["tools"][tool]["approval_mode"], "approve")
+            for tool in ("iam_policy_set", "task_complete", "chat_send", "crm_lead_anonymize", "knowledge_merge"):
+                self.assertEqual(server["tools"][tool]["approval_mode"], "prompt" if env == "production" else "approve")
+            self.assertNotIn("crm_task_create", server["tools"])
+
     def test_unique_server_policy_leaves_existing_generic_pai_policy_unchanged(self):
         text = CONFIG + '\n[mcp_servers.pai] # unrelated generic server\ndefault_tools_approval_mode = "approve"\n\n[plugins."pai-console-production@pai-console-plugin".mcp_servers.pai] # unrelated generic policy\ndefault_tools_approval_mode = "writes"\n'
         data = tomllib.loads(text)

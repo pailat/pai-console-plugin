@@ -6,20 +6,22 @@ Codex uses unique connection names: `pai_console_staging`, `pai_console_develop`
 
 ## 0.0.9 release preparation
 
-**Status: draft, upstream integration remains open.** The Claude/Codex refactor is validated, but this release is not frozen or ready to publish until current Pai Console capabilities have been reconciled with the plugin. No commit, PR, tag or release publication is implied by this preparation.
+**Status: draft PR [#9](https://github.com/pailat/pai-console-plugin/pull/9).** Version 0.0.9 includes the Claude/Codex refactor and the published Pai Console integration below. No tag or GitHub release has been published. OAuth, desktop presentation and live environment availability still need manual verification.
 
-Use pai-portal's `feat/0.2.5/reui` as the working integration source. The last observed source checkpoint is `3d1f18a04a1b6dbd5e1723d60c27aa07d1805b6e`; this identifies a source-code inspection, not a deployed environment. The plugin's recorded tool inventory still comes from `53d255b53`, while existing example/reference validation used archived contracts at `a4ece4fcf`. Those earlier results establish the refactor baseline, not parity with the current integration source.
+The integration source is [`pai-portal/feat/0.2.5/reui` at `203000f869ef56f22da8a18e0f2e51a48a2293cd`](https://github.com/pailat/pai-portal/commit/203000f869ef56f22da8a18e0f2e51a48a2293cd), observed on 2026-10-18. References and examples use that exact archived snapshot, not unpublished changes from another worktree. This is source compatibility, not a claim that every environment deploys this revision.
 
-| Current upstream area | Required plugin integration before release |
+| Integrated area | Plugin behavior |
 |---|---|
-| Task primitive and product backlog (`task_list_mine`, `task_list`, `task_get`, `task_tag_list`, `task_create`, `task_update`, `task_complete`, `task_cancel`, `task_archive`, `task_restore`; ATE-240, ATE-292) | Update schedule/CRM/product workflows, task and Knowledge distinctions, product context, authorization, CAS, completion/cancellation evidence, archive/restore semantics, tool inventory, examples and evals |
-| Pai Agent chats (`chat_list`, `chat_get`, `chat_create`, `chat_close`, `chat_send`, `chat_cancel`; ATE-247) | Document platform-staff scope, own-session access, closed-chat resume semantics, credit-charging sends, cancellation/errors and actual environment availability; add shared workflows and regressions |
-| Knowledge movement and deduplication (`knowledge_move`, `knowledge_merge`; ATE-293) | Document scope/subtree rules, target revisions, merge evidence, client-visible restrictions and surviving references; update policies from actual tool annotations and test the workflows |
-| Resources ordering (`folder_reorder`; ATE-239) | Add the actual folder ordering contract, access rules and regression coverage |
-| Cross-client MCP uploads (ATE-285–ATE-290) | Reconcile the plugin's existing `mcp-uploads` branch (`f4c45e5`) with English sources: MCP-origin single-use PUT tickets, `upload.curl`, inline bytes/checksums, chat attachments, finalization and Portal fallback; regenerate changed input/output references and mocks |
-| Identity, permissions and changed existing contracts | Reconcile platform versus organization staff, available tools, nullable identity fields, changed page/view contracts and error behavior; retain user authorization and client boundaries |
+| Unified tasks and product backlog | New `tasks` skill; schedule/CRM/product routing, context discovery, fresh revisions, next-step completion, cancel/archive/restore; eight retired CRM task aliases removed |
+| Pai Agent chats | New `chats` skill for owned sessions, resume, chargeable sends, timeout/cancel and final closing summaries; approvals unsupported by this MCP schema use Portal |
+| Granular IAM | New `iam` skill for diagnosis, groups/roles, bindings/policies, denies, boundaries, settings and audit; actual grants replace role-name assumptions and retired colon-style CRM permissions |
+| Knowledge movement and merge | Scope/subtree/page provenance rules, CAS, surviving references and client-visible restrictions; no automatic page rewrites |
+| Resources and uploads | Manual folder order, MCP-origin single-use PUT tickets, returned upload.curl, inline bytes/checksums, host attachments, finalization and Portal fallback |
+| Privacy and changed contracts | Explicit ARCO anonymization, organization domains, product draft/hosting restrictions, flow canvas/screen states, Knowledge context, PRD v2 and inline citations |
 
-The static upstream name list has 255 names versus 234 in the plugin's recorded corp inventory. Of the 21 unmatched names, 19 are the new staff-capable task/chat/folder/Knowledge operations above. The other two, `proposal_accept` and `proposal_reject`, are client-only operations and are intentionally absent from the staff snapshot. A full actor-specific `tools/list` is authoritative; do not copy every declared name into staff policy or infer a tool's approval mode from its name.
+The generated synthetic platform-admin corp inventory contains **280 tools** (110 reads, 170 writes), versus 234 previously: 54 added and eight retired. All 15 changed existing input schemas are refreshed. Upstream declares 282 names; proposal_accept and proposal_reject remain client-only. A real person's effective IAM grants determine their actual tools/list and resource access. Native approval policies use explicit annotations, never tool-name guesses.
+
+See [upstream integration details](docs/upstream-sync-0.0.9.md) and [verification evidence and limits](docs/verification.md). UI-only features without MCP operations, including Workforce management and changes to the My Projects board, are recorded as upstream capabilities rather than fabricated plugin tools.
 
 For every new or changed upstream capability:
 
@@ -27,9 +29,9 @@ For every new or changed upstream capability:
 2. Update shared workflows, contracts, generated references and real tool inventories, including changed schemas/annotations of existing names. If a feature has no MCP contract, record the upstream dependency instead of inventing a tool.
 3. Preserve Claude compatibility and apply the corresponding Codex adapter/policy behavior. Keep authorization, search-before-create, CAS, idempotency and production confirmations.
 4. Add appropriate examples and regression coverage, regenerate all three Codex packages, then validate against the selected upstream snapshot and installed clients. Previous test passes do not close new integration items.
-5. Freeze the release only after the integration table is resolved and verification notes identify the final source revision and any explicitly deferred items.
+5. Freeze the release only after the selected source checkpoint and explicitly deferred manual checks have been reviewed.
 
-The skills cover Resources, generative views (`pai-view@1`, `view_render`), Knowledge, ERD, C4, screens, Flows, Schedule, proposals, payments/CFDI, Products, CRM and organization themes. Use Mexican Spanish business formatting, MXN amounts and America/Mexico_City dates when the task requires them. Maintained instructions and documentation are English; authentic user content, API identifiers and literal upstream fixtures retain their original language.
+The skills cover Resources, generative views (`pai-view@1`, `view_render`), Knowledge, ERD, C4, screens, Flows, Schedule, proposals, payments/CFDI, Products, CRM, unified tasks, Pai Agent chats, IAM and organization themes. Use Mexican Spanish business formatting, MXN amounts and America/Mexico_City dates when the task requires them. Maintained instructions and documentation are English; authentic user content, API identifiers and literal upstream fixtures retain their original language.
 
 ## Environments and authentication
 
@@ -207,11 +209,11 @@ claude plugin eval . --allow-tools 'mcp__plugin_pai-console_pai__*' --trust-plug
 Full reference generation also refreshes `hooks/tools.json` and `evals/mocks/pai/_tools.json`. Preserve literal upstream data and regenerate Codex packages afterward. For a dependencies-only archived contract snapshot, regenerate just references with a recorded revision:
 
 ```bash
-PAI_PORTAL=/path/to/archived-contract-snapshot bun tools/gen-references.ts --references-only --source-revision a4ece4fcf
+PAI_PORTAL=/path/to/archived-contract-snapshot bun tools/gen-references.ts --references-only --source-revision 203000f869
 PAI_PORTAL=/path/to/archived-contract-snapshot bun tools/validate-examples.ts
 ```
 
-Integration validation used archived pai-portal revision `a4ece4fcf` (the latest view references) and dependencies installed only under `/tmp`; 15 example files were validated without changing an external checkout. This establishes compatibility with that archived contract snapshot, not a live environment.
+Integration validation used archived pai-portal revision `203000f869`, with dependencies linked only in a temporary snapshot; all 18 example files passed actual upstream contracts without changing an external checkout. The generator verifies declared-versus-discovered inventory coverage and explicit read annotations. Its literal MCP JSON is compact to fit Claude's 1 MiB mock-file limit, with no schema fields removed. This establishes source compatibility, not live environment availability.
 
 The shared trace evaluator grades normalized Claude/Codex tool calls using PyYAML from `requirements-dev.txt`:
 

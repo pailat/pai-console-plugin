@@ -98,6 +98,17 @@ On `ONTOLOGY`, find an allowed relationship for that pair in `references/ontolog
 - Without `productId`, `knowledge_query` already includes touched products' nodes and linked organization nodes; with it, results are product-scoped.
 - Closing a project records `knowledge_merged` for every product it touched.
 
+## Move and merge existing knowledge
+
+Search all relevant project/product/organization scopes before duplicating content. Use knowledge_get for reference resolution and knowledge_library/knowledge_context to inspect relevant scopes; knowledge_view {view:"c4",productId} without scope renders a product context with its system, external organization systems and actors. Verify source and destination before a scope change.
+
+- knowledge_move requires ref, toProjectId, organizationId and projectId; send expectedRevision from the current read. toProjectId:null plus toProductId targets a product, null without product targets the organization, and a project UUID targets that project. Product moves from a project must use a product it touches.
+- Inspect the containment tree first with knowledge_query scope {nodeId}. HAS_CONTAINMENT means a node cannot move alone: subtree:true atomically moves the top node and its descendants. HAS_IMPLEMENTED_BY means both ends cannot remain in the same product; resolve the relationship explicitly rather than deleting it to bypass the error.
+- A project-page-derived node needs releasePage:true to leave its project. Review this effect first: the page becomes provenance (grounds), and releasedPages identifies affected pages. Preserve IDs, history and comments. SLUG_TAKEN/IDENTIFIER_TAKEN return conflicts; do not rename another node automatically.
+- knowledge_merge requires keepRef, duplicateRef (UUID), keepExpectedRevision, duplicateExpectedRevision and evidence (1–500), plus organizationId/projectId. Read both first and explain why they are duplicates of the same kind. Optional toProjectId/toProductId moves the survivor under the same rules.
+- A merge preserves edge evidence, reports dropped duplicate edges, supersedes an assertion or archives a duplicate artifact, and never deletes it. pagesCitingDuplicate must be reviewed by a person: pages are not rewritten automatically. NEW_NOT_ACTIVE prevents an inactive survivor replacing a current node.
+- Tasks cannot move or merge through these graph tools, a duplicate inside a contains hierarchy cannot merge, closed destinations reject writes, and an agent cannot move/merge client-visible content. Do not bypass these boundaries with lower-level writes.
+
 ## Structured queries: `knowledge_query`
 
 Use for questions such as active high-priority requirements, a module's screens, or risks affecting a component:
@@ -142,9 +153,9 @@ Up to 200 atomic operations (`create` with local ref `$name`, `update`, `link`, 
   - `knowledge_library` and `knowledge_graph` accept a project (its nodes plus linked organization nodes), `"organization"` (organization nodes only), or omitted `projectId` (everything).
   - These nodes return `project: null`.
   - **Also search `"organization"` before project creation.** Link existing content (`knowledge_link` accepts UUID `targetRef`) rather than duplicating it.
-  - Creating organization nodes or moving nodes between project and organization **is not available through MCP**; a person does it in Portal/Console. Propose this for shared content.
+  - Use knowledge_move for supported project/product/organization movement under the current IAM grants; direct creation still follows knowledge_create scope. Read the movement workflow above before changing scope.
   - Organization node Portal path: `/organization/knowledge/<nodeId>`.
-- Tasks always belong to their project.
+- Legacy Knowledge task nodes/projections stay project-scoped. Unified tasks also support product backlogs and CRM contexts through `../tasks/SKILL.md`; do not create those with knowledge_create.
 
 ## Client visibility (ATE-237)
 

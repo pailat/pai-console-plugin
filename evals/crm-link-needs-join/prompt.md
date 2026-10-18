@@ -1,5 +1,5 @@
 ---
-description: Without crm:join, the crm skill does not duplicate an existing organization or bypass the permission needed to link a lead workspace.
+description: Without iam.staffAssignments.create, the crm skill does not duplicate an existing organization or bypass the permission needed to link a lead workspace.
 tags: [crm]
 runs: 2
 max_turns: 25

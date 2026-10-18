@@ -123,7 +123,7 @@ class CodexHookTest(unittest.TestCase):
                     self.configure(plugin_name=invalid)
                     with self.assertRaises(runtime.PolicyError):
                         runtime.package()
-                    self.denied(self.pre("crm_task_update"), "environment.json")
+                    self.denied(self.pre("task_update"), "environment.json")
             self.configure(plugin_name=expected)
 
     def test_wrong_server_search_cannot_authorize_create(self):
@@ -233,7 +233,7 @@ class CodexHookTest(unittest.TestCase):
         result = self.identify("production")
         self.assertEqual(result["decision"], "block")
         self.assertEqual(json.loads(self.states()[0].read_text())["identity"], "production")
-        for tool in ("page_update", "page_create", "crm_task_update", "crm_lead_create"):
+        for tool in ("page_update", "page_create", "task_update", "crm_lead_create"):
             self.denied(self.pre(tool), "environment")
         self.assertIsNone(self.pre("whoami"))
         self.identify()
@@ -247,8 +247,9 @@ class CodexHookTest(unittest.TestCase):
         runtime.handle(self.event("PostToolUse", "whoami", tool_response={"isError": True}))
         self.denied(self.pre(), "environment")
 
-    def test_crm_only_uses_fixed_endpoint_without_whoami(self):
-        self.passed(self.pre("crm_task_update"))
+    def test_restricted_access_uses_fixed_endpoint_without_whoami(self):
+        self.passed(self.pre("task_update"))
+        self.passed(self.pre("iam_policy_set"))
         self.denied(self.pre("crm_lead_create"), "Search before creating")
         self.post("crm_lead_duplicates")
         self.passed(self.pre("crm_lead_create"))
@@ -271,15 +272,15 @@ class CodexHookTest(unittest.TestCase):
         self.denied(self.pre("page_create"), "whoami")
         (self.root / "file").write_text("not a directory")
         with patch.dict(os.environ, {"PLUGIN_DATA": str(self.root / "file")}):
-            self.denied(self.pre("crm_task_update"), "unavailable")
+            self.denied(self.pre("task_update"), "unavailable")
 
     def test_missing_data_and_session_are_not_shared(self):
         for value in ("", "relative"):
             with patch.dict(os.environ, {"PLUGIN_DATA": value}):
-                self.denied(self.pre("crm_task_update"), "PLUGIN_DATA")
+                self.denied(self.pre("task_update"), "PLUGIN_DATA")
                 self.assertIsNone(self.pre("page_search"))
         for session in (None, "", [], {}):
-            self.denied(self.pre("crm_task_update", session=session), "session_id")
+            self.denied(self.pre("task_update", session=session), "session_id")
 
     def test_transcript_is_never_read(self):
         self.identify()
@@ -309,13 +310,13 @@ class CodexHookTest(unittest.TestCase):
         urls = [STAGING.replace(".app/mcp", ".app.evil.test/mcp"), "https://evil.test/" + STAGING, "https://mcp-edge-corp-staging.up.railway.app@evil.test/mcp", "http://mcp-edge-corp-staging.up.railway.app/mcp", STAGING + "?url=" + PRODUCTION, STAGING.replace("/mcp", ":9443/mcp"), PRODUCTION, "https://[broken/mcp"]
         for url in urls:
             self.configure(url=url)
-            self.denied(self.pre("crm_task_update"), "environment.json")
+            self.denied(self.pre("task_update"), "environment.json")
 
     def test_bad_packaged_configuration_never_falls_back_to_claude(self):
         for config in (None, [], {}, {**self.config, "environment": []}, {**self.config, "server_name": "other"}, {**self.config, "plugin_name": "other"}):
             (self.root / "environment.json").write_text(json.dumps(config))
             with patch.dict(os.environ, {"CLAUDE_PLUGIN_OPTION_MCP_URL": STAGING}):
-                self.denied(self.pre("crm_task_update"), "environment.json")
+                self.denied(self.pre("task_update"), "environment.json")
         (self.root / "environment.json").unlink()
         self.denied(self.pre("page_search"), "environment.json")
 
