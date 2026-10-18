@@ -4,9 +4,9 @@ Pai staff workflows for **Pai Console 0.2.5+**, distributed as the existing Clau
 
 Codex uses unique connection names: `pai_console_staging`, `pai_console_develop` and `pai_console_production`. Claude retains `pai`.
 
-## 0.0.9 release preparation
+## Release 0.0.9
 
-**Status: draft PR [#9](https://github.com/pailat/pai-console-plugin/pull/9).** Version 0.0.9 includes the Claude/Codex refactor and the published Pai Console integration below. No tag or GitHub release has been published. OAuth, desktop presentation and live environment availability still need manual verification.
+**Version 0.0.9:** [GitHub release](https://github.com/pailat/pai-console-plugin/releases/tag/v0.0.9), integrated through [PR #9](https://github.com/pailat/pai-console-plugin/pull/9). Includes the Claude/Codex refactor and the published Pai Console integration below. OAuth, desktop presentation and live environment availability still need manual installed-client verification.
 
 The integration source is [`pai-portal/feat/0.2.5/reui` at `203000f869ef56f22da8a18e0f2e51a48a2293cd`](https://github.com/pailat/pai-portal/commit/203000f869ef56f22da8a18e0f2e51a48a2293cd), observed on 2026-10-18. References and examples use that exact archived snapshot, not unpublished changes from another worktree. This is source compatibility, not a claim that every environment deploys this revision.
 
@@ -224,7 +224,7 @@ python3 tools/evaluate_traces.py --client claude spanish-locale /path/to/trace.j
 
 Trace JSON contains `calls` (each with `name`, `arguments`, and optional `isError`) and `final_response`. Tool-use graders run deterministically; LLM graders are explicitly reported as `review_required`, never silently passed. `evals/spanish-locale` checks the Spanish locale regression. Evals use a simulated MCP or recorded normalized calls and do not establish real production, OAuth, desktop hook trust or native approval behavior.
 
-Manual release checks still required in the installed desktop client:
+Manual installed-client checks still required in the desktop client:
 
 1. Discover and install each environment from the local marketplace, including installation in an existing conversation and a fresh conversation. Run the packaged setup skill.
 2. Review and trust the exact installed hooks. Verify environment diagnostics, a known read and search-before-create denial/retry in a mock or nonproduction project.
