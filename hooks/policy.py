@@ -101,6 +101,7 @@ ATTENTION = {
     "project_invite_client": "Emails an invitation to the client contact.",
     "crm_lead_create": "Creates the lead and emails the owner or team.",
     "crm_lead_qualify": "Qualifies the lead: seeds Knowledge nodes and creates the first opportunity.",
+    "crm_opportunity_lose": "Marks the deal lost; may cancel its Discovery project (read-only until project_reopen).",
     "crm_lead_workspace_open": "Creates or links the lead organization and opens its project; it cannot be relinked later.",
     "crm_lead_workspace_join": "Adds you as an admin of the client organization; the action is audited.",
     "project_close": "Makes the project read-only for everyone until reopened.",
