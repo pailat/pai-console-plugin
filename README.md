@@ -6,9 +6,9 @@ Codex uses unique connection names: `pai_console_staging`, `pai_console_develop`
 
 ## Release 0.0.10 (Pai Console 0.2.5)
 
-**Version 0.0.10**, pending its GitHub release. Source: [`pai-portal/release/0.2.5` at `a1185b46b`](https://github.com/pailat/pai-portal/commit/a1185b46b), observed on 2026-10-27, which includes #267, #268 (Pai Agent per-turn budget and turn endings), #293 (API Design cut 2) and #294 (an agent test only). This is source compatibility, not a claim that every environment deploys this revision.
+**Version 0.0.10**, pending its GitHub release. Source: [`pai-portal/release/0.2.5` at `df271445b`](https://github.com/pailat/pai-portal/commit/df271445b), observed on 2026-10-27, which includes #267, #268 (Pai Agent per-turn budget and turn endings), #293 (API Design cut 2), #294 (an agent test only), #295 (CRM accounts, no MCP change) and #297 (organization archive). This is source compatibility, not a claim that every environment deploys this revision.
 
-The synthetic corp inventory has **302 tools** (122 reads, 180 writes): 22 added since 0.0.9 and none removed. Every tool has workflow guidance:
+The synthetic corp inventory has **304 tools** (122 reads, 182 writes): 24 added since 0.0.9 and none removed. Every tool has workflow guidance:
 
 | Area | Upstream | Plugin behavior |
 |---|---|---|
@@ -21,11 +21,11 @@ The synthetic corp inventory has **302 tools** (122 reads, 180 writes): 22 added
 | Organization library | #251 | `resources`: `projectId: null` for the General library, `resource_list` with origins and no merging of homonyms |
 | CRM | #270 | `crm`: lose result (ATE-316), unique open opportunity titles (`CRM_OPPORTUNITY_TITLE_TAKEN`), archive/unarchive with tasks, lead conversion per won deal, probability reasons in history, permission-driven tool visibility, `CRM_LEAD_HAS_CHAIN` |
 | Dates and views | 0.2.5 | `schedule`/`tasks`: timed milestone and task starts, `estimatedMinutes`, date order errors, `task_list_mine.includeClosed`; `views`: `view_render` with a saved `source` |
-| Full coverage | — | Every one of the 302 tools now has workflow guidance, enforced by a test. The 35 earlier tools that no workflow named are covered: new `organizations` skill (members, invitations, slugs, `project_status`, onboarding briefs, project agents, credit history, own profile) plus `crm` contacts, `products` removals and team changes, `schedule` dependency changes and `milestone_get`, `knowledge_unlink`, and `resources` comments and file reads |
+| Full coverage | — | Every one of the 304 tools now has workflow guidance, enforced by a test. The 35 earlier tools that no workflow named are covered: new `organizations` skill (organization archive and restore, members, invitations, slugs, `project_status`, onboarding briefs, project agents, credit history, own profile) plus `crm` contacts, `products` removals and team changes, `schedule` dependency changes and `milestone_get`, `knowledge_unlink`, and `resources` comments and file reads |
 | IAM | #267, #269 | `iam`: `resources.prdApprover`, `resources.pages.confirmVersion` and `knowledge.apiDesigns.*` |
 
 - **CRM: losing a deal reports its Discovery project** (Linear ATE-316). Since pai-portal #270, `crm_opportunity_lose` returns `{ opportunity, discovery }` like `crm_opportunity_win` returns a result object, not the bare opportunity. `discovery.outcome` is `cancelled`, `kept` or `none`; `kept` lists `reasons`, including the new `close_not_permitted` (whoever lost the deal lacks `resourcemanager.projects.close`, so the project is kept). The `crm` skill documents each outcome: report it, never retry the loss when the project is kept, and reopen a cancelled one only on request with `project_reopen`. New mocks and the `crm-lose-keeps-discovery` evaluation cover the `kept` case.
-- **Generated references** come from the release snapshot through `tools/gen-references.ts`; two reviewed translations cover the cut 2 source changes (derived `uses` edges, the `api` page block). New evaluations: `api-design-save-existing`, `api-design-rules-block`, `chat-approval-needs-user`, `chat-budget-ending`, `prd-confirm-is-human` and `org-invite-pending`. Details: [integration checkpoint](docs/upstream-sync-0.0.10.md).
+- **Generated references** come from the release snapshot through `tools/gen-references.ts`; two reviewed translations cover the cut 2 source changes (derived `uses` edges, the `api` page block). New evaluations: `api-design-save-existing`, `api-design-rules-block`, `chat-approval-needs-user`, `chat-budget-ending`, `prd-confirm-is-human`, `org-invite-pending` and `org-archive-subscription`. Details: [integration checkpoint](docs/upstream-sync-0.0.10.md).
 
 ## Release 0.0.9
 

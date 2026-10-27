@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "pai-portal a1185b46b (archived contract snapshot)",
+  "generatedFrom": "pai-portal df271445b (archived contract snapshot)",
   "declaredTools": [
     "agent_create",
     "agent_delete",
@@ -188,6 +188,7 @@
     "note_audience_set",
     "note_create",
     "note_update",
+    "organization_archive",
     "organization_create",
     "organization_domain_set",
     "organization_get",
@@ -196,6 +197,7 @@
     "organization_logo_upload_url",
     "organization_member_remove",
     "organization_member_role_set",
+    "organization_restore",
     "organization_slug_set",
     "organization_theme_get",
     "organization_theme_logo_confirm",
@@ -1059,6 +1061,10 @@
       "readOnly": false,
       "destructive": true
     },
+    "organization_archive": {
+      "readOnly": false,
+      "destructive": true
+    },
     "organization_create": {
       "readOnly": false,
       "destructive": false
@@ -1090,6 +1096,10 @@
     "organization_member_role_set": {
       "readOnly": false,
       "destructive": true
+    },
+    "organization_restore": {
+      "readOnly": false,
+      "destructive": false
     },
     "organization_slug_set": {
       "readOnly": false,

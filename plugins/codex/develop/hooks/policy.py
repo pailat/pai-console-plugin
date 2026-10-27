@@ -119,6 +119,8 @@ ATTENTION = {
     "organization_member_remove": "Removes the person from the client organization.",
     "organization_member_role_set": "Changes a person's role in the client organization.",
     "organization_invitation_cancel": "Invalidates the invitation link already received by the person.",
+    "organization_archive": "Archives the organization: it disappears for everyone, members and Pai staff, until organization_restore.",
+    "organization_restore": "Restores the archived organization: it returns to lists and its members enter again.",
     "organization_slug_set": "Changes the organization URL in Portal; the old URL redirects and cannot be reused.",
     "project_slug_set": "Changes the project URL in Portal; the old URL redirects.",
     "organization_theme_publish": "Publishes the brand theme to Portal and views on the client's next load.",

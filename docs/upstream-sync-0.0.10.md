@@ -1,8 +1,8 @@
 # Pai Console integration checkpoint for 0.0.10
 
-The reviewed source is `pai-portal` [`release/0.2.5` at `a1185b46b`](https://github.com/pailat/pai-portal/commit/a1185b46b), observed on 2026-10-27. It contains every merge since the 0.0.9 checkpoint ([`203000f869`](https://github.com/pailat/pai-portal/commit/203000f869ef56f22da8a18e0f2e51a48a2293cd)), including #251, #257, #267, #268, #269, #270, #279, #281, #291, #293 and #294 (an agent test, no contract change). A `git archive` of that commit under the session scratchpad, with dependencies installed there by `bun install --frozen-lockfile --ignore-scripts`, supplies the contracts and the in-memory MCP registration. No pai-portal checkout, database, user configuration or infrastructure was modified, and no MCP tool was called against any environment: the guidance is written from source code.
+The reviewed source is `pai-portal` [`release/0.2.5` at `df271445b`](https://github.com/pailat/pai-portal/commit/df271445b), observed on 2026-10-27. It contains every merge since the 0.0.9 checkpoint ([`203000f869`](https://github.com/pailat/pai-portal/commit/203000f869ef56f22da8a18e0f2e51a48a2293cd)), including #251, #257, #267, #268, #269, #270, #279, #281, #291, #293, #294 (an agent test, no contract change), #295 (CRM accounts in Console, no MCP change) and #297 (organization archive). A `git archive` of that commit under the session scratchpad, with dependencies installed there by `bun install --frozen-lockfile --ignore-scripts`, supplies the contracts and the in-memory MCP registration. No pai-portal checkout, database, user configuration or infrastructure was modified, and no MCP tool was called against any environment: the guidance is written from source code.
 
-An earlier pass of this sync used `8319d44d2` (contract identical to `ec3fc47c8`, used by #10). Moving to `a1185b46b` adds #268, #293 and #294.
+An earlier pass of this sync used `8319d44d2` (contract identical to `ec3fc47c8`, used by #10). Moving to `df271445b` adds #268, #293, #294, #295 and #297.
 
 ## Pai Agent turns (#268)
 
@@ -18,11 +18,15 @@ An earlier pass of this sync used `8319d44d2` (contract identical to `ec3fc47c8`
 - Create and save run ruleset version 1: `error` findings block with `API_DESIGN_RULES` and `cause.findings`; warnings and info come back in the write result. Unchanged saves of older designs are not refused.
 - Saves derive `uses` edges from the `api` node to the entities and components named by `x-pai-entity`/`x-pai-component`; unresolved or wrong-kind references are warnings.
 - New page block `api {id, type, apiDesignRef, revision?}` with `API_DESIGN_NOT_FOUND`, `API_DESIGN_NOT_A_DESIGN`, `API_DESIGN_ARCHIVED`, `API_DESIGN_REVISION_NOT_FOUND` and the warning `API_DESIGN_NOT_CLIENT_VISIBLE`; `page_read` adds `apiDesigns`. `api_design_mock` answers 2xx without content empty.
-- The page content schema (page_create, page_update, page_suggest, proposal_save) gains the block; the ontology and page-type references gain two reviewed translations (`tools/reference-translations-sync-a1185b46b.json`).
+- The page content schema (page_create, page_update, page_suggest, proposal_save) gains the block; the ontology and page-type references gain two reviewed translations (`tools/reference-translations-sync-df271445b.json`).
+
+## Organization archive (#297)
+
+`organization_archive {organizationId, confirmName}` and `organization_restore {organizationId | name}` are new Pai staff writes, documented in `organizations`. Archiving hides the organization for everyone until it is restored; it is not irreversible, and hard deletion is gone from Console and the flow. Both need platform grants (`resourcemanager.organizations.archive` / `.restore`, added to the IAM permission enums), are excluded from Pai Agent, and the guard marks them ATTENTION. #295 changes no MCP tool, contract or IAM file.
 
 ## Inventory
 
-302 tools (122 reads, 180 writes) for the synthetic platform-admin inventory actor, versus 280 in 0.0.9: 22 added, none removed. Upstream declares 304 names; `proposal_accept` and `proposal_reject` remain client-only.
+304 tools (122 reads, 182 writes) for the synthetic platform-admin inventory actor, versus 280 in 0.0.9: 24 added, none removed. Upstream declares 306 names; `proposal_accept` and `proposal_reject` remain client-only.
 
 | Added tool | Skill |
 |---|---|
@@ -31,6 +35,7 @@ An earlier pass of this sync used `8319d44d2` (contract identical to `ec3fc47c8`
 | `knowledge_appearance_set`, `knowledge_appearance_remove`, `knowledge_edge_history` | `knowledge` |
 | `product_release_plan_list`, `product_release_plan_create`, `product_release_plan_update` | `products` |
 | `resource_list` | `resources` |
+| `organization_archive`, `organization_restore` | `organizations` |
 
 Upstream `apps/api/test/mcp-portal-parity.test.ts` adds `resource_list`, the Knowledge appearance and edge-history tools, and a check that `chat_send` approval responses stay staff-only (clients do not see the tool). The plugin guidance matches: chat tools are documented as staff-only.
 

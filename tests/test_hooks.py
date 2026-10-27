@@ -125,6 +125,13 @@ class GuardTest(HookCase):
         self.assertIn("may cancel its Discovery project", reason)
         self.assertIn("project_reopen", reason)
 
+    def test_organization_archive_asks_and_says_it_is_reversible(self) -> None:
+        for tool, text in (("organization_archive", "until organization_restore"), ("organization_restore", "members enter again")):
+            decision, reason = self.decision(self.guard(PLUGIN + tool, PRODUCTION))
+            self.assertEqual(decision, "ask", tool)
+            self.assertTrue(reason.startswith("ATTENTION"), tool)
+            self.assertIn(text, reason)
+
     def test_unknown_tool_counts_as_write(self) -> None:
         decision, _ = self.decision(self.guard(PLUGIN + "brand_new_tool", PRODUCTION))
         self.assertEqual(decision, "ask")

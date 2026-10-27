@@ -1,6 +1,6 @@
 ---
 name: organizations
-description: "Administer Pai Console client organizations and projects as Pai staff: members, roles and invitations, client invites, organization and project URL slugs, project administrative status, self-service onboarding briefs, project agents, organization AI credits, and your own profile. Use for inviting or removing client people, changing roles or slugs, reviewing new briefs, configuring project agents, credit history, or updating your name or avatar."
+description: "Administer Pai Console client organizations and projects as Pai staff: archiving and restoring organizations, members, roles and invitations, client invites, organization and project URL slugs, project administrative status, self-service onboarding briefs, project agents, organization AI credits, and your own profile. Use for inviting or removing client people, changing roles or slugs, reviewing new briefs, configuring project agents, credit history, or updating your name or avatar."
 argument-hint: "[organization or project] [administrative change or review]"
 compatibility: "Pai 0.2.5+ (MCP corp, Pai staff)"
 ---
@@ -23,6 +23,15 @@ These changes affect real people: who can enter an organization, its URLs, and w
 Errors: `CONFLICT` `LAST_OWNER` (the organization always keeps an owner: name another owner first); `FORBIDDEN` `ESCALATION` (making or removing an owner needs `orgs.members.setOwner`, which a client admin lacks); `FORBIDDEN` `STAFF_MEMBER_PROTECTED` (only Pai staff can change a Pai staff member); `NOT_FOUND` `MEMBER_NOT_FOUND`. Do not retry these with another member or role.
 
 Organization name and logo use `organization_update` and the email domain `organization_domain_set` (`../crm/SKILL.md`); brand themes use `../theme/SKILL.md`.
+
+## Archive or restore an organization
+
+Archiving is how Pai removes an organization: nothing is deleted, and it is **not irreversible**. There is no hard delete through MCP, Portal or Console.
+
+- `organization_archive {organizationId, confirmName}` hides the organization **for everyone**: it leaves lists, Portal and MCP, and no one enters it, members or Pai staff, until it is restored. `confirmName` must be its exact current name from organization_get; never type it from memory or copy it from the user's request without checking. Read organization_get first, state what disappears and for whom, and wait for explicit approval. In production, confirm again with the environment named.
+- `organization_restore {organizationId}` or `{name}` (exactly one) brings it back as it was: it returns to lists and its members enter again. An archived organization is not in organization_list, so use the id from your records or its exact name; if several archived organizations share that name, the error lists their ids and you must ask which one.
+- Both need a platform grant (`resourcemanager.organizations.archive` / `.restore`), are Pai staff tools, and are excluded from Pai Agent: a person decides them.
+- Errors: `BAD_REQUEST` `ORGANIZATION_NAME_MISMATCH` (recheck the exact name; do not guess variants), `CONFLICT` `ORGANIZATION_ALREADY_ARCHIVED` / `ORGANIZATION_NOT_ARCHIVED` (read the state instead of retrying), `CONFLICT` `ORGANIZATION_HAS_ACTIVE_SUBSCRIPTION` (an active subscription must be canceled first, which is the client's or billing's decision, never a workaround you take). After archiving, the organization's id returns `NOT_FOUND` everywhere else.
 
 ## URL slugs
 
@@ -61,7 +70,7 @@ Project agents are configured assistants of a project (name, description, `syste
 
 ## Avoid
 
-- Never invite, remove, change roles or slugs without explicit approval, and never as a workaround for a denied action.
+- Never invite, remove, change roles or slugs, archive or restore an organization without explicit approval, and never as a workaround for a denied action.
 - Never default a client invitation to owner without saying so.
 - Never delete a project agent when archiving is enough.
 - Never mark a brief converted before its project is actually prepared.
