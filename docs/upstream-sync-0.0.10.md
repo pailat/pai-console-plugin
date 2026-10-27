@@ -1,20 +1,32 @@
 # Pai Console integration checkpoint for 0.0.10
 
-The reviewed source is `pai-portal` [`release/0.2.5` at `8319d44d2`](https://github.com/pailat/pai-portal/commit/8319d44d2), observed on 2026-10-27. It contains every merge since the 0.0.9 checkpoint ([`203000f869`](https://github.com/pailat/pai-portal/commit/203000f869ef56f22da8a18e0f2e51a48a2293cd)), including #251, #257, #267, #269, #270, #279, #281 and #291. A `git archive` of that commit under the session scratchpad, with dependencies installed there by `bun install --frozen-lockfile --ignore-scripts`, supplies the contracts and the in-memory MCP registration. No pai-portal checkout, database, user configuration or infrastructure was modified, and no MCP tool was called against any environment: the guidance is written from source code.
+The reviewed source is `pai-portal` [`release/0.2.5` at `0eb3f6506`](https://github.com/pailat/pai-portal/commit/0eb3f6506), observed on 2026-10-27. It contains every merge since the 0.0.9 checkpoint ([`203000f869`](https://github.com/pailat/pai-portal/commit/203000f869ef56f22da8a18e0f2e51a48a2293cd)), including #251, #257, #267, #268, #269, #270, #279, #281, #291 and #293. A `git archive` of that commit under the session scratchpad, with dependencies installed there by `bun install --frozen-lockfile --ignore-scripts`, supplies the contracts and the in-memory MCP registration. No pai-portal checkout, database, user configuration or infrastructure was modified, and no MCP tool was called against any environment: the guidance is written from source code.
 
-The MCP contract at `8319d44d2` is byte-identical to the [`ec3fc47c8`](https://github.com/pailat/pai-portal/commit/ec3fc47c8) snapshot used by ATE-316 (#10): the commits after #267 only change dependencies (#291). Regenerating references changed only their provenance line.
+An earlier pass of this sync used `8319d44d2` (contract identical to `ec3fc47c8`, used by #10). Moving to `0eb3f6506` adds #268 and #293.
 
-## Not in this checkpoint
+## Pai Agent turns (#268)
 
-pai-portal #268 (Pai Agent: single readable close of failed turns, read-loop fix, and the optional per-turn credit budget `HIVE_TURN_MAX_CREDITS` / K1) is still open against `release/0.2.5`. Release has no `turnBudget`, so the `chats` skill does not describe a per-turn budget or the new turn-ending metadata. Revisit when #268 merges. There is no second API Design cut merged in release; #269 is "corte 1".
+#268 changes no chat_* MCP contract; its effects reach MCP callers through `status`, `reply`, chat_get messages and traces. The `chats` skill now documents:
+
+- **Per-turn credit budget (K1).** With `HIVE_TURN_MAX_CREDITS` set (500–100000; unset means no ceiling, the owner's value is 12000), Pai Agent estimates each step's cost and, when the next one would not fit, takes a last tool-free step to summarize. chat_send returns `completed` with the literal ending «Cerré aquí este turno al llegar a su presupuesto de créditos…». The closing step may exceed the ceiling but never the balance; a pending approval takes precedence. No field reports the budget or credits used per turn.
+- **Single readable ending.** Failed turns (time or token limit, service restart, provider error, failure before the first step) return `failed` with exactly one ending text and `metadata.pai.ending {turnId, text}`; cancellation adds none.
+- Read results kept for the turn (16000 characters) and `tools_load` with `query` only change what traces and saved tool parts show.
+
+## API Design cut 2 (#293)
+
+- `api_design_review` (rules on a saved revision) and `api_design_scaffold` (OpenAPI draft from an ERD data model, no write) are new reads.
+- Create and save run ruleset version 1: `error` findings block with `API_DESIGN_RULES` and `cause.findings`; warnings and info come back in the write result. Unchanged saves of older designs are not refused.
+- Saves derive `uses` edges from the `api` node to the entities and components named by `x-pai-entity`/`x-pai-component`; unresolved or wrong-kind references are warnings.
+- New page block `api {id, type, apiDesignRef, revision?}` with `API_DESIGN_NOT_FOUND`, `API_DESIGN_NOT_A_DESIGN`, `API_DESIGN_ARCHIVED`, `API_DESIGN_REVISION_NOT_FOUND` and the warning `API_DESIGN_NOT_CLIENT_VISIBLE`; `page_read` adds `apiDesigns`. `api_design_mock` answers 2xx without content empty.
+- The page content schema (page_create, page_update, page_suggest, proposal_save) gains the block; the ontology and page-type references gain two reviewed translations (`tools/reference-translations-sync-0eb3f6506.json`).
 
 ## Inventory
 
-300 tools (120 reads, 180 writes) for the synthetic platform-admin inventory actor, versus 280 in 0.0.9: 20 added, none removed. Upstream declares 302 names; `proposal_accept` and `proposal_reject` remain client-only.
+302 tools (122 reads, 180 writes) for the synthetic platform-admin inventory actor, versus 280 in 0.0.9: 22 added, none removed. Upstream declares 304 names; `proposal_accept` and `proposal_reject` remain client-only.
 
 | Added tool | Skill |
 |---|---|
-| `api_design_list`, `api_design_get`, `api_design_export`, `api_design_mock`, `api_design_create`, `api_design_save` | `api-design` (new) |
+| `api_design_list`, `api_design_get`, `api_design_export`, `api_design_mock`, `api_design_review`, `api_design_scaffold`, `api_design_create`, `api_design_save` | `api-design` (new) |
 | `chat_attachment_upload`, `chat_comment_list`, `chat_comment_create`, `chat_comment_reply`, `chat_comment_set_state`, `chat_trace_list`, `chat_trace_get` | `chats` |
 | `knowledge_appearance_set`, `knowledge_appearance_remove`, `knowledge_edge_history` | `knowledge` |
 | `product_release_plan_list`, `product_release_plan_create`, `product_release_plan_update` | `products` |

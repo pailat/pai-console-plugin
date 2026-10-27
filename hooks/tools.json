@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "pai-portal 8319d44d2 (archived contract snapshot)",
+  "generatedFrom": "pai-portal 0eb3f6506 (archived contract snapshot)",
   "tools": {
     "agent_create": {
       "readOnly": false,
@@ -45,9 +45,17 @@
       "readOnly": true,
       "destructive": false
     },
+    "api_design_review": {
+      "readOnly": true,
+      "destructive": false
+    },
     "api_design_save": {
       "readOnly": false,
       "destructive": true
+    },
+    "api_design_scaffold": {
+      "readOnly": true,
+      "destructive": false
     },
     "asset_confirm": {
       "readOnly": false,

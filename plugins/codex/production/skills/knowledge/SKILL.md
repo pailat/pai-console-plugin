@@ -30,7 +30,7 @@ Contract-generated references: `references/kinds.md` (templates/examples), `refe
 | Flow test (`flow_run`) | Created only by `flow_run_start` (`flows`); `knowledge_create kind=flow_run` is rejected |
 | Data model, table | `erd` skill |
 | System, container, component | `c4` skill |
-| OpenAPI 3.1 API design (`api`) | `api-design` skill; only `api_design_*` writes it, generic writes fail with `API_DESIGN_OWNED` |
+| OpenAPI 3.1 API design (`api`) | `api-design` skill; only `api_design_*` writes it, generic writes fail with `API_DESIGN_OWNED`. Its `uses` edges to entities and components are derived from `x-pai-entity`/`x-pai-component` on save: never link or unlink them by hand |
 | Procedure / reusable approach / pitfall / approach to avoid | `runbook`, `pattern`, `gotcha`, `antipattern` |
 | None of the above | `note`, as a last resort |
 

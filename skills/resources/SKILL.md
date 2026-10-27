@@ -127,6 +127,10 @@ Embed with `{id, type: "whiteboard", page, title?}`: `page` is same-project boar
 
 For a client reader, `page_read` reduces a `flow` or `whiteboard` block whose target the client cannot see (internal, archived, from another project or deleted) to `{id, type}`. That is expected, not damage: do not "repair" the block from a client session.
 
+### API design block
+
+To show an API design in a v2 page, use `{id, type: "api", apiDesignRef, revision?}`: a live read-only reference, never a pasted document. Rules, errors and client visibility («No disponible», warning `API_DESIGN_NOT_CLIENT_VISIBLE`) are in `../api-design/SKILL.md`.
+
 ### Flow block
 
 `{id, type: "flow", node, title?, height?}`: same-project `flow` node **UUID**; height 240–1200 px, default 480. Read-only canvas/open control; build with `flows`.

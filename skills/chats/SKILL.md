@@ -21,6 +21,16 @@ Read exact input schemas in `../../evals/mocks/pai/_tools.json`. These are Pai A
 6. `chat_cancel {sessionId}` stops the current owned turn. Already incurred usage is charged; an interrupted turn is not saved in history. cancelled:false means no turn was running.
 7. `chat_close {sessionId,status,closingSummary?}` accepts closed or failed. A closed session requires a closingSummary with at least one point across done/pending/next/decisions. Use the exact nested shape from the schema and real recorded references. Closing is final and revokes that chat's agent tokens; review the intended close with the user. A failed close may omit the summary.
 
+## How a turn ends
+
+Every unfinished turn closes with exactly one readable ending: a final text part in the reply (also in chat_get) whose message carries `metadata.pai.ending {turnId, text}`. Read it and relay it; do not treat it as the agent's answer to the task.
+
+- **Per-turn credit budget (K1).** When the deployment sets a per-turn ceiling (`HIVE_TURN_MAX_CREDITS`, 500–100000 credits; unset means no ceiling), Pai Agent estimates each step's cost. When the next step would not fit (or the organization balance runs short), it takes one last step without tools to summarize what it did and what remains. The send returns **`status: "completed"`**, not an error, and the reply ends with «Cerré aquí este turno al llegar a su presupuesto de créditos. Si quieres, pídeme que siga y continúo desde este punto.» Tell the user the work is partial and what is pending; send «continúa» or a follow-up only with their authorization, since each turn charges again. The closing step can push the charge slightly above the ceiling, never above the balance. A pending approval takes precedence: then the turn returns `pendingApprovals` without the budget ending.
+- **Failures** return `status: "failed"` with one ending: time limit or token limit («La respuesta quedó incompleta…»), service restart («…Vuelve a enviar tu mensaje.»), or provider error («El agente no pudo terminar la respuesta.» or the provider's label). Read chat_get to see the partial progress before deciding with the user whether to resend; never resend automatically.
+- **Cancellation** (`chat_cancel`) adds no ending.
+- No field reports the budget or credits used per turn: use `credit_balance` / `credit_transactions` (`../organizations/SKILL.md`) and trace token counts when the user asks about cost.
+- Large tool results inside Pai Agent's turn may be saved as a receipt naming the source range rather than the full output; read the source itself if you need the content.
+
 ## Attachments
 
 `chat_attachment_upload {organizationId, sessionId, filename, mediaType, size, sha256, contentBase64}` uploads one private file to an active owned chat and returns `attachmentId` (`status` pending or ready) for chat_send. Through MCP the file is at most 100 KiB, in standard base64 whose decoded length equals `size`; `sha256` is the digest of the original bytes. Never invent, recompress or re-encode content. Larger files go through the Portal upload. Allowed types: PNG, JPEG, WebP, GIF, PDF, plain text, CSV, Markdown and JSON. Upload only files the user asked to share; the upload itself does not send a message or charge a turn.
