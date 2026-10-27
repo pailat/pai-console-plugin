@@ -49,6 +49,11 @@ Changed existing tools with guidance updates:
 
 New cases: `api-design-save-existing`, `chat-approval-needs-user` and `prd-confirm-is-human`, with their own mocks; the shared `page_read` mock gains a `prd/checkout` page that `page_list` does not list. Three cases that already failed on the base commit now pass after clearer `views` and `theme` guidance, and the `page_frontmatter_update`/`page_validate` mocks list valid owner ids. See [verification](verification.md).
 
-## Known gaps outside this sync
+## Full tool coverage
 
-Thirty-five pre-0.2.5 tools are listed in `skills/pai-console/references/tools.md` but not named in any workflow (for example `brief_*`, `me_profile_update`, `organization_member_*`, some `*_remove` and dependency update/delete tools). They predate 0.2.5 and were left unchanged.
+Thirty-five tools that predate 0.2.5 were listed in `skills/pai-console/references/tools.md` but named by no workflow. They now have guidance with the same standard (when to use, search first, confirmation, literal errors, irreversibility), written from release source:
+
+- New `organizations` skill: `organization_member_role_set`, `organization_member_remove`, `organization_invitation_cancel`, `project_invite_client`, `organization_slug_set`, `project_slug_set`, `project_status`, `brief_list`, `brief_get`, `brief_agenda`, `brief_update_status`, `agent_list`, `agent_get`, `agent_update`, `agent_delete`, `credit_transactions`, `me_profile_update`, `me_avatar_upload_url`.
+- `crm`: `crm_opportunity_contact_primary`, `crm_opportunity_contact_remove`. `products`: `product_environment_remove`, `product_link_remove`, `product_unlink_project`, `product_member_update`, `product_member_remove`. `schedule`: `milestone_get`, `milestone_dependency_update`, `milestone_dependency_delete`, `task_dependency_update`, `task_dependency_delete`. `knowledge`: `knowledge_unlink`. `resources`: `comment_create`, `comment_history`, `file_get`, `file_download_url`.
+
+`tests/test_skill_refs.py` now fails if any inventory tool is not named in a `SKILL.md`. The new `org-invite-pending` evaluation covers the `organizations` skill.

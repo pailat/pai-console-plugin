@@ -21,10 +21,11 @@ The synthetic corp inventory has **300 tools** (120 reads, 180 writes): 20 added
 | Organization library | #251 | `resources`: `projectId: null` for the General library, `resource_list` with origins and no merging of homonyms |
 | CRM | #270 | `crm`: lose result (ATE-316), unique open opportunity titles (`CRM_OPPORTUNITY_TITLE_TAKEN`), archive/unarchive with tasks, lead conversion per won deal, probability reasons in history, permission-driven tool visibility, `CRM_LEAD_HAS_CHAIN` |
 | Dates and views | 0.2.5 | `schedule`/`tasks`: timed milestone and task starts, `estimatedMinutes`, date order errors, `task_list_mine.includeClosed`; `views`: `view_render` with a saved `source` |
+| Full coverage | — | Every one of the 300 tools now has workflow guidance, enforced by a test. The 35 earlier tools that no workflow named are covered: new `organizations` skill (members, invitations, slugs, `project_status`, onboarding briefs, project agents, credit history, own profile) plus `crm` contacts, `products` removals and team changes, `schedule` dependency changes and `milestone_get`, `knowledge_unlink`, and `resources` comments and file reads |
 | IAM | #267, #269 | `iam`: `resources.prdApprover`, `resources.pages.confirmVersion` and `knowledge.apiDesigns.*` |
 
 - **CRM: losing a deal reports its Discovery project** (Linear ATE-316). Since pai-portal #270, `crm_opportunity_lose` returns `{ opportunity, discovery }` like `crm_opportunity_win` returns a result object, not the bare opportunity. `discovery.outcome` is `cancelled`, `kept` or `none`; `kept` lists `reasons`, including the new `close_not_permitted` (whoever lost the deal lacks `resourcemanager.projects.close`, so the project is kept). The `crm` skill documents each outcome: report it, never retry the loss when the project is kept, and reopen a cancelled one only on request with `project_reopen`. New mocks and the `crm-lose-keeps-discovery` evaluation cover the `kept` case.
-- **Generated references** come from the release snapshot through `tools/gen-references.ts`; only their provenance line changed from `ec3fc47c8`. New evaluations: `api-design-save-existing`, `chat-approval-needs-user` and `prd-confirm-is-human`. Details: [integration checkpoint](docs/upstream-sync-0.0.10.md).
+- **Generated references** come from the release snapshot through `tools/gen-references.ts`; only their provenance line changed from `ec3fc47c8`. New evaluations: `api-design-save-existing`, `chat-approval-needs-user`, `prd-confirm-is-human` and `org-invite-pending`. Details: [integration checkpoint](docs/upstream-sync-0.0.10.md).
 
 ## Release 0.0.9
 
@@ -183,6 +184,7 @@ Config inspection, successful CLI installation and simulated hook tests do **not
 | `pai-console` | Environment discovery, authorization, search-before-create, CAS, idempotency, structured errors and citations |
 | `resources`, `views` | Pages, HTML and view blocks, projections, whiteboards, assets, comments, filters, generative UI and visual reports |
 | `knowledge`, `erd`, `c4`, `screens`, `flows`, `api-design` | Ontology, proposed decisions, data models, architecture, screens, versioned testable flows and OpenAPI 3.1 API designs |
+| `organizations` | Members, invitations, slugs, project status, onboarding briefs, project agents, credits and own profile |
 | `schedule`, `proposals-payments`, `products`, `crm` | Milestones/tasks, SOW, CFDI/payments, product operations and CRM workflows |
 | `theme` | Complete light/dark organization themes, contrast, shells, preview and confirmed publication |
 | `pai-env` | Explicit environment inspection and switching through the client-specific implementation |

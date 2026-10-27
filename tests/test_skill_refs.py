@@ -53,5 +53,15 @@ class SkillReferencesTest(unittest.TestCase):
                         )
 
 
+
+class ToolCoverageTest(unittest.TestCase):
+    def test_every_inventory_tool_has_a_workflow(self) -> None:
+        import json
+        tools = json.loads((ROOT / "hooks" / "tools.json").read_text())["tools"]
+        text = "\n".join(skill.read_text() for skill in SKILLS)
+        missing = sorted(name for name in tools if not re.search(rf"\b{re.escape(name)}\b", text))
+        self.assertEqual(missing, [], "tools without guidance in any SKILL.md")
+
+
 if __name__ == "__main__":
     unittest.main()

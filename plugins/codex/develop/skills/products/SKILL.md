@@ -61,9 +61,10 @@ Read shared `pai-console` first through the current client's skill mechanism. Se
 | Tool | Effect |
 |---|---|
 | `product_domain_attach {environment, domain}` | **Attaches in Railway**; returns user-configurable `dnsRecords`; repeat to reverify. No detach tool |
-| `product_domain_set` / `_remove` | Pai database records only |
-| `product_environment_set` / `_remove` | Pai database records only |
-| `product_link_set` / `_remove` | Pai database records only (repository, docs…) |
+| `product_domain_set` / `product_domain_remove` | Pai database records only |
+| `product_environment_set` / `product_environment_remove {productId, key}` | Pai database records only. Removing an environment used by a release plan is `CONFLICT`: update the plan first |
+| `product_link_set` / `product_link_remove {productId, url}` | Pai database records only (repository, docs…); returns `removed` |
+| `product_unlink_project {productId, projectId}` | Removes the project–product link (event `project_unlinked`); Knowledge and tasks stay. `CONFLICT` while that project's milestones are in a release plan. The project loses `productId` access to that product's Knowledge; relink with `product_link_project`. Confirm first |
 
 `product_domain_remove` **does not detach** a Railway domain.
 
@@ -78,7 +79,7 @@ A release plan is an internal, staff-only planned version of a product: a `label
 
 ## Team and access
 
-- `product_member_list`; `product_member_add {userId | email, role, appRoles}` / `_update` / `_remove`. Cannot remove/demote the last owner.
+- `product_member_list`; `product_member_add {userId | email, role, appRoles}`; `product_member_update {productId, userId, role?, appRoles?}` (`appRoles` replaces the whole list: start from product_member_list); `product_member_remove {productId, userId}` (returns `removed: false` if the person was not on the team). Pai staff or a product owner only. Removing or demoting the last owner is `CONFLICT` `LAST_OWNER`: add another owner first. Removal also drops the person's app roles; confirm before it.
 - **`product_production_access_set {access}`** (`public`, `protected`) changes production app access, updates Railway `PAI_PRODUCTION_ACCESS`, and **redeploys production** if already online. Confirm first and disclose the redeploy.
 
 ## Product work and architecture

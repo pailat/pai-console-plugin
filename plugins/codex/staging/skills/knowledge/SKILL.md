@@ -89,6 +89,8 @@ Contract-generated references: `references/kinds.md` (templates/examples), `refe
 
 **`implemented_by` (module → component):** identifies a functional module's C4 implementation. Only `module` → `component`, with **both nodes in the same product** (create/link with the same `productId`). Wrong/reversed kinds → `ONTOLOGY`; project/organization node → `cause.code: IMPLEMENTED_BY_NEEDS_PRODUCT`; different products → `IMPLEMENTED_BY_ACROSS_PRODUCTS`. Moving a node with this edge out of its product yields `PRECONDITION_FAILED` `HAS_IMPLEMENTED_BY`.
 
+**Remove an edge:** `knowledge_unlink {edgeId}` or `{rel, sourceRef, targetRef}` (staff only). It deletes only the edge, never nodes; `removed: false` means it did not exist. Removing `contains` detaches the child; removing `supersedes` restores the superseded node. Agents cannot remove client-visible edges (`CLIENT_VISIBLE_REQUIRES_PERSON`), and closed projects refuse it. Do not unlink edges the server derives (ERD `relates_to` from FK columns, flow `tests` from runs): change their source instead. Confirm before unlinking, and relink with knowledge_link if it was a mistake.
+
 On `ONTOLOGY`, find an allowed relationship for that pair in `references/ontology.md`. Do not force a superficially similar relationship just to pass validation.
 
 ## Product Knowledge (`productId`)

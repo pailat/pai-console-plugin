@@ -174,6 +174,7 @@ Distinguish supported facts, inferences, and open questions.
 | Pai Agent owned chat sessions, chargeable turns, attachments, approvals, private comments and traces | `chats` |
 | IAM permissions, policies, groups, roles, denies, boundaries and audit | `iam` |
 | Organization brand theme: colors, font, logos, Portal shell, AA (staff) | `theme` |
+| Organization members, invitations, slugs, project status, onboarding briefs, project agents, credits, own profile | `organizations` |
 | Products: registration, definition review, provisioning, deploy, domains, access, release plans | `products` |
 
 Tool inventory, including reads, writes, and irreversible actions: `references/tools.md`.
