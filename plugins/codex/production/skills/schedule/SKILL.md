@@ -39,7 +39,7 @@ Each task has `revision`, `citation`, and exact permitted transitions in `moves`
    - **Cents** `amount`, **explicit** `currency` (`mxn`/`usd`): defaults to `usd` whereas proposals default to `mxn`; make the choice explicit;
    - explicit `sequence` (1, 2, 3…); absent sequence uses max+1 and can conflict with concurrent writes.
 4. `milestone_dependency_create {predecessorMilestoneId, successorMilestoneId, reason, visibility}`. Explain waiting in `reason`; `visibility` is `internal`/`client`, client-visible when `client`.
-5. Use `../tasks/SKILL.md`: task_create with title, contexts beginning with {kind:"project",id}, and the milestone/product as additional contexts. Search first, keep the agreed dates/assignee and distinguish proposed draft from active work. The older Knowledge task route remains compatible; `examples/task.json` documents that legacy path, not the unified task input.
+5. Use `../tasks/SKILL.md`: task_create with title, contexts beginning with {kind:"project",id}, and the milestone/product as additional contexts. Search first with `task_list` in that project context, keep the agreed dates/assignee and distinguish proposed draft from active work. The older Knowledge task route remains compatible; `examples/task.json` documents that legacy path, not the unified task input.
 6. `task_dependency_create {predecessorTaskId, successorTaskId, reason, visibility}`; default `visibility: internal`; use canonical IDs accepted by the returned dependency input; do not substitute a task shortId or invent a Knowledge node.
 7. Once the user confirms the client agreed to the plan, `milestone_baseline_capture` per milestone. **One capture, immutable:** request explicit confirmation.
 

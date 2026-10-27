@@ -48,7 +48,7 @@ Contract-generated references: `references/kinds.md` (templates/examples), `refe
    Sources are strict: extra keys are rejected. `fact` and `reference` always require a source.
 2. **Human decisions remain proposals.** Create `objective`, `decision`, `adr`, `business_rule`, and `constraint` as `proposed`. Requesting `active` yields `HUMAN_CONFIRMS`.
    - Agents cannot confirm/reject; no tool permits it. A person does so in Portal or Console.
-   - Finish by **listing pending proposals** with `kb:` citations.
+   - Finish by **listing pending proposals** with `kb:` citations. Never describe a proposed node as active, effective or already in force, even when the user says the decision was already made: say it is recorded and awaits a person's confirmation in Portal or Console.
 3. **Never edit an active node of those kinds.** Create a replacement, also `proposed`. Once a person activates it, use `knowledge_supersede`; the replacement must be `active`.
 4. **People control client-visible content.**
    - Agents cannot edit, archive, or unlink client-visible nodes (`CLIENT_VISIBLE_REQUIRES_PERSON`). Never hide, edit, and republish to bypass this. Create an internal replacement proposal or ask a person.

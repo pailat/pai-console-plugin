@@ -2,16 +2,16 @@
 
 ## 0.0.10 (Pai Console 0.2.5 release)
 
-Verified on 2026-10-27 on Linux with Codex CLI 0.164.0 and Claude Code CLI 2.1.311 against pai-portal `release/0.2.5` at `8319d44d2` ([integration checkpoint](upstream-sync-0.0.10.md)). The snapshot is a `git archive` in a session scratchpad with dependencies installed there; no pai-portal checkout was modified and no MCP tool was called against any environment.
+Verified on 2026-10-27 on Linux with Codex CLI 0.164.0 and Claude Code CLI 2.1.311 against pai-portal `release/0.2.5` at `a1185b46b` ([integration checkpoint](upstream-sync-0.0.10.md)). The snapshot is a `git archive` in a session scratchpad with dependencies installed there; no pai-portal checkout was modified and no MCP tool was called against any environment.
 
-- `tools/gen-references.ts`: full generation (references, `hooks/tools.json`, the literal mock inventory) succeeded with 300 tools; a second run produced identical bytes.
-- `tools/validate-examples.ts`: 19 example files, 0 failures, including the new `api-design/examples/list-designs.json` checked against the upstream `apiDesignListQuerySchema`.
+- `tools/gen-references.ts`: full generation succeeded with 302 tools (upstream declares 304; `proposal_accept` and `proposal_reject` are client-only); a second run produced identical bytes. `hooks/tools.json` now records the upstream declaration, and `tests/test_skill_refs.py` fails if the corp inventory, the mock inventory, `tools.md` or the README count disagree with it, or if any tool lacks a workflow.
+- `tools/validate-examples.ts`: 19 example files, 0 failures.
 - `make build` and `python3 tools/build_codex.py --check`: the three Codex packages are byte-reproducible.
-- `python3 tools/check_english.py`: 0 findings across 389 files.
-- `PAI_RUN_CODEX_RUNTIME=1 python3 -m unittest discover -s tests`: 104 tests, 0 failures, 0 skips. The native probe again received only whoami and page_read; page_update and future_write prompted and were rejected, with zero writes received.
+- `python3 tools/check_english.py`: 0 findings across 407 files.
+- `PAI_RUN_CODEX_RUNTIME=1 python3 -m unittest discover -s tests`: 109 tests, 0 failures, 0 skips, including the native approval probe (reads ran, page_update and future_write prompted and were rejected, zero writes received).
 - `claude plugin validate --strict` passed for the root, the manifest, `skills` and `agents`.
-- `claude plugin eval . --ablation none`: all 18 cases scored 1.00 (2 runs each, 1 for unified-task-completion), with local mock stand-ins only. The three new cases also ran with the no-plugin baseline arm: api-design-save-existing 1.00 vs 0.40, chat-approval-needs-user 1.00 vs 0.00, prd-confirm-is-human 1.00 vs 0.67.
-- Before this sync, render-payments-summary, view-page-canvas and theme-brand-draft already failed LLM graders on the base commit `db3c26c`. Clearer `views` guidance (status components, canvas `schemaVersion: 1`) and `theme` guidance (fix the key named in a contrast issue's `path`) made them pass. page-attributes-filters failed once because its simulated server rejected a valid owner; its mocks now list the valid owner ids.
+- `claude plugin eval . --ablation none`: all 21 cases scored 1.00 in the final full run (2 runs each, 1 for unified-task-completion), with local mock stand-ins only. New cases with the no-plugin baseline: api-design-save-existing 1.00 vs 0.40, api-design-rules-block 1.00 vs 0.00, chat-approval-needs-user 1.00 vs 0.00, chat-budget-ending 1.00 vs 0.00, prd-confirm-is-human 1.00 vs 0.67, org-invite-pending 1.00 vs 0.33.
+- Repeated full runs surfaced intermittent single-run failures. Where the agent was wrong, the skills were tightened: `views` (status components, canvas `schemaVersion: 1`, no current date inside a view), `theme` (fix the key a contrast issue names), and `knowledge` (never call a proposal in force). Where the response was right but a grader was ambiguous, the grader was made explicit: app-screen-mockup accepts `DataTable`, view-page-canvas allows extra derived metrics, crm-link-needs-join, spanish-locale and api-design-rules-block list their conditions. Two mocks now list valid owner ids. render-payments-summary, view-page-canvas and theme-brand-draft already failed on the base commit `db3c26c`. LLM-graded evaluations remain probabilistic.
 
 These are simulated and source-level checks. OAuth, desktop hook trust, effective native approval prompts and live environment availability still need the installed-client checks below.
 

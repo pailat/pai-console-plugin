@@ -1,8 +1,8 @@
 # Pai Console integration checkpoint for 0.0.10
 
-The reviewed source is `pai-portal` [`release/0.2.5` at `0eb3f6506`](https://github.com/pailat/pai-portal/commit/0eb3f6506), observed on 2026-10-27. It contains every merge since the 0.0.9 checkpoint ([`203000f869`](https://github.com/pailat/pai-portal/commit/203000f869ef56f22da8a18e0f2e51a48a2293cd)), including #251, #257, #267, #268, #269, #270, #279, #281, #291 and #293. A `git archive` of that commit under the session scratchpad, with dependencies installed there by `bun install --frozen-lockfile --ignore-scripts`, supplies the contracts and the in-memory MCP registration. No pai-portal checkout, database, user configuration or infrastructure was modified, and no MCP tool was called against any environment: the guidance is written from source code.
+The reviewed source is `pai-portal` [`release/0.2.5` at `a1185b46b`](https://github.com/pailat/pai-portal/commit/a1185b46b), observed on 2026-10-27. It contains every merge since the 0.0.9 checkpoint ([`203000f869`](https://github.com/pailat/pai-portal/commit/203000f869ef56f22da8a18e0f2e51a48a2293cd)), including #251, #257, #267, #268, #269, #270, #279, #281, #291, #293 and #294 (an agent test, no contract change). A `git archive` of that commit under the session scratchpad, with dependencies installed there by `bun install --frozen-lockfile --ignore-scripts`, supplies the contracts and the in-memory MCP registration. No pai-portal checkout, database, user configuration or infrastructure was modified, and no MCP tool was called against any environment: the guidance is written from source code.
 
-An earlier pass of this sync used `8319d44d2` (contract identical to `ec3fc47c8`, used by #10). Moving to `0eb3f6506` adds #268 and #293.
+An earlier pass of this sync used `8319d44d2` (contract identical to `ec3fc47c8`, used by #10). Moving to `a1185b46b` adds #268, #293 and #294.
 
 ## Pai Agent turns (#268)
 
@@ -18,7 +18,7 @@ An earlier pass of this sync used `8319d44d2` (contract identical to `ec3fc47c8`
 - Create and save run ruleset version 1: `error` findings block with `API_DESIGN_RULES` and `cause.findings`; warnings and info come back in the write result. Unchanged saves of older designs are not refused.
 - Saves derive `uses` edges from the `api` node to the entities and components named by `x-pai-entity`/`x-pai-component`; unresolved or wrong-kind references are warnings.
 - New page block `api {id, type, apiDesignRef, revision?}` with `API_DESIGN_NOT_FOUND`, `API_DESIGN_NOT_A_DESIGN`, `API_DESIGN_ARCHIVED`, `API_DESIGN_REVISION_NOT_FOUND` and the warning `API_DESIGN_NOT_CLIENT_VISIBLE`; `page_read` adds `apiDesigns`. `api_design_mock` answers 2xx without content empty.
-- The page content schema (page_create, page_update, page_suggest, proposal_save) gains the block; the ontology and page-type references gain two reviewed translations (`tools/reference-translations-sync-0eb3f6506.json`).
+- The page content schema (page_create, page_update, page_suggest, proposal_save) gains the block; the ontology and page-type references gain two reviewed translations (`tools/reference-translations-sync-a1185b46b.json`).
 
 ## Inventory
 

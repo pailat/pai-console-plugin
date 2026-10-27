@@ -50,6 +50,7 @@ Client-side hooks, native MCP approvals and Pai Agent's IAM/tool policy remain s
 The owner can annotate a persisted reply without involving the model. These tools never call Pai Agent, never charge, and are not attached to the next turn automatically. They are unavailable inside a Pai Agent session.
 
 - `chat_comment_list {sessionId, threadId?, limit?, cursor?}` lists threads, or a thread's replies with `threadId` (limit ≤50, follow nextCursor).
+- **List before creating:** call `chat_comment_list {sessionId}` first. If a thread already covers that part of the message, answer it with chat_comment_reply instead of opening another; the plugin's guard also requires this list before chat_comment_create.
 - `chat_comment_create {sessionId, sourceSelection:{messageId, partIndex, turnId?, elementId?, viewBlockId?, quote?}, body}` anchors a thread on a public part of a saved message. Take ids and the literal quote from chat_get; the server derives the anchor. Reasoning, private tool payloads and streaming messages are rejected (`HIVE_SOURCE_INVALID`, `HIVE_SOURCE_NOT_FOUND`; `HIVE_SOURCE_CHANGED` means reread).
 - `chat_comment_reply {sessionId, threadId, expectedRevision, body}` and `chat_comment_set_state {…, state: resolved | anchored}` use the thread revision from chat_comment_list. `HIVE_COMMENT_CHANGED` means reread and keep the user's draft. Resolve only on request; reading never resolves.
 

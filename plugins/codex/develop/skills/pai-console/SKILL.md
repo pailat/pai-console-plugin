@@ -58,10 +58,11 @@ The Claude hook rejects a `*_create` without a preceding domain search in the se
 | `knowledge_create` | `knowledge_search` (topic), `knowledge_library` (project inventory by `kinds`), `knowledge_context`, or `task_board` for tasks |
 | `task_create` | `task_list` or `task_list_mine` in the same context |
 | `chat_create` | `chat_list` for the selected scope |
-| `iam_group_create` / `iam_role_create` / `iam_deny_create` | Corresponding IAM group/role/deny list |
+| `iam_group_create` / `iam_role_create` / `iam_deny_create` | `iam_group_list` / `iam_role_list` / `iam_deny_list` |
 | `flow_create` | `flow_list` (or `flow_get`, `knowledge_search`, `knowledge_library`) |
 | `milestone_create` | `timeline_get` or `milestone_list` |
-| `project_create` / `organization_create` / `product_create` / `agent_create` | Corresponding `*_list` |
+| `project_create` / `organization_create` / `product_create` / `agent_create` | `project_list` / `organization_list` / `product_list` / `agent_list` |
+| `chat_comment_create` / `api_design_create` / `product_release_plan_create` | `chat_comment_list` / `api_design_list` / `product_release_plan_list` |
 | `crm_lead_create` | `crm_lead_duplicates` (or `crm_lead_list`) |
 | `crm_opportunity_create` | `crm_organization_get` (or `crm_opportunity_list`) |
 

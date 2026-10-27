@@ -6,7 +6,7 @@ Codex uses unique connection names: `pai_console_staging`, `pai_console_develop`
 
 ## Release 0.0.10 (Pai Console 0.2.5)
 
-**Version 0.0.10**, pending its GitHub release. Source: [`pai-portal/release/0.2.5` at `0eb3f6506`](https://github.com/pailat/pai-portal/commit/0eb3f6506), observed on 2026-10-27, which includes #267, #268 (Pai Agent per-turn budget and turn endings) and #293 (API Design cut 2). This is source compatibility, not a claim that every environment deploys this revision.
+**Version 0.0.10**, pending its GitHub release. Source: [`pai-portal/release/0.2.5` at `a1185b46b`](https://github.com/pailat/pai-portal/commit/a1185b46b), observed on 2026-10-27, which includes #267, #268 (Pai Agent per-turn budget and turn endings), #293 (API Design cut 2) and #294 (an agent test only). This is source compatibility, not a claim that every environment deploys this revision.
 
 The synthetic corp inventory has **302 tools** (122 reads, 180 writes): 22 added since 0.0.9 and none removed. Every tool has workflow guidance:
 

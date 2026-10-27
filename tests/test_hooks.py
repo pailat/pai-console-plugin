@@ -180,6 +180,12 @@ class GuardTest(HookCase):
         searched = self.transcript(PLUGIN + "flow_list")
         self.assertIsNone(self.guard(PLUGIN + "flow_create", STAGING, transcript=searched))
 
+    def test_chat_comment_create_needs_the_comment_list_not_chat_get(self) -> None:
+        decision, reason = self.decision(self.guard(PLUGIN + "chat_comment_create", STAGING, transcript=self.transcript(PLUGIN + "chat_get")))
+        self.assertEqual(decision, "deny")
+        self.assertIn("chat_comment_list", reason)
+        self.assertIsNone(self.guard(PLUGIN + "chat_comment_create", STAGING, transcript=self.transcript(PLUGIN + "chat_get", PLUGIN + "chat_comment_list")))
+
     def test_new_domain_creates_require_the_corresponding_completed_search(self) -> None:
         for create, search in (("task_create", "task_list"), ("chat_create", "chat_list"),
                                ("iam_group_create", "iam_group_list"), ("iam_role_create", "iam_role_list"),

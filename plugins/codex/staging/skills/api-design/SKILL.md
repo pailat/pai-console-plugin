@@ -59,9 +59,10 @@ Find the targets with `knowledge_search`/`knowledge_library` before adding them;
 
 1. `api_design_get {include:"view"}` to review operations, schemas and links; cite `kb:api/<slug>@r<revision>`.
 2. To change it, `api_design_get {include:"document"}` and edit **that** document, keeping everything you were not asked to change. Show the user the intended change first.
-3. `api_design_save` with `expectedRevision` from that read, the complete new `source`, and `changeSummary` (≤80). `sources`, if sent, replaces the evidence list, so include the existing sources you keep.
-4. A document semantically equal to the saved one returns `unchanged: true` and writes no revision: say nothing changed.
-5. `CONFLICT` `REVISION` (with `cause.current.revision`) means someone saved first: reread, integrate their change with yours and save once more. Never resend the stale document.
+3. **Before saving, check the rules:** `api_design_review` reports the current revision's findings, and every `error` must be fixed in your edited document (a save with one fails with `BAD_REQUEST` `API_DESIGN_RULES` and `cause.findings [{ruleId, severity, pointer, message}]`, writing nothing). If a save is refused, fix each finding at its pointer and save again with the same `expectedRevision`.
+4. `api_design_save` with `expectedRevision` from that read, the complete new `source`, and `changeSummary` (≤80). `sources`, if sent, replaces the evidence list, so include the existing sources you keep.
+5. A document semantically equal to the saved one returns `unchanged: true` and writes no revision: say nothing changed.
+6. `CONFLICT` `REVISION` (with `cause.current.revision`) means someone saved first: reread, integrate their change with yours and save once more. Never resend the stale document.
 
 `OPENAPI_INVALID` is `BAD_REQUEST` with `cause.issues [{path, code, message}]`: fix each issue at its path and validate again; nothing was written. The design must stay OpenAPI 3.1.
 

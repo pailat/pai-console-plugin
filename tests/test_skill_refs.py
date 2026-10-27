@@ -55,6 +55,35 @@ class SkillReferencesTest(unittest.TestCase):
 
 
 class ToolCoverageTest(unittest.TestCase):
+    def test_skills_ask_for_the_search_the_guard_requires(self) -> None:
+        import sys
+        sys.path.insert(0, str(ROOT / "hooks"))
+        from policy import SEARCH_BEFORE_CREATE
+        for skill in SKILLS:
+            text = skill.read_text()
+            for create, searches in SEARCH_BEFORE_CREATE.items():
+                if re.search(rf"\b{create}\b", text):
+                    with self.subTest(skill=skill.parent.name, create=create):
+                        self.assertTrue(
+                            any(re.search(rf"\b{s}\b", text) for s in searches),
+                            f"{skill.parent.name} names {create} but none of {searches}",
+                        )
+
+    def test_inventories_match_the_release_declaration(self) -> None:
+        import json
+        hooks = json.loads((ROOT / "hooks" / "tools.json").read_text())
+        declared = set(hooks["declaredTools"]) - set(hooks["clientOnlyTools"])
+        corp = set(hooks["tools"])
+        mock = {tool["name"] for tool in json.loads((ROOT / "evals" / "mocks" / "pai" / "_tools.json").read_text())["tools"]}
+        index = set(re.findall(r"^\| `([a-z0-9_]+)` \|", (ROOT / "skills" / "pai-console" / "references" / "tools.md").read_text(), re.M))
+        self.assertEqual(sorted(declared ^ corp), [], "hooks/tools.json differs from the upstream MCP_TOOL_NAMES")
+        self.assertEqual(sorted(corp ^ mock), [], "evals/mocks/pai/_tools.json differs from hooks/tools.json")
+        self.assertEqual(sorted(corp ^ index), [], "tools.md differs from hooks/tools.json")
+        revision = hooks["generatedFrom"].split()[1]
+        self.assertIn(f"`{revision}`", (ROOT / "skills" / "pai-console" / "references" / "tools.md").read_text())
+        self.assertIn(revision, (ROOT / "README.md").read_text(), "README does not name the generated release revision")
+        self.assertIn(f"**{len(corp)} tools**", (ROOT / "README.md").read_text(), "README states another tool count")
+
     def test_every_inventory_tool_has_a_workflow(self) -> None:
         import json
         tools = json.loads((ROOT / "hooks" / "tools.json").read_text())["tools"]
