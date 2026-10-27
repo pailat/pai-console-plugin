@@ -1,15 +1,30 @@
 # Pai Console plugins
 
-Pai staff workflows for **Pai Console 0.2.5+**, distributed as the existing Claude Code plugin and three generated portable Codex packages, version **0.0.9**. Both clients share domain skills and the MCP tool inventory. Client adapters keep installation and approval behavior separate.
+Pai staff workflows for **Pai Console 0.2.5+**, distributed as the existing Claude Code plugin and three generated portable Codex packages, version **0.0.10**. Both clients share domain skills and the MCP tool inventory. Client adapters keep installation and approval behavior separate.
 
 Codex uses unique connection names: `pai_console_staging`, `pai_console_develop` and `pai_console_production`. Claude retains `pai`.
 
-## Unreleased (Pai Console 0.2.5)
+## Release 0.0.10 (Pai Console 0.2.5)
 
-Pending the next plugin release; the version stays **0.0.9** until it is cut.
+**Version 0.0.10**, pending its GitHub release. Source: [`pai-portal/release/0.2.5` at `8319d44d2`](https://github.com/pailat/pai-portal/commit/8319d44d2) (after #291), observed on 2026-10-27. Its MCP contracts are identical to [`ec3fc47c8`](https://github.com/pailat/pai-portal/commit/ec3fc47c8) (#267 merged); later commits only change dependencies. This is source compatibility, not a claim that every environment deploys this revision. Pai Agent's per-turn budget and single turn-ending close (K1, pai-portal #268) are **not** in this release branch and are not documented.
+
+The synthetic corp inventory has **300 tools** (120 reads, 180 writes): 20 added since 0.0.9 and none removed. Every new tool now has workflow guidance:
+
+| Area | Upstream | Plugin behavior |
+|---|---|---|
+| API Design | #269 | New `api-design` skill for `api_design_list/get/export/mock/create/save`: search before import (the server does not detect duplicates), required sources and idempotency key, whole-document save with CAS (`REVISION`), `OPENAPI_INVALID` issues, `x-pai-entity`/`x-pai-component` links to ERD and C4, network-free mocks, and `API_DESIGN_OWNED` for generic Knowledge writes |
+| PRD version confirmation | #267 | `resources`: only a person confirms a PRD version from Portal or Console (`HUMAN_CONFIRMS` for agents); confirmations pin one revision; Markdown PRDs are not pinnable; the new `resources.prdApprover` role in `iam` |
+| Definition review | #267 | `products`: advisory `product_get.definition` checks before `building`, reported to the user, never treated as a gate |
+| Pai Agent chats | #245–#249 | `chats`: attachments (`chat_attachment_upload`, 100 KiB, exact sha256), pending approvals answered only with the user's explicit decision, private comments (`chat_comment_*`) and traces (`chat_trace_*`) |
+| Knowledge | 0.2.5 | `knowledge`: shared-node appearances in projects (`knowledge_appearance_set/remove`), edge history, routing of kind `api` |
+| Product release plans | 0.2.5 | `products`: internal `product_release_plan_*` with CAS, full-set milestone replacement and literal error codes; plans never deploy |
+| Organization library | #251 | `resources`: `projectId: null` for the General library, `resource_list` with origins and no merging of homonyms |
+| CRM | #270 | `crm`: lose result (ATE-316), unique open opportunity titles (`CRM_OPPORTUNITY_TITLE_TAKEN`), archive/unarchive with tasks, lead conversion per won deal, probability reasons in history, permission-driven tool visibility, `CRM_LEAD_HAS_CHAIN` |
+| Dates and views | 0.2.5 | `schedule`/`tasks`: timed milestone and task starts, `estimatedMinutes`, date order errors, `task_list_mine.includeClosed`; `views`: `view_render` with a saved `source` |
+| IAM | #267, #269 | `iam`: `resources.prdApprover`, `resources.pages.confirmVersion` and `knowledge.apiDesigns.*` |
 
 - **CRM: losing a deal reports its Discovery project** (Linear ATE-316). Since pai-portal #270, `crm_opportunity_lose` returns `{ opportunity, discovery }` like `crm_opportunity_win` returns a result object, not the bare opportunity. `discovery.outcome` is `cancelled`, `kept` or `none`; `kept` lists `reasons`, including the new `close_not_permitted` (whoever lost the deal lacks `resourcemanager.projects.close`, so the project is kept). The `crm` skill documents each outcome: report it, never retry the loss when the project is kept, and reopen a cancelled one only on request with `project_reopen`. New mocks and the `crm-lose-keeps-discovery` evaluation cover the `kept` case.
-- **Generated references refreshed** from the archived release snapshot [`ec3fc47c8`](https://github.com/pailat/pai-portal/commit/ec3fc47c8) (`release/0.2.5`, which contains #270). The synthetic corp inventory grows from 280 to **300 tools** (120 reads, 180 writes): 20 added, none removed, and the descriptions or schemas of existing names refreshed literally. Added: `api_design_create`, `api_design_export`, `api_design_get`, `api_design_list`, `api_design_mock`, `api_design_save`, `chat_attachment_upload`, `chat_comment_create`, `chat_comment_list`, `chat_comment_reply`, `chat_comment_set_state`, `chat_trace_get`, `chat_trace_list`, `knowledge_appearance_remove`, `knowledge_appearance_set`, `knowledge_edge_history`, `product_release_plan_create`, `product_release_plan_list`, `product_release_plan_update` and `resource_list`. They are in the tool index and the production guard's annotations; workflow guidance for them is not written yet. The Knowledge references gain the internal `api` kind, and six reviewed translations are bound to the changed source lines.
+- **Generated references** come from the release snapshot through `tools/gen-references.ts`; only their provenance line changed from `ec3fc47c8`. New evaluations: `api-design-save-existing`, `chat-approval-needs-user` and `prd-confirm-is-human`. Details: [integration checkpoint](docs/upstream-sync-0.0.10.md).
 
 ## Release 0.0.9
 
@@ -167,7 +182,7 @@ Config inspection, successful CLI installation and simulated hook tests do **not
 |---|---|
 | `pai-console` | Environment discovery, authorization, search-before-create, CAS, idempotency, structured errors and citations |
 | `resources`, `views` | Pages, HTML and view blocks, projections, whiteboards, assets, comments, filters, generative UI and visual reports |
-| `knowledge`, `erd`, `c4`, `screens`, `flows` | Ontology, proposed decisions, data models, architecture, screens and versioned testable flows |
+| `knowledge`, `erd`, `c4`, `screens`, `flows`, `api-design` | Ontology, proposed decisions, data models, architecture, screens, versioned testable flows and OpenAPI 3.1 API designs |
 | `schedule`, `proposals-payments`, `products`, `crm` | Milestones/tasks, SOW, CFDI/payments, product operations and CRM workflows |
 | `theme` | Complete light/dark organization themes, contrast, shells, preview and confirmed publication |
 | `pai-env` | Explicit environment inspection and switching through the client-specific implementation |

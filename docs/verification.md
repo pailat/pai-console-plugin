@@ -1,5 +1,22 @@
 # Compatibility verification
 
+## 0.0.10 (Pai Console 0.2.5 release)
+
+Verified on 2026-10-27 on Linux with Codex CLI 0.164.0 and Claude Code CLI 2.1.311 against pai-portal `release/0.2.5` at `8319d44d2` ([integration checkpoint](upstream-sync-0.0.10.md)). The snapshot is a `git archive` in a session scratchpad with dependencies installed there; no pai-portal checkout was modified and no MCP tool was called against any environment.
+
+- `tools/gen-references.ts`: full generation (references, `hooks/tools.json`, the literal mock inventory) succeeded with 300 tools; a second run produced identical bytes.
+- `tools/validate-examples.ts`: 19 example files, 0 failures, including the new `api-design/examples/list-designs.json` checked against the upstream `apiDesignListQuerySchema`.
+- `make build` and `python3 tools/build_codex.py --check`: the three Codex packages are byte-reproducible.
+- `python3 tools/check_english.py`: 0 findings across 389 files.
+- `PAI_RUN_CODEX_RUNTIME=1 python3 -m unittest discover -s tests`: 104 tests, 0 failures, 0 skips. The native probe again received only whoami and page_read; page_update and future_write prompted and were rejected, with zero writes received.
+- `claude plugin validate --strict` passed for the root, the manifest, `skills` and `agents`.
+- `claude plugin eval . --ablation none`: all 18 cases scored 1.00 (2 runs each, 1 for unified-task-completion), with local mock stand-ins only. The three new cases also ran with the no-plugin baseline arm: api-design-save-existing 1.00 vs 0.40, chat-approval-needs-user 1.00 vs 0.00, prd-confirm-is-human 1.00 vs 0.67.
+- Before this sync, render-payments-summary, view-page-canvas and theme-brand-draft already failed LLM graders on the base commit `db3c26c`. Clearer `views` guidance (status components, canvas `schemaVersion: 1`) and `theme` guidance (fix the key named in a contrast issue's `path`) made them pass. page-attributes-filters failed once because its simulated server rejected a valid owner; its mocks now list the valid owner ids.
+
+These are simulated and source-level checks. OAuth, desktop hook trust, effective native approval prompts and live environment availability still need the installed-client checks below.
+
+## 0.0.9
+
 The 0.0.9 upstream integration was verified on 2026-10-18 on Linux with Codex CLI 0.163.0 and Claude Code CLI 2.1.302. Source compatibility is pinned to published pai-portal revision `203000f869ef56f22da8a18e0f2e51a48a2293cd`; see [integration details](upstream-sync-0.0.9.md). The initial Claude/Codex refactor was reviewed separately before this synchronization.
 
 ## Automated results

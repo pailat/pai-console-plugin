@@ -1,6 +1,6 @@
 ---
 name: knowledge
-description: "Create and maintain Pai Console project or product Knowledge graphs: kinds, strict templates, sources, human-confirmed proposals, CAS with expectedRevision, ontology links including implemented_by, structured knowledge_query, atomic knowledge_batch, and resolve/supersede/archive lifecycle. Use for decisions, business rules, risks, questions, assumptions, facts, glossary, modules, other nodes, or graph queries. ERD, C4, screens, and flows have dedicated skills."
+description: "Create and maintain Pai Console project or product Knowledge graphs: kinds, strict templates, sources, human-confirmed proposals, CAS with expectedRevision, ontology links including implemented_by, structured knowledge_query, atomic knowledge_batch, and resolve/supersede/archive lifecycle. Use for decisions, business rules, risks, questions, assumptions, facts, glossary, modules, other nodes, or graph queries. ERD, C4, screens, flows, and API designs have dedicated skills. Also shared-node appearances in projects and edge history."
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
@@ -30,6 +30,7 @@ Contract-generated references: `references/kinds.md` (templates/examples), `refe
 | Flow test (`flow_run`) | Created only by `flow_run_start` (`flows`); `knowledge_create kind=flow_run` is rejected |
 | Data model, table | `erd` skill |
 | System, container, component | `c4` skill |
+| OpenAPI 3.1 API design (`api`) | `api-design` skill; only `api_design_*` writes it, generic writes fail with `API_DESIGN_OWNED` |
 | Procedure / reusable approach / pitfall / approach to avoid | `runbook`, `pattern`, `gotcha`, `antipattern` |
 | None of the above | `note`, as a last resort |
 
@@ -155,6 +156,8 @@ Up to 200 atomic operations (`create` with local ref `$name`, `update`, `link`, 
   - **Also search `"organization"` before project creation.** Link existing content (`knowledge_link` accepts UUID `targetRef`) rather than duplicating it.
   - Use knowledge_move for supported project/product/organization movement under the current IAM grants; direct creation still follows knowledge_create scope. Read the movement workflow above before changing scope.
   - Organization node Portal path: `/organization/knowledge/<nodeId>`.
+- **Show a shared node in a project without moving it:** `knowledge_appearance_set {organizationId, projectId, ref, productId?}` makes a product or organization node appear in that project, keeping its scope, parent and visibility. The project must be open and touch the node's product. Tasks cannot appear (`TASK_NEEDS_PROJECT`) and a project node already lives in a project (`PROJECT_NODE_APPEARANCE`). `knowledge_appearance_remove` stops showing it. Both are idempotent (`changed: false` on repeat) and need `knowledge.nodes.update` on both scopes; prefer an appearance over a duplicate or a move when several projects need the same node, and confirm first because it changes what that project's readers see.
+- **Edge history:** `knowledge_edge_history {organizationId, projectId, ref, productId?, limit?, cursor?}` lists a node's relationship changes with actor, change, evidence and canonical scopes before/after. Cursors and revisions are decimal strings: pass them back unchanged and follow `nextCursor` for older entries. It is a staff read, not a changefeed, and is not available inside a Pai Agent session. Use it to explain when and why an edge appeared or disappeared.
 - Legacy Knowledge task nodes/projections stay project-scoped. Unified tasks also support product backlogs and CRM contexts through `../tasks/SKILL.md`; do not create those with knowledge_create.
 
 ## Client visibility (ATE-237)

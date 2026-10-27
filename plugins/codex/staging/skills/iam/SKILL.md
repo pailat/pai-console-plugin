@@ -24,6 +24,14 @@ Read `../pai-console/SKILL.md`. Discover available tools and use `../../evals/mo
 | Groups | iam_group_list; iam_group_get {groupId}; iam_group_member_list {groupId} | iam_group_create {key,name,description?}; iam_group_update {groupId,changes}; iam_group_delete {groupId}; iam_group_member_add {groupId,userIds}; iam_group_member_remove {groupId,userId} |
 | Roles | iam_role_list; iam_role_get {roleId}; iam_permission_catalog | iam_role_create {key,name,permissions,description?,stage?}; iam_role_update {roleId,changes}; iam_role_delete {roleId} |
 
+Predefined roles added in Pai 0.2.5 (read them with iam_role_get rather than relying on this summary):
+
+| Role | Scope | Permissions | Use |
+|---|---|---|---|
+| `resources.prdApprover` («Recursos · Aprobador de PRD») | resource | `resources.pages.get`, `resources.pages.confirmVersion` | A person who reads a PRD and confirms its current version, without editing, publishing or changing audience, status or owner. Bind it on that PRD page or its project; it cannot let an agent confirm (`../resources/SKILL.md`) |
+
+`resources.pages.confirmVersion` is also part of resources.admin and the legacy organization/platform admin, owner and staff roles. The API Design permissions `knowledge.apiDesigns.create`, `.get`, `.list`, `.mock` and `.update` are in the catalog. Among predefined roles only `platform.admin` (all non-sensitive Pai permissions) carries them; an impersonated session is always denied API Design by a system rule. Others need an explicit grant before the `api-design` tools work (`../api-design/SKILL.md`). Do not create a role or binding for it unless the user explicitly asks.
+
 These tools accept organizationId where exposed by their schema. Search/list before create. Preserve server restrictions on predefined roles, supported custom permissions, scope and launch stage. Explain the exact intended recipients, permissions, resource scope and effect before changing access; a user's request for diagnosis alone never authorizes granting access.
 
 ## Resource policy, deny and boundaries

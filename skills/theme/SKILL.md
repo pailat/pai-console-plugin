@@ -117,11 +117,11 @@ Server checks **light and dark**, full list in token map:
 - **Non-text 3:1**: `ring` on `background`/`card`/`muted`; `sidebar-ring`/`sidebar-primary` on `sidebar`; `primary` on `muted`; internal control on `background`/`card`/`muted`.
 - Borders/charts are not measured.
 
-Issues: `{path, code: "contrast", message, ratio, required, mode, pair}`. Example: dark muted-foreground/accent 4.22:1 versus required 4.5:1, `path: "dark.accent"`. **`path` identifies the supplied key**: adjust that surface/text brightness, preview again.
+Issues: `{path, code: "contrast", message, ratio, required, mode, pair}`. Example: dark muted-foreground/accent 4.22:1 versus required 4.5:1, `path: "dark.accent"`. **`path` identifies the supplied key**: adjust that key's brightness (here darken `dark.accent` or omit it), preview again. Do not fix the issue by changing the other side of the pair (such as Pai's `muted-foreground`) or other untouched tokens. Tell the user which requested color changed, why (pair and ratio), and its replacement.
 
 Typical failures:
 - Light lime/yellow/cream cannot be light-mode `primary` text on background. **Invert pair:** dark primary with brand-colored foreground (Latitude olive-black/lime), or darker brand primary; use pale brand for `chart-*`/`brand`. In dark mode use bright primary/dark text.
-- Dark branded `accent` breaks Pai secondary text because hover rows put `muted-foreground` on `accent`.
+- Dark branded `accent` breaks Pai secondary text because hover rows put `muted-foreground` on `accent`. Darken that accent until the pair passes; keep the requested color only where it is not measured against Pai text, and say so.
 - Missing paired `primary-foreground` or `sidebar-foreground`.
 - Internal **control** gray is Pai-owned: light `#8f8f8f`, dark `#6f6f6f`. In light, `muted` cannot be darker than ≈ L 0.975; `background` ≈ L 0.976 at chroma ~0.02. Progress tracks/stats boxes become almost invisible; **theme cannot fix this**.
 

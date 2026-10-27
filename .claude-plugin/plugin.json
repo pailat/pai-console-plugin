@@ -1,8 +1,8 @@
 {
   "name": "pai-console",
   "displayName": "Pai Console",
-  "version": "0.0.9",
-  "description": "Work with Pai Console (0.2.5+) through the corporate MCP: generative UI (pai-view@1 and view_render), Resources, Knowledge (ERD, C4, screens, project and organization knowledge), Flows, Schedule and task board, Proposals, Payments/CFDI, Products, CRM and brand themes, with focused skills and production write confirmations.",
+  "version": "0.0.10",
+  "description": "Work with Pai Console (0.2.5+) through the corporate MCP: generative UI (pai-view@1 and view_render), Resources, Knowledge (ERD, C4, screens, API Design, project and organization knowledge), Flows, Schedule and task board, Proposals, Payments/CFDI, Products, CRM and brand themes, with focused skills and production write confirmations.",
   "author": {
     "name": "Pai",
     "email": "alex.sanchez@pai.lat",

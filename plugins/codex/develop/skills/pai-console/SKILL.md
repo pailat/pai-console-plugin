@@ -130,7 +130,7 @@ Errors carry `isError` and `structuredContent.error = { code, message, cause?, m
 
 Flows (`flows`): `FLOW_STEP_REF` (missing/wrong-kind step ref; includes `path` and `ref`), `FLOW_NEEDS_PROJECT`; test errors `FLOW_RUN_REAL_DISABLED`, `FLOW_RUN_ACTOR`, `FLOW_RUN_FLOW_CLOSED`, `FLOW_RUN_NOT_RUNNER`, `FLOW_RUN_FINISHED`, `FLOW_RUN_STEP_KEY`, `FLOW_RUN_STOPPED_AT`. A stale `flow_save` returns `CONFLICT`: reread with `flow_get`. Entity-backed flow steps reject `knowledge_update`; use `flow_save`.
 
-Other common `cause.code` values: `C4_LEVEL`, `ALREADY_CONTAINED` (`c4`); `CLIENT_VISIBLE_REQUIRES_PERSON`, `MERMAID_NOT_ALLOWED`, `QUERY`, `IMPLEMENTED_BY_NEEDS_PRODUCT`, `IMPLEMENTED_BY_ACROSS_PRODUCTS`, `TASK_NEEDS_PROJECT` (`knowledge`); page `html` block errors and `PAGE_ATTRIBUTE_INVALID` (`resources`).
+Other common `cause.code` values: `C4_LEVEL`, `ALREADY_CONTAINED` (`c4`); `CLIENT_VISIBLE_REQUIRES_PERSON`, `MERMAID_NOT_ALLOWED`, `QUERY`, `IMPLEMENTED_BY_NEEDS_PRODUCT`, `IMPLEMENTED_BY_ACROSS_PRODUCTS`, `TASK_NEEDS_PROJECT`, `PROJECT_NODE_APPEARANCE` (`knowledge`); `API_DESIGN_OWNED`, `OPENAPI_INVALID`, `API_DESIGN_TOO_LARGE` (`api-design`); `CRM_OPPORTUNITY_TITLE_TAKEN`, `CRM_LEAD_HAS_CHAIN` (`crm`); `APPROVAL_ALREADY_ANSWERED`, `HIVE_COMMENT_CHANGED` (`chats`); `RELEASE_REVISION_CONFLICT` (`products`); `HUMAN_CONFIRMS` for PRD version confirmation (`resources`); page `html` block errors and `PAGE_ATTRIBUTE_INVALID` (`resources`).
 
 Some errors have **no `cause`**, only code and message: closed project (above), “La organización no puede quedarse sin un owner” (`CONFLICT`), “para gestionar esta organización hace falta ser owner o admin” (`FORBIDDEN`). Text is the only clue in these cases.
 
@@ -159,21 +159,22 @@ Distinguish supported facts, inferences, and open questions.
 
 | Task | Skill |
 |---|---|
-| Pages, page types, whiteboards, image/video assets, files | `resources` |
+| Pages, page types, whiteboards, image/video assets, files, organization library (`resource_list`), PRD version confirmation | `resources` |
 | Generative UI: conversational `view_render`, dashboards, AppShell mockups, visual reports/comparisons saved in Resources | `views` |
 | Knowledge kinds, sources, proposals, lifecycle, links | `knowledge` |
 | Data models: `data_model` + `entity`, columns/FKs | `erd` |
 | C4: `component` by level, relationships, actors | `c4` |
+| OpenAPI 3.1 API designs: import, review, edit, export, mock (`api_design_*`) | `api-design` |
 | Screens, actions, actors: `screen` v3, `action`, `actor` | `screens` |
 | Flow steps, branches, simulated integrations, role-based tests (`flow_*`, `flow_run_*`) | `flows` |
 | Milestones, tasks, dependencies, baseline, board, project closure/reopening | `schedule` |
 | SOW proposals, CFDI, payments | `proposals-payments` |
 | CRM leads, qualification, opportunities and forecast | `crm` |
 | Unified project/product/CRM tasks and My Tasks | `tasks` |
-| Pai Agent owned chat sessions and chargeable turns | `chats` |
+| Pai Agent owned chat sessions, chargeable turns, attachments, approvals, private comments and traces | `chats` |
 | IAM permissions, policies, groups, roles, denies, boundaries and audit | `iam` |
 | Organization brand theme: colors, font, logos, Portal shell, AA (staff) | `theme` |
-| Products: registration, provisioning, deploy, domains, access | `products` |
+| Products: registration, definition review, provisioning, deploy, domains, access, release plans | `products` |
 
 Tool inventory, including reads, writes, and irreversible actions: `references/tools.md`.
 

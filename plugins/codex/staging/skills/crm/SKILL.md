@@ -43,7 +43,9 @@ Actual permission identifiers include the full service.resource.verb string; con
 - **CAS:** every lead/opportunity write carries `expectedRevision` from `crm_lead_get`, `crm_lead_record`, or `crm_opportunity_get`. On `CONFLICT`, reread and reconsider; shared retry limit applies.
 - **Cents** (`4200000` = $42,000.00) by currency (`mxn`, `usd`). **Never sum MXN and USD**; report separately.
 - Archive is reversible through `*_unarchive`; only `crm_lead_purge` deletes chain-free junk.
-- All changes enter `crm_lead_event_list`/`crm_opportunity_event_list` as MCP actions.
+- All changes enter `crm_lead_event_list`/`crm_opportunity_event_list` as MCP actions. A manual probability change shows its reason as a `probabilityReason` change, hidden like amounts from callers without revenue permission; `crm.project.cancel` records a Discovery cancelled by a loss.
+- **Tools follow grants.** crm_* tools appear only when the caller's permissions allow them: crm_lead_record needs `crm.leadRecords.get`, crm_opportunity_get `crm.opportunityRecords.get`, crm_organization_get `crm.accountContacts.list`; opportunity list, event list, probability and summary also need `crm.opportunityAmounts.get` (summary also `crm.forecasts.get`). A missing tool means a missing grant: say which permission is needed (`../iam/SKILL.md`), never substitute another tool.
+- `crm_lead_purge` on a lead with any chain (organization, project, opportunity, Knowledge or other references) fails with `CRM_LEAD_HAS_CHAIN`: archive it instead.
 - **Use staff names** supplied by tools (actor/owner/qualifier), never seek/write staff email. Client lead/contact emails remain CRM data.
 
 ## Read the situation
@@ -66,7 +68,7 @@ For visuals use `views` (`Stats`, `Kanban`, `DataTable`, `BarList`), `view_rende
 
 ## Leads
 
-Stages: `new` → `contacted` → `qualified` (or `unqualified`) → `converted` (organization's first win). Immutable sources: `form`, `onboarding`, `manual`, `referral`, `mcp`, `import` (`crm_lead_import`).
+Stages: `new` → `contacted` → `qualified` (or `unqualified`) → `converted` (when an opportunity of that lead is won). Immutable sources: `form`, `onboarding`, `manual`, `referral`, `mcp`, `import` (`crm_lead_import`).
 
 ### Create
 
@@ -140,7 +142,7 @@ Commercial model: `fixed_price`, `time_and_materials`, `retainer`.
 
 ### Create
 
-`crm_organization_list {query}` → `crm_organization_get {organizationId}` (qualified leads, Portal people, open/won opportunities) → `crm_opportunity_create {organizationId, kind, title, serviceLine, offerings, currency, amountMin, amountMax, expectedCloseAt, market?, discoveryPaid?, task, …}`. Title cannot duplicate another open opportunity in that organization.
+`crm_organization_list {query}` → `crm_organization_get {organizationId}` (qualified leads, Portal people, open/won opportunities) → `crm_opportunity_create {organizationId, kind, title, serviceLine, offerings, currency, amountMin, amountMax, expectedCloseAt, market?, discoveryPaid?, task, …}`. Title cannot duplicate another open, unarchived opportunity in that organization: comparison ignores accents, case and repeated spaces. `CONFLICT` with `CRM_OPPORTUNITY_TITLE_TAKEN` also applies to `crm_lead_qualify` (its first opportunity), a title change in `crm_opportunity_update` and `crm_opportunity_unarchive` of an open-stage deal. Search `crm_opportunity_list {organizationId}` first; if a deal with that title exists, work on it or ask the user for a distinguishing title. Never append a counter or date to force a new one.
 
 ### Move
 
@@ -151,7 +153,7 @@ Commercial model: `fixed_price`, `time_and_materials`, `retainer`.
 | Lose | `crm_opportunity_lose {reason, note?, competitorName?}` | price, timing, no_budget, competitor, no_response, no_decision, in_house, not_a_fit, other; `other` requires `note`; closes the open task; read the result (**Lose**) |
 | Probability | `crm_opportunity_probability {probability, reason}` or `{reset: true}` | `crm.opportunityAmounts.get`; stage change resets to stage probability |
 | Contacts | `crm_opportunity_contact_add {leadId \| userId, role, isPrimary?}`, `_primary`, `_remove` | decision_maker, champion, finance, technical, user, other |
-| Archive/restore | `crm_opportunity_archive`, `crm_opportunity_unarchive` | Reversible |
+| Archive/restore | `crm_opportunity_archive`, `crm_opportunity_unarchive` | Reversible. Archiving also archives the deal's open CRM tasks; unarchiving restores only the tasks archived with it, never one closed or archived on its own. Archiving an archived deal → `CRM_OPPORTUNITY_ARCHIVED`; unarchiving one that is not → `CRM_OPPORTUNITY_NOT_ARCHIVED`; unarchiving an open deal rechecks its title (`CRM_OPPORTUNITY_TITLE_TAKEN`). Read the record instead of retrying |
 
 ### Lose
 
@@ -173,7 +175,7 @@ Commercial model: `fixed_price`, `time_and_materials`, `retainer`.
 2. `deliveryLeadUserId` from `crm_owner_list`, `startAt` (`YYYY-MM-DD`), `serviceLine`, ≥1 offering.
 3. A **`decision_maker`** contact.
 
-First organization win converts its lead and activates account; project becomes planned and a handoff-debrief resource is created (literal title “Debrief de traspaso”). **No Knowledge/pages are copied.** Continue with `schedule` and `proposals-payments`.
+Winning converts only that opportunity's own lead, and only if it is `qualified` (event `crm.lead.convert`); a deal without a lead (renewal, change order, expansion) converts none, and an already converted lead stays. The organization's first win activates the account; project becomes planned and a handoff-debrief resource is created (literal title “Debrief de traspaso”). **No Knowledge/pages are copied.** Continue with `schedule` and `proposals-payments`.
 
 ## Privacy and organization accounts
 

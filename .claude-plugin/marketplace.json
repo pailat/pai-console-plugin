@@ -9,7 +9,7 @@
     {
       "name": "pai-console",
       "source": "./",
-      "description": "Work with Pai Console (0.2.5+) through the corporate MCP: generative UI (pai-view@1 and view_render), Resources, Knowledge (ERD, C4, screens, project and organization knowledge), Flows, Schedule and task board, Proposals, Payments/CFDI, Products, CRM and brand themes, with focused skills and production write confirmations.",
+      "description": "Work with Pai Console (0.2.5+) through the corporate MCP: generative UI (pai-view@1 and view_render), Resources, Knowledge (ERD, C4, screens, API Design, project and organization knowledge), Flows, Schedule and task board, Proposals, Payments/CFDI, Products, CRM and brand themes, with focused skills and production write confirmations.",
       "category": "productivity",
       "tags": [
         "pai",

@@ -176,7 +176,9 @@ class GuardTest(HookCase):
     def test_new_domain_creates_require_the_corresponding_completed_search(self) -> None:
         for create, search in (("task_create", "task_list"), ("chat_create", "chat_list"),
                                ("iam_group_create", "iam_group_list"), ("iam_role_create", "iam_role_list"),
-                               ("iam_deny_create", "iam_deny_list")):
+                               ("iam_deny_create", "iam_deny_list"), ("api_design_create", "api_design_list"),
+                               ("chat_comment_create", "chat_comment_list"),
+                               ("product_release_plan_create", "product_release_plan_list")):
             with self.subTest(tool=create):
                 decision, _ = self.decision(self.guard(PLUGIN + create, STAGING, transcript=self.transcript(PLUGIN + "page_list")))
                 self.assertEqual(decision, "deny")
@@ -252,7 +254,7 @@ class InventoryTest(HookCase):
 
     def test_every_read_passes_and_every_write_asks_in_production(self) -> None:
         for name, hints in self.tools.items():
-            output = self.guard(PLUGIN + name, PRODUCTION, transcript=self.transcript(PLUGIN + "page_search", PLUGIN + "knowledge_search", PLUGIN + "timeline_get", PLUGIN + "project_list", PLUGIN + "organization_list", PLUGIN + "product_list", PLUGIN + "agent_list", PLUGIN + "crm_lead_duplicates", PLUGIN + "crm_organization_get", PLUGIN + "chat_list", PLUGIN + "task_list", PLUGIN + "iam_group_list", PLUGIN + "iam_role_list", PLUGIN + "iam_deny_list", PLUGIN + "flow_list"))
+            output = self.guard(PLUGIN + name, PRODUCTION, transcript=self.transcript(PLUGIN + "page_search", PLUGIN + "knowledge_search", PLUGIN + "timeline_get", PLUGIN + "project_list", PLUGIN + "organization_list", PLUGIN + "product_list", PLUGIN + "agent_list", PLUGIN + "crm_lead_duplicates", PLUGIN + "crm_organization_get", PLUGIN + "chat_list", PLUGIN + "task_list", PLUGIN + "iam_group_list", PLUGIN + "iam_role_list", PLUGIN + "iam_deny_list", PLUGIN + "flow_list", PLUGIN + "api_design_list", PLUGIN + "chat_comment_list", PLUGIN + "product_release_plan_list"))
             if hints["readOnly"]:
                 self.assertIsNone(output, name)
             else:

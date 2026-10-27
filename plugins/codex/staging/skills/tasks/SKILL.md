@@ -11,7 +11,7 @@ Read `../pai-console/SKILL.md` first. Discover the actual tools and grants. The 
 
 ## Find the task and its context
 
-- `task_list_mine {}` shows My Tasks. `task_list` filters `assignee` (me/all/user ID), `section` (crm/project/product), `context {kind,id}`, `productId`, status array, priority, tag, due (overdue/today/week/later/none), `q`, `includeArchived`, and `limit` (1–200). Follow the returned counts and `truncated`; narrow the query rather than treating a truncated result as complete.
+- `task_list_mine {includeClosed?}` shows My Tasks: open tasks only by default; `includeClosed:true` adds done and canceled ones within the 200-task limit, open first. It never lists another assignee's tasks. `task_list` filters `assignee` (me/all/user ID), `section` (crm/project/product), `context {kind,id}`, `productId`, status array, priority, tag, due (overdue/today/week/later/none), `q`, `includeArchived`, and `limit` (1–200). Follow the returned counts and `truncated`; narrow the query rather than treating a truncated result as complete.
 - `task_get {taskId}` accepts an ID, shortId, or replaced legacy ID. Read its current revision and canonical ID; never manufacture either.
 - Reuse tags from `task_tag_list {section?}`. `task_board {organizationId,projectId,productId?}` remains the project's board; a product's own backlog uses `task_list {section:"product",productId}`.
 - The server filters CRM tasks through `crm.tasks.list`; a project or organization grant does not imply CRM access. Permission checks use effective IAM grants, not role labels.
@@ -26,11 +26,11 @@ Search/list the same scope before `task_create`. Required inputs are `title` (1�
 | `{kind:"product",id}` | knowledge_node; no project |
 | `{kind:"crm_lead",id}` / crm_opportunity / crm_account | No additional contexts; crm_account ID is organizationId |
 
-Get IDs from actual reads. Projects must be open. Optional fields: `status` (draft/todo/in_progress/waiting), Markdown `detail` ≤20000, type (todo/call/email/meeting), nullable priority (low/medium/high), tags ≤10 of ≤40 characters each, `startAt`, `dueAt`, `dueHasTime`, `waitingOn`, visibility (internal/client), and `assigneeUserId`. Do not infer a due date or assignee from a name alone. Use the actual task schema, not the older nested CRM `task` envelope.
+Get IDs from actual reads. Projects must be open. Optional fields: `status` (draft/todo/in_progress/waiting), Markdown `detail` ≤20000, type (todo/call/email/meeting), nullable priority (low/medium/high), tags ≤10 of ≤40 characters each, `startAt`, `startHasTime`, `dueAt`, `dueHasTime`, `estimatedMinutes`, `waitingOn`, visibility (internal/client), and `assigneeUserId`. Do not infer a due date or assignee from a name alone. Use the actual task schema, not the older nested CRM `task` envelope.
 
 CRM tasks require future `dueAt`, have no draft state and only wait on the client (`status:"waiting",waitingOn:"client"`). Their default assignee is the record owner. Project/product draft tasks created by an agent remain proposals for a person to confirm. Visibility client is for project tasks; do not expose internal work by default.
 
-ISO instants include a timezone. For a project day without a time use midnight UTC with `dueHasTime:false`; timed tasks use the agreed instant. CRM follow-ups use the agreed future CDMX time; when no time is supplied, retain the CRM business-day convention of 18:00 at -06:00. Do not confuse a date-only project task with a timed CRM follow-up.
+ISO instants include a timezone. For a project day without a time use midnight UTC with `dueHasTime:false`; timed tasks use the agreed instant. CRM follow-ups use the agreed future CDMX time; when no time is supplied, retain the CRM business-day convention of 18:00 at -06:00. Do not confuse a date-only project task with a timed CRM follow-up. `startHasTime` works like `dueHasTime` for `startAt`; omitting either flag in `task_update` keeps the stored precision, so send it only when the precision changes. `estimatedMinutes` is an estimate, not tracked time: null means unknown and 0 an explicit zero; never fill it with a guess.
 
 ## Update and close
 

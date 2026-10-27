@@ -9,6 +9,15 @@ compatibility: "Pai 0.2.5+ (MCP corp)"
 
 Read shared `pai-console` first through the current client's skill mechanism. Replies follow the user's language; preserve Mexican Spanish business formatting, MXN amounts, and `America/Mexico_City` dates where required. Spanish section identifiers, server errors, and established paths quoted here are intentional contract exceptions.
 
+## 0. Project or organization library
+
+Resources live in a project or in the organization's own library, «General» in Portal. Page, note, whiteboard, folder, file, asset, comment and quiz tools accept `projectId: null` (with `organizationId`) for General; omitting a project never means "all".
+
+- **Find first:** `resource_list {organizationId, scope?, projectId?, folderId?}` lists the organization library: `scope` `all` (default), `organization` (General only) or `project` (then `projectId` is required, and only then). It returns `entries` (pages, including notes and whiteboards, and files), `folders` and `projects`, each with a stable `id` and `origin {projectId, projectName, projectSlug}`, all null for General. Items with the same title or path in different places are never merged: use the `id` and origin, and name the origin when you cite one. Only resources the caller can read are listed.
+- Choose the scope on purpose: client-wide material (policies, brand, contracts that span projects) belongs in General; project deliverables stay in their project. Ask when unclear; never move a document to General to escape a closed project.
+- General uses the same resource permissions, evaluated on the organization. It has no closed-project lock, no PRD version confirmation (project PRDs only), and no project Knowledge: projections there resolve only organization nodes.
+- Inside a Pai Agent session, an `organizationId` other than the chat's organization yields `FORBIDDEN` `AGENT_SESSION_SCOPE`.
+
 **References:** contract-generated `references/page-types.md` for built-in sections, blocks, limits, and rules; **`views`** for `pai-view@1` catalogs/recipes. Prefer these over the ~35 KB `page_catalog`; call `page_catalog`/`page_types` only for a suspected version difference or organization/project custom types.
 
 ## 1. Choose the resource
@@ -116,6 +125,8 @@ Embed with `{id, type: "whiteboard", page, title?}`: `page` is same-project boar
 - Validation: `WHITEBOARD_NOT_FOUND` (absent in project), `WHITEBOARD_NOT_A_BOARD`, warning `WHITEBOARD_NOT_CLIENT_VISIBLE` (client page cannot show team-only board).
 - `page_read view=full` returns `whiteboards` titles/summaries or `hidden` for invisible boards.
 
+For a client reader, `page_read` reduces a `flow` or `whiteboard` block whose target the client cannot see (internal, archived, from another project or deleted) to `{id, type}`. That is expected, not damage: do not "repair" the block from a client session.
+
 ### Flow block
 
 `{id, type: "flow", node, title?, height?}`: same-project `flow` node **UUID**; height 240–1200 px, default 480. Read-only canvas/open control; build with `flows`.
@@ -209,6 +220,17 @@ All pages (pai-page/Markdown/notes) support date, owner, status, labels in Porta
 - Notes: `note_update {attributes, expectedRevision}`, alone/with `markdown`. Clients can change date/status/labels on own notes, never owner (`FORBIDDEN`). `note_create` rejects attributes: set afterward.
 - Invalid date/status, 11 labels, inaccessible owner → `BAD_REQUEST`, `<key>: <message>`, no write; correct and retry.
 - Type/audience: `page_frontmatter_update` (`type`, `audience`) or note `note_audience_set`. Pai-page title/description: `page_update`.
+
+### PRD version confirmation (people only)
+
+A person confirms the current version of a `prd` page from that page in Portal or Console, with their own session. **No MCP tool confirms a page version**, and the attribute `status: "approved"` is not a confirmation. The server refuses agents, Pai Agent, app bearers and impersonated sessions with `HUMAN_CONFIRMS`; never look for another route or ask for a person's session.
+
+- Only `prd` pages inside a project are confirmable, and only in pai-page format: a Markdown PRD yields `PAGE_VERSION_NOT_PINNABLE` until someone migrates it (`page_migrate`, after confirming with the user).
+- A confirmation is pinned to one revision. Editing the PRD creates a revision without a confirmation; the earlier one is kept, not moved. Warn the user before editing a confirmed PRD that a person must confirm the new revision again.
+- `page_read`, `page_versions` and `page_version` do not report confirmations through MCP. For a product, staff see the confirmation in `product_get.definition.evidence.prd.confirmation` (`../products/SKILL.md`). Otherwise ask the user rather than claiming the version is or is not confirmed.
+- The predefined IAM role `resources.prdApprover` grants only `resources.pages.get` and `resources.pages.confirmVersion` on a resource: a client approver reads the PRD and confirms its version without editing, publishing or changing audience, status or owner. Grant it only on an explicit request (`../iam/SKILL.md`).
+
+When a PRD is ready, finish by telling the user which page and revision a person should confirm, with its Portal URL.
 
 ### Filter/sort
 
