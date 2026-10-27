@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "pai-portal 203000f869 (archived contract snapshot)",
+  "generatedFrom": "pai-portal ec3fc47c8 (archived contract snapshot)",
   "tools": {
     "agent_create": {
       "readOnly": false,
@@ -24,6 +24,30 @@
     "agent_update": {
       "readOnly": false,
       "destructive": false
+    },
+    "api_design_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "api_design_export": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "api_design_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "api_design_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "api_design_mock": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "api_design_save": {
+      "readOnly": false,
+      "destructive": true
     },
     "asset_confirm": {
       "readOnly": false,
@@ -61,6 +85,10 @@
       "readOnly": false,
       "destructive": true
     },
+    "chat_attachment_upload": {
+      "readOnly": false,
+      "destructive": false
+    },
     "chat_cancel": {
       "readOnly": false,
       "destructive": false
@@ -68,6 +96,22 @@
     "chat_close": {
       "readOnly": false,
       "destructive": true
+    },
+    "chat_comment_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "chat_comment_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "chat_comment_reply": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "chat_comment_set_state": {
+      "readOnly": false,
+      "destructive": false
     },
     "chat_create": {
       "readOnly": false,
@@ -83,6 +127,14 @@
     },
     "chat_send": {
       "readOnly": false,
+      "destructive": false
+    },
+    "chat_trace_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "chat_trace_list": {
+      "readOnly": true,
       "destructive": false
     },
     "comment_create": {
@@ -521,6 +573,14 @@
       "readOnly": false,
       "destructive": true
     },
+    "knowledge_appearance_remove": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "knowledge_appearance_set": {
+      "readOnly": false,
+      "destructive": true
+    },
     "knowledge_archive": {
       "readOnly": false,
       "destructive": true
@@ -539,6 +599,10 @@
     },
     "knowledge_create": {
       "readOnly": false,
+      "destructive": false
+    },
+    "knowledge_edge_history": {
+      "readOnly": true,
       "destructive": false
     },
     "knowledge_get": {
@@ -945,6 +1009,18 @@
       "readOnly": true,
       "destructive": false
     },
+    "product_release_plan_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_release_plan_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "product_release_plan_update": {
+      "readOnly": false,
+      "destructive": false
+    },
     "product_request_status": {
       "readOnly": false,
       "destructive": false
@@ -1027,6 +1103,10 @@
     },
     "quiz_respond": {
       "readOnly": false,
+      "destructive": false
+    },
+    "resource_list": {
+      "readOnly": true,
       "destructive": false
     },
     "status_update_list": {
