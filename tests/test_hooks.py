@@ -118,6 +118,13 @@ class GuardTest(HookCase):
         _, reason = self.decision(self.guard(PLUGIN + "product_deploy", PRODUCTION, {"environment": "staging"}))
         self.assertTrue(reason.startswith("ATTENTION"))
 
+    def test_losing_a_deal_warns_about_its_discovery_project(self) -> None:
+        decision, reason = self.decision(self.guard(PLUGIN + "crm_opportunity_lose", PRODUCTION))
+        self.assertEqual(decision, "ask")
+        self.assertTrue(reason.startswith("ATTENTION"))
+        self.assertIn("may cancel its Discovery project", reason)
+        self.assertIn("project_reopen", reason)
+
     def test_unknown_tool_counts_as_write(self) -> None:
         decision, _ = self.decision(self.guard(PLUGIN + "brand_new_tool", PRODUCTION))
         self.assertEqual(decision, "ask")

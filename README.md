@@ -4,6 +4,13 @@ Pai staff workflows for **Pai Console 0.2.5+**, distributed as the existing Clau
 
 Codex uses unique connection names: `pai_console_staging`, `pai_console_develop` and `pai_console_production`. Claude retains `pai`.
 
+## Unreleased (Pai Console 0.2.5)
+
+Pending the next plugin release; the version stays **0.0.9** until it is cut.
+
+- **CRM: losing a deal reports its Discovery project** (Linear ATE-316). Since pai-portal #270, `crm_opportunity_lose` returns `{ opportunity, discovery }` like `crm_opportunity_win` returns a result object, not the bare opportunity. `discovery.outcome` is `cancelled`, `kept` or `none`; `kept` lists `reasons`, including the new `close_not_permitted` (whoever lost the deal lacks `resourcemanager.projects.close`, so the project is kept). The `crm` skill documents each outcome: report it, never retry the loss when the project is kept, and reopen a cancelled one only on request with `project_reopen`. New mocks and the `crm-lose-keeps-discovery` evaluation cover the `kept` case.
+- **Generated references refreshed** from the archived release snapshot [`ec3fc47c8`](https://github.com/pailat/pai-portal/commit/ec3fc47c8) (`release/0.2.5`, which contains #270). The synthetic corp inventory grows from 280 to **300 tools** (120 reads, 180 writes): 20 added, none removed, and the descriptions or schemas of existing names refreshed literally. Added: `api_design_create`, `api_design_export`, `api_design_get`, `api_design_list`, `api_design_mock`, `api_design_save`, `chat_attachment_upload`, `chat_comment_create`, `chat_comment_list`, `chat_comment_reply`, `chat_comment_set_state`, `chat_trace_get`, `chat_trace_list`, `knowledge_appearance_remove`, `knowledge_appearance_set`, `knowledge_edge_history`, `product_release_plan_create`, `product_release_plan_list`, `product_release_plan_update` and `resource_list`. They are in the tool index and the production guard's annotations; workflow guidance for them is not written yet. The Knowledge references gain the internal `api` kind, and six reviewed translations are bound to the changed source lines.
+
 ## Release 0.0.9
 
 **Version 0.0.9:** [GitHub release](https://github.com/pailat/pai-console-plugin/releases/tag/v0.0.9), integrated through [PR #9](https://github.com/pailat/pai-console-plugin/pull/9). Includes the Claude/Codex refactor and the published Pai Console integration below. OAuth, desktop presentation and live environment availability still need manual installed-client verification.

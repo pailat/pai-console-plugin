@@ -148,10 +148,22 @@ Commercial model: `fixed_price`, `time_and_materials`, `retainer`.
 |---|---|---|
 | Stage/data | `crm_opportunity_update {stage, nextTask, …}` | Stage change needs `nextTask`; `proposal_sent` needs linked **sent** `proposalId` (`proposals-payments`) |
 | Hold | `crm_opportunity_hold {task}` | Resume date in `task.dueAt`; resume with `update` and open stage |
-| Lose | `crm_opportunity_lose {reason, note?, competitorName?}` | price, timing, no_budget, competitor, no_response, no_decision, in_house, not_a_fit, other; `other` requires `note` |
+| Lose | `crm_opportunity_lose {reason, note?, competitorName?}` | price, timing, no_budget, competitor, no_response, no_decision, in_house, not_a_fit, other; `other` requires `note`; closes the open task; read the result (**Lose**) |
 | Probability | `crm_opportunity_probability {probability, reason}` or `{reset: true}` | `crm.opportunityAmounts.get`; stage change resets to stage probability |
 | Contacts | `crm_opportunity_contact_add {leadId \| userId, role, isPrimary?}`, `_primary`, `_remove` | decision_maker, champion, finance, technical, user, other |
 | Archive/restore | `crm_opportunity_archive`, `crm_opportunity_unarchive` | Reversible |
+
+### Lose
+
+`crm_opportunity_lose` returns `{ opportunity, discovery }`, not the bare opportunity. `discovery` is `{ outcome, projectId?, reasons }`: what losing did to the deal's Discovery project.
+
+| `outcome` | Meaning | What to do |
+|---|---|---|
+| `cancelled` | The project belonged to this deal alone and had nothing committed: it is cancelled and read-only (`projectId`) | Tell the user. Reopen only on request, with `project_reopen` (`schedule`) |
+| `kept` | The project stays open; `reasons` (at least one) says why | Say the project continues and why. The loss is already recorded: **never retry it** or close the project another way |
+| `none` | The deal has no project (no `projectId`, empty `reasons`) | Nothing to report about a project |
+
+`kept` reasons: `not_draft` (no longer a draft), `shared_with_opportunity` (another deal that is not lost uses it), `proposal_sent`, `payment` (recorded, not voided), `milestone_active` (in progress or completed), `product_linked`, `open_tasks`, `client_activity` (a client member wrote in it), and `close_not_permitted`: nothing else keeps it, but whoever lost the deal lacks `resourcemanager.projects.close` on the project. With `close_not_permitted`, say the Discovery project was kept for that reason; someone holding that permission may close it if the user asks. Never infer the outcome from the opportunity alone.
 
 ### Win
 
@@ -177,5 +189,6 @@ First organization win converts its lead and activates account; project becomes 
 - Treating notes as contact/stage changes; missing/stale `expectedRevision`.
 - Summing currencies, revealing/estimating amounts without `crm.opportunityAmounts.get`, inventing probabilities.
 - Disqualifying spam instead of archive/purge.
+- Reading `crm_opportunity_lose` as the bare opportunity, or retrying the loss when `discovery.outcome` is `kept`.
 - Unconfirmed workspace linking or `link_existing` without `iam.staffAssignments.create`.
 - Winning without decision maker and sent/accepted proposal version.
