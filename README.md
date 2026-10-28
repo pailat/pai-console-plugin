@@ -6,7 +6,7 @@ Codex uses unique connection names: `pai_console_staging`, `pai_console_develop`
 
 ## Release 0.0.10 (Pai Console 0.2.5)
 
-**Version 0.0.10**, pending its GitHub release. Source: [`pai-portal/release/0.2.5` at `df271445b`](https://github.com/pailat/pai-portal/commit/df271445b), observed on 2026-10-27, which includes #267, #268 (Pai Agent per-turn budget and turn endings), #293 (API Design cut 2), #294 (an agent test only), #295 (CRM accounts, no MCP change) and #297 (organization archive). This is source compatibility, not a claim that every environment deploys this revision.
+**Version 0.0.10**, prepared for GitHub publication; see the [release notes and publication checklist](docs/releases/0.0.10.md). Source: [`pai-portal/release/0.2.5` at `df271445b`](https://github.com/pailat/pai-portal/commit/df271445b), rechecked against [Pai Portal PR #263](https://github.com/pailat/pai-portal/pull/263) on 2026-10-28. It includes #267, #268 (Pai Agent per-turn budget and turn endings), #293 (API Design cut 2), #294 (an agent test only), #295 (CRM accounts, no MCP change) and #297 (organization archive). This is source compatibility, not a claim that every environment deploys this revision.
 
 The synthetic corp inventory has **304 tools** (122 reads, 182 writes): 24 added since 0.0.9 and none removed. Every tool has workflow guidance:
 
@@ -233,11 +233,11 @@ claude plugin eval . --allow-tools 'mcp__plugin_pai-console_pai__*' --trust-plug
 Full reference generation also refreshes `hooks/tools.json` and `evals/mocks/pai/_tools.json`. Preserve literal upstream data and regenerate Codex packages afterward. For a dependencies-only archived contract snapshot, regenerate just references with a recorded revision:
 
 ```bash
-PAI_PORTAL=/path/to/archived-contract-snapshot bun tools/gen-references.ts --references-only --source-revision 203000f869
+PAI_PORTAL=/path/to/archived-contract-snapshot bun tools/gen-references.ts --references-only --source-revision df271445b
 PAI_PORTAL=/path/to/archived-contract-snapshot bun tools/validate-examples.ts
 ```
 
-Integration validation used archived pai-portal revision `203000f869`, with dependencies linked only in a temporary snapshot; all 18 example files passed actual upstream contracts without changing an external checkout. The generator verifies declared-versus-discovered inventory coverage and explicit read annotations. Its literal MCP JSON is compact to fit Claude's 1 MiB mock-file limit, with no schema fields removed. This establishes source compatibility, not live environment availability.
+Release 0.0.10 validation uses archived pai-portal revision `df271445b54af91bde9012cdcacdd925b6d3745c`, with dependencies installed only in the temporary snapshot; all 19 example files pass the actual upstream contracts without changing an external checkout. Full generation, without `--references-only`, also checks the corporate inventory. The generator verifies declared-versus-discovered inventory coverage and explicit read annotations. Its literal MCP JSON is compact to fit Claude's 1 MiB mock-file limit, with no schema fields removed. The 0.0.9 checkpoint remains documented in [its historical integration report](docs/upstream-sync-0.0.9.md). This establishes source compatibility, not live environment availability.
 
 The shared trace evaluator grades normalized Claude/Codex tool calls using PyYAML from `requirements-dev.txt`:
 
