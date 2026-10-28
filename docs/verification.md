@@ -1,5 +1,20 @@
 # Compatibility verification
 
+## 0.0.10 release preparation recheck (2026-10-28)
+
+Rechecked Pai Portal PR #263's head through GitHub: `df271445b54af91bde9012cdcacdd925b6d3745c`, still on `release/0.2.5`. Plugin main already includes the functional synchronization through #10 and #11 (`80863a515e62b336e41c97a73bf03fa72241c531`). This pass prepares publication of the existing 0.0.10 version; it does not add another version bump or claim an upstream production deployment.
+
+The checks ran on Linux with Python 3.14.8, Bun 1.4.4, Codex CLI 0.165.0 and Claude Code 2.1.312. The upstream source came from a fresh `git archive` of that exact commit. Dependencies were installed offline with `--frozen-lockfile --ignore-scripts` in the temporary archive only, without changing a Pai Portal worktree or its lockfile.
+
+- Full `tools/gen-references.ts --source-revision df271445b` regeneration produced no tracked changes. A second regeneration compared all eight source reference/inventory files byte for byte and was identical. The source inventory remains 304 corporate tools (122 reads and 182 writes), against 306 upstream declared names including the two client-only proposal tools.
+- `tools/validate-examples.ts`: 19 files, 0 failures against the archived upstream contracts.
+- `make build` and `python3 tools/build_codex.py --check`: all three Codex environment packages remain reproducible, with no generated changes.
+- `PAI_RUN_CODEX_RUNTIME=1 python3 -m unittest discover -s tests -v`: 110 tests, 0 failures, 0 skips. The native local probe used Codex CLI 0.165.0: `whoami` and `page_read` ran; `page_update` and unknown `future_write` prompted, were rejected and produced zero received writes. Temporary configuration and mock servers do not verify a user's installed plugin or production approvals.
+- Claude strict validation passed for the root, `.claude-plugin/plugin.json`, `skills` and `agents`.
+- English authoring and Git whitespace checks passed. The release notes and README corrections are maintained English prose; literal server contracts were not translated or changed.
+
+The earlier 22-case Claude behavioral evaluation below was not rerun: this pass changes release documentation only, and the references, policies and workflow content are byte-identical to the merged synchronization. Those scores remain historical, simulated and probabilistic evidence. No OAuth, live MCP tool call, email, database write or infrastructure change was made during this recheck. Installed-client checks below remain open.
+
 ## 0.0.10 (Pai Console 0.2.5 release)
 
 Verified on 2026-10-27 on Linux with Codex CLI 0.164.0 and Claude Code CLI 2.1.311 against pai-portal `release/0.2.5` at `df271445b` ([integration checkpoint](upstream-sync-0.0.10.md)). The snapshot is a `git archive` in a session scratchpad with dependencies installed there; no pai-portal checkout was modified and no MCP tool was called against any environment.
