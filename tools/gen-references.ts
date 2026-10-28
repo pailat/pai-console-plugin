@@ -559,6 +559,9 @@ if (tools.some((tool) => typeof tool.annotations?.readOnlyHint !== "boolean"))
 
 const inventory = {
 	generatedFrom: `pai-portal ${revision} (${describe})`,
+	// The upstream declaration, so tests can check the inventory still matches it.
+	declaredTools: [...MCP_TOOL_NAMES].sort(),
+	clientOnlyTools: [...clientOnlyTools].sort(),
 	tools: Object.fromEntries(
 		tools
 			.map((tool) => [

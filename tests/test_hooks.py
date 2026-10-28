@@ -125,6 +125,13 @@ class GuardTest(HookCase):
         self.assertIn("may cancel its Discovery project", reason)
         self.assertIn("project_reopen", reason)
 
+    def test_organization_archive_asks_and_says_it_is_reversible(self) -> None:
+        for tool, text in (("organization_archive", "until organization_restore"), ("organization_restore", "members enter again")):
+            decision, reason = self.decision(self.guard(PLUGIN + tool, PRODUCTION))
+            self.assertEqual(decision, "ask", tool)
+            self.assertTrue(reason.startswith("ATTENTION"), tool)
+            self.assertIn(text, reason)
+
     def test_unknown_tool_counts_as_write(self) -> None:
         decision, _ = self.decision(self.guard(PLUGIN + "brand_new_tool", PRODUCTION))
         self.assertEqual(decision, "ask")
@@ -180,10 +187,18 @@ class GuardTest(HookCase):
         searched = self.transcript(PLUGIN + "flow_list")
         self.assertIsNone(self.guard(PLUGIN + "flow_create", STAGING, transcript=searched))
 
+    def test_chat_comment_create_needs_the_comment_list_not_chat_get(self) -> None:
+        decision, reason = self.decision(self.guard(PLUGIN + "chat_comment_create", STAGING, transcript=self.transcript(PLUGIN + "chat_get")))
+        self.assertEqual(decision, "deny")
+        self.assertIn("chat_comment_list", reason)
+        self.assertIsNone(self.guard(PLUGIN + "chat_comment_create", STAGING, transcript=self.transcript(PLUGIN + "chat_get", PLUGIN + "chat_comment_list")))
+
     def test_new_domain_creates_require_the_corresponding_completed_search(self) -> None:
         for create, search in (("task_create", "task_list"), ("chat_create", "chat_list"),
                                ("iam_group_create", "iam_group_list"), ("iam_role_create", "iam_role_list"),
-                               ("iam_deny_create", "iam_deny_list")):
+                               ("iam_deny_create", "iam_deny_list"), ("api_design_create", "api_design_list"),
+                               ("chat_comment_create", "chat_comment_list"),
+                               ("product_release_plan_create", "product_release_plan_list")):
             with self.subTest(tool=create):
                 decision, _ = self.decision(self.guard(PLUGIN + create, STAGING, transcript=self.transcript(PLUGIN + "page_list")))
                 self.assertEqual(decision, "deny")
@@ -259,7 +274,7 @@ class InventoryTest(HookCase):
 
     def test_every_read_passes_and_every_write_asks_in_production(self) -> None:
         for name, hints in self.tools.items():
-            output = self.guard(PLUGIN + name, PRODUCTION, transcript=self.transcript(PLUGIN + "page_search", PLUGIN + "knowledge_search", PLUGIN + "timeline_get", PLUGIN + "project_list", PLUGIN + "organization_list", PLUGIN + "product_list", PLUGIN + "agent_list", PLUGIN + "crm_lead_duplicates", PLUGIN + "crm_organization_get", PLUGIN + "chat_list", PLUGIN + "task_list", PLUGIN + "iam_group_list", PLUGIN + "iam_role_list", PLUGIN + "iam_deny_list", PLUGIN + "flow_list"))
+            output = self.guard(PLUGIN + name, PRODUCTION, transcript=self.transcript(PLUGIN + "page_search", PLUGIN + "knowledge_search", PLUGIN + "timeline_get", PLUGIN + "project_list", PLUGIN + "organization_list", PLUGIN + "product_list", PLUGIN + "agent_list", PLUGIN + "crm_lead_duplicates", PLUGIN + "crm_organization_get", PLUGIN + "chat_list", PLUGIN + "task_list", PLUGIN + "iam_group_list", PLUGIN + "iam_role_list", PLUGIN + "iam_deny_list", PLUGIN + "flow_list", PLUGIN + "api_design_list", PLUGIN + "chat_comment_list", PLUGIN + "product_release_plan_list"))
             if hints["readOnly"]:
                 self.assertIsNone(output, name)
             else:

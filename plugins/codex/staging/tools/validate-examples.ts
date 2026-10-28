@@ -3,7 +3,7 @@
  * contracts, so a skill never shows an input the server would reject.
  *
  * An example is `skills/<skill>/examples/*.json`:
- *   { "tool": "knowledge_create" | "page_create" | "page_update" | "view_render" |
+ *   { "tool": "knowledge_create" | "page_create" | "page_update" | "view_render" | "api_design_list" |
  *             "organization_theme_*" | "flow_*", "input": {...} }
  * or an array of those (a sequence of calls).
  *
@@ -46,6 +46,7 @@ const { flowGraphInputSchema } = await import(
 const { taskCreateInputSchema } = await import(join(contracts, "tasks/index.ts"));
 const { hiveSessionListQuerySchema } = await import(join(contracts, "hive/index.ts"));
 const { testIamPermissionsInputSchema } = await import(join(contracts, "iam/policy.ts"));
+const { apiDesignListQuerySchema } = await import(join(contracts, "knowledge/api-designs.ts"));
 
 // Substitute only documented synthetic IDs; validate nested inputs with real contracts.
 function contractInput(value: unknown): unknown {
@@ -278,6 +279,8 @@ function checkContract(call: Call): string[] {
             return upstreamInput(hiveSessionListQuerySchema, call.input);
         case "iam_access_test":
             return upstreamInput(testIamPermissionsInputSchema, call.input);
+        case "api_design_list":
+            return upstreamInput(apiDesignListQuerySchema, call.input);
 		case "knowledge_create":
 			return knowledgeCreate(call.input);
 		case "page_create":

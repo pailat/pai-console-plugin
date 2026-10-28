@@ -25,6 +25,9 @@ Read shared `pai-console` first through the current client's skill mechanism. Se
 `draft` → `building` → `testing` → `live` → `retired`.
 
 - Request with `product_request_status {status, note}`; server checks gates.
+- **Definition review before `building`** (advisory). For a `draft` product, staff see `product_get.definition {target:"building", mode:"advisory", ready, checks[], evidence}`. Each check has `code`, `state` (`met`, `unmet`, `info`), `message` and `hint`: `definition_project_required`, `definition_prd_required`, `definition_requirements_agreed`, `definition_prd_confirmed`, `definition_flow_tested`, and the informational `definition_open_questions`. `evidence` lists projects, the PRD (`pageId`, `revision`, requirements, agreed, `confirmation` or null), flow runs and open questions.
+  - The review never blocks `missing[]`, the request or the decision. Before requesting `building`, report every `unmet` check with its hint and let the user decide whether to request anyway; the request records a copy of the review in the product's history.
+  - Resolve gaps through their own workflows: PRD in `../resources/SKILL.md`, agreed requirements in `../knowledge/SKILL.md`, flow tests in `../flows/SKILL.md`. **`definition_prd_confirmed` is met only when a person confirms the PRD version** in Portal or Console; an agent cannot.
 - **`live` requires another person's approval** via `product_decide_status {approve, note}`; requester cannot decide.
 - `retired` can return only to `draft`; retirement **does not** deprovision anything.
 
@@ -58,15 +61,25 @@ Read shared `pai-console` first through the current client's skill mechanism. Se
 | Tool | Effect |
 |---|---|
 | `product_domain_attach {environment, domain}` | **Attaches in Railway**; returns user-configurable `dnsRecords`; repeat to reverify. No detach tool |
-| `product_domain_set` / `_remove` | Pai database records only |
-| `product_environment_set` / `_remove` | Pai database records only |
-| `product_link_set` / `_remove` | Pai database records only (repository, docs…) |
+| `product_domain_set` / `product_domain_remove` | Pai database records only |
+| `product_environment_set` / `product_environment_remove {productId, key}` | Pai database records only. Removing an environment used by a release plan is `CONFLICT`: update the plan first |
+| `product_link_set` / `product_link_remove {productId, url}` | Pai database records only (repository, docs…); returns `removed` |
+| `product_unlink_project {productId, projectId}` | Removes the project–product link (event `project_unlinked`); Knowledge and tasks stay. `CONFLICT` while that project's milestones are in a release plan. The project loses `productId` access to that product's Knowledge; relink with `product_link_project`. Confirm first |
 
 `product_domain_remove` **does not detach** a Railway domain.
 
+## Release plans (internal)
+
+A release plan is an internal, staff-only planned version of a product: a `label` (≤120, unique per product), optional `notes` (≤2000), a product `environmentId` and 1–100 milestones `[{projectId, milestoneId}]` from projects linked to the product. Its status is always `planned`. **It never publishes, deploys or notifies anyone**; deploys stay in the section above.
+
+- `product_release_plan_list {organizationId, productId, limit?, offset?}` first (offset pagination with `total`); reuse a plan with the same purpose instead of creating another.
+- `product_release_plan_create {organizationId, productId, label, environmentId, milestones, notes?}` is not idempotent: create once after the user agrees. Take `environmentId` from `product_get` and milestones from `milestone_list` of each linked project; an environment of another product or an unlinked milestone is reported as missing.
+- `product_release_plan_update {organizationId, productId, releaseId, expectedRevision, label?, environmentId?, notes?, milestones?}` needs at least one change. Omitting `milestones` keeps them; sending them **replaces the whole set**, so start from the listed set.
+- Permissions: product update (read for list) plus `schedule.milestones.update` on every milestone added or removed. Errors: `RELEASE_PLANS_STAFF_ONLY` (also under impersonation), `RELEASE_LABEL_EXISTS` (pick the existing plan or ask for another label), `RELEASE_REVISION_CONFLICT` with `cause.current.revision` (reread and reconcile; never retry automatically), `RELEASE_MILESTONES_REQUIRED`, `RELEASE_REVISION_EXHAUSTED`.
+
 ## Team and access
 
-- `product_member_list`; `product_member_add {userId | email, role, appRoles}` / `_update` / `_remove`. Cannot remove/demote the last owner.
+- `product_member_list`; `product_member_add {userId | email, role, appRoles}`; `product_member_update {productId, userId, role?, appRoles?}` (`appRoles` replaces the whole list: start from product_member_list); `product_member_remove {productId, userId}` (returns `removed: false` if the person was not on the team). Pai staff or a product owner only. Removing or demoting the last owner is `CONFLICT` `LAST_OWNER`: add another owner first. Removal also drops the person's app roles; confirm before it.
 - **`product_production_access_set {access}`** (`public`, `protected`) changes production app access, updates Railway `PAI_PRODUCTION_ACCESS`, and **redeploys production** if already online. Confirm first and disclose the redeploy.
 
 ## Product work and architecture

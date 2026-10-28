@@ -24,6 +24,7 @@ When missing from references or unsure of a prop, **fetch detail** with `view_ca
 | **Automatic** | Dedicated-view reads (`project_summary`, `timeline_get`, `payment_list`, `task_board`, `knowledge_library`, `knowledge_view`…; `pai-console` §6). No views for details/search/validation/catalogs | Raw tool result may render on MCP Apps hosts. For explicit show/chart/compare requests, compose `view_render` even after reading data |
 | **Conversation** | Immediate visual answer/comparison/dashboard | `view_render {title, spec}` validates/renders without saving; a read requiring no write confirmation, even in production |
 | **Saved Resources** | Reusable dashboard/mockup/report | `view` block in `layout: "canvas"` page; preview with `view_render` first |
+| **Show a saved view** | The user asks to see an existing dashboard/mockup page | `view_render {organizationId, projectId, source:{pageId \| path, blockId?}}` reads the current block as page_read would (same audience) and renders its stored spec. Never retranscribe the spec |
 
 When unsure, render first and offer saving; do not save without authorization. **CLI requires a text fallback** with supported figures/diagram structure, citations, and Portal links. Tool success/spec validity does not prove widget rendering; claim it only with observable client evidence. If a visual tool is absent, explain the limitation and provide text without inventing components or substituting a write.
 
@@ -31,8 +32,10 @@ When unsure, render first and offer saving; do not save without authorization. *
 
 - **Only tool data** from this conversation or a cited source. Views query nothing and invent no figures. Mockups may use plausible example data, explicitly labeled mockup.
 - Preserve **Mexican Spanish business formatting**: `"1 240"`, `"$412,300"` with `unit: "MXN"`, `"68 %"`, `"3.4 s"`. `Metric.value` ≤40 characters, `unit` ≤12. Replies follow user's language; keep required business locale, currencies, `America/Mexico_City` dates.
+- **Dates come from the data too.** Do not put today's date, or comparisons with it ("already past"), inside a view unless the user asks; the view shows the data's cutoff. Mention staleness in your reply instead.
 - **Always include source/as-of date** in `Section.description`, `Metric.detail`, or `Table.caption`, e.g. data from payment_list as of 2026-10-06.
 - For client views send `organizationId` to `view_render` to use the published organization theme (nonmembers get Pai). Without it, uses sole organization or Pai when multiple.
+- **Show states with `StatusBadge` (or a `StatusDot` per row), never as plain text or color alone:** paid/unpaid, health, stage. A `Table` cell holds only text, so pair it with a status component (for example an `Item` list with `StatusBadge` in `trailing`, or a `DataTable` column of `type: "status"`) or show state in `BarList`/`Item` per row.
 - Views do not provide formal source citations; if each figure requires one, use a document page with `facts`/`data-table` (`resources`).
 
 ## Spec
@@ -213,8 +216,10 @@ Use `view` for catalog-only, no-JavaScript dashboards/reports/comparisons/Pai/cl
 
 1. Search page_search/page_list; edit equivalents.
 2. Compose and **preview `view_render`**; correct reported errors, disclose CLI presentation limits.
-3. `page_validate`: `layout: "canvas"`, `{id, type: "view", title, spec}`, **no `typeSlug`** (no built-in type permits view).
+3. `page_validate`: `schemaVersion: 1`, `componentSetVersion: "pai-core-v1"`, `layout: "canvas"`, `{id, type: "view", title, spec}`, **no `typeSlug`** (no built-in type permits view). Use `schemaVersion: 2` only when the page also needs `projection` blocks (`resources` §3).
 4. `page_create`: English folder path `dashboards/…`, `mockups/…`, `reports/…`; explicit `audience` internal/client; summary ≤80; stable idempotencyKey.
+
+`source` and `spec` are mutually exclusive, and `source` takes exactly one of `pageId`/`path` plus a project (organization-library pages are not supported). Without `blockId`, a page with several view blocks returns `selectionRequired: true` and `sources[{path, blockId, title?}]` instead of rendering: pick the block the user means, or ask, then call again with `blockId`. Errors: `NOT_FOUND` when the page has no such view block, `BAD_REQUEST` when `blockId` is not a view block or the stored spec is now invalid (fix it through the edit flow below).
 
 Edit: full page_read → modify copy preserving IDs → view_render/page_validate → page_update with expectedDocumentId/expectedRevision.
 

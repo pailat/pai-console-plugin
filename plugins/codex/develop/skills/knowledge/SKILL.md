@@ -1,6 +1,6 @@
 ---
 name: knowledge
-description: "Create and maintain Pai Console project or product Knowledge graphs: kinds, strict templates, sources, human-confirmed proposals, CAS with expectedRevision, ontology links including implemented_by, structured knowledge_query, atomic knowledge_batch, and resolve/supersede/archive lifecycle. Use for decisions, business rules, risks, questions, assumptions, facts, glossary, modules, other nodes, or graph queries. ERD, C4, screens, and flows have dedicated skills."
+description: "Create and maintain Pai Console project or product Knowledge graphs: kinds, strict templates, sources, human-confirmed proposals, CAS with expectedRevision, ontology links including implemented_by, structured knowledge_query, atomic knowledge_batch, and resolve/supersede/archive lifecycle. Use for decisions, business rules, risks, questions, assumptions, facts, glossary, modules, other nodes, or graph queries. ERD, C4, screens, flows, and API designs have dedicated skills. Also shared-node appearances in projects and edge history."
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
 
@@ -30,6 +30,7 @@ Contract-generated references: `references/kinds.md` (templates/examples), `refe
 | Flow test (`flow_run`) | Created only by `flow_run_start` (`flows`); `knowledge_create kind=flow_run` is rejected |
 | Data model, table | `erd` skill |
 | System, container, component | `c4` skill |
+| OpenAPI 3.1 API design (`api`) | `api-design` skill; only `api_design_*` writes it, generic writes fail with `API_DESIGN_OWNED`. Its `uses` edges to entities and components are derived from `x-pai-entity`/`x-pai-component` on save: never link or unlink them by hand |
 | Procedure / reusable approach / pitfall / approach to avoid | `runbook`, `pattern`, `gotcha`, `antipattern` |
 | None of the above | `note`, as a last resort |
 
@@ -47,7 +48,7 @@ Contract-generated references: `references/kinds.md` (templates/examples), `refe
    Sources are strict: extra keys are rejected. `fact` and `reference` always require a source.
 2. **Human decisions remain proposals.** Create `objective`, `decision`, `adr`, `business_rule`, and `constraint` as `proposed`. Requesting `active` yields `HUMAN_CONFIRMS`.
    - Agents cannot confirm/reject; no tool permits it. A person does so in Portal or Console.
-   - Finish by **listing pending proposals** with `kb:` citations.
+   - Finish by **listing pending proposals** with `kb:` citations. Never describe a proposed node as active, effective or already in force, even when the user says the decision was already made: say it is recorded and awaits a person's confirmation in Portal or Console.
 3. **Never edit an active node of those kinds.** Create a replacement, also `proposed`. Once a person activates it, use `knowledge_supersede`; the replacement must be `active`.
 4. **People control client-visible content.**
    - Agents cannot edit, archive, or unlink client-visible nodes (`CLIENT_VISIBLE_REQUIRES_PERSON`). Never hide, edit, and republish to bypass this. Create an internal replacement proposal or ask a person.
@@ -87,6 +88,8 @@ Contract-generated references: `references/kinds.md` (templates/examples), `refe
 | `relates_to` | ERD entity edges derived from FKs, never manually |
 
 **`implemented_by` (module → component):** identifies a functional module's C4 implementation. Only `module` → `component`, with **both nodes in the same product** (create/link with the same `productId`). Wrong/reversed kinds → `ONTOLOGY`; project/organization node → `cause.code: IMPLEMENTED_BY_NEEDS_PRODUCT`; different products → `IMPLEMENTED_BY_ACROSS_PRODUCTS`. Moving a node with this edge out of its product yields `PRECONDITION_FAILED` `HAS_IMPLEMENTED_BY`.
+
+**Remove an edge:** `knowledge_unlink {edgeId}` or `{rel, sourceRef, targetRef}` (staff only). It deletes only the edge, never nodes; `removed: false` means it did not exist. Removing `contains` detaches the child; removing `supersedes` restores the superseded node. Agents cannot remove client-visible edges (`CLIENT_VISIBLE_REQUIRES_PERSON`), and closed projects refuse it. Do not unlink edges the server derives (ERD `relates_to` from FK columns, flow `tests` from runs): change their source instead. Confirm before unlinking, and relink with knowledge_link if it was a mistake.
 
 On `ONTOLOGY`, find an allowed relationship for that pair in `references/ontology.md`. Do not force a superficially similar relationship just to pass validation.
 
@@ -155,6 +158,8 @@ Up to 200 atomic operations (`create` with local ref `$name`, `update`, `link`, 
   - **Also search `"organization"` before project creation.** Link existing content (`knowledge_link` accepts UUID `targetRef`) rather than duplicating it.
   - Use knowledge_move for supported project/product/organization movement under the current IAM grants; direct creation still follows knowledge_create scope. Read the movement workflow above before changing scope.
   - Organization node Portal path: `/organization/knowledge/<nodeId>`.
+- **Show a shared node in a project without moving it:** `knowledge_appearance_set {organizationId, projectId, ref, productId?}` makes a product or organization node appear in that project, keeping its scope, parent and visibility. The project must be open and touch the node's product. Tasks cannot appear (`TASK_NEEDS_PROJECT`) and a project node already lives in a project (`PROJECT_NODE_APPEARANCE`). `knowledge_appearance_remove` stops showing it. Both are idempotent (`changed: false` on repeat) and need `knowledge.nodes.update` on both scopes; prefer an appearance over a duplicate or a move when several projects need the same node, and confirm first because it changes what that project's readers see.
+- **Edge history:** `knowledge_edge_history {organizationId, projectId, ref, productId?, limit?, cursor?}` lists a node's relationship changes with actor, change, evidence and canonical scopes before/after. Cursors and revisions are decimal strings: pass them back unchanged and follow `nextCursor` for older entries. It is a staff read, not a changefeed, and is not available inside a Pai Agent session. Use it to explain when and why an edge appeared or disappeared.
 - Legacy Knowledge task nodes/projections stay project-scoped. Unified tasks also support product backlogs and CRM contexts through `../tasks/SKILL.md`; do not create those with knowledge_create.
 
 ## Client visibility (ATE-237)

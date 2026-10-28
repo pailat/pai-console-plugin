@@ -1,6 +1,6 @@
 # pai-console-production
 
-Generated portable Pai Console package, version 0.0.9.
+Generated portable Pai Console package, version 0.0.10.
 
 Environment: `production`. Endpoint: `https://mcp-corp.pai.lat/mcp`. Server: `pai_console_production`.
 

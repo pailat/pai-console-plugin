@@ -33,6 +33,9 @@ READ_TOOLS = load_read_tools()
 SEARCH_BEFORE_CREATE = {
     "task_create": ("task_list", "task_list_mine"),
     "chat_create": ("chat_list",),
+    "chat_comment_create": ("chat_comment_list",),
+    "api_design_create": ("api_design_list",),
+    "product_release_plan_create": ("product_release_plan_list",),
     "iam_group_create": ("iam_group_list",),
     "iam_role_create": ("iam_role_list",),
     "iam_deny_create": ("iam_deny_list",),
@@ -80,13 +83,17 @@ IRREVERSIBLE = {
     "folder_delete": "Permanently deletes the empty Resources folder and its empty subfolders; its short URL stops working (404). This cannot be undone.",
     "asset_delete": "Permanently deletes the asset (image or video) and its file if unused; older versions referencing it show its alternative text. This cannot be undone.",
     "crm_lead_purge": "Hard deletes the lead, tasks, and history; only an audit tombstone remains.",
-    "crm_opportunity_win": "Wins the opportunity: fixes the accepted proposal, converts the lead, activates the account, and moves the project to planned.",
+    "crm_opportunity_win": "Wins the opportunity: fixes the accepted proposal, converts that deal's qualified lead, activates the account on its first win, and moves the project to planned.",
 }
 
 # High-impact but reversible (or outward-facing) writes.
 ATTENTION = {
     "knowledge_move": "Moves Knowledge across scopes, possibly a complete subtree and released page provenance; inspect destination access and returned conflicts.",
-    "chat_send": "Sends a remote Pai Agent turn and charges organization credits. On timeout read the session before retrying.",
+    "chat_send": "Sends a remote Pai Agent turn and charges organization credits; an approvalResponse lets Pai Agent run the approved tool as the person. On timeout read the session before retrying.",
+    "api_design_save": "Replaces the whole OpenAPI document of the API design with a new revision; the previous revision stays in history.",
+    "knowledge_appearance_set": "Shows a product or organization node in the project for its readers without moving it.",
+    "knowledge_appearance_remove": "Stops showing the shared node in the project; the node itself is kept.",
+    "product_release_plan_update": "Edits the internal release plan; sending milestones replaces the whole set.",
     "iam_policy_set": "Replaces all explicit resource bindings using the current etag; preserve unrelated bindings and verify effective access.",
     "iam_binding_add": "Grants the selected principal access at the selected resource scope.",
     "iam_binding_remove": "Revokes the selected explicit binding; inherited access may remain.",
@@ -112,6 +119,8 @@ ATTENTION = {
     "organization_member_remove": "Removes the person from the client organization.",
     "organization_member_role_set": "Changes a person's role in the client organization.",
     "organization_invitation_cancel": "Invalidates the invitation link already received by the person.",
+    "organization_archive": "Archives the organization: it disappears for everyone, members and Pai staff, until organization_restore.",
+    "organization_restore": "Restores the archived organization: it returns to lists and its members enter again.",
     "organization_slug_set": "Changes the organization URL in Portal; the old URL redirects and cannot be reused.",
     "project_slug_set": "Changes the project URL in Portal; the old URL redirects.",
     "organization_theme_publish": "Publishes the brand theme to Portal and views on the client's next load.",
