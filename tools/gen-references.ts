@@ -38,6 +38,13 @@ const { PAGE_CATALOG } = await import(join(contracts, "pages/content.ts"));
 const { BUILTIN_PAGE_TYPES } = await import(
 	join(contracts, "pages/types/registry.ts")
 );
+const {
+	ASSET_KINDS,
+	ASSET_READ_LIMITS,
+	ASSET_READ_OUTPUT_TYPES,
+	ASSET_READ_REASONS,
+	ASSET_READ_TRANSFORMS,
+} = await import(join(contracts, "assets/index.ts"));
 
 // Archived contract snapshots can be validated without installing the API stack.
 const referencesOnly = process.argv.includes("--references-only");
@@ -578,6 +585,30 @@ write("hooks/tools.json", JSON.stringify(inventory, null, 2));
 // Compact literal schemas fit Claude's 1 MiB mock-file limit without dropping contract data.
 write("evals/mocks/pai/_tools.json", JSON.stringify(rpc.result));
 
+// asset_read and the `assets` lists of content reads, with limits from the contract constants.
+function assetReadLines(): string[] {
+    const sizes = ASSET_READ_LIMITS.sizes;
+    const reasons = ASSET_READ_REASONS as Record<string, string>;
+    const code = (items: readonly string[]) => items.map((item) => "`" + item + "`").join(", ");
+    return [
+        "## Image content: `asset_read` and `assets`",
+        "",
+        "`page_read` (every `view`), `whiteboard_read` and `knowledge_get` return `assets`: the assets their content uses that the reader can see, always present (`[]` when none). Each entry has `id`, `filename`, `kind` (" + code(ASSET_KINDS) + "), `mimeType`, `width`, `height` (null when unknown), `sizeBytes`, `alt` (from the content; null on whiteboards) and `readable` (true for images: `asset_read` answers them).",
+        "",
+        "`asset_read {organizationId, projectId, assetId, size?}` returns the image itself as MCP `image` content, preceded by a text line, plus `structuredContent {asset: {id, filename, contentType, width, height, sizeBytes}, image: {mimeType, width, height, bytes, transform, animated}}`; the base64 is only in the `image` block.",
+        "",
+        "| Limit | Value |",
+        "|---|---|",
+        "| `size: \"standard\"` (default) | long side ≤ " + sizes.standard.maxSide + " px, ≤ " + sizes.standard.maxPixels.toLocaleString("en-US") + " pixels |",
+        "| `size: \"thumbnail\"` | long side ≤ " + sizes.thumbnail.maxSide + " px |",
+        "| Encoded output | ≤ " + ASSET_READ_LIMITS.maxOutputBytes.toLocaleString("en-US") + " bytes, as " + code(ASSET_READ_OUTPUT_TYPES) + " |",
+        "| Decoded input | ≤ " + ASSET_READ_LIMITS.maxInputPixels.toLocaleString("en-US") + " pixels |",
+        "| Read and render time | " + ASSET_READ_LIMITS.timeoutMs / 1000 + " s |",
+        "",
+        "`transform` is one of " + code(ASSET_READ_TRANSFORMS) + ": a fitting PNG/JPEG/WebP is sent unchanged, a larger one is reduced, a GIF gives its first frame (`animated: true` when it had more) and an SVG is rasterized. Errors: `not_found` (missing, hidden, pending or another project's asset, indistinguishable), `unprocessable` with reason " + code([reasons.notImage, reasons.tooLarge, reasons.unreadable]) + " or `ASSET_SVG_REFUSED`, `timeout` `" + reasons.timeout + "`, `unavailable` `STORAGE_UNAVAILABLE`.",
+    ];
+}
+
 // Identifier-only index: upstream descriptions remain literal in the contract fixture.
 const inventoryLines = [
     header("Pai corp MCP tool inventory", "apps/api/src/modules/mcp/index.ts"),
@@ -597,6 +628,8 @@ const inventoryLines = [
         const access = tool.annotations?.readOnlyHint === true ? "Read" : "Write";
         return "| `" + tool.name + "` | " + access + (tool.annotations?.destructiveHint ? " · destructive" : "") + " | " + code(required) + " | " + code(optional) + " | " + code(permissionNotes[tool.name] ?? []) + " |";
     }),
+    "",
+    ...assetReadLines(),
     "",
     "Client-only proposal_accept/proposal_reject are not staff tools. Do not substitute a client credential or change memberships to bypass actor or resource restrictions.",
 ];

@@ -18,4 +18,4 @@ Act as Pai 0.2.5 MCP `page_list`. The project contains exactly these pages. Titl
 
 Apply supplied filters: status matches any listed value; labels match any page label case-insensitively; owner matches case-insensitive name or id; inclusive dateFrom/dateTo exclude undated pages; also apply audience and pathPrefix. Sort by path (default), newest date first, or status (draft, in_review, approved, archived); missing values go last.
 
-Return only JSON with items (stable UUID, path, title, revision, updatedAt 2026-10-10T12:00:00.000Z, typeSlug, audience, openCommentCount 0, attributes when present), resourcesUrl `/portal/organization/projects/<projectId>/resources`, hasMore false and nextCursor null.
+Return only JSON with items (stable UUID, path, title, revision, updatedAt 2026-10-10T12:00:00.000Z, typeSlug, audience, openCommentCount 0, attributes when present), resourcesUrl `/acme-qa/tienda-en-linea/resources`, hasMore false and nextCursor null.

@@ -320,7 +320,7 @@ class NativeCodexInstallTest(unittest.TestCase):
             self.assertEqual([entry["name"] for entry in pai if entry["enabled"]], ["pai-console-develop"])
             self.assertTrue((home / "config.toml").read_text().startswith(CONFIG))
             for environment in helper.ENVIRONMENTS:
-                cached = home / "plugins/cache" / helper.MARKETPLACE / f"pai-console-{environment}" / "0.0.10"
+                cached = home / "plugins/cache" / helper.MARKETPLACE / f"pai-console-{environment}" / "0.0.11"
                 self.assertTrue((cached / "plugin.json").is_file())
                 self.assertFalse((cached / ".codex-plugin/plugin.json").exists())
                 self.assertTrue((cached / "hooks/codex.py").is_file())

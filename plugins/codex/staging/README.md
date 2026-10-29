@@ -1,6 +1,6 @@
 # pai-console-staging
 
-Generated portable Pai Console package, version 0.0.10.
+Generated portable Pai Console package, version 0.0.11.
 
 Environment: `staging`. Endpoint: `https://mcp-edge-corp-staging.up.railway.app/mcp`. Server: `pai_console_staging`.
 

@@ -8,7 +8,7 @@ from pathlib import Path
 import sys
 
 ROOT = Path(__file__).resolve().parent.parent
-VERSION = "0.0.10"
+VERSION = "0.0.11"
 MARKETPLACE = "pai-console-plugin"
 ENVIRONMENTS = {
     "staging": "https://mcp-edge-corp-staging.up.railway.app/mcp",

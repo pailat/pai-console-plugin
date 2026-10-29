@@ -81,6 +81,7 @@ Search substantively:
 ## 3. Read fully and write with CAS
 
 - Explore summaries; base decisions on full reads: `page_read view=full` or `knowledge_get`.
+- Images: `page_read`, `whiteboard_read` and `knowledge_get` list `assets`; look at one with `asset_read {assetId, size?}` (`../resources/SKILL.md`, «See images»), never through its `/api/pages/assets/…` href.
 - **Updates replace complete content:**
   - `page_update` replaces all content.
   - `knowledge_update` replaces all `properties` when supplied. Omit `properties` to change only status or title.
@@ -125,13 +126,14 @@ Errors carry `isError` and `structuredContent.error = { code, message, cause?, m
 | `CONFLICT` | Stale revision (`cause.current.revision`), duplicate (`cause.existingId`), or invalid transition | Reread and decide; do not force |
 | `cause.code: PRODUCT_NOT_IN_SCOPE` | Product outside the project's scope | Use a project product (`knowledge`) |
 | `knowledge_batch` with `status: "rejected"` (no `isError`) | Failed operation; nothing written. `set-status` always yields `HUMAN_CONFIRMS` | Read `results[i].error`, correct, retry with the same key |
+| `BAD_REQUEST` with `cause.code: LEGACY_LINK` | Page, note, Knowledge or proposal content links to an old Portal address (`/organization…`, `/portal…`, or `https://<host>/organization/projects/<uuid>…`); the message lists up to five | Replace each with the current address (`/<orgSlug>/<projectSlug>/…`, preferably the `url` a read returned) or remove it, then retry. A note update refuses only links it adds |
 | `NOT_FOUND` | Reference/ID absent in this project | Search again; never guess IDs |
 | `TIMEOUT` with `cause.code: IMPACT_TIMEOUT` | Overbroad `knowledge_impact` | Reduce `maxDepth` or `fanout`; retry once |
 | `INTERNAL_SERVER_ERROR` “No se pudo completar la operación” | Server failure | Retry once; report if persistent |
 
 Flows (`flows`): `FLOW_STEP_REF` (missing/wrong-kind step ref; includes `path` and `ref`), `FLOW_NEEDS_PROJECT`; test errors `FLOW_RUN_REAL_DISABLED`, `FLOW_RUN_ACTOR`, `FLOW_RUN_FLOW_CLOSED`, `FLOW_RUN_NOT_RUNNER`, `FLOW_RUN_FINISHED`, `FLOW_RUN_STEP_KEY`, `FLOW_RUN_STOPPED_AT`. A stale `flow_save` returns `CONFLICT`: reread with `flow_get`. Entity-backed flow steps reject `knowledge_update`; use `flow_save`.
 
-Other common `cause.code` values: `C4_LEVEL`, `ALREADY_CONTAINED` (`c4`); `CLIENT_VISIBLE_REQUIRES_PERSON`, `MERMAID_NOT_ALLOWED`, `QUERY`, `IMPLEMENTED_BY_NEEDS_PRODUCT`, `IMPLEMENTED_BY_ACROSS_PRODUCTS`, `TASK_NEEDS_PROJECT`, `PROJECT_NODE_APPEARANCE` (`knowledge`); `API_DESIGN_OWNED`, `OPENAPI_INVALID`, `API_DESIGN_TOO_LARGE` (`api-design`); `CRM_OPPORTUNITY_TITLE_TAKEN`, `CRM_LEAD_HAS_CHAIN` (`crm`); `APPROVAL_ALREADY_ANSWERED`, `HIVE_COMMENT_CHANGED` (`chats`); `RELEASE_REVISION_CONFLICT` (`products`); `HUMAN_CONFIRMS` for PRD version confirmation (`resources`); page `html` block errors and `PAGE_ATTRIBUTE_INVALID` (`resources`).
+Other common `cause.code` values: `C4_LEVEL`, `ALREADY_CONTAINED` (`c4`); `CLIENT_VISIBLE_REQUIRES_PERSON`, `MERMAID_NOT_ALLOWED`, `QUERY`, `IMPLEMENTED_BY_NEEDS_PRODUCT`, `IMPLEMENTED_BY_ACROSS_PRODUCTS`, `TASK_NEEDS_PROJECT`, `PROJECT_NODE_APPEARANCE` (`knowledge`); `API_DESIGN_OWNED`, `OPENAPI_INVALID`, `API_DESIGN_TOO_LARGE` (`api-design`); `CRM_OPPORTUNITY_TITLE_TAKEN`, `CRM_LEAD_HAS_CHAIN` (`crm`); `APPROVAL_ALREADY_ANSWERED`, `HIVE_COMMENT_CHANGED` (`chats`); `RELEASE_REVISION_CONFLICT` (`products`); `HUMAN_CONFIRMS` for PRD version confirmation (`resources`); page `html` block errors and `PAGE_ATTRIBUTE_INVALID` (`resources`); `ASSET_NOT_IMAGE`, `ASSET_IMAGE_TOO_LARGE`, `ASSET_IMAGE_UNREADABLE`, `ASSET_SVG_REFUSED`, `ASSET_READ_TIMEOUT` for `asset_read` (`resources`).
 
 Some errors have **no `cause`**, only code and message: closed project (above), “La organización no puede quedarse sin un owner” (`CONFLICT`), “para gestionar esta organización hace falta ser owner o admin” (`FORBIDDEN`). Text is the only clue in these cases.
 
