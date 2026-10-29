@@ -118,7 +118,8 @@ A `whiteboard` format page stores a live collaborative Excalidraw scene in Resou
    - Required `idempotencyKey`: reuse only for identical retries; changed content yields literal “La clave de idempotencia ya se usó con otro contenido”. `versionName` names the saved version.
    - Open boards receive live edits.
 4. On `CONFLICT` (literal “La pizarra cambió desde que la leíste…”), reread with `whiteboard_read`, integrate, retry once. On `UNAVAILABLE` (“la colaboración no está disponible”), retry with the same key. `page_update`/`note_update` reject boards with “Esta página es una pizarra: se edita en el Portal o con whiteboard_update”.
-5. Staff `note_audience_set` publishes a board to clients; `page_move` preserves its scene.
+5. Staff `note_audience_set` publishes a board to clients.
+   - `page_move` moves a board with its scene, history and comments, and counts as a new revision. Before a later `whiteboard_update`, reread `revision` with `whiteboard_read` at the new path.
 6. `WhiteboardSketch` accepts only server `whiteboard_read.preview`; never invent/assemble it manually.
 
 Embed with `{id, type: "whiteboard", page, title?}`: `page` is same-project board **`document.id` UUID**, not path. Shows preview/open and, for editors, inline edit. No built-in type permits it: omit `typeSlug`.
