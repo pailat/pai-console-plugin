@@ -1,5 +1,16 @@
 # Compatibility verification
 
+## 0.0.11 synchronization (2026-10-29)
+
+Verified on Linux with Python 3.14.8, Bun 1.4.4, Codex CLI 0.165.0 and Claude Code against pai-portal `release/0.2.5` at `b194c6195` ([integration checkpoint](upstream-sync-0.0.11.md)). The snapshot is a `git archive` in a session scratchpad with dependencies installed there (`--frozen-lockfile --ignore-scripts`); no pai-portal checkout was modified and no MCP tool was called against any environment.
+
+- `tools/gen-references.ts --source-revision b194c6195`: full generation with 305 tools (123 reads, 182 writes; upstream declares 307, two client-only). A second run produced no tracked changes.
+- `tools/validate-examples.ts`: 19 files, 0 failures.
+- `make check`: generated packages byte-identical, English check 0 findings, 110 Python tests OK with the optional native probe skipped; the probe run separately with `PAI_RUN_CODEX_RUNTIME=1` passed (reads received, production write prompts rejected, 0 writes received).
+- `claude plugin validate --strict` on `.`, `.claude-plugin/plugin.json`, `skills` and `agents`: passed.
+- `claude plugin eval . --ablation none`: 23 cases. 22 scored 1.00 in the full run. `org-invite-pending` scored 0.33 because its fixture invitation expired on 2026-10-28, the day before the run, so the agent reasonably resent it; the fixture now expires on 2027-01-15 and the case scored 1.00 on rerun. `asset-read-image` with the plugin vs without it: 1.00 vs 0.20.
+- Evaluation mocks cannot deliver MCP image content: `asset-read-image` checks the workflow and that the agent invents no image text. Real image delivery to a host is not verified here.
+
 ## 0.0.10 release preparation recheck (2026-10-28)
 
 Rechecked Pai Portal PR #263's head through GitHub: `df271445b54af91bde9012cdcacdd925b6d3745c`, still on `release/0.2.5`. Plugin main already includes the functional synchronization through #10 and #11 (`80863a515e62b336e41c97a73bf03fa72241c531`). This pass prepares publication of the existing 0.0.10 version; it does not add another version bump or claim an upstream production deployment.

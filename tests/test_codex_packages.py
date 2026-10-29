@@ -28,7 +28,7 @@ class CodexPackagesTest(unittest.TestCase):
             with self.subTest(environment=env):
                 manifest = self.package_json(env, "plugin.json")
                 self.assertEqual(manifest["name"], f"pai-console-{env}")
-                self.assertEqual(manifest["version"], "0.0.10")
+                self.assertEqual(manifest["version"], "0.0.11")
                 self.assertIn("agent-plugins.org", manifest["$schema"])
                 self.assertEqual(manifest["extensions"]["com.openai"]["hooks"], "./hooks/codex_hooks.json")
                 self.assertEqual(manifest["extensions"]["com.openai"]["onboardingSkill"], "./skills/setup/SKILL.md")
@@ -122,7 +122,7 @@ class CodexPackagesTest(unittest.TestCase):
     def test_claude_contract_is_preserved(self):
         manifest = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
         self.assertEqual(manifest["name"], "pai-console")
-        self.assertEqual(manifest["version"], "0.0.10")
+        self.assertEqual(manifest["version"], "0.0.11")
         self.assertEqual(manifest["mcpServers"]["pai"]["url"], "${user_config.mcp_url}")
         self.assertEqual(len(manifest["userConfig"]["mcp_url"]["options"]), 4)
         self.assertTrue((ROOT / "agents/pai-explorer.md").is_file())

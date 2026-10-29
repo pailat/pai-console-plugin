@@ -1,8 +1,22 @@
 # Pai Console plugins
 
-Pai staff workflows for **Pai Console 0.2.5+**, distributed as the existing Claude Code plugin and three generated portable Codex packages, version **0.0.10**. Both clients share domain skills and the MCP tool inventory. Client adapters keep installation and approval behavior separate.
+Pai staff workflows for **Pai Console 0.2.5+**, distributed as the existing Claude Code plugin and three generated portable Codex packages, version **0.0.11**. Both clients share domain skills and the MCP tool inventory. Client adapters keep installation and approval behavior separate.
 
 Codex uses unique connection names: `pai_console_staging`, `pai_console_develop` and `pai_console_production`. Claude retains `pai`.
+
+## Release 0.0.11 (Pai Console 0.2.5)
+
+**Version 0.0.11**, a draft; see the [release notes](docs/releases/0.0.11.md). Source: [`pai-portal/release/0.2.5` at `b194c6195`](https://github.com/pailat/pai-portal/commit/b194c6195), observed on 2026-10-29. It adds #316 (MCP asset images) and #317 (no stored links to old Portal addresses) over 0.0.10's `df271445b`; the other merges in between change no MCP tool contract. This is source compatibility, not a claim that every environment deploys this revision.
+
+The synthetic corp inventory has **305 tools** (123 reads, 182 writes): `asset_read` is added, none removed, and no existing input schema changed.
+
+| Area | Upstream | Plugin behavior |
+|---|---|---|
+| Images through MCP | #316 | `resources` («See images»), `knowledge` and `pai-console`: `page_read`, `whiteboard_read` and `knowledge_get` list visible `assets`; `asset_read` returns the image as MCP image content (`standard` ≤1568 px, `thumbnail` ≤512 px, ≤1 MB), GIF first frame, rasterized SVG, video only through `asset_get`, and its literal error reasons. Knowledge node bodies now count as asset uses (`usedIn` `format: "knowledge"`, `ASSET_IN_USE`). The explorer agent may call `asset_read` |
+| Old Portal links | #317 | `pai-console`, `resources`, `knowledge`: writes refuse links to `/organization…` and `/portal…` addresses with `LEGACY_LINK`; use current slug addresses. Eval mocks now return slug-based URLs |
+| Generated references | — | Regenerated from the snapshot; `tools.md` gains a generated `asset_read`/`assets` section built from the contract constants, and one reviewed translation covers the changed `Link` view description |
+
+New evaluation: `asset-read-image`. Details: [integration checkpoint](docs/upstream-sync-0.0.11.md).
 
 ## Release 0.0.10 (Pai Console 0.2.5)
 

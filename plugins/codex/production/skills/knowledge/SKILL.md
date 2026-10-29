@@ -157,10 +157,16 @@ Up to 200 atomic operations (`create` with local ref `$name`, `update`, `link`, 
   - These nodes return `project: null`.
   - **Also search `"organization"` before project creation.** Link existing content (`knowledge_link` accepts UUID `targetRef`) rather than duplicating it.
   - Use knowledge_move for supported project/product/organization movement under the current IAM grants; direct creation still follows knowledge_create scope. Read the movement workflow above before changing scope.
-  - Organization node Portal path: `/organization/knowledge/<nodeId>`.
+  - Organization node Portal path: `/<orgSlug>/knowledge/<title-slug>-<shortId>`; prefer the `url` a tool returns over composing one. Old addresses (`/organization/…`, `/portal/…`) no longer exist, and writes refuse them (`LEGACY_LINK`, see `../pai-console/SKILL.md`).
 - **Show a shared node in a project without moving it:** `knowledge_appearance_set {organizationId, projectId, ref, productId?}` makes a product or organization node appear in that project, keeping its scope, parent and visibility. The project must be open and touch the node's product. Tasks cannot appear (`TASK_NEEDS_PROJECT`) and a project node already lives in a project (`PROJECT_NODE_APPEARANCE`). `knowledge_appearance_remove` stops showing it. Both are idempotent (`changed: false` on repeat) and need `knowledge.nodes.update` on both scopes; prefer an appearance over a duplicate or a move when several projects need the same node, and confirm first because it changes what that project's readers see.
 - **Edge history:** `knowledge_edge_history {organizationId, projectId, ref, productId?, limit?, cursor?}` lists a node's relationship changes with actor, change, evidence and canonical scopes before/after. Cursors and revisions are decimal strings: pass them back unchanged and follow `nextCursor` for older entries. It is a staff read, not a changefeed, and is not available inside a Pai Agent session. Use it to explain when and why an edge appeared or disappeared.
 - Legacy Knowledge task nodes/projections stay project-scoped. Unified tasks also support product backlogs and CRM contexts through `../tasks/SKILL.md`; do not create those with knowledge_create.
+
+## Images in nodes
+
+A node's body can hold images (`![alt](/api/pages/assets/<assetId>)`). `knowledge_get` returns `assets` with the ones this reader can see (`id`, `filename`, `kind`, `mimeType`, dimensions, `sizeBytes`, `alt`, `readable`; `[]` when none). To look at one, call `asset_read {organizationId, projectId, assetId, size?}` with that id, following `../resources/SKILL.md` («See images»): `thumbnail` to identify, `standard` to read detail, video only through `asset_get`. Never follow the href or parse the body for ids.
+
+Using an asset in a node body counts as a use: it appears in `asset_get.usedIn` with `format: "knowledge"` and blocks `asset_delete` (`ASSET_IN_USE`). A client sees a node's image only when that image is used in something published to them (a `visibility: "client"` node or a client page); publishing a node also exposes its images, so check they are fit for clients first.
 
 ## Client visibility (ATE-237)
 

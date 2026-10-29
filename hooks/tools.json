@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "pai-portal df271445b (archived contract snapshot)",
+  "generatedFrom": "pai-portal b194c6195 (archived contract snapshot)",
   "declaredTools": [
     "agent_create",
     "agent_delete",
@@ -19,6 +19,7 @@
     "asset_delete",
     "asset_get",
     "asset_list",
+    "asset_read",
     "asset_upload",
     "brief_agenda",
     "brief_get",
@@ -382,6 +383,10 @@
       "destructive": false
     },
     "asset_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "asset_read": {
       "readOnly": true,
       "destructive": false
     },
