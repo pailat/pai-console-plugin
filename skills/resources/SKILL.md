@@ -113,7 +113,8 @@ A `whiteboard` format page stores a live collaborative Excalidraw scene in Resou
 1. Create: `whiteboard_create {path, title, content?, audience?, summary?, idempotencyKey?}`. Full path, e.g. `diagrams/sales-flow`; no `content` creates empty. Returns `path`, `revision`, `url`, semantic `summary`.
 2. Read: `whiteboard_read {path}` returns node IDs/text/shapes/groups, connections, groups, free text, `otherCount` for non-node strokes/shapes, `revision`, and `preview`; MCP Apps hosts can show `WhiteboardSketch`. **Always read before writing:** people draw manually.
 3. Write: `whiteboard_update {path, expectedRevision, mode, content, idempotencyKey, summary?, versionName?}`.
-   - Default **`append`** adds to the right; edges can target existing IDs/text; new IDs cannot collide.
+   - Default **`append`** places new content next to the board nodes its edges point to: below, beside or above, in the nearest free space, without overlapping shapes, text or frames. Existing content never moves. With no edges into the board, it goes to the board's right. Edges can target existing IDs/text; new IDs cannot collide.
+   - To place new content next to a group, connect it with an edge to one of that group's nodes.
    - **`replace` erases people's drawings**; only when explicitly requested.
    - Required `idempotencyKey`: reuse only for identical retries; changed content yields literal “La clave de idempotencia ya se usó con otro contenido”. `versionName` names the saved version.
    - Open boards receive live edits.
