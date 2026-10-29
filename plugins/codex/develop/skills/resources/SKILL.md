@@ -315,7 +315,7 @@ Audience is immutable; replies inherit it:
 
 - Portal composer defaults to agent, **server does not**: explicitly send `audience: "agent"` for agent threads.
 - Staff `needsAgent: true` only with `team`/`client`, adds to staff agents' inbox.
-- `agent_inbox`: own unanswered agent threads and `needsAgent`; respond as person with `comment_reply` or as agent with `page_comment_reply` (`summary`, optional `resolve`).
+- `agent_inbox {target?}`: own unanswered agent threads and `needsAgent` for the project, or only one page's, node's or proposal's with `target {kind: "page"|"knowledge"|"proposal", id}` (UUID); respond as person with `comment_reply` or as agent with `page_comment_reply` (`summary`, optional `resolve`).
 - `comment_edit {target, threadId, commentId, body}` only own/this agent's comments; marked edited, audience/state unchanged.
 - `comment_send_to_agent {threadId, body?}` creates a new agent thread on same fragment without altering original. `comment_resolve`/`comment_reopen` only for page threads.
 

@@ -6,7 +6,7 @@ Codex uses unique connection names: `pai_console_staging`, `pai_console_develop`
 
 ## Release 0.0.11 (Pai Console 0.2.5)
 
-**Version 0.0.11**, a draft; see the [release notes](docs/releases/0.0.11.md). Source: [`pai-portal/release/0.2.5` at `b194c6195`](https://github.com/pailat/pai-portal/commit/b194c6195), observed on 2026-10-29. It adds #316 (MCP asset images) and #317 (no stored links to old Portal addresses) over 0.0.10's `df271445b`; the other merges in between change no MCP tool contract. This is source compatibility, not a claim that every environment deploys this revision.
+**Version 0.0.11**, a draft; see the [release notes](docs/releases/0.0.11.md). Source: [`pai-portal/release/0.2.5` at `b194c6195`](https://github.com/pailat/pai-portal/commit/b194c6195), observed on 2026-10-29. It adds #316 (MCP asset images) and #317 (no stored links to old Portal addresses) over 0.0.10's `df271445b`; the other merges in between change no MCP tool contract. Generated references were refreshed from [`94ca61823`](https://github.com/pailat/pai-portal/commit/94ca61823) (2026-10-29): #345 adds the optional `target` input to `agent_inbox` (only the threads of one page, Knowledge node or proposal); #340 adds `href` to the `file_get` and `file_create` output; #341 makes a whiteboard move a new revision. This is source compatibility, not a claim that every environment deploys this revision.
 
 The synthetic corp inventory has **305 tools** (123 reads, 182 writes): `asset_read` is added, none removed, and no existing input schema changed.
 

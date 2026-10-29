@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "pai-portal b194c6195 (archived contract snapshot)",
+  "generatedFrom": "pai-portal 94ca61823 (archived contract snapshot)",
   "declaredTools": [
     "agent_create",
     "agent_delete",
