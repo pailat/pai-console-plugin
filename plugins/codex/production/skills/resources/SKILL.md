@@ -37,7 +37,7 @@ A **page is read continuously; a node is queried, linked, and superseded**. Page
 
 ## 2. Create a page
 
-1. **Search:** `page_search` by topic and `page_list` following `nextCursor` for paths. Update equivalents (§4).
+1. **Search:** `page_search` by topic and `page_list` following `nextCursor` for paths. To see which pages hold screens (views, flows, whiteboards), use `page_screens {organizationId, projectId}`, then `page_read` the one you need. Update equivalents (§4).
 2. **Choose type:** `references/page-types.md`, or `page_types {slug}` for full `authoringGuide` and example.
 3. **Choose path:** English kebab-case folders, no extension/dates except series: `architecture/payments`, `reports/checkout-performance`, `dashboards/project-status`, `guides/deploy-staging`, `reports/2026-10-weekly`.
 4. **Compose:**

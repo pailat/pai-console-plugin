@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "pai-portal 2d77cc337 (archived contract snapshot)",
+  "generatedFrom": "pai-portal dd7baf7fc (archived contract snapshot)",
   "declaredTools": [
     "agent_create",
     "agent_delete",
@@ -224,6 +224,7 @@
     "page_projection",
     "page_read",
     "page_restore",
+    "page_screens",
     "page_search",
     "page_suggest",
     "page_suggestion_decide",
@@ -1207,6 +1208,10 @@
     "page_restore": {
       "readOnly": false,
       "destructive": true
+    },
+    "page_screens": {
+      "readOnly": true,
+      "destructive": false
     },
     "page_search": {
       "readOnly": true,
