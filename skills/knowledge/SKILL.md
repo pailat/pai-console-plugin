@@ -58,7 +58,7 @@ Contract-generated references: `references/kinds.md` (templates/examples), `refe
 
 ## Create
 
-1. `knowledge_search` by topic and likely kinds. For complete kind inventory use `knowledge_library {projectId, kinds}`; for a node/topic context bundle use `knowledge_context`.
+1. `knowledge_search` by topic and likely kinds. For complete kind inventory use `knowledge_library {projectId, kinds}`; for a node/topic context bundle use `knowledge_context`. Optional filters: `c4Level` keeps only C4 `component` nodes of that level, with their `c4` summary (`c4` skill); `withCounts: true` adds each item's `counts {contains, usedBy}`.
 2. If equivalent content exists, **update or link it**, or propose replacement if contradictory. Never duplicate.
 3. `knowledge_create` with:
    - `kind`, English kebab-case `slug`, Spanish business `title` (≤200), `summary` (≤280);
