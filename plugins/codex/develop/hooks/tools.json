@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "pai-portal 9a5328927 (archived contract snapshot)",
+  "generatedFrom": "pai-portal 22a3e214f (archived contract snapshot)",
   "declaredTools": [
     "agent_create",
     "agent_delete",
@@ -115,6 +115,7 @@
     "folder_create",
     "folder_delete",
     "folder_reorder",
+    "folder_update",
     "iam_access_explain",
     "iam_access_test",
     "iam_audit_list",
@@ -767,6 +768,10 @@
       "destructive": true
     },
     "folder_reorder": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "folder_update": {
       "readOnly": false,
       "destructive": false
     },

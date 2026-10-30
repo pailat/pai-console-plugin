@@ -1,6 +1,6 @@
 ---
 name: resources
-description: "Create and maintain Pai Console project Resources: typed pages, canvas view blocks, HTML prototypes, Excalidraw whiteboards, live Knowledge projections, attributes and filters, notes, folders, suggestions, comments, image/video assets, and files. Use for documents, reports, PRDs/SOWs, dashboards, mockups, editable diagrams, page approval/ownership/filtering, suggestions, comments, uploads, asset reuse/deletion, or moving/restoring/deleting pages and empty folders."
+description: "Create and maintain Pai Console project Resources: typed pages, canvas view blocks, HTML prototypes, Excalidraw whiteboards, live Knowledge projections, attributes and filters, notes, folders, suggestions, comments, image/video assets, and files. Use for documents, reports, PRDs/SOWs, dashboards, mockups, editable diagrams, page approval/ownership/filtering, suggestions, comments, uploads, asset reuse/deletion, moving/restoring/deleting pages, renaming or moving folders, or deleting empty folders."
 argument-hint: "[project] [topic or resource type]"
 compatibility: "Pai 0.2.5+ (MCP corp)"
 ---
@@ -224,7 +224,7 @@ Only visible, `ready`, **same-project** assets. Other project/unconfirmed/invisi
 
 ## 7. Move, restore, delete
 
-- `page_move {path, newPath, summary}` rewrites links; inspect `warnings`, disclose external backlinks.
+- `page_move {path, newPath, summary}` rewrites links; inspect `warnings` (`backlink-rewrite-pending`: a collaborative note's link was not rewritten, ATE-350), disclose external backlinks. To move a whole folder, use `folder_update` (§9).
 - `page_restore {versionId, …CAS}` creates a new revision from an old version (`page_versions`).
 - **`page_delete` hard-deletes** versions/comments/index; `page_restore` cannot recover. Returns broken backlinks. Read and confirm first; update or mark outdated content instead when appropriate.
 
@@ -276,7 +276,9 @@ When a PRD is ready, finish by telling the user which page and revision a person
 
 ## 9. Notes, folders, suggestions
 
-**Folders:** `folder_create {parent, name}`: `parent` is `""` root or visible folder `path`; Spanish business `name` (1–120) generates slug (existing example “Actas de obra” → `actas-de-obra`). Staff defaults `internal`, exact path; occupied → `CONFLICT`. Use returned `path` for notes. No rename/move tool. Root literal UI labels are “Recursos” / “Recursos (raíz)”.
+**Folders:** `folder_create {parent, name}`: `parent` is `""` root or visible folder `path`; Spanish business `name` (1–120) generates slug (existing example “Actas de obra” → `actas-de-obra`). Staff defaults `internal`, exact path; occupied → `CONFLICT`. Use returned `path` for notes. Root literal UI labels are “Recursos” / “Recursos (raíz)”.
+
+**Folder rename/move** (staff only, corp): `folder_update {path, name?, newParent?, summary}` renames or moves a folder with everything in it (pages, notes, whiteboards, files, subfolders) in one transaction. Send at least one of `name` (new visible name; the path takes its lowercase hyphenated form) and `newParent` (`""` root or a folder path). The folder and its subfolders keep their short addresses. Each page moves as with `page_move`: path links to it are rewritten and each rewritten document is listed once in `rewritten`. A taken destination is `CONFLICT`; a move into itself is `INVALID_INPUT`. Confirm with the user first, then inspect `warnings` as with `page_move`: a link from a collaborative note can stay unrewritten with `backlink-rewrite-pending` (known limitation, ATE-350); report it, never claim every link was rewritten.
 
 **Folder delete** `folder_delete {path, summary}` is irreversible; must be **empty at every depth**, including internal pages/files and subfolders' content. Empty subfolders are removed too.
 1. Inspect `page_list {pathPrefix: "<path>/"}` and `file_list`; move/delete contents with `page_move`, `file_update`, `page_delete`, `file_delete` after confirming with the user.
