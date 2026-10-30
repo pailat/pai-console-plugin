@@ -299,6 +299,7 @@ When a PRD is ready, finish by telling the user which page and revision a person
 
 **Notes** (client-editable Markdown):
 - `note_create {path, title, markdown?, audience?, summary?}`. Staff defaults `internal` unless `client`; clients always `client` with random path suffix. Use returned path. Set attributes afterward (§8).
+- **Import an uploaded `.md`** (staff only, corp): to turn a long `.md` already in Resources into a note, use `note_import {fileId, path, title?, audience?, summary?, deleteFile?}` instead of passing its text through `note_create.markdown`. The server reads the file and the note gets its exact content. Only UTF-8 `.md` up to 1 MB. `fileId` comes from `file_list` or `file_create`; `path` is the note's full path; `title` defaults to the file name without `.md`; `audience` is `internal` unless `client`. `deleteFile: true` deletes the original file afterward: confirm it with the user. Returns the note's `path`, `revision`, `url` and `sourceFile`.
 - **No `kb:`** citations in notes; use pai-page if required (literal error “Una nota no lleva referencias kb: …”).
 - `note_update {path, expectedRevision, markdown?, attributes?}` replaces **entire** Markdown. Pai-page is not a note (“Las páginas de Pai se editan con page_update”).
 - **Never overwrite client notes:** agent Markdown updates become client suggestions, returning `{suggested: true, setId, threadId}`. Not failure; do not retry. Tell the user; attributes still write directly.

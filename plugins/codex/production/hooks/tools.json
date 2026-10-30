@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "pai-portal 377563b07 (archived contract snapshot)",
+  "generatedFrom": "pai-portal 4ed71e8e7 (archived contract snapshot)",
   "declaredTools": [
     "agent_create",
     "agent_delete",
@@ -189,6 +189,7 @@
     "milestone_update",
     "note_audience_set",
     "note_create",
+    "note_import",
     "note_update",
     "organization_archive",
     "organization_create",
@@ -1066,6 +1067,10 @@
     "note_create": {
       "readOnly": false,
       "destructive": false
+    },
+    "note_import": {
+      "readOnly": false,
+      "destructive": true
     },
     "note_update": {
       "readOnly": false,
