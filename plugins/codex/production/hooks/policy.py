@@ -89,7 +89,7 @@ IRREVERSIBLE = {
 
 # High-impact but reversible (or outward-facing) writes.
 ATTENTION = {
-    "folder_update": "Renames or moves the folder with all its pages, notes, whiteboards, files and subfolders and rewrites path links to them; links from collaborative notes can stay pending (backlink-rewrite-pending).",
+    "folder_update": "Renames or moves the folder with all its pages, notes, whiteboards, files and subfolders and rewrites path links to them, including in collaborative notes.",
     "note_import": "Creates a note from an uploaded .md file; with deleteFile: true the original file is deleted afterward.",
     "knowledge_move": "Moves Knowledge across scopes, possibly a complete subtree and released page provenance; inspect destination access and returned conflicts.",
     "chat_send": "Sends a remote Pai Agent turn and charges organization credits; an approvalResponse lets Pai Agent run the approved tool as the person. On timeout read the session before retrying.",
