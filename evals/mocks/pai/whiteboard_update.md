@@ -5,7 +5,6 @@ expect:
   path: string
   expectedRevision: number
   mode: string
-  content: object
   idempotencyKey: string
 ---
 

@@ -112,10 +112,15 @@ A `whiteboard` format page stores a live collaborative Excalidraw scene in Resou
 
 1. Create: `whiteboard_create {path, title, content?, audience?, summary?, idempotencyKey?}`. Full path, e.g. `diagrams/sales-flow`; no `content` creates empty. Returns `path`, `revision`, `url`, semantic `summary`.
 2. Read: `whiteboard_read {path}` returns node IDs/text/shapes/groups, connections, groups, free text, `otherCount` for non-node strokes/shapes, `revision`, and `preview`; MCP Apps hosts can show `WhiteboardSketch`. **Always read before writing:** people draw manually.
-3. Write: `whiteboard_update {path, expectedRevision, mode, content, idempotencyKey, summary?, versionName?}`.
+3. Write: `whiteboard_update {path, expectedRevision, mode, content?, operations?, idempotencyKey, summary?, versionName?}`. `append` and `replace` need `content` and take no `operations`; `edit` needs `operations`.
    - Default **`append`** places new content next to the board nodes its edges point to: below, beside or above, in the nearest free space, without overlapping shapes, text or frames. Existing content never moves. With no edges into the board, it goes to the board's right. Edges can target existing IDs/text; new IDs cannot collide.
    - To place new content next to a group, connect it with an edge to one of that group's nodes.
    - **`replace` erases people's drawings**; only when explicitly requested.
+   - **Fix without redrawing:** to change a text, color or shape, or to remove a node or an arrow on an existing board, use `mode: "edit"` with `operations`, never `replace`, which erases the person's layout.
+     - Operations apply in order, all or nothing, up to 100 per call: `updateNode {ref, label?, tone?, shape?: "rectangle"|"ellipse"|"diamond"}`; `removeNode {ref}` (also removes its text and arrows); `updateEdge {from, to, index?, label?, dashed?}` (`label: null` removes the text); `removeEdge {from, to, index?}`. Each operation is `{op: "<name>", …}`.
+     - `ref`, `from` and `to` name a node by its ID or its text, as `whiteboard_read` returns them. `index` picks one of several arrows between the same pair, in order.
+     - Nothing you do not name moves or changes. With `content` in the same call, it is appended after the operations, next to the nodes it connects to.
+     - Errors carry `cause.code` and `cause.ref`: `WHITEBOARD_REF_NOT_FOUND` (no such node), `WHITEBOARD_REF_AMBIGUOUS` (use the ID or `index`) or `WHITEBOARD_EDIT_UNSUPPORTED` (for example, the shape of an image or a text). If one operation fails, nothing is written.
    - Required `idempotencyKey`: reuse only for identical retries; changed content yields literal “La clave de idempotencia ya se usó con otro contenido”. `versionName` names the saved version.
    - Open boards receive live edits.
 4. On `CONFLICT` (literal “La pizarra cambió desde que la leíste…”), reread with `whiteboard_read`, integrate, retry once. On `UNAVAILABLE` (“la colaboración no está disponible”), retry with the same key. `page_update`/`note_update` reject boards with “Esta página es una pizarra: se edita en el Portal o con whiteboard_update”.
@@ -335,7 +340,7 @@ Typical errors: missing/mismatched page anchor, `nodeId` without `blockId`, clie
 - Do not retry note suggestions as direct client-note overwrites.
 - Do not omit `audience` for agent comments.
 - Do not expect `folder_delete` to cascade content; empty it first.
-- No unrequested whiteboard `replace`, coordinates, or raw Excalidraw elements; use `graph`/`mermaid`.
+- No unrequested whiteboard `replace`, coordinates, or raw Excalidraw elements; use `graph`/`mermaid` to add and `edit` operations to change what is there.
 - No links to old Portal addresses (`/organization/…`, `/portal/…`) in page content, view `href`s or notes: writes refuse them with `LEGACY_LINK`. Use the `url` a read returns (`/<orgSlug>/<projectSlug>/…`).
 - Do not read every image of a page by default, follow `/api/pages/assets/…` hrefs or describe an image you did not receive: use `assets` and `asset_read`.
 
