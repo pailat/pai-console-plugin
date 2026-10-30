@@ -56,6 +56,16 @@ A **page is read continuously; a node is queried, linked, and superseded**. Page
    - stable `idempotencyKey`: `page-<project>-<hyphenated-path>`.
 7. Inspect `warnings`, `document.revision`; return path/revision and response `url` prefixed by the Portal host (`https://app.pai.lat` production; staging Portal in staging).
 
+### Approximate structural advice
+
+`page_validate` and `page_read {view: "full"}` report structural `warnings` without invalidating content or preventing a save. Each warning identifies `blockId` and `path`, gives a repair in `suggestion`, and declares `approximate: true` with reference widths in `measure`.
+
+- `TEXT_OVERFLOW`: a fact value or constrained value/title may truncate or exceed its reference width. Abbreviate it or give it more space; preserve the complete datum in a note or table.
+- `ORPHAN_GRID_ITEM`: the chosen grid leaves one item alone on its last row. Adjust the column count or group related content.
+- `GRID_COLUMNS_OVERFLOW`: the requested columns exceed the reference space. Reduce columns or widen the container.
+
+Review the affected block and suggestion before updating; keep intentional layouts when the user's content needs them. These are deterministic content estimates, not browser measurements or screenshots: responsive layout and fonts can change the result. Partial reads (`summary`, `content`) do not calculate these warnings. Use the Portal to inspect the final rendering when needed; do not claim a successful tool call proves the layout is visually correct.
+
 Validated report with five required sections: `examples/report-page.json`. Canvas examples: `../views/examples/`.
 
 ## 3. Views, HTML, projections, whiteboards
