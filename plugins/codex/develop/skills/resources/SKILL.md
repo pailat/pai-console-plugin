@@ -133,6 +133,11 @@ A `whiteboard` format page stores a live collaborative Excalidraw scene in Resou
      - `addText {id, text, near, side?, tone?}` adds a loose text next to a group or node.
      - `removeDecoration {id}` removes one. Decoration IDs use letters, digits, `_ . : -`.
    - **Empty frames:** a group with no nodes in `graph.groups` is drawn as an empty 320 × 200 frame, for placeholders without filler nodes.
+   - **Nested groups and position** (in `graph.groups` of `whiteboard_create`, and `whiteboard_update` with `append` or `replace`):
+     - `parent` nests a group in another, e.g. «Contexto» holding «Actores» and «Sistemas externos». One level only, and a nested group needs at least one node (an empty frame is top-level only). The parent's frame holds its own nodes and the nested frames. `whiteboard_read` returns `groups[].parent`.
+     - `position: {side: "left"|"right"|"above"|"below", of, gap?}` puts a group, with everything in it, next to another group after the automatic layout (`gap` 0–2000, default 120): a legend to one side, or «Externos» left of the system. Arrows touching that group are drawn straight.
+     - To move groups on an existing board, use `mode: "edit"` with `moveGroup` or `place`; `moveGroup` on a parent also moves its nested groups.
+     - Refused with an error that says why: two nesting levels, a group inside itself, a nested group without nodes, and a `position` next to itself or to its own parent.
    - Required `idempotencyKey`: reuse only for identical retries; changed content yields literal “La clave de idempotencia ya se usó con otro contenido”. `versionName` names the saved version.
    - Open boards receive live edits.
 4. **Check before calling it done:** `whiteboard_create`, `whiteboard_update` and `whiteboard_read` return `warnings` `[{code, ids, message}]` for what looks wrong (at most 50):
