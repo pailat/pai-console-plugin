@@ -120,7 +120,18 @@ A `whiteboard` format page stores a live collaborative Excalidraw scene in Resou
      - Operations apply in order, all or nothing, up to 100 per call: `updateNode {ref, label?, tone?, shape?: "rectangle"|"ellipse"|"diamond"}`; `removeNode {ref}` (also removes its text and arrows); `updateEdge {from, to, index?, label?, dashed?}` (`label: null` removes the text); `removeEdge {from, to, index?}`. Each operation is `{op: "<name>", …}`.
      - `ref`, `from` and `to` name a node by its ID or its text, as `whiteboard_read` returns them. `index` picks one of several arrows between the same pair, in order.
      - Nothing you do not name moves or changes. With `content` in the same call, it is appended after the operations, next to the nodes it connects to.
-     - Errors carry `cause.code` and `cause.ref`: `WHITEBOARD_REF_NOT_FOUND` (no such node), `WHITEBOARD_REF_AMBIGUOUS` (use the ID or `index`) or `WHITEBOARD_EDIT_UNSUPPORTED` (for example, the shape of an image or a text). If one operation fails, nothing is written.
+     - Errors carry `cause.code` and `cause.ref`: `WHITEBOARD_REF_NOT_FOUND` (no such node), `WHITEBOARD_REF_AMBIGUOUS` (use the ID or `index`), `WHITEBOARD_EDIT_UNSUPPORTED` (for example, the shape of an image or a text) or `WHITEBOARD_DECORATION_REFUSED` (a decoration ID the board already has, or past the cap). If one operation fails, nothing is written.
+   - **Arrange without redrawing** (also `mode: "edit"`), only when the user asks for a position or layout:
+     - `moveNode {ref, dx?, dy? | x?, y?}` moves the node and its text; its arrows follow. If it leaves its group, the frame grows to hold it.
+     - `moveGroup {group, dx?, dy? | x?, y?}` moves the frame with everything in it: "move the frame to the left" is a negative `dx`.
+     - `place {ref, side: "left"|"right"|"above"|"below", of, gap?}` puts a group or node next to another, centered, `gap` px apart (default 120, max 2000).
+     - A group is named by its ID or title, a node by its ID or text. In `place`, `near` and `around`, a group is matched first.
+     - Coordinates and offsets are board pixels within ±100000; `x`/`y` set the top-left corner.
+   - **Decorations are never nodes:** arrows, refs and the summary ignore them. Up to 50 per board.
+     - `addBox {id, around: [groups or nodes], label?, tone?, padding?}` draws a background box behind what it surrounds; its `label` reads in `texts` and the box counts in `otherCount`.
+     - `addText {id, text, near, side?, tone?}` adds a loose text next to a group or node.
+     - `removeDecoration {id}` removes one. Decoration IDs use letters, digits, `_ . : -`.
+   - **Empty frames:** a group with no nodes in `graph.groups` is drawn as an empty 320 × 200 frame, for placeholders without filler nodes.
    - Required `idempotencyKey`: reuse only for identical retries; changed content yields literal “La clave de idempotencia ya se usó con otro contenido”. `versionName` names the saved version.
    - Open boards receive live edits.
 4. On `CONFLICT` (literal “La pizarra cambió desde que la leíste…”), reread with `whiteboard_read`, integrate, retry once. On `UNAVAILABLE` (“la colaboración no está disponible”), retry with the same key. `page_update`/`note_update` reject boards with “Esta página es una pizarra: se edita en el Portal o con whiteboard_update”.
@@ -342,7 +353,7 @@ Typical errors: missing/mismatched page anchor, `nodeId` without `blockId`, clie
 - Do not retry note suggestions as direct client-note overwrites.
 - Do not omit `audience` for agent comments.
 - Do not expect `folder_delete` to cascade content; empty it first.
-- No unrequested whiteboard `replace`, coordinates, or raw Excalidraw elements; use `graph`/`mermaid` to add and `edit` operations to change what is there.
+- No unrequested whiteboard `replace`, coordinates in `content`, or raw Excalidraw elements; use `graph`/`mermaid` to add and `edit` operations to change or arrange what is there. Never fake a node with a decoration: connect real nodes.
 - No links to old Portal addresses (`/organization/…`, `/portal/…`) in page content, view `href`s or notes: writes refuse them with `LEGACY_LINK`. Use the `url` a read returns (`/<orgSlug>/<projectSlug>/…`).
 - Do not read every image of a page by default, follow `/api/pages/assets/…` hrefs or describe an image you did not receive: use `assets` and `asset_read`.
 
