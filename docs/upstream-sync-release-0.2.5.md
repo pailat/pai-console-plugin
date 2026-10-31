@@ -63,3 +63,14 @@ The full gate passed on `c5a5224` in the same disposable Railway sandbox; only t
 The first gate on `cd1e377` exposed a new guard test missing its empty transcript fixture and a README checkpoint/count mismatch; both were corrected before the passing full gate. No existing no-transcript hook behavior was changed. No model-based behavioral evaluation suite was run for this synchronization.
 
 Source compatibility and local client fixtures do not establish real OAuth, desktop rendering, deployed hook trust, or production authorization. No real Pai tool was invoked, no endpoint was authenticated, and no production infrastructure was changed. The sandbox alone installed dependencies and ran clients/tests.
+
+
+## Approved follow-up: pai-portal #450 (ATE-407)
+
+The owner approved including [pai-portal #450](https://github.com/pailat/pai-portal/pull/450), merge `ab20589a5`, in plugin PR #16. This is a targeted recovery-guidance addition after the 29-merge checkpoint above; it does not claim an audit of other intervening release merges or advance the generated contract snapshot from `dbe7832cb`.
+
+| pai-portal PR | Released behavior | Plugin change and reason |
+|---|---|---|
+| [#450](https://github.com/pailat/pai-portal/pull/450) | `note_update` reports `NOTE_REVISION_CONFLICT` with `current.revision`; collab writes report `LIVE_DOCUMENT_CHANGED` or fallback `COLLAB_WRITE_CONFLICT`, preserving revision metadata when available | Base skill §5 distinguishes these conflicts, requires a fresh full read and reconciliation of human edits before one retry, and forbids replaying stale content with only a new revision. Three Codex packages regenerated from the shared source. |
+
+The source diff changes conflict outputs and live-document comparison, without changing MCP tool names or input schemas. Collab obtains the revision after flushing pending edits; if its recovery read fails, `current` may be absent. A returned revision is a recovery hint, never a replacement for current content. The plugin keeps the closed-project no-retry exception and all confirmation rules. Full follow-up validation evidence and the tested commit are recorded in PR #16 and ATE-405.
