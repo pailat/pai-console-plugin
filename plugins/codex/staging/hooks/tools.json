@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "pai-portal b194c6195 (archived contract snapshot)",
+  "generatedFrom": "pai-portal dbe7832cb (archived contract snapshot)",
   "declaredTools": [
     "agent_create",
     "agent_delete",
@@ -47,6 +47,11 @@
     "comment_reply",
     "comment_resolve",
     "comment_send_to_agent",
+    "connection_create",
+    "connection_events",
+    "connection_get",
+    "connection_list",
+    "connection_revoke",
     "credit_balance",
     "credit_transactions",
     "crm_access_get",
@@ -115,6 +120,7 @@
     "folder_create",
     "folder_delete",
     "folder_reorder",
+    "folder_update",
     "iam_access_explain",
     "iam_access_test",
     "iam_audit_list",
@@ -188,6 +194,7 @@
     "milestone_update",
     "note_audience_set",
     "note_create",
+    "note_import",
     "note_update",
     "organization_archive",
     "organization_create",
@@ -222,6 +229,7 @@
     "page_projection",
     "page_read",
     "page_restore",
+    "page_screens",
     "page_search",
     "page_suggest",
     "page_suggestion_decide",
@@ -498,6 +506,26 @@
       "readOnly": false,
       "destructive": false
     },
+    "connection_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "connection_events": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "connection_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "connection_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "connection_revoke": {
+      "readOnly": false,
+      "destructive": true
+    },
     "credit_balance": {
       "readOnly": true,
       "destructive": false
@@ -767,6 +795,10 @@
       "destructive": true
     },
     "folder_reorder": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "folder_update": {
       "readOnly": false,
       "destructive": false
     },
@@ -1062,6 +1094,10 @@
       "readOnly": false,
       "destructive": false
     },
+    "note_import": {
+      "readOnly": false,
+      "destructive": true
+    },
     "note_update": {
       "readOnly": false,
       "destructive": true
@@ -1197,6 +1233,10 @@
     "page_restore": {
       "readOnly": false,
       "destructive": true
+    },
+    "page_screens": {
+      "readOnly": true,
+      "destructive": false
     },
     "page_search": {
       "readOnly": true,

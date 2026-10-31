@@ -39,7 +39,7 @@ Actual permission identifiers include the full service.resource.verb string; con
 ## Server invariants
 
 - **Every open record needs a next step:** open leads (`new`, `contacted`) and opportunities require a dated task with dependency `{body, dueAt, waitingOn, type?, detail?, priority?, tags?}`; `waitingOn` is `pai` or `client`. Creation requires `firstTask`/`task`; stage changes use `nextTask`; unified completion of the last task uses `next` with `title`. Agree tasks/dates with the user, never invent dates.
-- **`dueAt` uses CDMX (`-06:00`).** Without a specified time, business-day end `T18:00:00-06:00`, displayed as “Sin hora” (all-day). With a time, use it, e.g. `T10:30:00-06:00`. Never use midnight/noon UTC to mean a day; those appear as timed events.
+- **`dueAt` uses CDMX (`-06:00`).** Without a specified time, business-day end `T18:00:00-06:00`, displayed as “Sin hora” (all-day). With a time, use it, e.g. `T10:30:00-06:00`. In `task_create`, `task_update` and `task_complete.next` you can instead send the day as midnight UTC with `dueHasTime:false`, which becomes that day's 18:00 CDMX close. Nested `firstTask`/`task`/`nextTask` objects have no such flag. Without the flag, never use midnight/noon UTC to mean a day: those are timed moments, and midnight UTC reads in CDMX as 18:00 of the day before.
 - **CAS:** every lead/opportunity write carries `expectedRevision` from `crm_lead_get`, `crm_lead_record`, or `crm_opportunity_get`. On `CONFLICT`, reread and reconsider; shared retry limit applies.
 - **Cents** (`4200000` = $42,000.00) by currency (`mxn`, `usd`). **Never sum MXN and USD**; report separately.
 - Archive is reversible through `*_unarchive`; only `crm_lead_purge` deletes chain-free junk.

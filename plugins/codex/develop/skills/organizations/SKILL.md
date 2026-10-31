@@ -1,6 +1,6 @@
 ---
 name: organizations
-description: "Administer Pai Console client organizations and projects as Pai staff: archiving and restoring organizations, members, roles and invitations, client invites, organization and project URL slugs, project administrative status, self-service onboarding briefs, project agents, organization AI credits, and your own profile. Use for inviting or removing client people, changing roles or slugs, reviewing new briefs, configuring project agents, credit history, or updating your name or avatar."
+description: "Administer Pai Console client organizations and projects as Pai staff: archiving and restoring organizations, members, roles and invitations, client invites, organization and project URL slugs, project administrative status, self-service onboarding briefs, project agents, connection host registration and revocation, organization AI credits, and your own profile. Use for inviting or removing client people, changing roles or slugs, reviewing new briefs, configuring project agents, inspecting or registering connections, revoking host authority, credit history, or updating your name or avatar."
 argument-hint: "[organization or project] [administrative change or review]"
 compatibility: "Pai 0.2.5+ (MCP corp, Pai staff)"
 ---
@@ -43,6 +43,19 @@ Archiving is how Pai removes an organization: nothing is deleted, and it is **no
 ## Project administrative status
 
 `project_status {organizationId, projectId}` is the staff administrative view: project data, milestone progress (completed and paid), milestones in order, latest proposal and all proposals, files and pending organization invitations. Finance fields are null without payment permissions. Use `project_summary` for the client-facing home and `../schedule/SKILL.md` for planning; read pages separately (`../resources/SKILL.md`).
+
+## Connection host registry
+
+`connection_*` tools are available to effective Pai staff on **corp only**, without impersonation, and require an explicit applicable IAM grant in the selected organization. A staff label alone is insufficient. Console exposes the same management cases under **Conexiones** (`/connections`, `/connections/<hostId>`); there is no client Portal surface. All five tools require `organizationId`; never switch tenants after a refusal. Inspect exact strict schemas in `../../evals/mocks/pai/_tools.json`.
+
+1. **Search first:** `connection_list {organizationId, query?, status?, sort?, pageIndex?, pageSize?}`. `status` is an array of `pending`, `active`, `disabled`, `revoked`; `sort` is `createdAt.desc` (default), `createdAt.asc`, `label.asc`, or `label.desc`. Pagination is zero-based (`pageIndex: 0`, `pageSize: 25`, at most 100); follow `total`, `pageIndex`, and `pageSize` until covered. Query searches the label and native ID. Reuse a matching registration.
+2. **Read:** `connection_get {organizationId, hostId}` returns the public host projection, including `status`, `revision`, `keyEpoch`, `publicKeyId`, and timestamps. `connection_events {organizationId, hostId, pageIndex?, pageSize?}` returns history newest first with the same pagination. Neither exposes private keys, challenges, actor IDs in events, owner tokens, or runtime capabilities. These reads have no dedicated MCP view; summarize the data with a text fallback.
+3. **Register only when requested:** `connection_create {organizationId, nativeId, label, publicKey, nkey}` creates a **pending** host. `nativeId` is 1–128 characters matching `^[a-zA-Z0-9][a-zA-Z0-9._:-]*$`; `label` is 1–120. Obtain the host's raw 32-byte Ed25519 **public** key as canonical base64url (43 characters) and its public NATS user NKey (`U` plus 55 base32 characters, checksum verified by the domain). Never ask for a private key or seed. Repeating the exact native ID, label and identity returns the existing host; changing any of those for an occupied native ID yields `CONNECTION_NATIVE_ID_CONFLICT`. Read that registration rather than inventing another ID. There is no `idempotencyKey` input.
+4. **Revoke only with explicit approval:** read the current detail, state which organization and host will permanently lose their registration and live authority, then `connection_revoke {organizationId, hostId, expectedRevision}`. Revocation closes live incarnations and cannot reactivate the same registration. Verify the returned status and events. Although annotated idempotent, CAS is checked before the already-revoked case: on a lost response, read again instead of replaying a stale revision.
+
+On `CONNECTION_REVISION_CONFLICT`, reread and reconcile once before any authorized retry. `CONNECTION_IDENTITY_INVALID` means invalid public identity encoding or NKey checksum; obtain correct public values from the host owner. `CONNECTION_NOT_FOUND` does not justify probing other tenants. `CONNECTION_TENANT_REQUIRED` and `CONNECTION_STAFF_REQUIRED` require the proper context/grant, never a bypass.
+
+This registry describes approval status, **not gateway connectivity**. MCP exposes no approve, enable, disable, key rotation, claim, heartbeat, terminal, command execution, or transport operation. Runtime permissions and internal incarnation methods in the catalog do not create callable MCP tools. Do not promise a registered or active host can execute anything.
 
 ## Onboarding briefs
 

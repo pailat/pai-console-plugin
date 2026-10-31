@@ -4,11 +4,17 @@ Pai staff workflows for **Pai Console 0.2.5+**, distributed as the existing Clau
 
 Codex uses unique connection names: `pai_console_staging`, `pai_console_develop` and `pai_console_production`. Claude retains `pai`.
 
+## Release 0.2.5 source sync (ATE-405)
+
+Current generated references use pai-portal `dbe7832cb` (2026-10-30), after reviewing all 29 first-parent merges since `a6fd71519`. The synthetic corp inventory has **313 tools** (127 reads, 186 writes). The five new tools are `connection_list`, `connection_get`, `connection_events`, `connection_create` and `connection_revoke`; existing IAM input schemas and page warning descriptions are refreshed. Shared skills cover Resources-only project grants and reader-relative paths, direct resource access, the removed milestone Stripe checkout, proposal/task navigation, Architecture editing and restored identity after impersonation.
+
+See the [complete PR audit and sandbox validation](docs/upstream-sync-release-0.2.5.md). This incorporates plugin #14 and #15 while retaining plugin version 0.0.11; no tag or release is published.
+
 ## Release 0.0.11 (Pai Console 0.2.5)
 
-**Version 0.0.11**, a draft; see the [release notes](docs/releases/0.0.11.md). Source: [`pai-portal/release/0.2.5` at `b194c6195`](https://github.com/pailat/pai-portal/commit/b194c6195), observed on 2026-10-29. It adds #316 (MCP asset images) and #317 (no stored links to old Portal addresses) over 0.0.10's `df271445b`; the other merges in between change no MCP tool contract. This is source compatibility, not a claim that every environment deploys this revision.
+**Version 0.0.11**, a draft; see the [release notes](docs/releases/0.0.11.md). Source: [`pai-portal/release/0.2.5` at `b194c6195`](https://github.com/pailat/pai-portal/commit/b194c6195), observed on 2026-10-29. It adds #316 (MCP asset images) and #317 (no stored links to old Portal addresses) over 0.0.10's `df271445b`; the other merges in between change no MCP tool contract. Generated references were refreshed from [`b568d2a02`](https://github.com/pailat/pai-portal/commit/b568d2a02f5e75c26e7db251491951def577f772) (2026-10-30): #345 adds the optional `target` input to `agent_inbox` (only the threads of one page, Knowledge node or proposal); #340 adds `href` to the `file_get` and `file_create` output; #341 makes a whiteboard move a new revision. #350 places whiteboard `append` content next to the nodes it connects to. #357 adds `whiteboard_update` `mode: "edit"` with `operations` (`content` becomes optional). #364 adds the staff-only corp tool `folder_update` (rename or move a folder with its contents). #366 adds edit operations that move and place nodes and groups and add decorations (boxes and loose texts). #365 adds the staff-only corp tool `note_import` (a note from an uploaded `.md`). #310 adds the `c4Level` and `withCounts` filters to `knowledge_search` (documented in `c4` and `knowledge`) and new view icons. #374 adds `whiteboard_read` `image` (the board as an MCP image) and layout `warnings` on whiteboard reads and writes. #370 (`c2f5b16a3`, no contract change) rewrites path links inside collaborative notes when a page or folder moves (ATE-350). #391 adds the read tool `page_screens`, the project's screen index, on corp and the client MCP. #387 adds whiteboard group `parent` (one nesting level) and `position`. #404 makes `dueHasTime: false` mean a day on CRM tasks too (18:00 CDMX close) and adds it to `task_complete.next`. This is source compatibility, not a claim that every environment deploys this revision.
 
-The synthetic corp inventory has **305 tools** (123 reads, 182 writes): `asset_read` is added, none removed, and no existing input schema changed.
+The preceding snapshot had **308 tools** (124 reads, 184 writes): `asset_read` (#316), `page_screens` (#391), `folder_update` (#364) and `note_import` (#365) are added, none removed; `agent_inbox` gains `target` and `whiteboard_update` gains `operations` with an optional `content`.
 
 | Area | Upstream | Plugin behavior |
 |---|---|---|
@@ -250,6 +256,8 @@ Full reference generation also refreshes `hooks/tools.json` and `evals/mocks/pai
 PAI_PORTAL=/path/to/archived-contract-snapshot bun tools/gen-references.ts --references-only --source-revision df271445b
 PAI_PORTAL=/path/to/archived-contract-snapshot bun tools/validate-examples.ts
 ```
+
+The latest release 0.2.5 audit and source checkpoint (`dbe7832cb`, ATE-405), including every reviewed PR and validation scope, are recorded in [the synchronization report](docs/upstream-sync-release-0.2.5.md). It includes plugin #14 and #15 without changing the plugin version or publishing a release.
 
 Release 0.0.10 validation uses archived pai-portal revision `df271445b54af91bde9012cdcacdd925b6d3745c`, with dependencies installed only in the temporary snapshot; all 19 example files pass the actual upstream contracts without changing an external checkout. Full generation, without `--references-only`, also checks the corporate inventory. The generator verifies declared-versus-discovered inventory coverage and explicit read annotations. Its literal MCP JSON is compact to fit Claude's 1 MiB mock-file limit, with no schema fields removed. The 0.0.9 checkpoint remains documented in [its historical integration report](docs/upstream-sync-0.0.9.md). This establishes source compatibility, not live environment availability.
 

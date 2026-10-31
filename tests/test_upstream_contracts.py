@@ -25,6 +25,22 @@ class UpstreamContractsTest(unittest.TestCase):
                          'folder_reorder', 'crm_lead_anonymize'} <= set(names))
         self.assertTrue({'proposal_accept', 'proposal_reject'}.isdisjoint(names))
 
+    def test_connection_registry_has_only_the_released_surface(self):
+        tools = json.loads((ROOT / 'evals/mocks/pai/_tools.json').read_text())['tools']
+        connections = {tool['name']: tool for tool in tools if tool['name'].startswith('connection_')}
+        self.assertEqual(set(connections), {
+            'connection_list', 'connection_get', 'connection_events',
+            'connection_create', 'connection_revoke'})
+        for name, tool in connections.items():
+            self.assertEqual(tool['annotations']['readOnlyHint'], name in {
+                'connection_list', 'connection_get', 'connection_events'})
+            self.assertFalse(tool['inputSchema']['additionalProperties'])
+            self.assertIn('organizationId', tool['inputSchema']['required'])
+        revoke = connections['connection_revoke']
+        self.assertTrue(revoke['annotations']['destructiveHint'])
+        self.assertTrue(revoke['annotations']['idempotentHint'])
+        self.assertIn('expectedRevision', revoke['inputSchema']['required'])
+
     def test_retired_crm_aliases_are_not_taught_or_registered(self):
         retired = re.compile(r'\bcrm_(?:lead_)?task_(?:create|complete|get|list|tag_list|update)\b')
         paths = list((ROOT / 'skills').rglob('*.md')) + list((ROOT / 'agents').glob('*.md'))

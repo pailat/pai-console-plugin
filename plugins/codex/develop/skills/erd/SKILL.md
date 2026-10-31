@@ -116,6 +116,8 @@ These are normal modeling patterns; the diagram shows all of them:
 - Do not point `referencesEntity` at a non-`entity`: it warns and omits the edge.
 - Do not request `visibility:"client"`: an agent only writes `internal`; a person decides publication in Console.
 
+Portal Arquitectura now offers creation dialogs and editable diagram inspectors under the caller's grants. Those edits use the same Knowledge nodes, sources, complete properties, and revision checks as MCP; reread a node after someone edits it there. Diagram positions are presentation, not a substitute for the model's relationships.
+
 ## Later changes
 
 1. `knowledge_get` the entity for `revision` and complete `properties`.

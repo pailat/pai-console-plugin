@@ -31,6 +31,7 @@ READ_TOOLS = load_read_tools()
 
 # Create tool -> tools that count as "looked for what exists first".
 SEARCH_BEFORE_CREATE = {
+    "connection_create": ("connection_list",),
     "task_create": ("task_list", "task_list_mine"),
     "chat_create": ("chat_list",),
     "chat_comment_create": ("chat_comment_list",),
@@ -41,6 +42,7 @@ SEARCH_BEFORE_CREATE = {
     "iam_deny_create": ("iam_deny_list",),
     "page_create": ("page_search", "page_list", "page_read"),
     "note_create": ("page_search", "page_list", "page_read"),
+    "note_import": ("page_search", "page_list", "page_read"),
     "knowledge_create": (
         "knowledge_search",
         "knowledge_context",
@@ -59,6 +61,7 @@ SEARCH_BEFORE_CREATE = {
 
 # Irreversible writes: what the confirmation must say they drag along.
 IRREVERSIBLE = {
+    "connection_revoke": "Permanently revokes the host registration and closes its live authority; the same registration cannot be reactivated.",
     "crm_lead_anonymize": "Irreversibly anonymizes the lead and associated personal data for an explicit ARCO request; retain only the server-defined audit and metrics records.",
     "crm_submission_anonymize": "Irreversibly anonymizes a Forms submission for an explicit ARCO request; this is not ordinary archival.",
     "chat_close": "Finally closes the owned session and revokes its agent tokens; resuming creates another session.",
@@ -88,6 +91,8 @@ IRREVERSIBLE = {
 
 # High-impact but reversible (or outward-facing) writes.
 ATTENTION = {
+    "folder_update": "Renames or moves the folder with all its pages, notes, whiteboards, files and subfolders and rewrites path links to them, including in collaborative notes.",
+    "note_import": "Creates a note from an uploaded .md file; with deleteFile: true the original file is deleted afterward.",
     "knowledge_move": "Moves Knowledge across scopes, possibly a complete subtree and released page provenance; inspect destination access and returned conflicts.",
     "chat_send": "Sends a remote Pai Agent turn and charges organization credits; an approvalResponse lets Pai Agent run the approved tool as the person. On timeout read the session before retrying.",
     "api_design_save": "Replaces the whole OpenAPI document of the API design with a new revision; the previous revision stays in history.",

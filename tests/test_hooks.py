@@ -112,6 +112,18 @@ class GuardTest(HookCase):
             self.assertEqual(decision, "ask")
             self.assertTrue(reason.startswith("IRREVERSIBLE"), tool)
 
+    def test_connection_registration_search_and_permanent_revocation(self) -> None:
+        decision, _ = self.decision(self.guard(PLUGIN + "connection_create", STAGING, transcript=self.transcript()))
+        self.assertEqual(decision, "deny")
+        searched = self.transcript(PLUGIN + "connection_list")
+        self.assertIsNone(self.guard(PLUGIN + "connection_create", STAGING, transcript=searched))
+        decision, reason = self.decision(self.guard(PLUGIN + "connection_revoke", PRODUCTION))
+        self.assertEqual(decision, "ask")
+        self.assertTrue(reason.startswith("IRREVERSIBLE"))
+        self.assertIn("cannot be reactivated", reason)
+        for read in ("connection_list", "connection_get", "connection_events"):
+            self.assertIsNone(self.guard(PLUGIN + read, PRODUCTION))
+
     def test_product_deploy_depends_on_target_environment(self) -> None:
         _, reason = self.decision(self.guard(PLUGIN + "product_deploy", PRODUCTION, {"environment": "production"}))
         self.assertTrue(reason.startswith("IRREVERSIBLE"))
@@ -274,7 +286,7 @@ class InventoryTest(HookCase):
 
     def test_every_read_passes_and_every_write_asks_in_production(self) -> None:
         for name, hints in self.tools.items():
-            output = self.guard(PLUGIN + name, PRODUCTION, transcript=self.transcript(PLUGIN + "page_search", PLUGIN + "knowledge_search", PLUGIN + "timeline_get", PLUGIN + "project_list", PLUGIN + "organization_list", PLUGIN + "product_list", PLUGIN + "agent_list", PLUGIN + "crm_lead_duplicates", PLUGIN + "crm_organization_get", PLUGIN + "chat_list", PLUGIN + "task_list", PLUGIN + "iam_group_list", PLUGIN + "iam_role_list", PLUGIN + "iam_deny_list", PLUGIN + "flow_list", PLUGIN + "api_design_list", PLUGIN + "chat_comment_list", PLUGIN + "product_release_plan_list"))
+            output = self.guard(PLUGIN + name, PRODUCTION, transcript=self.transcript(PLUGIN + "connection_list", PLUGIN + "page_search", PLUGIN + "knowledge_search", PLUGIN + "timeline_get", PLUGIN + "project_list", PLUGIN + "organization_list", PLUGIN + "product_list", PLUGIN + "agent_list", PLUGIN + "crm_lead_duplicates", PLUGIN + "crm_organization_get", PLUGIN + "chat_list", PLUGIN + "task_list", PLUGIN + "iam_group_list", PLUGIN + "iam_role_list", PLUGIN + "iam_deny_list", PLUGIN + "flow_list", PLUGIN + "api_design_list", PLUGIN + "chat_comment_list", PLUGIN + "product_release_plan_list"))
             if hints["readOnly"]:
                 self.assertIsNone(output, name)
             else:

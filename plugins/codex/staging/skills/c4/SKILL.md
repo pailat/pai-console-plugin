@@ -30,6 +30,7 @@ Read the shared `pai-console` skill first, using the current client's invocation
    - **inventory:** `knowledge_library {projectId, kinds:["component","actor"]}`, advancing `offset` to `total`;
    - **organization:** the same `knowledge_library` with `projectId: "organization"`. Shared client models and systems may live there: link their UUIDs instead of recreating them;
    - **topic:** `knowledge_search` with those kinds and the system name.
+   - **by level:** `knowledge_search {query, c4Level}` (`context`, `container`, `component` or `code`) returns only `component` nodes of that level, each with `c4 {level, type, technology}`. Add `withCounts: true` for each node's `counts`: `contains` (children of a system or container, entities of a data model) and `usedBy` (incoming `uses`, such as the containers storing a data model), like Portal's Arquitectura index. Counts include only edges whose other end you can see and that are not archived.
 
    If the system exists, **add beneath it** rather than duplicating it.
 2. **Actors first:** `actor` with `actorType` (`person`, `role`, `system`, or `agent`), `description` (10–1000), and `goals` (≥1). Reuse existing actors shared by screens and flows.
@@ -104,6 +105,8 @@ At code level, `codeKind` determines the fields:
 - Do not use `stereotype` outside component level, or `httpRoutes` outside a controller or class.
 - Do not manually create `uses`, `performs`, or `contains`: derive them from `relationships` and `parent`.
 - Do not model every class: C4 explains the system rather than copying its code.
+
+Portal Arquitectura now offers creation dialogs and editable diagram inspectors under the caller's grants. Those edits use the same Knowledge nodes, sources, complete properties, and revision checks as MCP; reread a node after someone edits it there. Diagram positions are presentation, not a substitute for the model's relationships.
 
 ## Later changes
 

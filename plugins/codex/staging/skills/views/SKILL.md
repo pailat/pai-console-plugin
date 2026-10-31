@@ -214,7 +214,7 @@ Plugin validated examples in `examples/`; start from them:
 
 Use `view` for catalog-only, no-JavaScript dashboards/reports/comparisons/Pai/client screen mockups. For custom JS/simulation/canvas/pixel-precise or unsupported interactions use isolated, network-free **`html`** with CSS theme variables (`resources` §3). `view_render` never renders HTML; saved HTML displays in Portal.
 
-1. Search page_search/page_list; edit equivalents.
+1. Search page_screens (pages holding views, flows and whiteboards), page_search/page_list; edit equivalents.
 2. Compose and **preview `view_render`**; correct reported errors, disclose CLI presentation limits.
 3. `page_validate`: `schemaVersion: 1`, `componentSetVersion: "pai-core-v1"`, `layout: "canvas"`, `{id, type: "view", title, spec}`, **no `typeSlug`** (no built-in type permits view). Use `schemaVersion: 2` only when the page also needs `projection` blocks (`resources` §3).
 4. `page_create`: English folder path `dashboards/…`, `mockups/…`, `reports/…`; explicit `audience` internal/client; summary ≤80; stable idempotencyKey.

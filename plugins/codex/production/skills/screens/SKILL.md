@@ -59,6 +59,7 @@ Spanish server/UI quotations and the existing `pantallas` path convention above 
 ## Order
 
 1. **Search:** paginate `knowledge_library {projectId, kinds:["actor","screen","action","flow"]}` and `knowledge_search` by route/name. **Reuse** actors/actions shared with C4 and flows. If two appear equivalent, use one and flag the duplicate; never create a third.
+   - For screens already drawn in Resources (view or flow blocks of pages, and whiteboards), `page_screens {organizationId, projectId}` is the project's screen index: each page's `id`, `path`, `revision`, `whiteboard` and blocks `{id, type, title, hash}`, without specs. `page_read` the page you need; a client sees only pages published to it and the flows it can see.
 2. Create missing **actors**.
 3. Create missing **actions** (`kn-<project>-action-<slug>`).
 4. **Destination screens first.** Missing `navigatesTo` targets warn and omit the edge. Referenced `actions` and `source` nodes must also exist first.
