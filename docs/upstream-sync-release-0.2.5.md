@@ -47,8 +47,19 @@ PAI_PORTAL=/portal bun tools/gen-references.ts --source-revision dbe7832cb
 python3 tools/build_codex.py
 ```
 
-Only source-generated references, `hooks/tools.json`, and the compact literal `evals/mocks/pai/_tools.json` were copied back; shared skills and client adapters were edited in their maintained source locations and packages rebuilt. No generated package was hand-edited. Generation returns **313 corp tools: 127 reads and 186 writes**; upstream declares 315 names, including the two client-only `proposal_accept` and `proposal_reject`. The five new tool names account for the difference from the previous 308-tool plugin snapshot. Literal Spanish server descriptions remain intentional source-owned contract data; maintained prose is English.
+Only source-generated references, `hooks/tools.json`, and the compact literal `evals/mocks/pai/_tools.json` were copied back; shared skills and client adapters were edited in their maintained source locations and packages rebuilt. No generated package was hand-edited. Generation returns **313 corp tools: 127 reads and 186 writes**; upstream declares 315 names, including the two client-only `proposal_accept` and `proposal_reject`. The five new tool names account for the difference from the previous 308-tool plugin snapshot. Existing `iam_access_test`, `iam_access_explain`, `iam_boundary_set`, `iam_role_create` and `iam_role_update` input schemas refresh permission enums; `page_read` and `page_validate` refresh structural-warning descriptions. No existing tool was removed. Literal Spanish server descriptions remain intentional source-owned contract data; maintained prose is English.
 
 ## Validation
 
-Validation results are recorded after the final sandbox gate. Source compatibility and local client fixtures do not establish real OAuth, desktop rendering, deployed hook trust, or production authorization. No real Pai tool invocation is needed for this synchronization.
+The full gate passed on `c5a5224` in the same disposable Railway sandbox; only this evidence record was added afterward. Log: `~/worktrees/reui-orch/logs/sandbox/plugin-sync-gate-final.log`.
+
+- `PAI_RUN_CODEX_RUNTIME=1 make check`: **112 tests passed**, no skips; generated Codex packages are byte-reproducible and the English authoring check reported zero findings.
+- `PAI_PORTAL=/portal bun tools/validate-examples.ts`: **19 files, zero failures**, against actual archived upstream contracts.
+- `claude plugin validate --strict` for `.`, `.claude-plugin/plugin.json`, `skills`, and `agents`: all four passed with Claude Code **2.1.289**.
+- Native Codex installation/switch tests passed on **codex-cli 0.160.1** in isolated temporary homes. The opt-in native approval fixture executed `whoami` and `page_read`, rejected prompts for `page_update` and unknown `future_write`, and received **zero writes**. This tests installed native policy against local fixtures, not deployed hook trust.
+- Repeated full `gen-references.ts --source-revision dbe7832cb` preserved every reference and both inventory files byte for byte (`sha256sum -c`); a subsequent `build_codex.py --check` passed.
+- Local read-only QA compared the audit table to the exact merge list: **29/29 PRs**, no omissions or extras. `git ls-remote` confirmed the remote release remained at `dbe7832cbe4e3421ca2c895cb71a0061cd41a002`. The final diff passed `git diff --check`.
+
+The first gate on `cd1e377` exposed a new guard test missing its empty transcript fixture and a README checkpoint/count mismatch; both were corrected before the passing full gate. No existing no-transcript hook behavior was changed. No model-based behavioral evaluation suite was run for this synchronization.
+
+Source compatibility and local client fixtures do not establish real OAuth, desktop rendering, deployed hook trust, or production authorization. No real Pai tool was invoked, no endpoint was authenticated, and no production infrastructure was changed. The sandbox alone installed dependencies and ran clients/tests.
