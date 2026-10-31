@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "pai-portal b568d2a02f5e75c26e7db251491951def577f772 (archived contract snapshot)",
+  "generatedFrom": "pai-portal dbe7832cb (archived contract snapshot)",
   "declaredTools": [
     "agent_create",
     "agent_delete",
@@ -47,6 +47,11 @@
     "comment_reply",
     "comment_resolve",
     "comment_send_to_agent",
+    "connection_create",
+    "connection_events",
+    "connection_get",
+    "connection_list",
+    "connection_revoke",
     "credit_balance",
     "credit_transactions",
     "crm_access_get",
@@ -500,6 +505,26 @@
     "comment_send_to_agent": {
       "readOnly": false,
       "destructive": false
+    },
+    "connection_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "connection_events": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "connection_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "connection_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "connection_revoke": {
+      "readOnly": false,
+      "destructive": true
     },
     "credit_balance": {
       "readOnly": true,

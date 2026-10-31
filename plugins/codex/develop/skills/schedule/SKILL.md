@@ -9,6 +9,10 @@ compatibility: "Pai 0.2.5+ (MCP corp)"
 
 Read shared `pai-console` first through the current client's skill mechanism.
 
+Console displays milestone-linked tasks in a searchable, paginated list: open a task from its title when `tasks.tasks.get` is granted, or use its row menu to manage dependencies. This is presentation of the existing tasks and dependency tools, not a new task primitive.
+
+Milestone billing uses the fiscal Payments workflow (`../proposals-payments/SKILL.md`). The Stripe milestone checkout endpoint, UI action, and `payments.milestoneCheckouts.create` permission have been removed; never offer a checkout URL or attempt the retired operation.
+
 ## Model
 
 - **Milestones** (`milestone_*`): planned/actual dates, acceptance criteria, billable amount in cents, `pending`/`in_progress`/`completed` status, owner, baseline.

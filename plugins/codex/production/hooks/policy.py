@@ -31,6 +31,7 @@ READ_TOOLS = load_read_tools()
 
 # Create tool -> tools that count as "looked for what exists first".
 SEARCH_BEFORE_CREATE = {
+    "connection_create": ("connection_list",),
     "task_create": ("task_list", "task_list_mine"),
     "chat_create": ("chat_list",),
     "chat_comment_create": ("chat_comment_list",),
@@ -60,6 +61,7 @@ SEARCH_BEFORE_CREATE = {
 
 # Irreversible writes: what the confirmation must say they drag along.
 IRREVERSIBLE = {
+    "connection_revoke": "Permanently revokes the host registration and closes its live authority; the same registration cannot be reactivated.",
     "crm_lead_anonymize": "Irreversibly anonymizes the lead and associated personal data for an explicit ARCO request; retain only the server-defined audit and metrics records.",
     "crm_submission_anonymize": "Irreversibly anonymizes a Forms submission for an explicit ARCO request; this is not ordinary archival.",
     "chat_close": "Finally closes the owned session and revokes its agent tokens; resuming creates another session.",

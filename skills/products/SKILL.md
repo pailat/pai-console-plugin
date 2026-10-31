@@ -77,6 +77,8 @@ A release plan is an internal, staff-only planned version of a product: a `label
 - `product_release_plan_update {organizationId, productId, releaseId, expectedRevision, label?, environmentId?, notes?, milestones?}` needs at least one change. Omitting `milestones` keeps them; sending them **replaces the whole set**, so start from the listed set.
 - Permissions: product update (read for list) plus `schedule.milestones.update` on every milestone added or removed. Errors: `RELEASE_PLANS_STAFF_ONLY` (also under impersonation), `RELEASE_LABEL_EXISTS` (pick the existing plan or ask for another label), `RELEASE_REVISION_CONFLICT` with `cause.current.revision` (reread and reconcile; never retry automatically), `RELEASE_MILESTONES_REQUIRED`, `RELEASE_REVISION_EXHAUSTED`.
 
+Console and Portal product headers provide copy actions for repository and deployment URLs; linked project rows open the project through the button label. Use URLs returned by product reads and verify access independently.
+
 ## Team and access
 
 - `product_member_list`; `product_member_add {userId | email, role, appRoles}`; `product_member_update {productId, userId, role?, appRoles?}` (`appRoles` replaces the whole list: start from product_member_list); `product_member_remove {productId, userId}` (returns `removed: false` if the person was not on the team). Pai staff or a product owner only. Removing or demoting the last owner is `CONFLICT` `LAST_OWNER`: add another owner first. Removal also drops the person's app roles; confirm before it.

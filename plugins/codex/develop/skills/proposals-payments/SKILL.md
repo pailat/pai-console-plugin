@@ -11,7 +11,11 @@ Read shared `pai-console` first through the current client's skill mechanism. Mo
 
 **Proposal transitions, CFDI imports, and payments cannot be undone** (except voiding a payment, also final). Before each, explain exactly what will be recorded and wait for explicit approval, including in staging.
 
+Milestone collections use imported CFDI and recorded payments below. Stripe milestone checkout has been removed, including its endpoint, Console action, and IAM permission; it is not a disabled feature to re-enable.
+
 ## Proposals
+
+In Console and Portal, staff find **Nueva propuesta** in the content toolbar above the proposal list. Client acceptance/rejection remains in Portal; this toolbar move does not change proposal permissions or transitions.
 
 A proposal is a SOW: `pageContent` follows page type **`sow`**. All sections are required in this order. These Spanish section identifiers are contract values, not translatable prose:
 

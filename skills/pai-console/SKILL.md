@@ -48,6 +48,10 @@ Project-scoped operations require the organization/project IDs in their actual s
 
 `FORBIDDEN` with “no eres miembro” means this actor cannot enter that organization under its current grants. **Never create organizations or memberships to bypass it.** Ask for access.
 
+A shared folder or page can give a reader access to project Resources without access to the project overview. This is `access: "resources"`, distinct from `"full"`, in Portal project entry/slug responses; it grants no other project sections. Use the authorized resource reads and their returned paths; a denied `project_summary` does not disprove a shared resource grant. See `../resources/SKILL.md` for reader-relative paths and direct links.
+
+After a person stops Portal impersonation, refresh and verify the restored identity before another action. A stale request can remain anonymous during that transition; the backup cookie preserves restoration but grants no access. Do not treat a temporary anonymous response as an instruction to change membership or reuse the impersonated identity.
+
 ## 2. Search before create
 
 The Claude hook rejects a `*_create` without a preceding domain search in the session. Preserve this ordering in every client even when no hook enforces it:
@@ -56,6 +60,7 @@ The Claude hook rejects a `*_create` without a preceding domain search in the se
 |---|---|
 | `page_create` / `note_create` | `page_search` and `page_list` (follow `nextCursor`) |
 | `knowledge_create` | `knowledge_search` (topic), `knowledge_library` (project inventory by `kinds`), `knowledge_context`, or `task_board` for tasks |
+| `connection_create` | `connection_list` in the selected organization |
 | `task_create` | `task_list` or `task_list_mine` in the same context |
 | `chat_create` | `chat_list` for the selected scope |
 | `iam_group_create` / `iam_role_create` / `iam_deny_create` | `iam_group_list` / `iam_role_list` / `iam_deny_list` |
@@ -92,6 +97,7 @@ Search substantively:
 |---|---|---|
 | Page | `page_read` → `document.id`, `document.revision` | `expectedDocumentId`, `expectedRevision` |
 | Knowledge node | `knowledge_get` → `revision` | `expectedRevision` |
+| Connection host | `connection_get` → `revision` | `expectedRevision` in `connection_revoke` |
 | Proposal | `proposal_get` → `revision` | `expectedRevision` in `proposal_save` |
 
 - On `CONFLICT`, reread, integrate changes into the latest content, and retry **once**. If it conflicts again, stop and tell the user. Closed-project conflicts are an exception (§5): never retry.
@@ -132,6 +138,8 @@ Errors carry `isError` and `structuredContent.error = { code, message, cause?, m
 | `INTERNAL_SERVER_ERROR` “No se pudo completar la operación” | Server failure | Retry once; report if persistent |
 
 Flows (`flows`): `FLOW_STEP_REF` (missing/wrong-kind step ref; includes `path` and `ref`), `FLOW_NEEDS_PROJECT`; test errors `FLOW_RUN_REAL_DISABLED`, `FLOW_RUN_ACTOR`, `FLOW_RUN_FLOW_CLOSED`, `FLOW_RUN_NOT_RUNNER`, `FLOW_RUN_FINISHED`, `FLOW_RUN_STEP_KEY`, `FLOW_RUN_STOPPED_AT`. A stale `flow_save` returns `CONFLICT`: reread with `flow_get`. Entity-backed flow steps reject `knowledge_update`; use `flow_save`.
+
+Connection registry errors include `CONNECTION_REVISION_CONFLICT`, `CONNECTION_NATIVE_ID_CONFLICT`, `CONNECTION_IDENTITY_INVALID`, `CONNECTION_NOT_FOUND`, `CONNECTION_TENANT_REQUIRED`, and `CONNECTION_STAFF_REQUIRED` (`../organizations/SKILL.md`).
 
 Other common `cause.code` values: `C4_LEVEL`, `ALREADY_CONTAINED` (`c4`); `CLIENT_VISIBLE_REQUIRES_PERSON`, `MERMAID_NOT_ALLOWED`, `QUERY`, `IMPLEMENTED_BY_NEEDS_PRODUCT`, `IMPLEMENTED_BY_ACROSS_PRODUCTS`, `TASK_NEEDS_PROJECT`, `PROJECT_NODE_APPEARANCE` (`knowledge`); `API_DESIGN_OWNED`, `OPENAPI_INVALID`, `API_DESIGN_TOO_LARGE` (`api-design`); `CRM_OPPORTUNITY_TITLE_TAKEN`, `CRM_LEAD_HAS_CHAIN` (`crm`); `APPROVAL_ALREADY_ANSWERED`, `HIVE_COMMENT_CHANGED` (`chats`); `RELEASE_REVISION_CONFLICT` (`products`); `HUMAN_CONFIRMS` for PRD version confirmation (`resources`); page `html` block errors and `PAGE_ATTRIBUTE_INVALID` (`resources`); `ASSET_NOT_IMAGE`, `ASSET_IMAGE_TOO_LARGE`, `ASSET_IMAGE_UNREADABLE`, `ASSET_SVG_REFUSED`, `ASSET_READ_TIMEOUT` for `asset_read` (`resources`).
 
@@ -177,7 +185,7 @@ Distinguish supported facts, inferences, and open questions.
 | Pai Agent owned chat sessions, chargeable turns, attachments, approvals, private comments and traces | `chats` |
 | IAM permissions, policies, groups, roles, denies, boundaries and audit | `iam` |
 | Organization brand theme: colors, font, logos, Portal shell, AA (staff) | `theme` |
-| Organization archive/restore, members, invitations, slugs, project status, onboarding briefs, project agents, credits, own profile | `organizations` |
+| Organization archive/restore, members, invitations, slugs, project status, connection host registry (`connection_*`), onboarding briefs, project agents, credits, own profile | `organizations` |
 | Products: registration, definition review, provisioning, deploy, domains, access, release plans | `products` |
 
 Tool inventory, including reads, writes, and irreversible actions: `references/tools.md`.

@@ -35,6 +35,16 @@ Resources live in a project or in the organization's own library, «General» in
 
 A **page is read continuously; a node is queried, linked, and superseded**. Pages cite nodes; nodes cite pages through `sources: [{type:"page", pageId}]`.
 
+## Shared resources and direct links
+
+A person granted a folder or page can open only the project's **Recursos** (`access: "resources"`) while the overview and other sections remain inaccessible. The project list keeps these entries in a separate `shared` array, outside its regular pagination total and query; an agent-scoped read returns no shared entries. Full access still requires the project permission. Each resource is authorized individually; audience, deny rules, organization boundaries, and impersonation restrictions continue to apply.
+
+For these readers, MCP resource tool paths start at each visible root, without hidden ancestor slugs. Use the exact `path`, `folder`, `parentPath`, and links returned for this reader in subsequent calls. Equal root names may include a short-ID suffix. Do not prepend an internal path from another account, guess ancestors, or treat an empty search as proof the whole project has no resources. Full readers keep their ordinary paths.
+
+A direct resource URL authorizes that resource independently of its parent inventory: a person can open a shared page or file while its folder/library list remains denied. Use the returned URL or short ID and an authorized detail read; do not list hidden parents to reconstruct it. Folder `hasEntries` reflects readable content, not the existence of hidden files. The organization library entry itself requires `resources.folders.list` on the organization; project-only grants do not imply that entry is available.
+
+Portal resource headers now keep properties and actions with the document, note, or whiteboard. Console uses the collaborative page editor and reader fallback; do not direct users to the removed legacy block editor. A successful save or structural warning remains separate from visual verification.
+
 ## 2. Create a page
 
 1. **Search:** `page_search` by topic and `page_list` following `nextCursor` for paths. To see which pages hold screens (views, flows, whiteboards), use `page_screens {organizationId, projectId}`, then `page_read` the one you need. Update equivalents (§4).

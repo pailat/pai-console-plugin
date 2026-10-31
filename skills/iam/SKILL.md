@@ -17,6 +17,10 @@ Read `../pai-console/SKILL.md`. Discover available tools and use `../../evals/mo
 - Read `iam_policy_get {resource,organizationId?}`, `iam_deny_list {resource,organizationId?}`, and `iam_boundary_get {organizationId}` to understand explicit/inherited grants, conditions, denials and the organization boundary. Use returned canonical resource/principal shapes, not display labels.
 - Omit organizationId only for an intentionally selected platform scope supported by the schema. Never fall back from a denied organization action to platform scope.
 
+A folder/page grant can expose only Resources (`access: "resources"`) without `resourcemanager.projects.get`. It does not open other project sections or grant membership. Diagnose the concrete page, note, whiteboard, file or folder rather than assuming a denied overview means no resource access. Reader-relative paths conceal ancestors (`../resources/SKILL.md`). The organization Resources navigation separately tests `resources.folders.list` on the organization.
+
+The retired `payments.milestoneCheckouts.create` permission is absent from the current catalog and predefined roles. Use the fiscal Payments workflow (`../proposals-payments/SKILL.md`); do not grant or recreate the removed permission.
+
 ## Groups and roles
 
 | Family | Read first | Authorized changes |
@@ -28,6 +32,8 @@ Predefined roles added in Pai 0.2.5 (read them with iam_role_get rather than rel
 
 | Role | Scope | Permissions | Use |
 |---|---|---|---|
+| `connections.manager` | organization | Host registration lifecycle, including list/get/create/revoke | Effective Pai staff with an explicit binding; only those four cases plus event reads have MCP/Console surfaces |
+| `connections.runtime` | organization | Internal incarnation claim/activation/renewal/authorization/closure | Runtime authority only; no MCP/Portal/Console transport or terminal capability |
 | `resources.prdApprover` («Recursos · Aprobador de PRD») | resource | `resources.pages.get`, `resources.pages.confirmVersion` | A person who reads a PRD and confirms its current version, without editing, publishing or changing audience, status or owner. Bind it on that PRD page or its project; it cannot let an agent confirm (`../resources/SKILL.md`) |
 
 `resources.pages.confirmVersion` is also part of resources.admin and the legacy organization/platform admin, owner and staff roles. The API Design permissions `knowledge.apiDesigns.create`, `.get`, `.list`, `.mock` and `.update` are in the catalog. Among predefined roles only `platform.admin` (all non-sensitive Pai permissions) carries them; an impersonated session is always denied API Design by a system rule. Others need an explicit grant before the `api-design` tools work (`../api-design/SKILL.md`). Do not create a role or binding for it unless the user explicitly asks.

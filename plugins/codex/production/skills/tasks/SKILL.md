@@ -16,6 +16,8 @@ Read `../pai-console/SKILL.md` first. Discover the actual tools and grants. The 
 - Reuse tags from `task_tag_list {section?}`. `task_board {organizationId,projectId,productId?}` remains the project's board; a product's own backlog uses `task_list {section:"product",productId}`.
 - The server filters CRM tasks through `crm.tasks.list`; a project or organization grant does not imply CRM access. Permission checks use effective IAM grants, not role labels.
 
+Console milestone tasks use the shared task list with search and pagination. Opening a task needs `tasks.tasks.get`; dependency management remains available through its row menu under its own grants. Use the canonical task returned by `task_get` before updates; a visible timeline row alone does not authorize editing it.
+
 ## Create
 
 Search/list the same scope before `task_create`. Required inputs are `title` (1–500 characters) and `contexts` (1–8 entries). `contexts[0]` determines section:
