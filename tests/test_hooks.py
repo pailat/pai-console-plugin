@@ -113,7 +113,7 @@ class GuardTest(HookCase):
             self.assertTrue(reason.startswith("IRREVERSIBLE"), tool)
 
     def test_connection_registration_search_and_permanent_revocation(self) -> None:
-        decision, _ = self.decision(self.guard(PLUGIN + "connection_create", STAGING))
+        decision, _ = self.decision(self.guard(PLUGIN + "connection_create", STAGING, transcript=self.transcript()))
         self.assertEqual(decision, "deny")
         searched = self.transcript(PLUGIN + "connection_list")
         self.assertIsNone(self.guard(PLUGIN + "connection_create", STAGING, transcript=searched))
