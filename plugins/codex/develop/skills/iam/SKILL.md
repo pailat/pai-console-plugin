@@ -19,7 +19,7 @@ Read `../pai-console/SKILL.md`. Discover available tools and use `../../evals/mo
 
 A folder/page grant can expose only Resources (`access: "resources"`) without `resourcemanager.projects.get`. It does not open other project sections or grant membership. Diagnose the concrete page, note, whiteboard, file or folder rather than assuming a denied overview means no resource access. Reader-relative paths conceal ancestors (`../resources/SKILL.md`). The organization Resources navigation separately tests `resources.folders.list` on the organization.
 
-The retired `payments.milestoneCheckouts.create` permission is absent from the current catalog and predefined roles. Use the fiscal Payments workflow (`../proposals-payments/SKILL.md`); do not grant or recreate the removed permission.
+The retired `payments.milestoneCheckouts.create` permission and former alias `billing.milestonePayments.create` are absent from the current catalog and predefined roles. Use the fiscal Payments workflow (`../proposals-payments/SKILL.md`); do not grant or recreate the removed permission.
 
 ## Groups and roles
 

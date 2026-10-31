@@ -251,6 +251,8 @@ PAI_PORTAL=/path/to/archived-contract-snapshot bun tools/gen-references.ts --ref
 PAI_PORTAL=/path/to/archived-contract-snapshot bun tools/validate-examples.ts
 ```
 
+The latest release 0.2.5 audit and source checkpoint (`dbe7832cb`, ATE-405), including every reviewed PR and validation scope, are recorded in [the synchronization report](docs/upstream-sync-release-0.2.5.md). It includes plugin #14 and #15 without changing the plugin version or publishing a release.
+
 Release 0.0.10 validation uses archived pai-portal revision `df271445b54af91bde9012cdcacdd925b6d3745c`, with dependencies installed only in the temporary snapshot; all 19 example files pass the actual upstream contracts without changing an external checkout. Full generation, without `--references-only`, also checks the corporate inventory. The generator verifies declared-versus-discovered inventory coverage and explicit read annotations. Its literal MCP JSON is compact to fit Claude's 1 MiB mock-file limit, with no schema fields removed. The 0.0.9 checkpoint remains documented in [its historical integration report](docs/upstream-sync-0.0.9.md). This establishes source compatibility, not live environment availability.
 
 The shared trace evaluator grades normalized Claude/Codex tool calls using PyYAML from `requirements-dev.txt`:
