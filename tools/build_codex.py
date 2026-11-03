@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import sys
 
 ROOT = Path(__file__).resolve().parent.parent
-VERSION = "0.0.11"
+VERSION = "0.1.0"
 MARKETPLACE = "pai-console-plugin"
 ENVIRONMENTS = {
     "staging": "https://mcp-edge-corp-staging.up.railway.app/mcp",
@@ -126,6 +127,38 @@ main agent and the person's confirmation. Use the session's native model
     }
 
 
+def herdr_vendor(root: Path = ROOT) -> dict[Path, bytes]:
+    """Return the vendored herdr skill files, failing on drift from the marketplace pin.
+
+    Claude Code resolves herdr as a pinned git-subdir dependency; Codex has no plugin
+    dependencies, so the same upstream commit is vendored under vendor/herdr with a
+    sha256 record. Refresh it with tools/vendor_herdr.py, never by editing the copy.
+    """
+    marketplace = json.loads((root / ".claude-plugin/marketplace.json").read_text())
+    entries = [p for p in marketplace["plugins"] if p["name"] == "herdr"]
+    if len(entries) != 1 or not isinstance(entries[0]["source"], dict):
+        raise ValueError("marketplace.json needs exactly one herdr entry with a git-subdir source")
+    pin = entries[0]["source"]
+    record = json.loads((root / "vendor/herdr/PROVENANCE.json").read_text())
+    for key, wanted in (("commit", pin.get("sha")), ("tag", pin.get("ref")), ("path", pin.get("path"))):
+        if record.get(key) != wanted:
+            raise ValueError(f"vendor/herdr/PROVENANCE.json {key} {record.get(key)!r} differs from the marketplace pin {wanted!r}")
+    vendored = {p.relative_to(root / "vendor/herdr").as_posix(): p for p in (root / "vendor/herdr").rglob("*")
+                if p.is_file() and p.name != "PROVENANCE.json"}
+    if sorted(vendored) != sorted(record["files"]):
+        raise ValueError("vendor/herdr files differ from PROVENANCE.json: " + ", ".join(sorted(set(vendored) ^ set(record["files"]))))
+    files: dict[Path, bytes] = {}
+    for relative, expected in sorted(record["files"].items()):
+        if vendored[relative].is_symlink():
+            raise ValueError(f"Vendored skill files must not be symlinks: {relative}")
+        content = vendored[relative].read_bytes()
+        if hashlib.sha256(content).hexdigest() != expected:
+            raise ValueError(f"vendor/herdr/{relative} does not match its recorded sha256; run tools/vendor_herdr.py")
+        files[Path(relative)] = content
+    files[Path("skills/herdr/PROVENANCE.json")] = json_bytes(record)
+    return files
+
+
 def expected_files(root: Path = ROOT) -> dict[Path, bytes]:
     missing = [f"hooks/{name}" for name in RUNTIME if not (root / "hooks" / name).is_file()]
     if missing:
@@ -166,6 +199,8 @@ def expected_files(root: Path = ROOT) -> dict[Path, bytes]:
             if source.is_symlink():
                 raise ValueError(f"Skill symlinks are not portable: {source}")
             files[base / "skills" / relative] = source.read_bytes()
+        for relative, content in herdr_vendor(root).items():
+            files[base / relative] = content
         for skill_name, content in codex_skills().items():
             files[base / "skills" / skill_name / "SKILL.md"] = content
         files[base / "skills/pai-env/agents/openai.yaml"] = b"policy:\n  allow_implicit_invocation: false\n"

@@ -17,6 +17,24 @@
         "crm",
         "knowledge"
       ]
+    },
+    {
+      "name": "herdr",
+      "source": {
+        "source": "git-subdir",
+        "url": "herdrdev/herdr",
+        "path": "skills/herdr",
+        "ref": "v0.9.5",
+        "sha": "2ecf19a92fc3a7fff75b6ce3655ef04f4625ec01"
+      },
+      "description": "Herdr skill from the upstream herdrdev/herdr release v0.9.5, pinned to its commit. Control Herdr panes, tabs, workspaces and agents. Installed as a dependency of pai-console; update by bumping the pinned tag and sha.",
+      "version": "0.9.5",
+      "category": "productivity",
+      "tags": [
+        "herdr",
+        "terminal",
+        "agents"
+      ]
     }
   ]
 }
