@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/herdrdev/herdr",
+  "tag": "v0.9.5",
+  "tagObject": "7573e821895d32c8d1f78b3f6c9a2f85a46df4ac",
+  "commit": "2ecf19a92fc3a7fff75b6ce3655ef04f4625ec01",
+  "path": "skills/herdr",
+  "files": {
+    "skills/herdr/SKILL.md": "fbd9d502767f7dff29c211505a0bd9ba34e980ed4cc456247e2adc1642883984"
+  }
+}

@@ -99,6 +99,9 @@ class CodexPackagesTest(unittest.TestCase):
             root = Path(directory)
             shutil.copytree(ROOT / "skills", root / "skills")
             shutil.copytree(ROOT / "hooks", root / "hooks")
+            shutil.copytree(ROOT / "vendor", root / "vendor")
+            (root / ".claude-plugin").mkdir()
+            shutil.copy2(ROOT / ".claude-plugin/marketplace.json", root / ".claude-plugin/marketplace.json")
             (root / "tools").mkdir()
             for filename in ("codex_plugin.py", "validate-examples.ts"):
                 shutil.copy2(ROOT / "tools" / filename, root / "tools" / filename)

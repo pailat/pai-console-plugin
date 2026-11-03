@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import sys
@@ -126,7 +127,41 @@ main agent and the person's confirmation. Use the session's native model
     }
 
 
+def herdr_vendor(root: Path = ROOT) -> dict[Path, bytes]:
+    """Return the vendored herdr skill files, failing on drift from the marketplace pin.
+
+    pai-orchestration depends on the pinned herdr entry in Claude Code. The same upstream
+    commit is kept under vendor/herdr with a sha256 record so Codex users can verify the
+    skill they install with `npx skills add`. The pai-console Codex packages do not ship
+    it. Refresh the copy with tools/vendor_herdr.py, never by editing it.
+    """
+    marketplace = json.loads((root / ".claude-plugin/marketplace.json").read_text())
+    entries = [p for p in marketplace["plugins"] if p["name"] == "herdr"]
+    if len(entries) != 1 or not isinstance(entries[0]["source"], dict):
+        raise ValueError("marketplace.json needs exactly one herdr entry with a git-subdir source")
+    pin = entries[0]["source"]
+    record = json.loads((root / "vendor/herdr/PROVENANCE.json").read_text())
+    for key, wanted in (("commit", pin.get("sha")), ("tag", pin.get("ref")), ("path", pin.get("path"))):
+        if record.get(key) != wanted:
+            raise ValueError(f"vendor/herdr/PROVENANCE.json {key} {record.get(key)!r} differs from the marketplace pin {wanted!r}")
+    vendored = {p.relative_to(root / "vendor/herdr").as_posix(): p for p in (root / "vendor/herdr").rglob("*")
+                if p.is_file() and p.name != "PROVENANCE.json"}
+    if sorted(vendored) != sorted(record["files"]):
+        raise ValueError("vendor/herdr files differ from PROVENANCE.json: " + ", ".join(sorted(set(vendored) ^ set(record["files"]))))
+    files: dict[Path, bytes] = {}
+    for relative, expected in sorted(record["files"].items()):
+        if vendored[relative].is_symlink():
+            raise ValueError(f"Vendored skill files must not be symlinks: {relative}")
+        content = vendored[relative].read_bytes()
+        if hashlib.sha256(content).hexdigest() != expected:
+            raise ValueError(f"vendor/herdr/{relative} does not match its recorded sha256; run tools/vendor_herdr.py")
+        files[Path(relative)] = content
+    files[Path("skills/herdr/PROVENANCE.json")] = json_bytes(record)
+    return files
+
+
 def expected_files(root: Path = ROOT) -> dict[Path, bytes]:
+    herdr_vendor(root)  # Fails the build and its --check on drift; the files are not packaged.
     missing = [f"hooks/{name}" for name in RUNTIME if not (root / "hooks" / name).is_file()]
     if missing:
         raise ValueError("Runtime sources are not ready: " + ", ".join(missing))

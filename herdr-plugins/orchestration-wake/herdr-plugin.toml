@@ -1,0 +1,14 @@
+id = "pai.orchestration-wake"
+name = "Pai orchestration wake"
+version = "0.2.0"
+min_herdr_version = "0.9.0"
+description = "Wake parents and requesters on agent status changes and job-pane exits"
+platforms = ["linux", "macos"]
+
+[[events]]
+on = "pane.agent_status_changed"
+command = ["bash", "hooks/wake.sh"]
+
+[[events]]
+on = "pane.exited"
+command = ["bash", "hooks/wake.sh"]
