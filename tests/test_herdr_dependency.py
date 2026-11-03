@@ -38,9 +38,21 @@ class HerdrDependencyTest(unittest.TestCase):
         self.assertRegex(source["sha"], SHA)
         self.assertEqual(source["sha"], "2ecf19a92fc3a7fff75b6ce3655ef04f4625ec01")
 
-    def test_pai_console_depends_on_herdr_in_its_own_marketplace(self) -> None:
-        manifest = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
-        self.assertEqual(manifest["dependencies"], ["herdr"])
+    def test_pai_console_has_no_dependency_and_pai_orchestration_depends_on_herdr(self) -> None:
+        # A herdr fetch problem must never disable the Pai MCP or skills, so only pai-orchestration depends on it.
+        console = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
+        self.assertNotIn("dependencies", console)
+        plugins = {p["name"]: p for p in json.loads((ROOT / ".claude-plugin/marketplace.json").read_text())["plugins"]}
+        self.assertEqual(plugins["pai-console"]["source"], "./")
+        self.assertNotIn("dependencies", plugins["pai-console"])
+        entry = plugins["pai-orchestration"]
+        manifest = json.loads((ROOT / entry["source"] / ".claude-plugin/plugin.json").read_text())
+        self.assertEqual((manifest["name"], manifest["version"], manifest["dependencies"]), ("pai-orchestration", "0.1.0", ["herdr"]))
+        self.assertEqual(entry["version"], manifest["version"])
+
+    def test_orchestration_skill_is_not_part_of_pai_console_or_its_codex_packages(self) -> None:
+        self.assertFalse((ROOT / "skills/orchestration").exists())
+        self.assertEqual(sorted(p.as_posix() for p in (ROOT / "plugins/codex").glob("*/skills/orchestration")), [])
 
     def test_no_symlinks_anywhere(self) -> None:
         links = [p.relative_to(ROOT).as_posix() for p in ROOT.rglob("*")
@@ -60,9 +72,13 @@ class HerdrDependencyTest(unittest.TestCase):
         self.assertIn("HERDR_BIN_PATH", (base / "hooks/wake.sh").read_text())
 
     def test_orchestration_skill_has_no_machine_specifics(self) -> None:
-        for path in (ROOT / "skills/orchestration").rglob("*"):
+        plugin = ROOT / "plugins/orchestration"
+        for path in plugin.rglob("*"):
             if path.is_file():
                 self.assertIsNone(LEAK.search(path.read_text()), path.name)
+        # The plugin is installed on its own: it must not cite files outside its own directory.
+        skill = (plugin / "skills/orchestration/SKILL.md").read_text()
+        self.assertNotRegex(skill, r"`\.\./")
 
 
 class VendorDriftTest(unittest.TestCase):

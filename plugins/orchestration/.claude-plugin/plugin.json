@@ -1,0 +1,22 @@
+{
+  "name": "pai-orchestration",
+  "displayName": "Pai Orchestration",
+  "version": "0.1.0",
+  "description": "A generic operating method for agents that work under a parent agent in Herdr: never go idle with work in flight, report to the parent named in the brief, close with a handoff, and use the orchestration-wake Herdr plugin. Depends on the pinned herdr skill.",
+  "author": {
+    "name": "Pai",
+    "url": "https://pai.lat"
+  },
+  "homepage": "https://pai.lat",
+  "repository": "https://github.com/pailat/pai-console-plugin",
+  "license": "UNLICENSED",
+  "keywords": [
+    "pai",
+    "herdr",
+    "agents",
+    "orchestration"
+  ],
+  "dependencies": [
+    "herdr"
+  ]
+}

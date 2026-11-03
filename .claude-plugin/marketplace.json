@@ -19,6 +19,18 @@
       ]
     },
     {
+      "name": "pai-orchestration",
+      "source": "./plugins/orchestration",
+      "description": "Generic multi-agent orchestration method for Herdr (no idle waits, report to the parent, handoff on close, the orchestration-wake plugin). Depends on the pinned herdr skill; separate from pai-console, so a herdr fetch problem can never disable the Pai MCP or skills.",
+      "version": "0.1.0",
+      "category": "productivity",
+      "tags": [
+        "herdr",
+        "agents",
+        "orchestration"
+      ]
+    },
+    {
       "name": "herdr",
       "source": {
         "source": "git-subdir",

@@ -7,7 +7,7 @@ metadata:
 
 # Agent orchestration
 
-This skill is the short operating method. Your brief and your organization's decision records are the source of truth for roles, names and process: read them first and follow them when they differ from this text. Read `../pai-console/SKILL.md` to find the organization and project when you need their records, and cite a record instead of copying it. Load the `herdr` skill for every pane, tab, workspace and agent command; this skill only says when to use them.
+This skill is the short operating method. Your brief and your organization's decision records are the source of truth for roles, names and process: read them first and follow them when they differ from this text. When you need their records and the pai-console plugin is installed, use its skills to find the organization and project; cite a record instead of copying it. Load the `herdr` skill for every pane, tab, workspace and agent command; this skill only says when to use them.
 
 ## Never go idle with work in flight
 

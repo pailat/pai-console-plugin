@@ -21,9 +21,6 @@
     "crm",
     "views"
   ],
-  "dependencies": [
-    "herdr"
-  ],
   "userConfig": {
     "mcp_url": {
       "type": "string",
