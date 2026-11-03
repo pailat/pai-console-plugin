@@ -1,15 +1,15 @@
 # Pai Console plugins
 
-Pai staff workflows for **Pai Console 0.2.5+**, distributed as the existing Claude Code plugin and three generated portable Codex packages, version **0.1.0**. Both clients share domain skills and the MCP tool inventory. Client adapters keep installation and approval behavior separate.
+Pai staff workflows for **Pai Console 0.2.5+**, distributed as the existing Claude Code plugin and three generated portable Codex packages, version **0.0.11**. Both clients share domain skills and the MCP tool inventory. Client adapters keep installation and approval behavior separate.
 
 Codex uses unique connection names: `pai_console_staging`, `pai_console_develop` and `pai_console_production`. Claude retains `pai`.
 
-## Release 0.1.0: herdr dependency and orchestration (ATE-709)
+## pai-orchestration 0.1.0: herdr dependency and orchestration (ATE-709)
 
-**pai-console 0.1.0 and pai-orchestration 0.1.0**, a draft; see the [release notes](docs/releases/0.1.0.md).
+**pai-orchestration 0.1.0** (new plugin) and the herdr pin, a draft; `pai-console` and its Codex packages are unchanged at 0.0.11. See the [release notes](docs/releases/pai-orchestration-0.1.0.md).
 
 - **Herdr skill as a pinned dependency.** The marketplace lists `herdr` as a `git-subdir` entry for `https://github.com/herdrdev/herdr.git` (`skills/herdr`) at tag `v0.9.5`, pinned to commit `2ecf19a92fc3a7fff75b6ce3655ef04f4625ec01` with `sha`. The URL is the full HTTPS form on purpose: the `owner/repo` shorthand clones over SSH, which fails on machines without a github.com host key. The upstream skill has no `plugin.json`, so the marketplace entry is its manifest. The separate `pai-orchestration` plugin declares `dependencies: ["herdr"]`, so installing it resolves and enables herdr from that pin. `pai-console` has no dependency, so a herdr fetch problem can never disable the Pai MCP or skills. To update, bump the pinned `ref` and `sha` together; never copy the text.
-- **Codex.** Codex has no plugin dependencies, so `tools/build_codex.py` vendors `skills/herdr` from `vendor/herdr` into each package with its sha256 record (`skills/herdr/PROVENANCE.json`). `make check` fails when the vendored copy, its record and the marketplace pin disagree. Refresh with `python3 tools/vendor_herdr.py` after bumping the pin, then `make build`.
+- **Codex.** The `pai-console` Codex packages are unchanged: they carry neither herdr nor the orchestration skill. `vendor/herdr` keeps the pinned upstream skill with its sha256 record, and `tools/build_codex.py` (so `make check`) fails when it, its record and the marketplace pin disagree; refresh it with `python3 tools/vendor_herdr.py` after bumping the pin. Codex users install the skill with `npx skills add herdrdev/herdr --skill herdr -g` (see `plugins/orchestration/README.md`).
 - **`pai-orchestration` plugin** (`plugins/orchestration`, install `claude plugin install pai-orchestration@pai-console-plugin`). Its skill is a generic operating method for agents working under a parent in Herdr (never go idle with work in flight, report to the parent named in the brief, close with a handoff, use the wake plugin). Roles and process come from the agent's brief and the organization's decision records.
 - **Wake plugin.** `herdr-plugins/orchestration-wake` (documented by `pai-orchestration`) is a Herdr plugin (not a Claude Code component) that wakes parents and requesters on agent status changes and pane exits. Install it on each machine with `herdr plugin install pailat/pai-console-plugin/herdr-plugins/orchestration-wake --ref <tag>`; see its `config.env.example` for settings.
 - **No symlinks.** Claude Code copies a plugin into a versioned cache and refuses paths that leave the plugin root, so the repository contains no symlinks; a test enforces this.

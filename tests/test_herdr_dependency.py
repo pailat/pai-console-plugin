@@ -50,9 +50,11 @@ class HerdrDependencyTest(unittest.TestCase):
         self.assertEqual((manifest["name"], manifest["version"], manifest["dependencies"]), ("pai-orchestration", "0.1.0", ["herdr"]))
         self.assertEqual(entry["version"], manifest["version"])
 
-    def test_orchestration_skill_is_not_part_of_pai_console_or_its_codex_packages(self) -> None:
+    def test_orchestration_and_herdr_are_not_part_of_pai_console_or_its_codex_packages(self) -> None:
         self.assertFalse((ROOT / "skills/orchestration").exists())
-        self.assertEqual(sorted(p.as_posix() for p in (ROOT / "plugins/codex").glob("*/skills/orchestration")), [])
+        for name in ("orchestration", "herdr"):
+            self.assertEqual(sorted(p.as_posix() for p in (ROOT / "plugins/codex").glob(f"*/skills/{name}")), [])
+        self.assertEqual(json.loads((ROOT / ".claude-plugin/plugin.json").read_text())["version"], "0.0.11")
 
     def test_no_symlinks_anywhere(self) -> None:
         links = [p.relative_to(ROOT).as_posix() for p in ROOT.rglob("*")
@@ -93,6 +95,13 @@ class VendorDriftTest(unittest.TestCase):
         files = build_codex.herdr_vendor(ROOT)
         record = json.loads((ROOT / "vendor/herdr/PROVENANCE.json").read_text())
         self.assertEqual(hashlib.sha256(files[Path("skills/herdr/SKILL.md")]).hexdigest(), record["files"]["skills/herdr/SKILL.md"])
+
+    def test_the_package_build_still_runs_the_drift_check(self) -> None:
+        tmp = self.copy_tree()
+        skill = tmp / "vendor/herdr/skills/herdr/SKILL.md"
+        skill.write_text(skill.read_text() + "\nlocal edit\n")
+        with self.assertRaisesRegex(ValueError, "sha256"):
+            build_codex.expected_files(tmp)
 
     def test_edited_vendored_copy_fails(self) -> None:
         tmp = self.copy_tree()

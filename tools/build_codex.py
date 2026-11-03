@@ -9,7 +9,7 @@ from pathlib import Path
 import sys
 
 ROOT = Path(__file__).resolve().parent.parent
-VERSION = "0.1.0"
+VERSION = "0.0.11"
 MARKETPLACE = "pai-console-plugin"
 ENVIRONMENTS = {
     "staging": "https://mcp-edge-corp-staging.up.railway.app/mcp",
@@ -130,9 +130,10 @@ main agent and the person's confirmation. Use the session's native model
 def herdr_vendor(root: Path = ROOT) -> dict[Path, bytes]:
     """Return the vendored herdr skill files, failing on drift from the marketplace pin.
 
-    Claude Code resolves herdr as a pinned git-subdir dependency; Codex has no plugin
-    dependencies, so the same upstream commit is vendored under vendor/herdr with a
-    sha256 record. Refresh it with tools/vendor_herdr.py, never by editing the copy.
+    pai-orchestration depends on the pinned herdr entry in Claude Code. The same upstream
+    commit is kept under vendor/herdr with a sha256 record so Codex users can verify the
+    skill they install with `npx skills add`. The pai-console Codex packages do not ship
+    it. Refresh the copy with tools/vendor_herdr.py, never by editing it.
     """
     marketplace = json.loads((root / ".claude-plugin/marketplace.json").read_text())
     entries = [p for p in marketplace["plugins"] if p["name"] == "herdr"]
@@ -160,6 +161,7 @@ def herdr_vendor(root: Path = ROOT) -> dict[Path, bytes]:
 
 
 def expected_files(root: Path = ROOT) -> dict[Path, bytes]:
+    herdr_vendor(root)  # Fails the build and its --check on drift; the files are not packaged.
     missing = [f"hooks/{name}" for name in RUNTIME if not (root / "hooks" / name).is_file()]
     if missing:
         raise ValueError("Runtime sources are not ready: " + ", ".join(missing))
@@ -199,8 +201,6 @@ def expected_files(root: Path = ROOT) -> dict[Path, bytes]:
             if source.is_symlink():
                 raise ValueError(f"Skill symlinks are not portable: {source}")
             files[base / "skills" / relative] = source.read_bytes()
-        for relative, content in herdr_vendor(root).items():
-            files[base / relative] = content
         for skill_name, content in codex_skills().items():
             files[base / "skills" / skill_name / "SKILL.md"] = content
         files[base / "skills/pai-env/agents/openai.yaml"] = b"policy:\n  allow_implicit_invocation: false\n"
