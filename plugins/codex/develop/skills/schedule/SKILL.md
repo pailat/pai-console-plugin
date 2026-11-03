@@ -61,6 +61,7 @@ Each task has `revision`, `citation`, and exact permitted transitions in `moves`
 | Reorder milestones | `milestone_reorder {items:[{id, sequence}]}` silently ignores out-of-project IDs; verify `milestone_list` |
 
 - Closed tasks cannot reopen; create/link a new task if needed.
+- A project task reads `readOnly: true` once its project is closed, and writes return `PROJECT_CLOSED` (reopen the project first, only when requested). Milestone owners and task assignees under an effective ban are refused (`OWNER_NOT_ELIGIBLE`, `TASK_ASSIGNEE_BANNED`); take owners from `milestone_owner_options`. A milestone or task update only revalidates the owner or assignee when it changes.
 - A person rejects proposed tasks in the board.
 - Never manually edit milestone **`paymentStatus`**: payments recalculate it (`proposals-payments`) and overwrite manual values.
 

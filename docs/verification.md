@@ -1,5 +1,9 @@
 # Compatibility verification
 
+## 0.0.12 synchronization (2026-11-03)
+
+Verified on Linux with Bun 1.4.4 and Python 3 against a read-only `git archive` of pai-portal `release/0.2.5` at `47f888e08` ([integration checkpoint](upstream-sync-0.0.12.md)). `tools/gen-references.ts --source-revision 47f888e08` generated 353 tools (141 reads, 212 writes; upstream declares 355, two client-only). `make check` passes; strict plugin validation is recorded in the issue evidence. Evaluations and mocks are simulated; real OAuth, desktop and production behavior is not verified here.
+
 ## 0.0.11 synchronization (2026-10-29)
 
 Verified on Linux with Python 3.14.8, Bun 1.4.4, Codex CLI 0.165.0 and Claude Code against pai-portal `release/0.2.5` at `b194c6195` ([integration checkpoint](upstream-sync-0.0.11.md)). The snapshot is a `git archive` in a session scratchpad with dependencies installed there (`--frozen-lockfile --ignore-scripts`); no pai-portal checkout was modified and no MCP tool was called against any environment.

@@ -6,10 +6,11 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import re
 import sys
 
 ROOT = Path(__file__).resolve().parent.parent
-VERSION = "0.0.11"
+VERSION = "0.0.12"
 MARKETPLACE = "pai-console-plugin"
 ENVIRONMENTS = {
     "staging": "https://mcp-edge-corp-staging.up.railway.app/mcp",
@@ -127,41 +128,49 @@ main agent and the person's confirmation. Use the session's native model
     }
 
 
-def herdr_vendor(root: Path = ROOT) -> dict[Path, bytes]:
-    """Return the vendored herdr skill files, failing on drift from the marketplace pin.
+def pin_problems(root: Path = ROOT) -> list[str]:
+    """Return what is wrong with vendor/herdr/PIN.json as an invariant, never a specific release."""
+    pin = json.loads((root / "vendor/herdr/PIN.json").read_text())
+    problems = []
+    if not re.fullmatch(r"v\d+\.\d+\.\d+", str(pin.get("tag"))):
+        problems.append(f"tag {pin.get('tag')!r} is not a release tag like v1.2.3")
+    if not re.fullmatch(r"[0-9a-f]{40}", str(pin.get("commit"))):
+        problems.append(f"commit {pin.get('commit')!r} is not a full 40-character lowercase sha")
+    if pin.get("tagObject") is not None and not re.fullmatch(r"[0-9a-f]{40}", str(pin["tagObject"])):
+        problems.append(f"tagObject {pin.get('tagObject')!r} is not a full sha or null")
+    return problems
 
-    pai-orchestration depends on the pinned herdr entry in Claude Code. The same upstream
-    commit is kept under vendor/herdr with a sha256 record so Codex users can verify the
-    skill they install with `npx skills add`. The pai-console Codex packages do not ship
-    it. Refresh the copy with tools/vendor_herdr.py, never by editing it.
+
+def herdr_vendor(root: Path = ROOT) -> dict[str, str]:
+    """Check the vendored upstream Herdr skill (skills/herdr) against its pin and sha256 record.
+
+    vendor/herdr/PIN.json is the single pin, vendor/herdr/PROVENANCE.json records the sha256 of
+    every file, and skills/herdr holds the upstream files verbatim. Fail on any drift between
+    the three. Refresh with tools/vendor_herdr.py, never by editing the skill. The vendored
+    skill ships in pai-console and, through the shared skills, in the Codex packages.
     """
-    marketplace = json.loads((root / ".claude-plugin/marketplace.json").read_text())
-    entries = [p for p in marketplace["plugins"] if p["name"] == "herdr"]
-    if len(entries) != 1 or not isinstance(entries[0]["source"], dict):
-        raise ValueError("marketplace.json needs exactly one herdr entry with a git-subdir source")
-    pin = entries[0]["source"]
+    problems = pin_problems(root)
+    if problems:
+        raise ValueError("vendor/herdr/PIN.json is invalid: " + "; ".join(problems))
+    pin = json.loads((root / "vendor/herdr/PIN.json").read_text())
     record = json.loads((root / "vendor/herdr/PROVENANCE.json").read_text())
-    for key, wanted in (("commit", pin.get("sha")), ("tag", pin.get("ref")), ("path", pin.get("path"))):
-        if record.get(key) != wanted:
-            raise ValueError(f"vendor/herdr/PROVENANCE.json {key} {record.get(key)!r} differs from the marketplace pin {wanted!r}")
-    vendored = {p.relative_to(root / "vendor/herdr").as_posix(): p for p in (root / "vendor/herdr").rglob("*")
-                if p.is_file() and p.name != "PROVENANCE.json"}
+    for key in ("repository", "tag", "tagObject", "commit", "path"):
+        if record.get(key) != pin.get(key):
+            raise ValueError(f"vendor/herdr/PROVENANCE.json {key} {record.get(key)!r} differs from the pin {pin.get(key)!r}")
+    skill = root / "skills/herdr"
+    vendored = {p.relative_to(skill).as_posix(): p for p in skill.rglob("*") if p.is_file()}
     if sorted(vendored) != sorted(record["files"]):
-        raise ValueError("vendor/herdr files differ from PROVENANCE.json: " + ", ".join(sorted(set(vendored) ^ set(record["files"]))))
-    files: dict[Path, bytes] = {}
+        raise ValueError("skills/herdr files differ from PROVENANCE.json: " + ", ".join(sorted(set(vendored) ^ set(record["files"]))))
     for relative, expected in sorted(record["files"].items()):
         if vendored[relative].is_symlink():
             raise ValueError(f"Vendored skill files must not be symlinks: {relative}")
-        content = vendored[relative].read_bytes()
-        if hashlib.sha256(content).hexdigest() != expected:
-            raise ValueError(f"vendor/herdr/{relative} does not match its recorded sha256; run tools/vendor_herdr.py")
-        files[Path(relative)] = content
-    files[Path("skills/herdr/PROVENANCE.json")] = json_bytes(record)
-    return files
+        if hashlib.sha256(vendored[relative].read_bytes()).hexdigest() != expected:
+            raise ValueError(f"skills/herdr/{relative} does not match its recorded sha256; run tools/vendor_herdr.py")
+    return record["files"]
 
 
 def expected_files(root: Path = ROOT) -> dict[Path, bytes]:
-    herdr_vendor(root)  # Fails the build and its --check on drift; the files are not packaged.
+    herdr_vendor(root)  # Fails the build and its --check when the vendored skill drifts from its pin or record.
     missing = [f"hooks/{name}" for name in RUNTIME if not (root / "hooks" / name).is_file()]
     if missing:
         raise ValueError("Runtime sources are not ready: " + ", ".join(missing))
@@ -204,6 +213,9 @@ def expected_files(root: Path = ROOT) -> dict[Path, bytes]:
         for skill_name, content in codex_skills().items():
             files[base / "skills" / skill_name / "SKILL.md"] = content
         files[base / "skills/pai-env/agents/openai.yaml"] = b"policy:\n  allow_implicit_invocation: false\n"
+        # Herdr and orchestration are for explicit multi-agent work only, never for ordinary Pai tasks.
+        for explicit_only in ("herdr", "orchestration"):
+            files[base / "skills" / explicit_only / "agents/openai.yaml"] = b"policy:\n  allow_implicit_invocation: false\n"
         files[base / "skills/setup/agents/openai.yaml"] = b"policy:\n  allow_implicit_invocation: true\n"
         for runtime in RUNTIME:
             files[base / "hooks" / runtime] = (root / "hooks" / runtime).read_bytes()

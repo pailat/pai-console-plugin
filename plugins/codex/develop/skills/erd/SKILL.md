@@ -13,6 +13,8 @@ Read `pai-console` first (environment, discovery, search before create, CAS), us
 
 A **`data_model`** groups **`entity`** nodes (tables). **An entity is its columns.** Never write relationships directly: foreign-key columns define them. The server derives cardinality, creates `relates_to` edges, and generates the diagram.
 
+A published database Space compiles its pinned `data_model`/`entity` nodes into Pai DB sources; publishing and record operations are in `../spaces/SKILL.md`. Entity column keys are physical names and are not re-cased.
+
 ## Order
 
 1. **Discover** organization and project (`pai-console` §1).

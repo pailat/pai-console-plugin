@@ -1,11 +1,12 @@
 {
-  "generatedFrom": "pai-portal dbe7832cb (archived contract snapshot)",
+  "generatedFrom": "pai-portal 47f888e08 (archived contract snapshot)",
   "declaredTools": [
     "agent_create",
     "agent_delete",
     "agent_get",
     "agent_inbox",
     "agent_list",
+    "agent_routine_delete",
     "agent_update",
     "api_design_create",
     "api_design_export",
@@ -48,10 +49,14 @@
     "comment_resolve",
     "comment_send_to_agent",
     "connection_create",
+    "connection_enrollment_approve",
+    "connection_enrollment_get",
     "connection_events",
     "connection_get",
     "connection_list",
     "connection_revoke",
+    "connection_terminal_list",
+    "connection_terminal_terminate",
     "credit_balance",
     "credit_transactions",
     "crm_access_get",
@@ -86,6 +91,7 @@
     "crm_opportunity_hold",
     "crm_opportunity_list",
     "crm_opportunity_lose",
+    "crm_opportunity_loss_update",
     "crm_opportunity_note_add",
     "crm_opportunity_probability",
     "crm_opportunity_summary",
@@ -125,7 +131,9 @@
     "iam_access_test",
     "iam_audit_list",
     "iam_binding_add",
+    "iam_binding_list_mine",
     "iam_binding_remove",
+    "iam_binding_renounce",
     "iam_boundary_get",
     "iam_boundary_set",
     "iam_deny_create",
@@ -151,8 +159,19 @@
     "iam_role_get",
     "iam_role_list",
     "iam_role_update",
+    "iam_service_account_create",
+    "iam_service_account_disable",
+    "iam_service_account_get",
+    "iam_service_account_list",
+    "iam_service_account_update",
+    "iam_service_token_create",
+    "iam_service_token_list",
+    "iam_service_token_revoke",
+    "iam_service_token_rotate",
     "iam_settings_get",
     "iam_settings_update",
+    "iam_staff_grant_create",
+    "iam_staff_grant_end",
     "knowledge_appearance_remove",
     "knowledge_appearance_set",
     "knowledge_archive",
@@ -245,6 +264,7 @@
     "payment_list",
     "payment_record",
     "payment_void",
+    "product_app_client_register",
     "product_create",
     "product_decide_status",
     "product_deploy",
@@ -259,6 +279,7 @@
     "product_link_set",
     "product_list",
     "product_logs",
+    "product_manifest_save",
     "product_member_add",
     "product_member_list",
     "product_member_remove",
@@ -273,6 +294,8 @@
     "product_unlink_project",
     "product_update",
     "product_variables_set",
+    "product_version_create",
+    "product_version_publish",
     "project_activity",
     "project_close",
     "project_close_review",
@@ -292,7 +315,24 @@
     "proposal_save",
     "proposal_set_status",
     "quiz_respond",
+    "record_action_run",
+    "record_create",
+    "record_events",
+    "record_get",
+    "record_query",
+    "record_update",
     "resource_list",
+    "space_create",
+    "space_deploy",
+    "space_list",
+    "space_schema",
+    "space_update",
+    "space_version_archive",
+    "space_version_compare",
+    "space_version_create",
+    "space_version_get",
+    "space_version_publish",
+    "space_versions",
     "status_update_list",
     "status_update_publish",
     "task_archive",
@@ -341,6 +381,10 @@
     "agent_list": {
       "readOnly": true,
       "destructive": false
+    },
+    "agent_routine_delete": {
+      "readOnly": false,
+      "destructive": true
     },
     "agent_update": {
       "readOnly": false,
@@ -510,6 +554,14 @@
       "readOnly": false,
       "destructive": false
     },
+    "connection_enrollment_approve": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "connection_enrollment_get": {
+      "readOnly": true,
+      "destructive": false
+    },
     "connection_events": {
       "readOnly": true,
       "destructive": false
@@ -523,6 +575,14 @@
       "destructive": false
     },
     "connection_revoke": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "connection_terminal_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "connection_terminal_terminate": {
       "readOnly": false,
       "destructive": true
     },
@@ -659,6 +719,10 @@
       "destructive": false
     },
     "crm_opportunity_lose": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "crm_opportunity_loss_update": {
       "readOnly": false,
       "destructive": false
     },
@@ -818,7 +882,15 @@
       "readOnly": false,
       "destructive": false
     },
+    "iam_binding_list_mine": {
+      "readOnly": true,
+      "destructive": false
+    },
     "iam_binding_remove": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "iam_binding_renounce": {
       "readOnly": false,
       "destructive": true
     },
@@ -922,11 +994,55 @@
       "readOnly": false,
       "destructive": true
     },
+    "iam_service_account_create": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "iam_service_account_disable": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "iam_service_account_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "iam_service_account_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "iam_service_account_update": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "iam_service_token_create": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "iam_service_token_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "iam_service_token_revoke": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "iam_service_token_rotate": {
+      "readOnly": false,
+      "destructive": true
+    },
     "iam_settings_get": {
       "readOnly": true,
       "destructive": false
     },
     "iam_settings_update": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "iam_staff_grant_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "iam_staff_grant_end": {
       "readOnly": false,
       "destructive": true
     },
@@ -1298,6 +1414,10 @@
       "readOnly": false,
       "destructive": true
     },
+    "product_app_client_register": {
+      "readOnly": false,
+      "destructive": false
+    },
     "product_create": {
       "readOnly": false,
       "destructive": false
@@ -1354,6 +1474,10 @@
       "readOnly": true,
       "destructive": false
     },
+    "product_manifest_save": {
+      "readOnly": false,
+      "destructive": false
+    },
     "product_member_add": {
       "readOnly": false,
       "destructive": false
@@ -1407,6 +1531,14 @@
       "destructive": false
     },
     "product_variables_set": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_version_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "product_version_publish": {
       "readOnly": false,
       "destructive": false
     },
@@ -1478,7 +1610,75 @@
       "readOnly": false,
       "destructive": false
     },
+    "record_action_run": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "record_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "record_events": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "record_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "record_query": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "record_update": {
+      "readOnly": false,
+      "destructive": false
+    },
     "resource_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "space_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "space_deploy": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "space_list": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "space_schema": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "space_update": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "space_version_archive": {
+      "readOnly": false,
+      "destructive": true
+    },
+    "space_version_compare": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "space_version_create": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "space_version_get": {
+      "readOnly": true,
+      "destructive": false
+    },
+    "space_version_publish": {
+      "readOnly": false,
+      "destructive": false
+    },
+    "space_versions": {
       "readOnly": true,
       "destructive": false
     },

@@ -9,7 +9,7 @@
     {
       "name": "pai-console",
       "source": "./",
-      "description": "Work with Pai Console (0.2.5+) through the corporate MCP: generative UI (pai-view@1 and view_render), Resources, Knowledge (ERD, C4, screens, API Design, project and organization knowledge), Flows, Schedule and task board, Proposals, Payments/CFDI, Products, CRM and brand themes, with focused skills and production write confirmations.",
+      "description": "Work with Pai Console (0.2.5+) through the corporate MCP: generative UI (pai-view@1 and view_render), Resources, Knowledge (ERD, C4, screens, API Design, Pai DB Spaces, project and organization knowledge), Flows, Schedule and task board, Proposals, Payments/CFDI, Products, CRM and brand themes, plus the vendored Herdr skill and the generic multi-agent orchestration skill, with focused skills and production write confirmations.",
       "category": "productivity",
       "tags": [
         "pai",
@@ -17,36 +17,11 @@
         "crm",
         "knowledge"
       ]
-    },
-    {
-      "name": "pai-orchestration",
-      "source": "./plugins/orchestration",
-      "description": "Generic multi-agent orchestration method for Herdr (no idle waits, report to the parent, handoff on close, the orchestration-wake plugin). Depends on the pinned herdr skill; separate from pai-console, so a herdr fetch problem can never disable the Pai MCP or skills.",
-      "version": "0.1.0",
-      "category": "productivity",
-      "tags": [
-        "herdr",
-        "agents",
-        "orchestration"
-      ]
-    },
-    {
-      "name": "herdr",
-      "source": {
-        "source": "git-subdir",
-        "url": "https://github.com/herdrdev/herdr.git",
-        "path": "skills/herdr",
-        "ref": "v0.9.5",
-        "sha": "2ecf19a92fc3a7fff75b6ce3655ef04f4625ec01"
-      },
-      "description": "Herdr skill from the upstream herdrdev/herdr release v0.9.5, pinned to its commit. Control Herdr panes, tabs, workspaces and agents. Installed as a dependency of pai-orchestration; update by bumping the pinned tag and sha.",
-      "version": "0.9.5",
-      "category": "productivity",
-      "tags": [
-        "herdr",
-        "terminal",
-        "agents"
-      ]
     }
-  ]
+  ],
+  "renames": {
+    "pai-orchestration": null,
+    "herdr": null
+  },
+  "forceRemoveDeletedPlugins": true
 }

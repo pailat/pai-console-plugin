@@ -30,16 +30,23 @@ class UpstreamContractsTest(unittest.TestCase):
         connections = {tool['name']: tool for tool in tools if tool['name'].startswith('connection_')}
         self.assertEqual(set(connections), {
             'connection_list', 'connection_get', 'connection_events',
-            'connection_create', 'connection_revoke'})
+            'connection_create', 'connection_revoke',
+            'connection_enrollment_get', 'connection_enrollment_approve',
+            'connection_terminal_list', 'connection_terminal_terminate'})
+        reads = {'connection_list', 'connection_get', 'connection_events',
+                 'connection_enrollment_get', 'connection_terminal_list'}
         for name, tool in connections.items():
-            self.assertEqual(tool['annotations']['readOnlyHint'], name in {
-                'connection_list', 'connection_get', 'connection_events'})
+            self.assertEqual(tool['annotations']['readOnlyHint'], name in reads)
             self.assertFalse(tool['inputSchema']['additionalProperties'])
-            self.assertIn('organizationId', tool['inputSchema']['required'])
-        revoke = connections['connection_revoke']
-        self.assertTrue(revoke['annotations']['destructiveHint'])
-        self.assertTrue(revoke['annotations']['idempotentHint'])
-        self.assertIn('expectedRevision', revoke['inputSchema']['required'])
+            # The registry belongs to one operator-configured organization.
+            self.assertNotIn('organizationId', tool['inputSchema']['properties'])
+        for name in ('connection_revoke', 'connection_terminal_terminate'):
+            self.assertTrue(connections[name]['annotations']['destructiveHint'])
+            self.assertTrue(connections[name]['annotations']['idempotentHint'])
+        self.assertIn('expectedRevision', connections['connection_revoke']['inputSchema']['required'])
+        self.assertTrue({'hostId', 'terminalId'} <= set(connections['connection_terminal_terminate']['inputSchema']['required']))
+        self.assertTrue({'hostId', 'enrollmentId', 'expectedRevision'} <= set(connections['connection_enrollment_approve']['inputSchema']['required']))
+        self.assertEqual(connections['connection_list']['inputSchema']['properties']['scope']['enum'], ['mine', 'all'])
 
     def test_retired_crm_aliases_are_not_taught_or_registered(self):
         retired = re.compile(r'\bcrm_(?:lead_)?task_(?:create|complete|get|list|tag_list|update)\b')
