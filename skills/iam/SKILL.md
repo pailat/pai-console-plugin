@@ -71,7 +71,7 @@ Machine access for an organization. Every call needs an effective human Pai staf
 | Find first | `iam_service_account_list {organizationId,limit?}` (1 to 200, default 100); `iam_service_account_get {serviceAccountId}`; `iam_service_token_list {serviceAccountId}` (metadata only: scope, permissions, rate limit, `expiresAt`, `revokedAt`, `lastUsedAt`) |
 | Create | `iam_service_account_create {organizationId,name,description?,ownerUserId?}`: name 1 to 80 characters; `ownerUserId` defaults to the caller and must be a human |
 | Change | `iam_service_account_update {serviceAccountId,changes}` (name, description, ownerUserId; partial) |
-| Disable | `iam_service_account_disable {serviceAccountId}`; a disabled account cannot get new tokens (`SERVICE_ACCOUNT_DISABLED`). Revoke its tokens too when the goal is to cut access |
+| Disable | `iam_service_account_disable {serviceAccountId}` is permanent: every token the account holds stops authenticating at once, it cannot get new ones (`SERVICE_ACCOUNT_DISABLED`), and no tool re-enables it. Confirm with the person first; to cut one token only, use `iam_service_token_revoke` |
 | Issue | `iam_service_token_create {serviceAccountId,name,scope,permissions,expiresAt,rateLimitPerMinute?}` |
 | Rotate | `iam_service_token_rotate {serviceAccountId,tokenId,expiresAt,name?,scope?,permissions?,rateLimitPerMinute?,previousTokenGraceHours?}` |
 | Revoke | `iam_service_token_revoke {serviceAccountId,tokenId}`; `tokenId: null` revokes every live token of the account. Idempotent: an already revoked token, or "all" with none live, answers the same without a new audit entry |

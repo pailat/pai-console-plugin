@@ -128,9 +128,10 @@ class GuardTest(HookCase):
         expected = {
             "connection_terminal_terminate": ("IRREVERSIBLE", "live terminal session"),
             "iam_service_token_revoke": ("IRREVERSIBLE", "cannot be restored"),
+            # Disabling the account stops every token it holds at once and nothing re-enables it.
+            "iam_service_account_disable": ("IRREVERSIBLE", "no re-enable"),
             "iam_binding_renounce": ("IRREVERSIBLE", "your own access"),
             "iam_service_token_rotate": ("ATTENTION", "shown only in the response"),
-            "iam_service_account_disable": ("ATTENTION", "keep working until revoked"),
             "iam_staff_grant_end": ("ATTENTION", "created again"),
             "space_version_archive": ("ATTENTION", "not deployed"),
         }
@@ -139,6 +140,14 @@ class GuardTest(HookCase):
             self.assertEqual(decision, "ask", tool)
             self.assertTrue(reason.startswith(level), (tool, reason))
             self.assertIn(text, reason, tool)
+
+    def test_disabling_a_service_account_does_not_promise_its_tokens_keep_working(self) -> None:
+        _, reason = self.decision(self.guard(PLUGIN + "iam_service_account_disable", PRODUCTION))
+        self.assertTrue(reason.startswith("IRREVERSIBLE"))
+        self.assertIn("every token it holds stops authenticating at once", reason)
+        self.assertNotIn("keep working", reason)
+        policy = (ROOT / "hooks/policy.py").read_text()
+        self.assertNotIn('"iam_service_account_disable": "Disables the service account so', policy)
 
     def test_product_deploy_depends_on_target_environment(self) -> None:
         _, reason = self.decision(self.guard(PLUGIN + "product_deploy", PRODUCTION, {"environment": "production"}))
