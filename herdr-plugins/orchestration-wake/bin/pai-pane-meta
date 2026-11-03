@@ -11,6 +11,9 @@ for kv in "$@"; do k=${kv%%=*}; v=${kv#*=}; args=(${args[@]+"${args[@]}"} --toke
 "$H" pane report-metadata "$pane" --source pai "${args[@]}" >/dev/null 2>&1 || exit 0
 C=${HERDR_PLUGIN_CONFIG_DIR:-$("$H" plugin config-dir pai.orchestration-wake 2>/dev/null)}; [ -n "$C" ] || exit 0
 san=$(printf %s "$pane" | tr -c 'A-Za-z0-9' _); name=$(jq -r '.tokens.name // empty' <<<"$json"); name=$(printf %s "${name:-pane-$san}" | tr -c 'A-Za-z0-9_-' _)
-mkdir -p "$C/agents" 2>/dev/null; jq -c --arg p "$pane" '{pane:$p, tokens:.tokens}' <<<"$json" >"$C/agents/$name.json"
+mkdir -p "$C/agents" 2>/dev/null
+# One file per pane: drop any other agent file that names this pane (an earlier call with another name, a stale entry).
+for f in "$C"/agents/*.json; do [ -f "$f" ] && [ "$f" != "$C/agents/$name.json" ] && [ "$(jq -r '.pane // empty' "$f" 2>/dev/null)" = "$pane" ] && rm -f "$f"; done
+jq -c --arg p "$pane" '{pane:$p, tokens:.tokens}' <<<"$json" >"$C/agents/$name.json"
 [ -f "$C/panes/$san.json" ] && rm -f "$C/panes/$san.json"
 exit 0

@@ -64,11 +64,11 @@ def pai_console_files() -> list[Path]:
 
 
 class SinglePluginTest(unittest.TestCase):
-    def test_the_vendored_herdr_pin_is_the_release_commit(self) -> None:
+    def test_the_vendored_herdr_pin_satisfies_the_pin_invariants(self) -> None:
+        # Invariants, not a literal release: a release-watch pull request bumps the pin and must stay green.
+        self.assertEqual(build_codex.pin_problems(ROOT), [])
         pin = json.loads((ROOT / "vendor/herdr/PIN.json").read_text())
-        self.assertEqual((pin["repository"], pin["path"], pin["tag"]), ("https://github.com/herdrdev/herdr", "skills/herdr", "v0.9.5"))
-        self.assertRegex(pin["commit"], SHA)
-        self.assertEqual(pin["commit"], "2ecf19a92fc3a7fff75b6ce3655ef04f4625ec01")
+        self.assertEqual((pin["repository"], pin["path"]), ("https://github.com/herdrdev/herdr", "skills/herdr"))
 
     def test_pai_console_is_the_only_plugin_and_has_no_dependencies(self) -> None:
         console = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
@@ -170,6 +170,27 @@ class VendorDriftTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "differs from the pin"):
             build_codex.herdr_vendor(tmp)
 
+    def test_a_vendoring_run_for_a_new_release_keeps_the_checks_green(self) -> None:
+        # What the release-watch workflow commits: a new tag and commit, the record rewritten to match, same files.
+        tmp = self.copy_tree()
+        pin = json.loads((tmp / "vendor/herdr/PIN.json").read_text())
+        pin.update(tag="v9.9.9", tagObject=None, commit="a" * 40)
+        record = {**pin, "files": json.loads((tmp / "vendor/herdr/PROVENANCE.json").read_text())["files"]}
+        (tmp / "vendor/herdr/PIN.json").write_text(json.dumps(pin))
+        (tmp / "vendor/herdr/PROVENANCE.json").write_text(json.dumps(record))
+        self.assertEqual(build_codex.pin_problems(tmp), [])
+        build_codex.herdr_vendor(tmp)
+
+    def test_malformed_pins_are_reported(self) -> None:
+        tmp = self.copy_tree()
+        for field, value in (("tag", "main"), ("tag", "v1.2"), ("commit", "abc"), ("commit", "G" * 40)):
+            with self.subTest(field=field, value=value):
+                path = tmp / "vendor/herdr/PIN.json"
+                data = json.loads((ROOT / "vendor/herdr/PIN.json").read_text())
+                data[field] = value
+                path.write_text(json.dumps(data))
+                self.assertTrue(build_codex.pin_problems(tmp))
+
 
 class ReleaseWatchWorkflowTest(unittest.TestCase):
     """The scheduled Action only vendors through the tool and opens a pull request: least privilege, pinned actions, no merge."""
@@ -189,6 +210,22 @@ class ReleaseWatchWorkflowTest(unittest.TestCase):
         self.assertTrue(uses)
         for ref in uses:
             self.assertRegex(ref, r"@[0-9a-f]{40}$", ref)
+
+    def test_it_proves_the_vendored_bytes_equal_upstream_before_bumping(self) -> None:
+        # Re-vendor the pin with no flags, then fail on any difference (a coordinated hand edit of skill and record).
+        first = self.text.index("python3 tools/vendor_herdr.py\n")
+        self.assertIn("git diff --exit-code -- skills/herdr vendor/herdr", self.text)
+        self.assertLess(first, self.text.index("python3 tools/vendor_herdr.py --latest"))
+        self.assertLess(self.text.index("git diff --exit-code"), self.text.index("python3 tools/vendor_herdr.py --latest"))
+
+    def test_a_failed_check_leaves_its_log_in_the_job_log(self) -> None:
+        self.assertNotIn("rm -f check.log", self.text)
+        self.assertRegex(self.text, r"::group::.*make check|cat check\.log")
+
+    def test_an_existing_branch_without_a_pull_request_fails_with_the_same_clear_error(self) -> None:
+        self.assertIn('git ls-remote --exit-code --heads origin "$branch"', self.text)
+        self.assertLess(self.text.index("git ls-remote --exit-code"), self.text.index('git push origin "$branch"'))
+        self.assertGreaterEqual(self.text.count("Allow GitHub Actions to create and approve pull requests"), 3)
 
     def test_it_vendors_through_the_tool_and_never_merges(self) -> None:
         self.assertIn("python3 tools/vendor_herdr.py --latest", self.text)

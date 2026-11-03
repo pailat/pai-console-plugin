@@ -22,7 +22,7 @@ exit 0
 HERDR_STUB = """#!/usr/bin/env bash
 case "$1 $2" in
   "pane get") cat "$STUB_DIR/pane.json" ;;
-  "agent get") exit 0 ;;
+  "agent get") cat "$STUB_DIR/agent-$(printf %s "$3" | tr -c 'A-Za-z0-9' _).json" 2>/dev/null; exit 0 ;;
   "agent prompt") printf 'prompt\\t%s\\t%s\\n' "$3" "$4" >>"$STUB_DIR/calls.log" ;;
   "pane report-metadata") printf 'meta\\t%s\\n' "$3" >>"$STUB_DIR/calls.log" ;;
 esac
@@ -120,6 +120,33 @@ class WakeDeliveryTest(unittest.TestCase):
         self.fire("w1:p2", "working")
         self.fire("w1:p2", "done")
         self.assertEqual(self.prompts(), ["boss"])
+
+    def meta(self, pane: str, *tokens: str) -> None:
+        subprocess.run(["bash", str(META), pane, *tokens], env=self.env(), check=True, capture_output=True, timeout=60)
+
+    def test_a_mutual_pair_does_not_ping_pong_when_live_tokens_are_gone(self) -> None:
+        # After a Herdr restart only the agent-keyed cache knows each pane's parent, so the loop guard must read it too.
+        (self.dir / "pane.json").write_text(json.dumps({"result": {"pane": {}}}))
+        for name, pane, parent in (("pane-a", "w1:p2", "pane-b"), ("pane-b", "w1:p3", "pane-a")):
+            self.meta(pane, "role=lead", f"name={name}", f"parent={parent}", "wake_on_done=1", "issue=T-1")
+            (self.dir / f"agent-{key(name)}.json").write_text(json.dumps({"result": {"agent": {"pane_id": pane}}}))
+        for _ in range(2):
+            for pane in ("w1:p2", "w1:p3"):
+                self.fire(pane, "working")
+                self.fire(pane, "done")
+        self.assertEqual(self.prompts(), [])
+        self.assertIn("(loop)", self.wake_log())
+
+    def test_a_second_pane_meta_call_for_the_same_pane_leaves_one_cache_file(self) -> None:
+        self.meta("w1:p9", "role=lead", "parent=boss")
+        self.meta("w1:p9", "role=lead", "name=x", "parent=boss")
+        files = sorted(p.name for p in (self.dir / "config/agents").glob("*.json"))
+        self.assertEqual(files, ["x.json"])
+
+    def test_another_agents_cache_file_is_left_alone(self) -> None:
+        self.meta("w1:p8", "role=lead", "name=other", "parent=boss")
+        self.meta("w1:p9", "role=lead", "name=x", "parent=boss")
+        self.assertEqual(sorted(p.name for p in (self.dir / "config/agents").glob("*.json")), ["other.json", "x.json"])
 
 
 if __name__ == "__main__":

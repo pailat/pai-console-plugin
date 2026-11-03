@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import re
 import sys
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -127,6 +128,19 @@ main agent and the person's confirmation. Use the session's native model
     }
 
 
+def pin_problems(root: Path = ROOT) -> list[str]:
+    """Return what is wrong with vendor/herdr/PIN.json as an invariant, never a specific release."""
+    pin = json.loads((root / "vendor/herdr/PIN.json").read_text())
+    problems = []
+    if not re.fullmatch(r"v\d+\.\d+\.\d+", str(pin.get("tag"))):
+        problems.append(f"tag {pin.get('tag')!r} is not a release tag like v1.2.3")
+    if not re.fullmatch(r"[0-9a-f]{40}", str(pin.get("commit"))):
+        problems.append(f"commit {pin.get('commit')!r} is not a full 40-character lowercase sha")
+    if pin.get("tagObject") is not None and not re.fullmatch(r"[0-9a-f]{40}", str(pin["tagObject"])):
+        problems.append(f"tagObject {pin.get('tagObject')!r} is not a full sha or null")
+    return problems
+
+
 def herdr_vendor(root: Path = ROOT) -> dict[str, str]:
     """Check the vendored upstream Herdr skill (skills/herdr) against its pin and sha256 record.
 
@@ -135,6 +149,9 @@ def herdr_vendor(root: Path = ROOT) -> dict[str, str]:
     the three. Refresh with tools/vendor_herdr.py, never by editing the skill. The vendored
     skill ships in pai-console and, through the shared skills, in the Codex packages.
     """
+    problems = pin_problems(root)
+    if problems:
+        raise ValueError("vendor/herdr/PIN.json is invalid: " + "; ".join(problems))
     pin = json.loads((root / "vendor/herdr/PIN.json").read_text())
     record = json.loads((root / "vendor/herdr/PROVENANCE.json").read_text())
     for key in ("repository", "tag", "tagObject", "commit", "path"):

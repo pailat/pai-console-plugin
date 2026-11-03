@@ -32,8 +32,12 @@ st=$(jq -r '.data.agent_status // .agent_status // empty' <<<"$ev")
 # and before pane.exited fires). A pane with neither is not ours and is ignored.
 # Cache: <config dir>/agents/<agent name>.json = {"pane":"<id>","tokens":{...}}, found by its "pane" field, so a relaunched agent rewrites its own
 # file in place. The older pane-keyed file panes/<id>.json is the fallback until every agent has been re-tokened.
-cache=""; for f in "$C"/agents/*.json; do [ -f "$f" ] || continue; [ "$(jq -r '.pane // empty' "$f" 2>/dev/null)" = "$pane" ] && { cache=$f; break; }; done
-[ -n "$cache" ] || cache="$C/panes/$(printf %s "$pane" | tr -c 'A-Za-z0-9' _).json"
+cache_file() { # echo the cache file of a pane id: agents/*.json by its "pane" field, else the older panes/<id>.json
+  local f
+  for f in "$C"/agents/*.json; do [ -f "$f" ] || continue; [ "$(jq -r '.pane // empty' "$f" 2>/dev/null)" = "$1" ] && { printf %s "$f"; return 0; }; done
+  printf %s "$C/panes/$(printf %s "$1" | tr -c 'A-Za-z0-9' _).json"
+}
+cache=$(cache_file "$pane")
 live=$("$H" pane get "$pane" 2>/dev/null | jq -c '.result.pane | {tokens: (.tokens // {}), label}' 2>/dev/null); [ -n "$live" ] || live='{}'
 tok() { local v; v=$(jq -r --arg k "$1" '(.tokens // {})[$k] // empty' <<<"$live" 2>/dev/null); [ -n "$v" ] || v=$(jq -r --arg k "$1" '(.tokens // {})[$k] // empty' "$cache" 2>/dev/null); printf %s "$v"; }
 role=$(tok role); issue=$(tok issue)
@@ -60,7 +64,7 @@ parent_of() { # echo the parent token of a local target (agent name or pane id);
   else id=$("$H" agent get "$t" 2>/dev/null | jq -r '.result.agent.pane_id // empty' 2>/dev/null); fi
   [ -n "$id" ] || return 0
   par=$("$H" pane get "$id" 2>/dev/null | jq -r '.result.pane.tokens.parent // empty' 2>/dev/null)
-  [ -n "$par" ] || par=$(jq -r '.tokens.parent // empty' "$C/panes/$(printf %s "$id" | tr -c 'A-Za-z0-9' _).json" 2>/dev/null)
+  [ -n "$par" ] || par=$(jq -r '.tokens.parent // empty' "$(cache_file "$id")" 2>/dev/null)
   printf %s "$par"
 }
 send() { # send <finish|blocked|exit> <targets> <message>

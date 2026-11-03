@@ -61,6 +61,9 @@ SEARCH_BEFORE_CREATE = {
 
 # Irreversible writes: what the confirmation must say they drag along.
 IRREVERSIBLE = {
+    "connection_terminal_terminate": "Ends the live terminal session on the host; work running in it stops and the session cannot be resumed.",
+    "iam_service_token_revoke": "Permanently revokes the token, or every live token of the account when tokenId is null; whatever authenticates with it stops at once and a revoked token cannot be restored.",
+    "iam_binding_renounce": "Gives up one of your own access bindings with your real session; you may lose access that you cannot restore yourself.",
     "connection_revoke": "Permanently revokes the host registration and closes its live authority; the same registration cannot be reactivated.",
     "crm_lead_anonymize": "Irreversibly anonymizes the lead and associated personal data for an explicit ARCO request; retain only the server-defined audit and metrics records.",
     "crm_submission_anonymize": "Irreversibly anonymizes a Forms submission for an explicit ARCO request; this is not ordinary archival.",
@@ -91,6 +94,10 @@ IRREVERSIBLE = {
 
 # High-impact but reversible (or outward-facing) writes.
 ATTENTION = {
+    "iam_service_token_rotate": "Issues a new token whose secret is shown only in the response (never print it) and retires the old token after the grace period.",
+    "iam_service_account_disable": "Disables the service account so it cannot get new tokens; its existing tokens keep working until revoked.",
+    "iam_staff_grant_end": "Ends the person's membership and staff binding in the organization together; the grant must be created again to restore it.",
+    "space_version_archive": "Archives a published Space version that is not deployed in any environment; confirm the version with the person first.",
     "folder_update": "Renames or moves the folder with all its pages, notes, whiteboards, files and subfolders and rewrites path links to them, including in collaborative notes.",
     "note_import": "Creates a note from an uploaded .md file; with deleteFile: true the original file is deleted afterward.",
     "knowledge_move": "Moves Knowledge across scopes, possibly a complete subtree and released page provenance; inspect destination access and returned conflicts.",

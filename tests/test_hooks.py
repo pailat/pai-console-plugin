@@ -124,6 +124,22 @@ class GuardTest(HookCase):
         for read in ("connection_list", "connection_get", "connection_events"):
             self.assertIsNone(self.guard(PLUGIN + read, PRODUCTION))
 
+    def test_credential_access_and_session_tools_say_what_they_drag(self) -> None:
+        expected = {
+            "connection_terminal_terminate": ("IRREVERSIBLE", "live terminal session"),
+            "iam_service_token_revoke": ("IRREVERSIBLE", "cannot be restored"),
+            "iam_binding_renounce": ("IRREVERSIBLE", "your own access"),
+            "iam_service_token_rotate": ("ATTENTION", "shown only in the response"),
+            "iam_service_account_disable": ("ATTENTION", "keep working until revoked"),
+            "iam_staff_grant_end": ("ATTENTION", "created again"),
+            "space_version_archive": ("ATTENTION", "not deployed"),
+        }
+        for tool, (level, text) in expected.items():
+            decision, reason = self.decision(self.guard(PLUGIN + tool, PRODUCTION))
+            self.assertEqual(decision, "ask", tool)
+            self.assertTrue(reason.startswith(level), (tool, reason))
+            self.assertIn(text, reason, tool)
+
     def test_product_deploy_depends_on_target_environment(self) -> None:
         _, reason = self.decision(self.guard(PLUGIN + "product_deploy", PRODUCTION, {"environment": "production"}))
         self.assertTrue(reason.startswith("IRREVERSIBLE"))
