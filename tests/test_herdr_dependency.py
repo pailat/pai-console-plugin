@@ -28,7 +28,7 @@ class HerdrDependencyTest(unittest.TestCase):
     def test_marketplace_pins_the_release_commit(self) -> None:
         source = herdr_entry()["source"]
         self.assertEqual(source["source"], "git-subdir")
-        self.assertEqual((source["url"], source["path"], source["ref"]), ("herdrdev/herdr", "skills/herdr", "v0.9.5"))
+        self.assertEqual((source["url"], source["path"], source["ref"]), ("https://github.com/herdrdev/herdr.git", "skills/herdr", "v0.9.5"))
         self.assertRegex(source["sha"], SHA)
         self.assertEqual(source["sha"], "2ecf19a92fc3a7fff75b6ce3655ef04f4625ec01")
 

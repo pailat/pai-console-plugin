@@ -22,7 +22,7 @@
       "name": "herdr",
       "source": {
         "source": "git-subdir",
-        "url": "herdrdev/herdr",
+        "url": "https://github.com/herdrdev/herdr.git",
         "path": "skills/herdr",
         "ref": "v0.9.5",
         "sha": "2ecf19a92fc3a7fff75b6ce3655ef04f4625ec01"
