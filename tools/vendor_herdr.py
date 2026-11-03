@@ -36,7 +36,10 @@ def main() -> int:
             return 1
         tags = git(work, "ls-remote", url, f"refs/tags/{pin['ref']}", f"refs/tags/{pin['ref']}^{{}}").splitlines()
         by_ref = {line.split()[1]: line.split()[0] for line in tags}
-        peeled = by_ref.get(f"refs/tags/{pin['ref']}^{{}}", by_ref.get(f"refs/tags/{pin['ref']}"))
+        peeled_ref = f"refs/tags/{pin['ref']}^{{}}"
+        peeled = by_ref.get(peeled_ref, by_ref.get(f"refs/tags/{pin['ref']}"))
+        # Only an annotated tag has a tag object distinct from its commit.
+        tag_object = by_ref.get(f"refs/tags/{pin['ref']}") if peeled_ref in by_ref else None
         if peeled != pin["sha"]:
             print(f"Tag {pin['ref']} now points at {peeled}, not the pinned {pin['sha']}", file=sys.stderr)
             return 1
@@ -53,7 +56,7 @@ def main() -> int:
             (ROOT / "vendor/herdr" / relative).parent.mkdir(parents=True, exist_ok=True)
             (ROOT / "vendor/herdr" / relative).write_bytes(path.read_bytes())
             files[relative.as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
-    record = {"repository": url.removesuffix(".git"), "tag": pin["ref"], "tagObject": json.loads((ROOT / "vendor/herdr/PROVENANCE.json").read_text()).get("tagObject"),
+    record = {"repository": url.removesuffix(".git"), "tag": pin["ref"], "tagObject": tag_object,
               "commit": pin["sha"], "path": pin["path"], "files": files}
     (ROOT / "vendor/herdr/PROVENANCE.json").write_text(json.dumps(record, indent=2) + "\n")
     print(f"Vendored {len(files)} file(s) from {record['repository']} at {pin['sha']}.")

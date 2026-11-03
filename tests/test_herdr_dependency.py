@@ -17,6 +17,12 @@ sys.path.insert(0, str(ROOT / "tools"))
 import build_codex  # noqa: E402
 
 SHA = re.compile(r"^[0-9a-f]{40}$")
+# One leak guard for everything this repository publishes about orchestration (wake plugin and skill): machine and network
+# identifiers, real pane ids, owner contact, and the internal roster, decision ids, workflow names and process vocabulary.
+LEAK = re.compile(
+    r"/home/|/Users/|~/worktrees|omarchy|macbook|\bw[A-Z]{2}:p[0-9A-Z]+|100\.\d+\.\d+\.\d+|ts\.net|@pai\.lat"
+    r"|\bDEC-\d+|agents-workflow|\brelay\b|integration-orch|infra-orch|platform-orch|general orchestrator|area orchestrator"
+    r"|\bate-<n>|merge packet|root=|\bROOT\b|\bscribe\b", re.IGNORECASE)
 
 
 def herdr_entry() -> dict:
@@ -48,15 +54,15 @@ class HerdrDependencyTest(unittest.TestCase):
         for event in manifest["events"]:
             self.assertTrue((base / event["command"][1]).is_file(), event)
         for path in (p for p in base.rglob("*") if p.is_file()):
-            text = path.read_text()
-            self.assertNotRegex(text, r"/home/|/Users/|omarchy", path.name)
+            self.assertIsNone(LEAK.search(path.read_text()), path.name)
         for script in ("bin/pai-pane-meta", "hooks/wake.sh", "hooks/deliver.sh"):
             self.assertTrue((base / script).stat().st_mode & 0o111, f"{script} must stay executable")
         self.assertIn("HERDR_BIN_PATH", (base / "hooks/wake.sh").read_text())
 
     def test_orchestration_skill_has_no_machine_specifics(self) -> None:
-        text = (ROOT / "skills/orchestration/SKILL.md").read_text()
-        self.assertNotRegex(text, r"/home/|~/worktrees|omarchy|\bw[A-Z]{2}:p[0-9A-Z]+")
+        for path in (ROOT / "skills/orchestration").rglob("*"):
+            if path.is_file():
+                self.assertIsNone(LEAK.search(path.read_text()), path.name)
 
 
 class VendorDriftTest(unittest.TestCase):

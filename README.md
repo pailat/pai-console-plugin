@@ -8,9 +8,9 @@ Codex uses unique connection names: `pai_console_staging`, `pai_console_develop`
 
 **Version 0.1.0**, a draft; see the [release notes](docs/releases/0.1.0.md).
 
-- **Herdr skill as a pinned dependency.** The marketplace lists `herdr` as a `git-subdir` entry for `herdrdev/herdr` (`skills/herdr`) at tag `v0.9.5`, pinned to commit `2ecf19a92fc3a7fff75b6ce3655ef04f4625ec01` with `sha`. The upstream skill has no `plugin.json`, so the marketplace entry is its manifest. `pai-console` declares `dependencies: ["herdr"]`, so installing it resolves and enables herdr from that pin. To update, bump the pinned `ref` and `sha` together; never copy the text.
+- **Herdr skill as a pinned dependency.** The marketplace lists `herdr` as a `git-subdir` entry for `https://github.com/herdrdev/herdr.git` (`skills/herdr`) at tag `v0.9.5`, pinned to commit `2ecf19a92fc3a7fff75b6ce3655ef04f4625ec01` with `sha`. The URL is the full HTTPS form on purpose: the `owner/repo` shorthand clones over SSH, which fails on machines without a github.com host key. The upstream skill has no `plugin.json`, so the marketplace entry is its manifest. `pai-console` declares `dependencies: ["herdr"]`, so installing it resolves and enables herdr from that pin. To update, bump the pinned `ref` and `sha` together; never copy the text.
 - **Codex.** Codex has no plugin dependencies, so `tools/build_codex.py` vendors `skills/herdr` from `vendor/herdr` into each package with its sha256 record (`skills/herdr/PROVENANCE.json`). `make check` fails when the vendored copy, its record and the marketplace pin disagree. Refresh with `python3 tools/vendor_herdr.py` after bumping the pin, then `make build`.
-- **Orchestration skill.** `skills/orchestration` packages the agent-orchestration contract (no idle waits, the communication tree, gates and merge packets, closing handoffs, the wake plugin) and points to the agents-workflow Knowledge as the source of truth.
+- **Orchestration skill.** `skills/orchestration` is a generic operating method for agents working under a parent in Herdr (never go idle with work in flight, report to the parent named in the brief, close with a handoff, use the wake plugin). Roles and process come from the agent's brief and the organization's decision records.
 - **Wake plugin.** `herdr-plugins/orchestration-wake` is a Herdr plugin (not a Claude Code component) that wakes parents and requesters on agent status changes and pane exits. Install it on each machine with `herdr plugin install pailat/pai-console-plugin/herdr-plugins/orchestration-wake --ref <tag>`; see its `config.env.example` for settings.
 - **No symlinks.** Claude Code copies a plugin into a versioned cache and refuses paths that leave the plugin root, so the repository contains no symlinks; a test enforces this.
 
@@ -100,7 +100,7 @@ The former develop endpoint, `https://mcp-edge-corp-develop.up.railway.app/mcp`,
 
 ## Claude Code installation
 
-The private repository remains its own Claude marketplace, `pai-console-plugin`. Configure Git HTTPS credentials if necessary (`gh auth login`, then `gh auth setup-git`).
+The public repository is its own Claude marketplace, `pai-console-plugin`; no Git credentials are needed to add it.
 
 ```text
 /plugin marketplace add pailat/pai-console-plugin
