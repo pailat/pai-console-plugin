@@ -13,7 +13,7 @@ OLDIFS=$IFS; IFS=,; set -- $targets; IFS=$OLDIFS
 for t in "$@"; do
   t=$(printf %s "$t" | tr -d ' '); [ -n "$t" ] || continue
   # Split alias:target at the FIRST colon only, and only when the prefix is a host alias in PAI_WAKE_HOSTS; a pane id such as
-  # wAY:p24 (or desktop:wAY:p24 -> alias desktop, target wAY:p24) keeps its own colon.
+  # w1:p2 (or host-a:w1:p2 -> alias host-a, target w1:p2) keeps its own colon.
   alias=""; who=$t; pre=${t%%:*}
   if [ "$pre" != "$t" ]; then for kv in ${PAI_WAKE_HOSTS:-}; do [ "${kv%%=*}" = "$pre" ] && { alias=$pre; who=${t#*:}; }; done; fi
   case "$who" in *[!A-Za-z0-9_:-]*|"") log "bad target $t"; continue ;; esac
