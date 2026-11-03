@@ -1,4 +1,4 @@
-"""The herdr dependency, its Codex vendoring, the wake plugin and the no-symlink rule (ATE-709)."""
+"""The single pai-console plugin: vendored Herdr skill, orchestration skill, wake plugin, release-watch workflow and no symlinks."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 import build_codex  # noqa: E402
 
 SHA = re.compile(r"^[0-9a-f]{40}$")
-# One leak guard for everything this repository publishes about orchestration (the wake plugin, the skill and its plugin).
+# One leak guard for everything this repository publishes about orchestration (the wake plugin and the skill).
 # Generic patterns catch machine, path, network and contact identifiers. Internal names, roles, process terms and decision-id
 # prefixes are not spelled out here: INTERNAL holds sha256 digests of the lowercased tokens (and adjacent word pairs) to refuse.
 LEAK = re.compile(
@@ -59,36 +59,50 @@ def leaks(text: str, internal: frozenset[str] = INTERNAL) -> list[str]:
     return found + sorted(c for c in candidates if hashlib.sha256(c.encode()).hexdigest() in internal)
 
 
-def herdr_entry() -> dict:
-    plugins = json.loads((ROOT / ".claude-plugin/marketplace.json").read_text())["plugins"]
-    return next(p for p in plugins if p["name"] == "herdr")
+def pai_console_files() -> list[Path]:
+    return [p for p in (ROOT / "skills/orchestration").rglob("*") if p.is_file()]
 
 
-class HerdrDependencyTest(unittest.TestCase):
-    def test_marketplace_pins_the_release_commit(self) -> None:
-        source = herdr_entry()["source"]
-        self.assertEqual(source["source"], "git-subdir")
-        self.assertEqual((source["url"], source["path"], source["ref"]), ("https://github.com/herdrdev/herdr.git", "skills/herdr", "v0.9.5"))
-        self.assertRegex(source["sha"], SHA)
-        self.assertEqual(source["sha"], "2ecf19a92fc3a7fff75b6ce3655ef04f4625ec01")
+class SinglePluginTest(unittest.TestCase):
+    def test_the_vendored_herdr_pin_is_the_release_commit(self) -> None:
+        pin = json.loads((ROOT / "vendor/herdr/PIN.json").read_text())
+        self.assertEqual((pin["repository"], pin["path"], pin["tag"]), ("https://github.com/herdrdev/herdr", "skills/herdr", "v0.9.5"))
+        self.assertRegex(pin["commit"], SHA)
+        self.assertEqual(pin["commit"], "2ecf19a92fc3a7fff75b6ce3655ef04f4625ec01")
 
-    def test_pai_console_has_no_dependency_and_pai_orchestration_depends_on_herdr(self) -> None:
-        # A herdr fetch problem must never disable the Pai MCP or skills, so only pai-orchestration depends on it.
+    def test_pai_console_is_the_only_plugin_and_has_no_dependencies(self) -> None:
         console = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
         self.assertNotIn("dependencies", console)
-        plugins = {p["name"]: p for p in json.loads((ROOT / ".claude-plugin/marketplace.json").read_text())["plugins"]}
-        self.assertEqual(plugins["pai-console"]["source"], "./")
-        self.assertNotIn("dependencies", plugins["pai-console"])
-        entry = plugins["pai-orchestration"]
-        manifest = json.loads((ROOT / entry["source"] / ".claude-plugin/plugin.json").read_text())
-        self.assertEqual((manifest["name"], manifest["version"], manifest["dependencies"]), ("pai-orchestration", "0.1.0", ["herdr"]))
-        self.assertEqual(entry["version"], manifest["version"])
+        self.assertEqual(console["version"], "0.0.12")
+        marketplace = json.loads((ROOT / ".claude-plugin/marketplace.json").read_text())
+        self.assertEqual([p["name"] for p in marketplace["plugins"]], ["pai-console"])
+        self.assertEqual(marketplace["plugins"][0]["source"], "./")
+        self.assertNotIn("dependencies", marketplace["plugins"][0])
+        self.assertFalse((ROOT / "plugins/orchestration").exists())
 
-    def test_orchestration_and_herdr_are_not_part_of_pai_console_or_its_codex_packages(self) -> None:
-        self.assertFalse((ROOT / "skills/orchestration").exists())
-        for name in ("orchestration", "herdr"):
-            self.assertEqual(sorted(p.as_posix() for p in (ROOT / "plugins/codex").glob(f"*/skills/{name}")), [])
-        self.assertEqual(json.loads((ROOT / ".claude-plugin/plugin.json").read_text())["version"], "0.0.11")
+    def test_removed_plugins_are_migrated_and_cleaned_up_from_installed_copies(self) -> None:
+        # marketplace-reference "Top-level fields" and host-marketplace "Rename or remove a plugin": a null rename drops the
+        # old key from settings, forceRemoveDeletedPlugins uninstalls the copy.
+        marketplace = json.loads((ROOT / ".claude-plugin/marketplace.json").read_text())
+        self.assertEqual(marketplace["renames"], {"pai-orchestration": None, "herdr": None})
+        self.assertIs(marketplace["forceRemoveDeletedPlugins"], True)
+
+    def test_herdr_and_orchestration_ship_in_pai_console_and_every_codex_package_for_explicit_use_only(self) -> None:
+        for name in ("herdr", "orchestration"):
+            self.assertTrue((ROOT / f"skills/{name}/SKILL.md").is_file(), name)
+            packaged = sorted((ROOT / "plugins/codex").glob(f"*/skills/{name}/SKILL.md"))
+            self.assertEqual(len(packaged), 3, name)
+            for skill in packaged:
+                self.assertEqual((skill.parent / "agents/openai.yaml").read_text(), "policy:\n  allow_implicit_invocation: false\n")
+                self.assertEqual(skill.read_bytes(), (ROOT / f"skills/{name}/SKILL.md").read_bytes())
+
+    def test_the_skills_trigger_only_on_explicit_herdr_work(self) -> None:
+        for name in ("herdr", "orchestration"):
+            front = (ROOT / f"skills/{name}/SKILL.md").read_text().split("---")[1]
+            description = re.search(r'^description: "(.*)"$', front, re.M).group(1)
+            self.assertRegex(description.lower(), r"use only when|explicitly", name)
+            self.assertNotRegex(description.lower(), r"\bany pai task\b|\balways\b", name)
+        self.assertIn("Do not use for ordinary Pai tasks", (ROOT / "skills/orchestration/SKILL.md").read_text())
 
     def test_no_symlinks_anywhere(self) -> None:
         links = [p.relative_to(ROOT).as_posix() for p in ROOT.rglob("*")
@@ -108,50 +122,84 @@ class HerdrDependencyTest(unittest.TestCase):
         self.assertIn("HERDR_BIN_PATH", (base / "hooks/wake.sh").read_text())
 
     def test_orchestration_skill_has_no_machine_specifics(self) -> None:
-        plugin = ROOT / "plugins/orchestration"
-        for path in plugin.rglob("*"):
-            if path.is_file():
-                self.assertEqual(leaks(path.read_text()), [], path.name)
-        # The plugin is installed on its own: it must not cite files outside its own directory.
-        skill = (plugin / "skills/orchestration/SKILL.md").read_text()
-        self.assertNotRegex(skill, r"`\.\./")
+        # The skill reaches every pai-console install, clients included, so it must stay generic.
+        for path in pai_console_files():
+            self.assertEqual(leaks(path.read_text()), [], path.name)
 
 
 class VendorDriftTest(unittest.TestCase):
     def copy_tree(self) -> Path:
         tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, tmp, True)
-        for name in (".claude-plugin", "vendor"):
-            shutil.copytree(ROOT / name, tmp / name)
+        shutil.copytree(ROOT / "vendor", tmp / "vendor")
+        shutil.copytree(ROOT / "skills/herdr", tmp / "skills/herdr")
         return tmp
 
     def test_vendored_files_match_their_record(self) -> None:
         files = build_codex.herdr_vendor(ROOT)
         record = json.loads((ROOT / "vendor/herdr/PROVENANCE.json").read_text())
-        self.assertEqual(hashlib.sha256(files[Path("skills/herdr/SKILL.md")]).hexdigest(), record["files"]["skills/herdr/SKILL.md"])
+        self.assertEqual(files, record["files"])
+        self.assertEqual(hashlib.sha256((ROOT / "skills/herdr/SKILL.md").read_bytes()).hexdigest(), record["files"]["SKILL.md"])
 
     def test_the_package_build_still_runs_the_drift_check(self) -> None:
         tmp = self.copy_tree()
-        skill = tmp / "vendor/herdr/skills/herdr/SKILL.md"
+        skill = tmp / "skills/herdr/SKILL.md"
         skill.write_text(skill.read_text() + "\nlocal edit\n")
         with self.assertRaisesRegex(ValueError, "sha256"):
             build_codex.expected_files(tmp)
 
     def test_edited_vendored_copy_fails(self) -> None:
         tmp = self.copy_tree()
-        skill = tmp / "vendor/herdr/skills/herdr/SKILL.md"
+        skill = tmp / "skills/herdr/SKILL.md"
         skill.write_text(skill.read_text() + "\nlocal edit\n")
         with self.assertRaisesRegex(ValueError, "sha256"):
             build_codex.herdr_vendor(tmp)
 
+    def test_an_extra_vendored_file_fails(self) -> None:
+        tmp = self.copy_tree()
+        (tmp / "skills/herdr/NOTES.md").write_text("hand written")
+        with self.assertRaisesRegex(ValueError, "differ from PROVENANCE"):
+            build_codex.herdr_vendor(tmp)
+
     def test_bumped_pin_without_refresh_fails(self) -> None:
         tmp = self.copy_tree()
-        path = tmp / ".claude-plugin/marketplace.json"
+        path = tmp / "vendor/herdr/PIN.json"
         data = json.loads(path.read_text())
-        next(p for p in data["plugins"] if p["name"] == "herdr")["source"]["sha"] = "0" * 40
+        data["commit"] = "0" * 40
         path.write_text(json.dumps(data))
-        with self.assertRaisesRegex(ValueError, "differs from the marketplace pin"):
+        with self.assertRaisesRegex(ValueError, "differs from the pin"):
             build_codex.herdr_vendor(tmp)
+
+
+class ReleaseWatchWorkflowTest(unittest.TestCase):
+    """The scheduled Action only vendors through the tool and opens a pull request: least privilege, pinned actions, no merge."""
+
+    def setUp(self) -> None:
+        self.text = (ROOT / ".github/workflows/herdr-release-watch.yml").read_text()
+        import yaml
+        self.workflow = yaml.safe_load(self.text)
+
+    def test_it_is_scheduled_and_has_minimal_permissions(self) -> None:
+        self.assertIn("schedule", self.workflow[True])
+        self.assertEqual(self.workflow["permissions"], {"contents": "write", "pull-requests": "write"})
+        self.assertNotIn("pull_request_target", self.workflow[True])
+
+    def test_every_third_party_action_is_pinned_by_commit(self) -> None:
+        uses = re.findall(r"^\s*-?\s*uses:\s*(\S+)", self.text, re.M)
+        self.assertTrue(uses)
+        for ref in uses:
+            self.assertRegex(ref, r"@[0-9a-f]{40}$", ref)
+
+    def test_it_vendors_through_the_tool_and_never_merges(self) -> None:
+        self.assertIn("python3 tools/vendor_herdr.py --latest", self.text)
+        self.assertIn("gh pr create", self.text)
+        # Without the repository setting the job must fail visibly, naming it.
+        self.assertRegex(self.text, r"if ! gh pr create")
+        self.assertIn("::error", self.text)
+        self.assertIn("Allow GitHub Actions to create and approve pull requests", self.text)
+        self.assertNotRegex(self.text, r"gh pr merge|--auto|enable-auto-merge|--admin|--force")
+        self.assertEqual(leaks(self.text), [])
+
 
 class LeakGuardTest(unittest.TestCase):
     def test_the_guard_detects_generic_leaks(self) -> None:

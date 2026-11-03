@@ -1,6 +1,6 @@
 # Pai Orchestration 0.1.0
 
-Release preparation date: 2026-11-03, America/Mexico_City. Draft; not published.
+Release preparation date: 2026-11-03, America/Mexico_City. Draft; not published. **Superseded by ATE-714:** the plugin `pai-orchestration` and the `herdr` marketplace entry no longer exist; their content now ships inside `pai-console` (see `../orchestration.md`). This file is kept as history.
 
 ## Initial release
 

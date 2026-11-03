@@ -1,0 +1,3 @@
+{
+  "887ec4c1264193c052de90e1ecef00b500d64743586bac0a4687bf24605c9d41": "- `databaseAction` (optional; json): Typed, closed definition of the action; entities are resolved on publish."
+}

@@ -19,6 +19,8 @@ Read shared `pai-console` first through the current client's skill mechanism. Br
 
 Full templates: `../knowledge/references/kinds.md`.
 
+**`databaseAction` (optional, `action` only):** a typed, closed definition of a Pai DB record action (`entity`, `key`, `input`, optional `stateMachine`, `checks`, `effects`) that is resolved when a Space version is published. It, not the narrative `inputs` table, defines execution; it never carries runtime IDs, code, SQL or webhooks. Keep `trigger`, `effect` and `inputs` consistent with it for readers. Shape, operands, effects and publication rules: `../spaces/SKILL.md`.
+
 ### Connected v3 screens
 
 - **`actions` are `action` node refs** (`offers`, screen → action), not `{action, effect, rule}` text rows. Literal server rejection: “Las acciones de una pantalla son nodos action: crea la acción (o corre screens:actions-to-nodes) y nómbrala por su ref.” `offers` imposes no containment: one action can appear on multiple screens.

@@ -142,7 +142,9 @@ Errors carry `isError` and `structuredContent.error = { code, message, cause?, m
 
 Flows (`flows`): `FLOW_STEP_REF` (missing/wrong-kind step ref; includes `path` and `ref`), `FLOW_NEEDS_PROJECT`; test errors `FLOW_RUN_REAL_DISABLED`, `FLOW_RUN_ACTOR`, `FLOW_RUN_FLOW_CLOSED`, `FLOW_RUN_NOT_RUNNER`, `FLOW_RUN_FINISHED`, `FLOW_RUN_STEP_KEY`, `FLOW_RUN_STOPPED_AT`. A stale `flow_save` returns `CONFLICT`: reread with `flow_get`. Entity-backed flow steps reject `knowledge_update`; use `flow_save`.
 
-Connection registry errors include `CONNECTION_REVISION_CONFLICT`, `CONNECTION_NATIVE_ID_CONFLICT`, `CONNECTION_IDENTITY_INVALID`, `CONNECTION_NOT_FOUND`, `CONNECTION_TENANT_REQUIRED`, and `CONNECTION_STAFF_REQUIRED` (`../organizations/SKILL.md`).
+Connection registry errors include `CONNECTION_REVISION_CONFLICT`, `CONNECTION_NATIVE_ID_CONFLICT`, `CONNECTION_IDENTITY_INVALID`, `CONNECTION_NOT_FOUND`, `CONNECTION_TENANT_REQUIRED`, `CONNECTION_STAFF_REQUIRED` and `CONNECTION_ENROLLMENT_INVALID` (`../organizations/SKILL.md`). Connection tools take no `organizationId`: the registry belongs to one operator-configured organization, so older prompts that pass it are wrong.
+
+Secrets returned by a write (`iam_service_token_create`, `iam_service_token_rotate`, and the `product_app_client_register` client secret) appear only in that response: never print, log, echo or store them in a page, node or comment; tell the user where to save them (`../iam/SKILL.md`, `../products/SKILL.md`).
 
 Other common `cause.code` values: `C4_LEVEL`, `ALREADY_CONTAINED` (`c4`); `CLIENT_VISIBLE_REQUIRES_PERSON`, `MERMAID_NOT_ALLOWED`, `QUERY`, `IMPLEMENTED_BY_NEEDS_PRODUCT`, `IMPLEMENTED_BY_ACROSS_PRODUCTS`, `TASK_NEEDS_PROJECT`, `PROJECT_NODE_APPEARANCE` (`knowledge`); `API_DESIGN_OWNED`, `OPENAPI_INVALID`, `API_DESIGN_TOO_LARGE` (`api-design`); `CRM_OPPORTUNITY_TITLE_TAKEN`, `CRM_LEAD_HAS_CHAIN` (`crm`); `APPROVAL_ALREADY_ANSWERED`, `HIVE_COMMENT_CHANGED` (`chats`); `RELEASE_REVISION_CONFLICT` (`products`); `HUMAN_CONFIRMS` for PRD version confirmation (`resources`); page `html` block errors and `PAGE_ATTRIBUTE_INVALID` (`resources`); `ASSET_NOT_IMAGE`, `ASSET_IMAGE_TOO_LARGE`, `ASSET_IMAGE_UNREADABLE`, `ASSET_SVG_REFUSED`, `ASSET_READ_TIMEOUT` for `asset_read` (`resources`).
 
@@ -189,7 +191,8 @@ Distinguish supported facts, inferences, and open questions.
 | IAM permissions, policies, groups, roles, denies, boundaries and audit | `iam` |
 | Organization brand theme: colors, font, logos, Portal shell, AA (staff) | `theme` |
 | Organization archive/restore, members, invitations, slugs, project status, connection host registry (`connection_*`), onboarding briefs, project agents, credits, own profile | `organizations` |
-| Products: registration, definition review, provisioning, deploy, domains, access, release plans | `products` |
+| Products: registration, definition review, provisioning, deploy, domains, access, release plans, versions and manifest | `products` |
+| Database Spaces and records: Space versions, publish/deploy, `record_*`, `databaseAction` (`space_*`, `record_*`) | `spaces` |
 
 Tool inventory, including reads, writes, and irreversible actions: `references/tools.md`.
 

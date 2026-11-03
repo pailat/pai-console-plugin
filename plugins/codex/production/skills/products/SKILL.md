@@ -84,6 +84,18 @@ Console and Portal product headers provide copy actions for repository and deplo
 - `product_member_list`; `product_member_add {userId | email, role, appRoles}`; `product_member_update {productId, userId, role?, appRoles?}` (`appRoles` replaces the whole list: start from product_member_list); `product_member_remove {productId, userId}` (returns `removed: false` if the person was not on the team). Pai staff or a product owner only. Removing or demoting the last owner is `CONFLICT` `LAST_OWNER`: add another owner first. Removal also drops the person's app roles; confirm before it.
 - **`product_production_access_set {access}`** (`public`, `protected`) changes production app access, updates Railway `PAI_PRODUCTION_ACCESS`, and **redeploys production** if already online. Confirm first and disclose the redeploy.
 
+## App manifest and OIDC client (staff, corp)
+
+- **`product_manifest_save {organizationId, productId, manifest}`** stores the product's `pai.app.json` (manifest `version: 1`: `permissions`, `roles`, optional `spaces` with at most one entry, `defaultRole`, `production.access`, `deploy`, `mcp.path`). It is idempotent, creates **no** infrastructure and needs `products.products.update` plus `products.manifests.update`. It verifies the spaces the app pins: when one is not published and deployed in the pinned environment it fails with `invalid_input` reason `APP_SPACES_NOT_READY` and one issue per gap (`space_version_not_deployed`, `space_environment_required`) with a hint. Publish and deploy that space version first (`space_version_publish`, `space_deploy`), then save again. Start from the repository's own manifest; never invent roles or permissions.
+- **`product_app_client_register {organizationId, productId, environment, redirectUris, rotateSecret?}`** registers (or rotates with `rotateSecret:true`) the OIDC client of `development`, `staging` or `production`. `redirectUris` is the **complete** allowlist (1-10 exact URIs): HTTPS only; HTTP only for `localhost` or `127.0.0.1` outside production; no wildcard, comma, fragment or credentials. `development` and `staging` need `products.variables.setStaging`, `production` needs `products.variables.setProduction`. The secret is returned **only when created or rotated**: hand it to the user for the app's `PAI_CLIENT_SECRET` and never repeat or store it. Not idempotent for rotation: rotating invalidates the previous secret, so confirm first, and explain that it creates no GitHub or Railway resources. Production changes follow the production approval rule above.
+
+## Product versions (Knowledge manifest)
+
+A product version freezes a pinned slice of the product's Knowledge so a space version can consume it. Both tools need `products.products.update`.
+
+- **`product_version_create {organizationId, productId, semver, changeKind, manifest, notes?}`**: `semver` is `x.y.z` (optional pre-release/build), `changeKind` is `major`, `minor` or `patch`, `notes` ≤2000. `manifest` is `{nodes: [{nodeId, revision}] (1-1000), edges: [{edgeId, revision}] (≤5000, revision a decimal string), pages: [{documentId, pageVersionId}] (≤500)}` with no duplicates. Read the exact `nodeId`/`revision` pairs from `knowledge_get`/`knowledge_query` of the product; never guess revisions. Creates a **draft**; the same `(productId, semver)` with the same input returns the existing draft, a different input is `PRODUCT_VERSION_EXISTS`. Other errors: `MANIFEST_NODE_REVISION_MISSING`, `MANIFEST_EDGE_ENDPOINT_MISSING`, `MANIFEST_PAGE_VERSION_MISSING`, `MANIFEST_FLOW_ENTITY_REQUIRED`, `MANIFEST_FLOW_REVISION_CONFLICT`, `PRODUCT_NOT_FOUND`: fix the pin and retry once.
+- **`product_version_publish {organizationId, productId, productVersionId, expectedRevision}`** publishes the draft (CAS on the draft revision). Publication is not reversible through MCP, so confirm with the user. It must be newer than the latest published semver (`PRODUCT_VERSION_NOT_NEWER`). If an `api` design changed incompatibly since the latest published version, it requires `changeKind:"major"` and a higher major number (`PRODUCT_VERSION_BREAKING_REQUIRES_MAJOR`): run `api_design_review {revision, compareToRevision}` (`../api-design/SKILL.md`) before choosing the version. Also `PRODUCT_VERSION_REVISION_CONFLICT` (reread the draft, never retry blindly), `PRODUCT_VERSION_HISTORY_LIMIT`, `MANIFEST_NOT_FOUND`.
+
 ## Product work and architecture
 
 Use `../tasks/SKILL.md` for task_list {section:"product",productId} and product-first contexts; filter by productId to include project tasks working on that product. A project task may link to one of its organization's products; a product backlog task cannot change products.
@@ -96,6 +108,7 @@ product_update accepts recipeKey and recipeVersion. Hosting/class changes are al
 
 - Never deploy an unverified staging commit to production or deploy without user approval.
 - Never request and approve `live` as the same person/session; another person must approve.
-- Never print, log, or store secrets/variable values.
+- Never print, log, or store secrets/variable values, including an OIDC client secret returned once by `product_app_client_register`.
+- Never publish a product version without confirmation or without reviewing API compatibility when the manifest pins `api` designs.
 - Never loop `product_provision`; inspect `steps[].error`, correct, then call once.
 - Never use `product_domain_remove` as domain disconnection; it only removes a record.

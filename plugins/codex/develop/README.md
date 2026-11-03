@@ -1,6 +1,6 @@
 # pai-console-develop
 
-Generated portable Pai Console package, version 0.0.11.
+Generated portable Pai Console package, version 0.0.12.
 
 Environment: `develop`. Endpoint: `https://mcp-corp.paitesting.com/mcp`. Server: `pai_console_develop`.
 
