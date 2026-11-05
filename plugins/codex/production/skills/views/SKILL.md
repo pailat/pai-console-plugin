@@ -17,6 +17,8 @@ Read shared `pai-console` first through the current client's skill mechanism: en
 
 The catalog is organized by closed families. Fetch only the families or component types the current view needs; schemas, examples and full recipes come from `view_catalog` on demand. All hosts use the same components and safety rules. MCP Apps keeps the 152 existing components eager so they still display on hosts without the lazy resource bridge. Newly added families load on demand through the server resource bridge; loading does not grant network access or make forms submit, persist or request sensitive data. A failed new-family load shows an unavailable notice; tool success alone does not prove that a host displayed the view.
 
+For DataTable and TreeTable, fetch the current detail before selecting table layout options. Where offered, `density: "compact"` uses dense rows and closed column `width` tokens are `xs` (40 px), `sm` (80), `md` (120), `lg` (200), `xl` (280), or `fill` (remaining space). A calendar day can use `xs`; keep the name at `fill` and reserve `sm`/`md` for Total and `lg` for Coverage. Fixed-width columns never become implicit fill columns. Omit the options to preserve existing sizing and comfortable rows; never invent a numeric width, CSS class or free style.
+
 When missing from references or unsure of a prop, **fetch detail** with `view_catalog {types}` before use. For large catalog reads, use Claude `pai-explorer` or the Codex generated package's explorer adapter only if available/authorized; otherwise read directly. Never assume Claude agents/tools exist in Codex.
 
 ## Three presentation modes
@@ -202,7 +204,7 @@ Graph: `knowledge_graph {projectId}`; adapt nodes to `{id, title, kind}`, edges 
 
 ## Recipes
 
-Server: 68 recipes/7 groups, `view_catalog {recipeGroup}` summaries, `{recipe}` complete; also at reference end. Examples: dashboard (AppShell + DashboardLayout), list-filters, record-detail, list-reading (SplitView), crm-pipeline, settings, wizard, flow, questionnaire, site-*, shop-*. For client app screens, **start from closest recipe and replace data**.
+Server recipes are grouped; `view_catalog {recipeGroup}` summaries, `{recipe}` complete; also at reference end. Examples: dashboard (AppShell + DashboardLayout), list-filters, record-detail, list-reading (SplitView), crm-pipeline, settings, wizard, flow, questionnaire, site-*, shop-*. For client app screens, **start from closest recipe and replace data**.
 
 Useful components:
 - Image/Carousel (≤12 slides), Video MP4/WebM use **project `assetId`, never URL**; required image `alt`, video `title`. Reuse visible ready assets across pages/notes/gallery. **Saved page views only**; view_render rejects them.
