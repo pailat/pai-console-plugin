@@ -28,6 +28,25 @@ When missing from references or unsure of a prop, **fetch detail** with `view_ca
 
 When unsure, render first and offer saving; do not save without authorization. **CLI requires a text fallback** with supported figures/diagram structure, citations, and Portal links. Tool success/spec validity does not prove widget rendering; claim it only with observable client evidence. If a visual tool is absent, explain the limitation and provide text without inventing components or substituting a write.
 
+### PNG snapshots
+
+When the connected `view_render` schema offers `snapshot`, request an image with
+`view_render {title, spec, snapshot:{theme:"both", width:"desktop"}}`. `theme` is
+`light`, `dark`, or `both`; optional `width` is `mobile`, `tablet`, or `desktop`
+(default). The result includes MCP PNG image content and per-image dimensions
+and theme in `structuredContent`. Inspect the returned image before claiming a
+layout renders correctly; a valid spec alone is insufficient evidence.
+
+For an existing view, pass the same `snapshot` alongside `organizationId`,
+`projectId`, and `source` rather than copying its spec. The read uses the caller's
+audience, and multiple blocks still require selecting a returned `blockId`.
+Snapshots fetch no network resources. Asset-bearing views remain refused by the
+conversational-view rules; do not replace an asset id with a URL. Images are
+transient and do not save or publish a page. `VIEW_SNAPSHOT_TIMEOUT` in
+`error.cause.code` means the bounded render expired: simplify the view or render
+one theme before retrying. Report unavailable or oversized renders as such;
+never claim an image exists when the tool returned only validation or an error.
+
 ## Data rules (all modes)
 
 - **Only tool data** from this conversation or a cited source. Views query nothing and invent no figures. Mockups may use plausible example data, explicitly labeled mockup.
