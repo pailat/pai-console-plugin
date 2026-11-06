@@ -10,8 +10,6 @@ the project are never flagged. A role with no zones assigned is not checked. Wit
 from __future__ import annotations
 
 import os
-import subprocess
-from subprocess import run as run_process  # bare name: the denylist reads a dotted call ending in the run top-level domain as a hostname
 from pathlib import Path
 
 import pre_tool_use as zones
@@ -20,11 +18,7 @@ BASE_CANDIDATES = ("origin/HEAD", "origin/main", "origin/master", "main", "maste
 
 
 def git(root: Path, *args: str) -> str | None:
-    try:
-        done = run_process(["git", "-C", str(root), *args], capture_output=True, text=True, timeout=8)
-    except (OSError, subprocess.SubprocessError):
-        return None
-    return done.stdout if done.returncode == 0 else None
+    return zones.common.git(root, *args)
 
 
 def base_commit(root: Path, base_branch: str = "") -> str:
@@ -69,25 +63,30 @@ def changed_paths(root: Path, base_branch: str = "") -> list[str]:
 
 
 def out_of_zone(config: dict, config_path: Path, state: Path | None, agent: str, cwd: Path | None = None) -> list[tuple[str, str]]:
-    """Return (path relative to the project root, denial reason) for each changed path outside the agent's zones.
+    """Return (path relative to its zone root, denial reason) for each changed path outside the agent's zones.
 
-    The diff is read from the checkout the agent works in (the git toplevel of cwd), which is not the config's directory
-    when the config lives in another checkout. If cwd is outside the config's directory and not in a git work tree no
-    zone can be applied, so the stop is flagged (fail closed)."""
+    Every zone root is diffed: the checkout the agent works in and the config's own checkout when they differ, because shell
+    writes (sed -i, cp, mv) can reach either. A path that lies inside a more specific root (a nested worktree seen from the
+    config checkout) is judged under that root only. If cwd is outside the config's directory and not in a git work tree no
+    root can be derived, so the stop is flagged (fail closed)."""
     if not zones.my_zones(config, agent):
         return []
-    roots = zones.zone_roots(config_path.parent, cwd or Path.cwd())
+    cwd = cwd or Path.cwd()
+    roots = zones.zone_roots(config_path.parent, cwd)
     if not roots:
         return [(str(cwd), f"Write zone: the working directory {cwd} is outside the harness config's directory and is not a git work tree, "
                            "so the zone diff cannot be checked. Ask your lead.")]
-    root = roots[0]
-    flagged = []
-    for absolute in changed_paths(root, config.get("project", {}).get("base_branch", "")):
-        reason = zones.zone_verdict(absolute, root, config, root, state, agent)
-        if reason:
-            try:
-                shown = Path(os.path.realpath(absolute)).relative_to(Path(os.path.realpath(root))).as_posix()
-            except ValueError:
-                shown = absolute
-            flagged.append((shown, reason))
+    flagged, seen = [], set()
+    for root in roots:
+        for absolute in changed_paths(root, config.get("project", {}).get("base_branch", "")):
+            if absolute in seen or zones.zone_root_for(Path(absolute), roots) != root:
+                continue
+            seen.add(absolute)
+            reason = zones.zone_verdict(absolute, root, config, root, state, agent)
+            if reason:
+                try:
+                    shown = Path(os.path.realpath(absolute)).relative_to(Path(os.path.realpath(root))).as_posix()
+                except ValueError:
+                    shown = absolute
+                flagged.append((shown, reason))
     return flagged

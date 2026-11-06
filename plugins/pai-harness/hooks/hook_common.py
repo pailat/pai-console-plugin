@@ -7,11 +7,28 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
+from subprocess import run as run_process  # bare name: the denylist reads a dotted call ending in the run top-level domain as a hostname
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 from harness_config import ConfigError, find_config, load_file  # noqa: E402
+
+
+def git(root: Path, *args: str) -> str | None:
+    """Stdout of `git -C root ARGS`, or None when git is missing, fails or times out. The one git helper of the hooks."""
+    try:
+        done = run_process(["git", "-C", str(root), *args], capture_output=True, text=True, timeout=8)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return done.stdout if done.returncode == 0 else None
+
+
+def toplevel(path: Path) -> Path | None:
+    """The real git toplevel of path, or None outside a work tree."""
+    top = (git(path, "rev-parse", "--show-toplevel") or "").strip()
+    return Path(os.path.realpath(top)) if top else None
 
 
 def read_event() -> dict:

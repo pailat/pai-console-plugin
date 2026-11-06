@@ -75,20 +75,26 @@ def resolve(path: str, cwd: Path) -> Path:
 
 
 def zone_roots(config_root: Path, cwd: Path) -> list[Path]:
-    """Directories the zone globs are relative to. The config's directory when the agent works inside it; otherwise (the config
-    lives in another checkout, e.g. the primary one while the agent runs in a worktree) the git toplevel of cwd, plus the config's
-    directory so the other checkout is policed too. Empty when cwd is outside the config's directory and not in a git work tree:
-    the caller must fail closed."""
+    """Directories the zone globs are relative to, found by comparing git toplevels (never path containment, so a worktree
+    nested under the config's checkout is its own root). The config's directory when cwd is in the config's checkout;
+    otherwise the same directory inside cwd's checkout first, then the config's directory so the other checkout is policed
+    too. Without a git toplevel for the config, cwd inside it keeps the config's directory alone. Empty when no root can be
+    derived (cwd outside the config's directory and not in a git work tree): the caller must fail closed."""
     config_root = Path(os.path.realpath(config_root))
-    here = Path(os.path.realpath(cwd))
-    if here.is_relative_to(config_root):
+    here_top, config_top = common.toplevel(Path(os.path.realpath(cwd))), common.toplevel(config_root)
+    if here_top is None:
+        return [config_root] if Path(os.path.realpath(cwd)).is_relative_to(config_root) else []
+    if config_top is None:
+        return [here_top, config_root] if here_top != config_root else [config_root]
+    if here_top == config_top:
         return [config_root]
-    try:
-        done = run_process(["git", "-C", str(here), "rev-parse", "--show-toplevel"], capture_output=True, text=True, timeout=5)
-    except (OSError, subprocess.SubprocessError):
-        return []
-    top = done.stdout.strip() if done.returncode == 0 else ""
-    return [Path(os.path.realpath(top)), config_root] if top else []
+    return [here_top / config_root.relative_to(config_top), config_root]
+
+
+def zone_root_for(target: Path, roots: list[Path]) -> Path | None:
+    """The most specific root that contains target, or None when it lies in none (such paths are not policed)."""
+    inside = [r for r in roots if target.is_relative_to(r)]
+    return max(inside, key=lambda r: len(r.parts)) if inside else None
 
 
 def zone_verdict(path: str, cwd: Path, config: dict, root: Path, state: Path | None, agent: str) -> str:
@@ -336,18 +342,25 @@ def main() -> None:
     cwd = Path(event.get("cwd") or os.getcwd())
     state, agent = common.state_dir(config), common.agent_name(event)
     roots = zone_roots(config_path.parent, cwd)
-    if not roots:
-        common.deny(f"Write zone: the working directory {cwd} is outside the harness config's directory ({config_path.parent}) and is not a git work tree, "
-                    "so no zone can be applied; writes are refused. Start the agent inside the project checkout or set PAI_HARNESS_CONFIG to its own copy.")
-        return
     for path in direct_paths:
         target = resolve(path, cwd)
-        root = next((r for r in roots if target.is_relative_to(r)), roots[0])
-        reason = zone_verdict(path, cwd, config, root, state, agent)
+        if state is not None and target.is_relative_to(Path(os.path.realpath(state))):
+            continue  # the delta marker and other state files are never policed, even with no root
+        if not roots:
+            # No git toplevel for cwd: police the config's checkout; a path under cwd could belong to an unknown checkout, so refuse it.
+            # Anything else cannot land in a zone and is left alone.
+            config_root = Path(os.path.realpath(config_path.parent))
+            if target.is_relative_to(config_root) or target.is_relative_to(Path(os.path.realpath(cwd))):
+                common.deny(f"Write zone: {target} could belong to a zone, but the working directory {cwd} is outside the harness config's directory "
+                            f"({config_path.parent}) and is not a git work tree, so no zone can be applied; the write is refused. "
+                            "Start the agent inside the project checkout or set PAI_HARNESS_CONFIG to its own copy.")
+                return
+            continue
+        root = zone_root_for(target, roots)
+        reason = zone_verdict(path, cwd, config, root, state, agent) if root is not None else ""
         if reason:
             common.deny(reason)
             return
-
 
 if __name__ == "__main__":
     main()
