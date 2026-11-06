@@ -11,10 +11,10 @@ HARNESS = ROOT / "plugins/pai-harness"
 sys.path.insert(0, str(HARNESS / "scripts"))
 import harness_config  # noqa: E402
 
-# ATE-1174 owns these eight; the distiller and the gate-triager belong to another issue.
-ROLES = ("relay", "orchestrator", "lead", "implementer", "root-reviewer", "integrator", "mechanical", "watcher")
+ROLES = ("relay", "orchestrator", "lead", "implementer", "root-reviewer", "integrator", "mechanical", "watcher",
+         "distiller", "gate-triager")
 MODELS = {"relay": "opus", "orchestrator": "opus", "lead": "sonnet", "implementer": "sonnet",
-          "root-reviewer": "opus", "integrator": "sonnet", "mechanical": "haiku", "watcher": "haiku"}
+          "root-reviewer": "opus", "integrator": "sonnet", "mechanical": "haiku", "watcher": "haiku", "distiller": "sonnet", "gate-triager": "sonnet"}
 READ_ONLY = {"Read", "Grep", "Glob"}
 WRITE_TOOLS = {"Bash", "Edit", "Write", "NotebookEdit", "Agent", "Task"}
 REPORT_LINE = re.compile(r"^## Quiet-channel report lines\n(?:.*\n)*?- `", re.M)
@@ -63,10 +63,17 @@ class RolesTest(unittest.TestCase):
         self.assertEqual(set(listed) - READ_ONLY, set())
         self.assertEqual(set(listed) & WRITE_TOOLS, set())
 
+    def test_gate_triager_is_read_only_and_distiller_writes_only_the_marker(self) -> None:
+        self.assertEqual(set(tools(HARNESS / "agents/gate-triager.md")), READ_ONLY)
+        listed = set(tools(HARNESS / "agents/distiller.md"))
+        self.assertEqual(listed & (WRITE_TOOLS - {"Write"}), set())
+        self.assertIn("Write", listed)
+        self.assertEqual({t for t in listed if t.startswith("mcp__")}, {f"mcp__plugin_pai-console_pai__knowledge_{n}" for n in ("search", "get", "batch")})
+
     def test_only_roles_that_write_may_edit(self) -> None:
         for role in ROLES:
             listed = set(tools(HARNESS / "agents" / f"{role}.md"))
-            if role in ("implementer", "lead", "mechanical"):
+            if role in ("implementer", "lead", "mechanical", "distiller"):
                 continue
             self.assertEqual(listed & {"Edit", "Write", "NotebookEdit"}, set(), role)
 
