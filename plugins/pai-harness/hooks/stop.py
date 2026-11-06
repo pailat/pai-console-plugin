@@ -7,6 +7,10 @@ is PAI_HARNESS_AGENT, else the session id.
 
 The block is bounded so a `claude -p` run can never loop: after MAX_BLOCKS blocks (counted in <state dir>/deltas/<agent>.blocks)
 the next stop is allowed and a `.missing` marker is written next to the delta marker, for the parent to see.
+
+The stop is also blocked while the worktree holds changes outside the agent's zones (see zone_diff.py): that covers
+the writes PreToolUse cannot see (`sed -i`, `cp`, `mv`, python or node scripts). The block names the zone owner. It shares
+the same bound; the `.missing` marker then also lists the out-of-zone paths.
 """
 from __future__ import annotations
 
@@ -17,6 +21,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import hook_common as common  # noqa: E402
+import zone_diff  # noqa: E402
 
 
 def delta_path(state: Path, name: str) -> Path:
@@ -59,7 +64,7 @@ def main() -> None:
     event = common.read_event()
     if not common.role():
         return
-    config, _, _ = common.load(event)
+    config, config_path, _ = common.load(event)
     state = common.state_dir(config)
     if state is None:
         return
@@ -68,14 +73,18 @@ def main() -> None:
         return
     path = delta_path(state, name)
     problem = valid_delta(path)
+    flagged = zone_diff.out_of_zone(config, config_path, state, name) if config is not None and config_path is not None else []
     counter = count_path(state, name)
-    if not problem:
+    if not problem and not flagged:
         counter.unlink(missing_ok=True)
         missing_path(state, name).unlink(missing_ok=True)
         return
     blocks = blocks_so_far(counter)
     if blocks >= MAX_BLOCKS:
-        marker = {"agent": name, "blocks": blocks, "problem": problem, "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+        marker = {"agent": name, "blocks": blocks, "problem": problem or "changes outside the agent's zones",
+                  "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+        if flagged:
+            marker["out_of_zone"] = [path_ for path_, _ in flagged]
         try:
             missing_path(state, name).write_text(json.dumps(marker) + "\n", encoding="utf-8")
         except OSError:
@@ -86,10 +95,17 @@ def main() -> None:
         counter.write_text(f"{blocks + 1}\n", encoding="utf-8")
     except OSError:
         return  # cannot count, so cannot bound: allow rather than risk a loop
-    common.emit({"decision": "block", "reason": (
-        f"You cannot stop yet: a knowledge delta is required and {problem}. Distill what this session "
-        f"learned into Pai Knowledge (search first, decisions as proposals, real sources), then write {path} as "
-        '{"nodes": ["<node id or slug>", ...]} with at least one node you created or changed.')})
+    parts = []
+    if problem:
+        parts.append(f"You cannot stop yet: a knowledge delta is required and {problem}. Distill what this session "
+                     f"learned into Pai Knowledge (search first, decisions as proposals, real sources), then write {path} as "
+                     '{"nodes": ["<node id or slug>", ...]} with at least one node you created or changed.')
+    if flagged:
+        lines = "\n".join(f"- {reason}" for _, reason in flagged)
+        parts.append(("You cannot stop yet: " if not problem else "Also, ") +
+                     "the worktree holds changes outside your zones (sed -i, cp, mv and scripts are checked at Stop). "
+                     f"Revert them or hand them to the zone owner:\n{lines}")
+    common.emit({"decision": "block", "reason": "\n\n".join(parts)})
 
 
 if __name__ == "__main__":
