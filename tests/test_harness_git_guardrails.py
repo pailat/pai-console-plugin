@@ -107,6 +107,17 @@ class SyntaxTest(GuardrailTest):
         self.assertEqual(self.verdict("git ok"), "")
 
 
+class ProtectedBranchTest(GuardrailTest):
+    def test_head_is_resolved_to_the_current_branch(self) -> None:
+        git = ["git", "-C", str(self.project)]
+        subprocess.run([*git, "symbolic-ref", "HEAD", "refs/heads/main"], check=True)
+        self.assertTrue(self.verdict("scripts/queue-push.sh origin HEAD"))
+        self.assertTrue(self.verdict("scripts/queue-push.sh origin"))
+        subprocess.run([*git, "symbolic-ref", "HEAD", "refs/heads/feat/acme-7"], check=True)
+        self.assertEqual(self.verdict("scripts/queue-push.sh origin HEAD"), "")
+        self.assertTrue(self.verdict("scripts/queue-push.sh origin HEAD:main"))
+
+
 class ThrowawayTest(GuardrailTest):
     def test_denied_without_a_valid_opt_in(self) -> None:
         for case in CASES["throwaway"]["deny"]:

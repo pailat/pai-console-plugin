@@ -4,6 +4,7 @@ pre_tool_use.py calls `deny_dangerous` once for every Bash command of a role-bea
 bypass-permissions mode too, because the harness runs the hook before any permission decision.
 
 BLOCKED (each block names the command and the safe alternative):
+- a push to main, staging, production or release/* through the wrapper;
 - git push with --force, -f, --force-with-lease, --delete, -d, --mirror, --prune, a `+ref` refspec or a `:branch` refspec,
   also through the push queue wrapper (the wrapper path is found anywhere in the command, e.g. `bash scripts/queue-push.sh`);
 - git reset --hard, git clean (unless it is a dry run), git branch -D / -f, git stash drop / clear, git rebase -i,
@@ -143,13 +144,36 @@ def refuse(command: list[str], why: str, alternative: str) -> str:
     return f"git-guardrails: `{shown}` is blocked ({why}). Safe alternative: {alternative}"
 
 
-def push_check(args: list[str], shown: list[str]) -> str:
+PROTECTED = ("main", "staging", "production", "release/*")
+
+
+def current_branch(directory: Path) -> str:
+    try:
+        done = run_process(["git", "symbolic-ref", "--short", "-q", "HEAD"], cwd=directory if directory.is_dir() else None,
+                           capture_output=True, text=True, timeout=5)
+        return done.stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
+def push_check(args: list[str], shown: list[str], cwd: Path) -> str:
     for token in args:
         letters = cluster(token)
         forced = longopt(token, "force", "force-with-lease", "delete", "mirror", "prune") or "f" in letters or "d" in letters
         if forced or (token.startswith("+") and len(token) > 1) or token.startswith(":") or ":+" in token:
             return refuse(shown, "force, delete, mirror and prune pushes rewrite or remove remote history",
                           "push the feature branch normally through the push queue wrapper; for a rewritten branch or a remote branch deletion, ask your lead")
+        if longopt(token, "no-verify", least=5) or token.startswith("core.hooksPath"):
+            return refuse(shown, "a push that skips the pre-push hook", "fix what the pre-push hook reports instead of bypassing it")
+    _, plain = positionals(args, {"-o", "--push-option", "--repo", "--receive-pack", "--exec", "-c"})
+    refspecs = plain[1:]
+    destinations = [spec.rpartition(":")[2] for spec in refspecs] or ["HEAD"]
+    for destination, spec in zip(destinations, refspecs or ["HEAD"]):
+        branch = destination.removeprefix("refs/heads/")
+        if branch == "HEAD" and ":" not in spec:
+            branch = current_branch(cwd)
+        if any(fnmatch.fnmatchcase(branch, pattern) for pattern in PROTECTED):
+            return refuse(shown, f"a push to the protected branch {branch}", "push a feature branch and open a pull request; the merge is done by the orchestrator")
     return ""
 
 
@@ -289,7 +313,7 @@ def segment_check(tokens: list[str], ctx: Context, depth: int) -> str:
     for i, token in enumerate(tokens):
         base = os.path.basename(token)
         if wanted and os.path.expanduser(token) == wanted[0] and [os.path.expanduser(t) for t in tokens[i:i + len(wanted)]] == wanted:
-            reason = push_check(tokens[i + len(wanted):], tokens[i:])
+            reason = push_check(tokens[i + len(wanted):], tokens[i:], ctx.cwd)
             if reason:
                 return reason
         if base == "git":
