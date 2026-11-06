@@ -1,0 +1,4 @@
+{
+  "session_id": "sess-1", "transcript_path": "__PROJECT__/transcript.jsonl", "cwd": "__WORKTREE__", "permission_mode": "bypassPermissions",
+  "hook_event_name": "Stop", "stop_hook_active": false
+}

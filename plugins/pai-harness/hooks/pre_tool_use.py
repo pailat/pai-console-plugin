@@ -74,6 +74,23 @@ def resolve(path: str, cwd: Path) -> Path:
     return Path(os.path.realpath(expanded if expanded.is_absolute() else cwd / expanded))
 
 
+def zone_roots(config_root: Path, cwd: Path) -> list[Path]:
+    """Directories the zone globs are relative to. The config's directory when the agent works inside it; otherwise (the config
+    lives in another checkout, e.g. the primary one while the agent runs in a worktree) the git toplevel of cwd, plus the config's
+    directory so the other checkout is policed too. Empty when cwd is outside the config's directory and not in a git work tree:
+    the caller must fail closed."""
+    config_root = Path(os.path.realpath(config_root))
+    here = Path(os.path.realpath(cwd))
+    if here.is_relative_to(config_root):
+        return [config_root]
+    try:
+        done = run_process(["git", "-C", str(here), "rev-parse", "--show-toplevel"], capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return []
+    top = done.stdout.strip() if done.returncode == 0 else ""
+    return [Path(os.path.realpath(top)), config_root] if top else []
+
+
 def zone_verdict(path: str, cwd: Path, config: dict, root: Path, state: Path | None, agent: str) -> str:
     """Return "" when the write is allowed, else the denial reason."""
     target = resolve(path, cwd)
@@ -318,8 +335,15 @@ def main() -> None:
         return
     cwd = Path(event.get("cwd") or os.getcwd())
     state, agent = common.state_dir(config), common.agent_name(event)
+    roots = zone_roots(config_path.parent, cwd)
+    if not roots:
+        common.deny(f"Write zone: the working directory {cwd} is outside the harness config's directory ({config_path.parent}) and is not a git work tree, "
+                    "so no zone can be applied; writes are refused. Start the agent inside the project checkout or set PAI_HARNESS_CONFIG to its own copy.")
+        return
     for path in direct_paths:
-        reason = zone_verdict(path, cwd, config, config_path.parent, state, agent)
+        target = resolve(path, cwd)
+        root = next((r for r in roots if target.is_relative_to(r)), roots[0])
+        reason = zone_verdict(path, cwd, config, root, state, agent)
         if reason:
             common.deny(reason)
             return

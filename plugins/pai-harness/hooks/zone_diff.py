@@ -68,11 +68,19 @@ def changed_paths(root: Path, base_branch: str = "") -> list[str]:
     return out
 
 
-def out_of_zone(config: dict, config_path: Path, state: Path | None, agent: str) -> list[tuple[str, str]]:
-    """Return (path relative to the project root, denial reason) for each changed path outside the agent's zones."""
+def out_of_zone(config: dict, config_path: Path, state: Path | None, agent: str, cwd: Path | None = None) -> list[tuple[str, str]]:
+    """Return (path relative to the project root, denial reason) for each changed path outside the agent's zones.
+
+    The diff is read from the checkout the agent works in (the git toplevel of cwd), which is not the config's directory
+    when the config lives in another checkout. If cwd is outside the config's directory and not in a git work tree no
+    zone can be applied, so the stop is flagged (fail closed)."""
     if not zones.my_zones(config, agent):
         return []
-    root = config_path.parent
+    roots = zones.zone_roots(config_path.parent, cwd or Path.cwd())
+    if not roots:
+        return [(str(cwd), f"Write zone: the working directory {cwd} is outside the harness config's directory and is not a git work tree, "
+                           "so the zone diff cannot be checked. Ask your lead.")]
+    root = roots[0]
     flagged = []
     for absolute in changed_paths(root, config.get("project", {}).get("base_branch", "")):
         reason = zones.zone_verdict(absolute, root, config, root, state, agent)

@@ -22,6 +22,7 @@ your lead", inside the same bound. Non-writing roles may run zoneless.
 from __future__ import annotations
 
 import json
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -96,7 +97,7 @@ def main() -> None:
     zoneless = ""
     if config is not None and common.role() in WRITING_ROLES and not zones.my_zones(config, name):
         zoneless = f"no write zone configured for {common.role()}; ask your lead"
-    flagged = zone_diff.out_of_zone(config, config_path, state, name) if config is not None and config_path is not None else []
+    flagged = zone_diff.out_of_zone(config, config_path, state, name, Path(event.get("cwd") or os.getcwd())) if config is not None and config_path is not None else []
     counter = count_path(state, name)
     if not problem and not flagged and not zoneless:
         counter.unlink(missing_ok=True)
