@@ -46,6 +46,8 @@ class HarnessCase(unittest.TestCase):
                     "PAI_HARNESS_CLAUDE": str(FIXTURES / "fake_claude.py"), "PAI_HARNESS_INSTALLED_PLUGINS": str(self._tmp.name + "/none.json"), "FAKE_CLAUDE_LOG": str(self.tmp / "claude.json")}
         for name in ("PAI_HARNESS_MCP_CMD", "LINEAR_API_KEY", "LINEAR_API_URL", "PAI_HARNESS_HERDR"):
             self.env.pop(name, None)
+        for name in [k for k in self.env if k.startswith("HERDR_")]:
+            self.env.pop(name)  # a launch under test must not open a tab in the developer's own Herdr session
         self.prompt = self.tmp / "prompt.md"
         self.prompt.write_text("Implement ACME-7 for the Acme app.\n")
 

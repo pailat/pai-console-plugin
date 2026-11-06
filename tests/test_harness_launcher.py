@@ -7,10 +7,19 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness_support import FIXTURES, SCRIPTS, HarnessCase  # noqa: E402
+from harness_support import FIXTURES, PLUGIN_ROOT, SCRIPTS, HarnessCase as _HarnessCase  # noqa: E402
 
 sys.path.insert(0, str(SCRIPTS))
 import harness_lib as lib  # noqa: E402
+
+
+class HarnessCase(_HarnessCase):
+    """The shared case, run outside any Herdr: a launch here must not open a tab in the developer's own session."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        for name in [k for k in self.env if k.startswith("HERDR_")]:
+            self.env.pop(name)
 
 
 def summary_of(name: str) -> dict:
@@ -180,7 +189,7 @@ class PaneLaunchTest(HarnessCase):
             FAKE_CLAUDE_FIXTURE=str(self.fixture("success")))
         self.assertEqual(done.returncode, 0, done.stderr)
         calls = [json.loads(line) for line in log.read_text().splitlines()]
-        self.assertEqual([c[:2] for c in calls], [["pane", "run"], ["pane", "wait-output"]])
+        self.assertEqual([c[:2] for c in calls], [["pane", "get"], ["pane", "run"], ["pane", "wait-output"]])
         self.assertEqual(self.record("ACME-7")["state"], "done")
         self.assertNotIn("agent", [c[0] for c in calls])
         source = (SCRIPTS / "launch.py").read_text()
@@ -191,6 +200,155 @@ class PaneLaunchTest(HarnessCase):
                                PAI_HARNESS_HERDR=str(FIXTURES / "fake_herdr.py"), FAKE_HERDR_LOG=str(self.tmp / "h.log"),
                                FAKE_CLAUDE_FIXTURE=str(self.fixture("permission")))
         self.assertEqual(done.returncode, 3)
+
+
+RENDER = Path(__file__).resolve().parent / "fixtures/harness-render"
+
+
+class DisplayTest(HarnessCase):
+    """Every run is visible from Herdr: live lines in the pane, workspace metadata with a TTL, the tab label. Herdr and claude are fakes."""
+
+    def herdr(self, **env: str) -> dict[str, str]:
+        return {"PAI_HARNESS_HERDR": str(RENDER / "fake_herdr.py"), "FAKE_HERDR_LOG": str(self.tmp / "herdr.log"), **env}
+
+    def calls(self) -> list[list[str]]:
+        log = self.tmp / "herdr.log"
+        return [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
+
+    def run_fixture(self, issue: str, fixture: Path, *extra: str, exit_code: int = 0, **env: str):
+        return self.run_script("launch.sh", issue, "--prompt-file", str(self.prompt), *extra, FAKE_CLAUDE_FIXTURE=str(self.render_fixture(fixture.stem)),
+                               FAKE_CLAUDE_EXIT=str(exit_code), **env)
+
+    def render_fixture(self, name: str) -> Path:
+        skills = sorted(f"pai-harness:{d.name}" for d in (PLUGIN_ROOT / "skills").glob("*") if (d / "SKILL.md").is_file())
+        out = []
+        for line in (RENDER / f"{name}.jsonl").read_text().splitlines():
+            frame = json.loads(line)
+            if frame.get("subtype") == "init":
+                frame["plugins"][0]["path"] = str(PLUGIN_ROOT)
+                frame["skills"] = skills
+            out.append(json.dumps(frame))
+        path = self.tmp / f"{name}.materialized.jsonl"
+        path.write_text("\n".join(out) + "\n")
+        return path
+
+    def metadata(self) -> list[list[str]]:
+        return [c for c in self.calls() if c[:2] == ["workspace", "report-metadata"]]
+
+    def token(self, call: list[str], name: str) -> str:
+        return next(call[i + 1].split("=", 1)[1] for i, a in enumerate(call) if a == "--token" and call[i + 1].startswith(name + "="))
+
+    def test_a_pane_run_shows_its_live_lines_in_the_pane(self) -> None:
+        done = self.run_fixture("ACME-7", RENDER / "acme-run.jsonl", "--pane", "wAC:p1", **self.herdr())
+        self.assertEqual(done.returncode, 0, done.stderr)
+        lines = done.stderr.splitlines()  # the fake `pane run` runs the command here, so its terminal output is this stderr
+        self.assertTrue(lines[0].startswith("▶ ACME-7 run "))
+        self.assertTrue(any(l.startswith("▶ init model=claude-sonnet-5-5 skills=") and "hooks=PreToolUse,SessionStart,Stop" in l for l in lines), lines)
+        self.assertIn("● tool Edit apps/acme-storefront/src/checkout/totals.ts", lines)
+        self.assertIn("■ result done turns=4 duration=12.4s cost≈$0.0421", lines)
+        self.assertTrue(lines[-1].startswith("■ record done exit=0"))
+
+    def test_the_stream_is_teed_to_the_log_untouched(self) -> None:
+        source = self.render_fixture("acme-run")
+        self.run_script("launch.sh", "ACME-7", "--prompt-file", str(self.prompt), "--pane", "wAC:p1", FAKE_CLAUDE_FIXTURE=str(source), **self.herdr())
+        self.assertEqual((self.state / "runs/ACME-7.jsonl").read_text(), source.read_text())
+
+    def test_the_metadata_carries_state_task_run_step_turns_and_the_ttl(self) -> None:
+        self.run_fixture("ACME-7", RENDER / "acme-run.jsonl", "--pane", "wAC:p1", **self.herdr())
+        record = self.record("ACME-7")
+        meta = self.metadata()
+        self.assertEqual(len(meta), 12)  # 11 events and the clear
+        for call in meta[:-1]:
+            self.assertEqual(call[:7], ["workspace", "report-metadata", "wAC", "--source", "pai-harness", "--token", call[6]])
+            self.assertEqual((self.token(call, "task"), self.token(call, "run")), ("ACME-7", record["run_id"]))
+            self.assertEqual(call[call.index("--ttl-ms") + 1], "120000")
+        self.assertEqual(self.token(meta[0], "state"), "working")
+        edit = next(c for c in meta if self.token(c, "step").startswith("Edit "))
+        self.assertEqual((self.token(edit, "step"), self.token(edit, "turns")), ("Edit apps/acme-storefront/src/checkout/totals.ts", "3"))
+        self.assertEqual((self.token(meta[-2], "state"), self.token(meta[-2], "turns")), ("done", "4"))
+        clear = meta[-1]
+        self.assertEqual([clear[i + 1] for i, a in enumerate(clear) if a == "--clear-token"], ["state", "task", "run", "step", "turns"])
+        self.assertNotIn("--token", clear)
+
+    def test_a_fresh_pane_shell_is_handed_the_config_state_dir_and_settings(self) -> None:
+        self.run_fixture("ACME-7", RENDER / "acme-run.jsonl", "--pane", "wAC:p1", PAI_HARNESS_INIT_TIMEOUT="30", **self.herdr())
+        command = next(c for c in self.calls() if c[:2] == ["pane", "run"])[3]
+        self.assertTrue(command.startswith("env "), command)
+        for expected in (f"PAI_HARNESS_CONFIG={self.env['PAI_HARNESS_CONFIG']}", f"PAI_HARNESS_STATE_DIR={self.state}", "PAI_HARNESS_INIT_TIMEOUT=30",
+                         "--herdr-workspace wAC", "--herdr-tab wAC:t2"):
+            self.assertIn(expected, command)
+
+    def test_the_tab_label_tracks_the_state(self) -> None:
+        self.run_fixture("ACME-7", RENDER / "acme-run.jsonl", "--pane", "wAC:p1", **self.herdr())
+        renames = [c for c in self.calls() if c[:2] == ["tab", "rename"]]
+        self.assertEqual(renames, [["tab", "rename", "wAC:t2", "ACME-7 · working"], ["tab", "rename", "wAC:t2", "ACME-7 · done"]])
+
+    def test_a_failed_run_ends_the_tab_failed_whatever_the_frame_said(self) -> None:
+        done = self.run_fixture("ACME-9", RENDER / "acme-run.jsonl", "--pane", "wAC:p1", exit_code=2, **self.herdr())
+        self.assertEqual(done.returncode, 1)
+        self.assertEqual(self.record("ACME-9")["state"], "failed")
+        labels = [c[3] for c in self.calls() if c[:2] == ["tab", "rename"]]
+        self.assertEqual(labels[-1], "ACME-9 · failed")
+        self.assertEqual(self.calls()[-3][:2], ["tab", "rename"])  # then the tokens are cleared, then wait-output
+        self.assertIn("--clear-token", self.metadata()[-1])
+
+    def test_a_blocked_run_labels_the_tab_blocked(self) -> None:
+        self.run_fixture("ACME-8", RENDER / "acme-blocked.jsonl", "--pane", "wAC:p1", **self.herdr())
+        self.assertEqual(self.record("ACME-8")["state"], "blocked")
+        self.assertEqual([c[3] for c in self.calls() if c[:2] == ["tab", "rename"]][-1], "ACME-8 · blocked")
+
+    def test_inside_herdr_without_a_pane_the_launcher_opens_its_own_tab(self) -> None:
+        done = self.run_fixture("ACME-7", RENDER / "acme-run.jsonl", HERDR_ENV="1", HERDR_WORKSPACE_ID="wAC", **self.herdr())
+        self.assertEqual(done.returncode, 0, done.stderr)
+        calls = self.calls()
+        self.assertEqual(calls[0][:2], ["tab", "create"])
+        self.assertEqual(calls[0][calls[0].index("--workspace") + 1], "wAC")
+        self.assertEqual(calls[0][calls[0].index("--label") + 1], "ACME-7 · starting")
+        self.assertNotIn("--focus", calls[0])
+        self.assertEqual(calls[1][:3], ["pane", "run", "wAC:p9"])
+        self.assertEqual([c[2] for c in self.metadata()][:1], ["wAC"])
+        self.assertEqual([c[2] for c in calls if c[:2] == ["tab", "rename"]], ["wAC:t3", "wAC:t3"])
+        self.assertIn("■ result done", done.stderr)
+
+    def test_outside_herdr_the_run_is_in_the_foreground_with_the_same_lines_and_no_herdr_calls(self) -> None:
+        done = self.run_fixture("ACME-7", RENDER / "acme-run.jsonl", **self.herdr())
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn("■ result done turns=4", done.stderr)
+        self.assertEqual(self.calls(), [])
+
+    def test_a_tab_that_cannot_be_opened_falls_back_to_this_terminal(self) -> None:
+        done = self.run_fixture("ACME-7", RENDER / "acme-run.jsonl", HERDR_ENV="1", **self.herdr(FAKE_HERDR_FAIL="1"))
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn("could not open a Herdr tab", done.stderr)
+        self.assertIn("■ result done turns=4", done.stderr)
+        self.assertEqual(self.record("ACME-7")["state"], "done")
+
+    def test_a_herdr_that_fails_never_changes_the_record(self) -> None:
+        done = self.run_fixture("ACME-7", RENDER / "acme-run.jsonl", "--pane", "wAC:p1", **self.herdr(FAKE_HERDR_FAIL="1"))
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(self.record("ACME-7")["state"], "done")
+
+    def test_the_self_check_failure_is_shown_and_the_tab_ends_failed(self) -> None:
+        broken = self.tmp / "broken.jsonl"
+        broken.write_text(self.render_fixture("acme-run").read_text().replace("pai-harness:", "other:"))
+        done = self.run_script("launch.sh", "ACME-7", "--prompt-file", str(self.prompt), "--pane", "wAC:p1", FAKE_CLAUDE_FIXTURE=str(broken), **self.herdr())
+        self.assertIn("BLOCKER ACME-7: pai-harness self-check failed", done.stdout)
+        self.assertIn("■ record failed self-check:", done.stderr)
+        self.assertEqual([c[3] for c in self.calls() if c[:2] == ["tab", "rename"]][-1], "ACME-7 · failed")
+        self.assertEqual(self.record("ACME-7")["state"], "failed")
+
+    def test_a_writing_role_outside_a_worktree_is_refused_before_any_tab_opens(self) -> None:
+        outside = self.tmp / "plain"
+        outside.mkdir()
+        done = self.run_fixture("ACME-7", RENDER / "acme-run.jsonl", "--cwd", str(outside), HERDR_ENV="1", **self.herdr())
+        self.assertEqual(done.returncode, 1)
+        self.assertIn("BLOCKER ACME-7: writing role implementer must run inside a git worktree", done.stderr)
+        self.assertEqual(self.calls(), [])
+
+    def test_the_dry_run_opens_nothing(self) -> None:
+        done = self.run_fixture("ACME-7", RENDER / "acme-run.jsonl", "--dry-run", HERDR_ENV="1", **self.herdr())
+        self.assertEqual(done.returncode, 0)
+        self.assertEqual(self.calls(), [])
 
 
 class TaskLifecycleTest(HarnessCase):
