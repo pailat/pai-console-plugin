@@ -65,3 +65,9 @@ never = ["Push to main directly.", "Contact owner@example.com about builds."]
 [models]
 implementer = "sonnet"
 mechanical = "haiku"
+
+# Headless runs reach the Pai MCP with a machine token. The file holds the owner-placed token (mode 0600, your user);
+# nothing here, and nothing in git, ever holds the value. With mcp_url set, the launcher fails closed unless the server connects.
+[pai]
+token_file = "~/.config/pai-harness/token"   # the default; PAI_HARNESS_TOKEN_FILE overrides it
+mcp_url = "https://mcp.acme.example.com/mcp"

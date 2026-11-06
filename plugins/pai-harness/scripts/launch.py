@@ -71,11 +71,34 @@ def run_paths(state: Path, issue: str) -> tuple[Path, Path, Path]:
     return runs / f"{issue}.jsonl", runs / f"{issue}.state.json", runs / f"{issue}.stderr.log"
 
 
-def claude_command(args: argparse.Namespace, config: dict, resume: str | None) -> list[str]:
+def mcp_config_path(state: Path, issue: str) -> Path:
+    return state / "mcp" / f"{issue}.json"
+
+
+def pai_mcp_config(config: dict, config_path: Path) -> dict:
+    """The machine-only MCP config: one `pai` server whose headers come from mcp_headers.sh (headersHelper), never a static header.
+
+    headersHelper keeps working when the server also advertises OAuth (Claude Code issue 59467 ignores a static header there).
+    The file holds a path and a URL, never the token: the helper reads the token file itself at connect time.
+    """
+    helper = shlex.join([str(Path(__file__).resolve().parent / "mcp_headers.sh"), "--config", str(config_path)])
+    return {"mcpServers": {lib.PAI_SERVER: {"type": "http", "url": config["pai"]["mcp_url"], "headersHelper": helper}}}
+
+
+def write_mcp_config(config: dict, state: Path, issue: str, config_path: Path) -> Path:
+    path = mcp_config_path(state, issue)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lib.write_json(path, pai_mcp_config(config, config_path))
+    return path
+
+
+def claude_command(args: argparse.Namespace, config: dict, resume: str | None, mcp_config: Path | None = None) -> list[str]:
     model = args.model or config["models"].get(args.role or "implementer", "sonnet")
     command = [os.environ.get("PAI_HARNESS_CLAUDE", "claude"), "-p", "--output-format", "stream-json", "--verbose", "--model", model]
     if not lib.installed_plugin():
         command += ["--plugin-dir", str(lib.plugin_root())]  # every run loads the plugin, from the launcher's own location
+    if mcp_config:  # only the machine config: a user or plugin OAuth server must not stand in for it
+        command += ["--mcp-config", str(mcp_config), "--strict-mcp-config"]
     if resume:
         command += ["--resume", resume]
     if args.allowed_tools:
@@ -136,8 +159,8 @@ def hook_env(args: argparse.Namespace, config: dict, state: Path, config_path: P
 class InitCheck:
     """Watches the stream for the first `system/init` event and proves the pai-harness plugin from it (fail closed)."""
 
-    def __init__(self, skills: list[str]) -> None:
-        self.skills, self.problems, self.done = skills, [], threading.Event()
+    def __init__(self, skills: list[str], pai_server: str | None = None) -> None:
+        self.skills, self.pai_server, self.problems, self.mcp, self.done = skills, pai_server, [], [], threading.Event()
 
     def feed(self, line: str) -> None:
         if self.done.is_set():
@@ -150,16 +173,23 @@ class InitCheck:
             return
         if frame.get("type") == "system" and frame.get("subtype") == "init":
             self.problems = lib.init_problems(frame, self.skills)
+            self.mcp = lib.mcp_problems(frame, self.pai_server) if self.pai_server else []
             self.done.set()
         elif frame.get("type") in ("assistant", "user", "result"):
             self.problems = ["init event came after the first model frame"]
             self.done.set()
 
 
+def init_reason(problems: list[str], mcp: list[str]) -> str:
+    """The BLOCKER reason: the plugin self-check first, then the named `pai mcp not connected`. Built from init field names only."""
+    parts = (["pai-harness self-check failed: " + "; ".join(problems)] if problems else []) + (["pai mcp not connected: " + "; ".join(mcp)] if mcp else [])
+    return "; ".join(parts)
+
+
 def fail_closed(args: argparse.Namespace, state: Path, started: str, stream: Path, queue: str | None, machine: str | None, problems: list[str],
-                run_id: str | None = None) -> int:
-    """The plugin is not proven loaded: the run is already killed; journal and print a BLOCKER, record failed, exit non-zero."""
-    reason = "pai-harness self-check failed: " + "; ".join(problems)
+                run_id: str | None = None, mcp: list[str] | None = None) -> int:
+    """The plugin or the Pai MCP is not proven: the run is already killed; journal and print a BLOCKER, record failed, exit non-zero."""
+    reason = init_reason(problems, mcp or [])
     lib.blocker(state, args.issue, reason)
     record = {"issue": args.issue, "queue": queue, "machine": machine, "role": args.role, "started": started, "finished": lib.stamp(),
               "stream": str(stream), "resumed": bool(args.resume_run), "state": "failed", "reason": reason, "exit_code": None,
@@ -190,7 +220,8 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
     lib.emit(state, "run.started", {"issue": args.issue, "queue": queue, "resume": bool(resume)})
     timeout = config["limits"]["turn_timeout_minutes"] * 60
     exit_code, timed_out, last_beat, lines = None, False, time.monotonic(), []
-    init = InitCheck(lib.expected_skills(lib.plugin_root()))
+    mcp_config = write_mcp_config(config, state, args.issue, config_path) if config["pai"]["mcp_url"] else None
+    init = InitCheck(lib.expected_skills(lib.plugin_root()), lib.PAI_SERVER if mcp_config else None)
     run_id = uuid.uuid4().hex[:8]
     renderer = render_stream.Renderer(sys.stderr, render_stream.hooks_of(lib.plugin_root()))
     status = render_stream.HerdrStatus(args.issue, run_id, args.herdr_workspace, args.herdr_tab)
@@ -210,7 +241,7 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
     renderer.say(f"▶ {args.issue} run {run_id} → {stream}")
     with stream.open("w", encoding="utf-8") as out, stderr_log.open("w", encoding="utf-8") as err:
         try:
-            proc = subprocess.Popen(claude_command(args, config, resume), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            proc = subprocess.Popen(claude_command(args, config, resume, mcp_config), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                     stderr=err, text=True, cwd=args.cwd or None, env=hook_env(args, config, state, config_path, base=base))
         except OSError as error:
             err.write(f"cannot start claude: {error}\n")
@@ -246,12 +277,12 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
                 reader.join(10)  # the stream is complete: the init verdict below is final
             if not init.done.is_set():
                 init.problems.append(f"no init event within {init_wait:g}s" if proc.poll() is None else "no init event before the run ended")
-            if init.problems:
+            if init.problems or init.mcp:
                 proc.kill()  # the exact child PID; never a pattern
                 proc.wait()
                 reader.join(10)
-                closing("failed", "self-check: " + "; ".join(init.problems))
-                return fail_closed(args, state, started, stream, queue, machine, init.problems, run_id)
+                closing("failed", "self-check: " + init_reason(init.problems, init.mcp))
+                return fail_closed(args, state, started, stream, queue, machine, init.problems, run_id, init.mcp)
             try:
                 exit_code = proc.wait(timeout=timeout)
             except subprocess.TimeoutExpired:
@@ -374,7 +405,7 @@ def main(argv: list[str]) -> int:
     if args.dry_run:
         previous = lib.read_json(state_file) or {}
         resume = previous.get("session_id") if args.resume_run else None
-        lib.show({"dry_run": True, "issue": args.issue, "command": claude_command(args, config, resume), "pane": args.pane,
+        lib.show({"dry_run": True, "issue": args.issue, "command": claude_command(args, config, resume, mcp_config_path(state, args.issue) if config["pai"]["mcp_url"] else None), "pane": args.pane,
                   "hook_env": {k: v for k, v in hook_env(args, config, state, config_path, write=False, base=launch_base(args, previous)).items() if k in HOOK_KEYS},
                   "stream": str(run_paths(state, args.issue)[0]), "state_file": str(state_file), "state_dir": str(state)})
         return 0

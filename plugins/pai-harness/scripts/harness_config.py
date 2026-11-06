@@ -8,6 +8,7 @@ from __future__ import annotations
 import copy
 import re
 import tomllib
+from urllib.parse import urlsplit
 from pathlib import Path
 
 CONFIG_NAME = ".pai-harness.toml"
@@ -22,6 +23,7 @@ DEFAULT_MODELS = {
     "root-reviewer": "opus", "integrator": "sonnet", "distiller": "sonnet",
     "gate-triager": "sonnet", "mechanical": "haiku", "watcher": "none",
 }
+DEFAULT_TOKEN_FILE = "~/.config/pai-harness/token"  # a path only; the value inside is the owner's machine token and is never read here
 DEFAULTS = {
     "schema_version": SCHEMA_VERSION,
     "project": {},
@@ -33,6 +35,7 @@ DEFAULTS = {
     "role_zones": {},
     "rules": {"agents_file": "AGENTS.md", "root_paths": [], "must": [], "never": [], "push_wrapper": ""},
     "models": dict(DEFAULT_MODELS),
+    "pai": {"token_file": DEFAULT_TOKEN_FILE, "mcp_url": ""},
     "knowledge": {},  # empty = no Pai Knowledge target named; the distiller then fails closed
 }
 NAME = re.compile(r"^[a-z][a-z0-9_-]*$")
@@ -95,7 +98,7 @@ def _named(path: str, value: object) -> dict:
 
 def validate(data: object) -> dict:
     """Return the config with defaults applied, or raise ConfigError naming the first bad key."""
-    top = {"schema_version", "project", "gates", "zones", "machines", "queues", "limits", "rules", "models", "role_zones", "knowledge"}
+    top = {"schema_version", "project", "gates", "zones", "machines", "queues", "limits", "rules", "models", "role_zones", "pai", "knowledge"}
     data = _table("", data, top, {"project"})
     out = copy.deepcopy(DEFAULTS)
     if "schema_version" in data:
@@ -174,6 +177,14 @@ def validate(data: object) -> dict:
     for role, model in models.items():
         out["models"][role] = _choice(f"models.{role}", model)
 
+    pai = _table("pai", data.get("pai", {}), set(DEFAULTS["pai"]))
+    if "token_file" in pai:
+        token_file = _string("pai.token_file", pai["token_file"])
+        if any(ord(c) < 32 for c in token_file):
+            raise ConfigError("pai.token_file: must be a path without control characters")
+        out["pai"]["token_file"] = token_file
+    if "mcp_url" in pai:
+        out["pai"]["mcp_url"] = _mcp_url("pai.mcp_url", pai["mcp_url"])
     if "knowledge" in data:
         out["knowledge"] = _knowledge(data["knowledge"])
     return out
@@ -214,6 +225,18 @@ def resolve_knowledge(config: dict, stream: str | None = None) -> dict | None:
     source = override or knowledge
     scope = {key: source[key] for key in ("project", "product") if key in source}
     return {"organization": source.get("organization", knowledge["organization"]), **scope, "stream": stream if override else None}
+
+
+def _mcp_url(path: str, value: object) -> str:
+    """The Pai MCP endpoint: https, or http only on a loopback host (a local stack). Never userinfo: a secret does not belong in a URL."""
+    url = _string(path, value)
+    parts = urlsplit(url)
+    loopback = parts.hostname in ("localhost", "127.0.0.1", "::1")
+    if parts.scheme != "https" and not (parts.scheme == "http" and loopback):
+        raise ConfigError(f"{path}: must be an https URL (http only for localhost)")
+    if not parts.hostname or parts.username is not None or parts.password is not None or any(ord(c) < 33 for c in url):
+        raise ConfigError(f"{path}: must be a plain URL with a host and no credentials or spaces")
+    return url
 
 
 def _hotfix(value: object) -> dict:

@@ -1,0 +1,6 @@
+{"type": "system", "subtype": "init", "session_id": "11111111-2222-3333-4444-555555555555", "model": "claude-sonnet-5-5", "apiKeySource": "none", "plugins": [{"name": "other", "path": "/opt/other", "source": "other@inline"}, {"name": "pai-harness", "path": "__PLUGIN_ROOT__", "source": "pai-harness@inline", "version": "0.1.0"}], "skills": ["review", "__PAI_HARNESS_SKILLS__"], "agents": [], "slash_commands": [], "mcp_servers": [{"name": "pai", "status": "failed"}], "tools": ["Read", "Bash"]}
+{"type":"assistant","session_id":"11111111-2222-3333-4444-555555555555","message":{"role":"assistant","content":[{"type":"text","text":"Reading the Acme checkout."}]}}
+{"type":"assistant","session_id":"11111111-2222-3333-4444-555555555555","message":{"role":"assistant","content":[{"type":"tool_use","name":"Read","input":{"file_path":"README.md"}}]}}
+{"type":"user","session_id":"11111111-2222-3333-4444-555555555555","message":{"role":"user","content":[{"type":"tool_result","content":"Acme app"}]}}
+{"type":"rate_limit_event","session_id":"11111111-2222-3333-4444-555555555555"}
+{"type":"result","subtype":"success","is_error":false,"num_turns":2,"result":"TEST-OK","session_id":"11111111-2222-3333-4444-555555555555","total_cost_usd":0.0086,"permission_denials":[]}
