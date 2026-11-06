@@ -33,6 +33,7 @@ DEFAULTS = {
     "role_zones": {},
     "rules": {"agents_file": "AGENTS.md", "root_paths": [], "must": [], "never": [], "push_wrapper": ""},
     "models": dict(DEFAULT_MODELS),
+    "knowledge": {},  # empty = no Pai Knowledge target named; the distiller then fails closed
 }
 NAME = re.compile(r"^[a-z][a-z0-9_-]*$")
 HOTFIX_GATE = "hotfix"  # the one [gates.*] entry that is a typed table; every other gate is a command or a list of commands
@@ -94,7 +95,7 @@ def _named(path: str, value: object) -> dict:
 
 def validate(data: object) -> dict:
     """Return the config with defaults applied, or raise ConfigError naming the first bad key."""
-    top = {"schema_version", "project", "gates", "zones", "machines", "queues", "limits", "rules", "models", "role_zones"}
+    top = {"schema_version", "project", "gates", "zones", "machines", "queues", "limits", "rules", "models", "role_zones", "knowledge"}
     data = _table("", data, top, {"project"})
     out = copy.deepcopy(DEFAULTS)
     if "schema_version" in data:
@@ -172,7 +173,47 @@ def validate(data: object) -> dict:
     models = _table("models", data.get("models", {}), set(ROLES))
     for role, model in models.items():
         out["models"][role] = _choice(f"models.{role}", model)
+
+    if "knowledge" in data:
+        out["knowledge"] = _knowledge(data["knowledge"])
     return out
+
+
+KNOWLEDGE_KEYS = {"organization", "project", "product"}
+
+
+def _target(path: str, value: object, top: bool) -> dict:
+    """One Knowledge target: an organization (required on the default, inherited by a stream) and exactly one of project or product."""
+    table = _table(path, value, KNOWLEDGE_KEYS | ({"streams"} if top else set()))
+    if top and "organization" not in table:
+        raise ConfigError(f"{path}.organization: required key is missing")
+    scope = [key for key in ("project", "product") if key in table]
+    if len(scope) != 1:
+        raise ConfigError(f"{path}: name exactly one of project or product" + (" (both given)" if scope else " (neither given)"))
+    return {key: _string(f"{path}.{key}", table[key]) for key in sorted(KNOWLEDGE_KEYS & set(table))}
+
+
+def _knowledge(value: object) -> dict:
+    """[knowledge]: the default Pai Knowledge target plus optional [knowledge.streams.NAME] overrides."""
+    out = _target("knowledge", value, True)
+    streams = _named("knowledge.streams", value.get("streams", {}))  # type: ignore[attr-defined]
+    out["streams"] = {name: _target(f"knowledge.streams.{name}", stream, False) for name, stream in streams.items()}
+    return out
+
+
+def resolve_knowledge(config: dict, stream: str | None = None) -> dict | None:
+    """The Knowledge target for a stream: its override (the organization falls back to the default), else the default.
+
+    Returns {"organization", "project" or "product", "stream"} or None when nothing is configured. A stream name with no
+    override resolves to the default target; an override replaces the default's project or product as a whole.
+    """
+    knowledge = config.get("knowledge") or {}
+    if not knowledge:
+        return None
+    override = knowledge.get("streams", {}).get(stream or "")
+    source = override or knowledge
+    scope = {key: source[key] for key in ("project", "product") if key in source}
+    return {"organization": source.get("organization", knowledge["organization"]), **scope, "stream": stream if override else None}
 
 
 def _hotfix(value: object) -> dict:

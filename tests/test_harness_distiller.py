@@ -71,15 +71,17 @@ class DistillerTest(unittest.TestCase):
 
     def test_cli_plan_and_write(self) -> None:
         script = str(HARNESS / "scripts/delta_marker.py")
-        done = subprocess.run([sys.executable, script, "plan", str(FIXTURES / "candidates.json"), str(FIXTURES / "existing-nodes.json")], capture_output=True, text=True)
+        target = {"PAI_HARNESS_KNOWLEDGE_ORG": "acme", "PAI_HARNESS_KNOWLEDGE_PROJECT": "acme-app", "PATH": "/usr/bin:/bin"}
+        done = subprocess.run([sys.executable, script, "plan", str(FIXTURES / "candidates.json"), str(FIXTURES / "existing-nodes.json")], capture_output=True, text=True, env=target)
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertEqual(len(json.loads(done.stdout)["create"]), 2)
         with tempfile.TemporaryDirectory() as tmp:
             env = {"PAI_HARNESS_STATE_DIR": tmp, "PATH": "/usr/bin:/bin"}
-            ok = subprocess.run([sys.executable, script, "--config", str(FIXTURES / "acme.pai-harness.toml"), "write", "acme-42", "kn-acme-0031"], capture_output=True, text=True, env=env)
+            fixture = str(FIXTURES.parent / "harness/knowledge.pai-harness.toml")
+            ok = subprocess.run([sys.executable, script, "--config", fixture, "write", "acme-42", "kn-acme-0031"], capture_output=True, text=True, env=env)
             self.assertEqual(ok.returncode, 0, ok.stderr)
             self.assertEqual(stop.valid_delta(Path(tmp) / "deltas/acme-42.json"), "")
-            bad = subprocess.run([sys.executable, script, "--config", str(FIXTURES / "acme.pai-harness.toml"), "write", "acme-42", "$retry"], capture_output=True, text=True, env=env)
+            bad = subprocess.run([sys.executable, script, "--config", fixture, "write", "acme-42", "$retry"], capture_output=True, text=True, env=env)
             self.assertEqual(bad.returncode, 1)
 
 
