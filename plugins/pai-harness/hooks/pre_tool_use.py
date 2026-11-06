@@ -24,6 +24,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import hook_common as common  # noqa: E402
+import git_guardrails  # noqa: E402
 
 WRITE_TOOLS = {"Write": "file_path", "Edit": "file_path", "MultiEdit": "file_path", "NotebookEdit": "notebook_path"}
 REDIRECTS = {">", ">>", ">|", "&>", "&>>"}
@@ -296,6 +297,7 @@ def main() -> None:
             wrapper = str(config["rules"]["push_wrapper"])
         if config is None:
             wrapper = ""  # fail closed: without a config even a wrapper push is refused
+        if git_guardrails.deny_dangerous(common, command, wrapper, Path(event.get("cwd") or os.getcwd())): return  # noqa: E702
         found = analyze(command, wrapper, Path(event.get("cwd") or os.getcwd()))
         direct_paths, pushed, no_verify = found.targets, found.pushed, found.no_verify
     else:

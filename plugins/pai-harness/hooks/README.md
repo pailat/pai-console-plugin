@@ -17,3 +17,9 @@ The launcher (`scripts/launch.py`) exports `PAI_HARNESS_ROLE`, `_AGENT` (the iss
 Remaining limits: the diff runs once, at Stop, so an out-of-zone write is caught at the end of the session and not when it happens; a file changed outside the project root, or ignored by git, is not seen. Command substitution and variables used as a command name are not resolved in Bash commands either (a first word containing `$` with `push` as an argument is refused as a precaution).
 
 The hooks only allow or deny; they never ask. Tests: `python3 -m unittest tests.test_harness_hooks tests.test_harness_zone_diff`.
+
+## Git guardrails
+
+`git_guardrails.py` is called once from `pre_tool_use.py` for every Bash command of an agent with a role. It denies force, delete, mirror and prune pushes (also through the push queue wrapper), `git reset --hard`, `git clean`, `git branch -D`, `git stash drop`, `git rebase -i`, `git update-ref -d`, `git worktree remove --force`, `git checkout .` / `git restore .` and `rm -rf .git`. Each denial names the command and a safe alternative. A PreToolUse deny also holds in bypass-permissions mode.
+
+Opt-in for a throwaway path: set `PAI_HARNESS_GIT_THROWAWAY` to relative paths of the agent's own git top level (separated by `,` or `:`). Only `checkout`/`restore` of a broad pathspec and `git clean` can be opted in, and only for targets inside those paths. Code generated at run time (`python -c`, `base64 -d | sh`) is not read.
