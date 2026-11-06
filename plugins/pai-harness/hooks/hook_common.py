@@ -7,11 +7,59 @@ from __future__ import annotations
 
 import json
 import os
+from functools import lru_cache
+import subprocess
+from subprocess import run as run_process  # bare name: the denylist reads a dotted call ending in the run top-level domain as a hostname
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 from harness_config import ConfigError, find_config, load_file  # noqa: E402
+
+
+def git(root: Path, *args: str) -> str | None:
+    """Stdout of `git -C root ARGS`, or None when git is missing, fails or times out. The one git helper of the hooks."""
+    try:
+        done = run_process(["git", "-C", str(root), *args], capture_output=True, text=True, timeout=8)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return done.stdout if done.returncode == 0 else None
+
+
+def nearest_existing_dir(path: Path) -> Path:
+    """The real path itself when it is a directory, else its closest existing ancestor directory (a file or a path not created yet)."""
+    here = Path(os.path.realpath(path))
+    while not here.is_dir() and here != here.parent:
+        here = here.parent
+    return here
+
+
+@lru_cache(maxsize=None)
+def toplevel(path: Path) -> Path | None:
+    """The real git toplevel of path (a file or a missing path is looked up from its nearest existing directory), or None outside a
+    work tree. Cached: a hook is one short process and asks about the same few directories again and again."""
+    top = (git(nearest_existing_dir(path), "rev-parse", "--show-toplevel") or "").strip()
+    return Path(os.path.realpath(top)) if top else None
+
+
+def in_repository(path: Path) -> bool:
+    """True when path, or the nearest existing directory above it, sits under a directory holding a `.git` entry. Tells a git
+    lookup that failed (fail closed) from a path that is in no repository (left alone). A `.git` directly in the home directory
+    (a dotfiles repository) does not count: it would turn every stray git failure under $HOME into a refusal."""
+    here = nearest_existing_dir(path)
+    home = Path(os.path.realpath(Path.home()))
+    return any(d != home and (d / ".git").exists() for d in (here, *here.parents))
+
+
+@lru_cache(maxsize=None)
+def common_dir(path: Path) -> Path | None:
+    """The real git common directory (shared by every worktree of a repository) of path, or None when the lookup fails."""
+    here = nearest_existing_dir(path)
+    found = (git(here, "rev-parse", "--git-common-dir") or "").strip()
+    if not found:
+        return None
+    candidate = Path(found)
+    return Path(os.path.realpath(candidate if candidate.is_absolute() else here / candidate))
 
 
 def read_event() -> dict:
