@@ -32,19 +32,25 @@ When unsure, render first and offer saving; do not save without authorization. *
 
 When the connected `view_render` schema offers `snapshot`, request an image with
 `view_render {title, spec, snapshot:{theme:"both", width:"desktop"}}`. `theme` is
-`light`, `dark`, or `both`; optional `width` is `mobile`, `tablet`, or `desktop`
-(default). The result includes MCP PNG image content and per-image dimensions
-and theme in `structuredContent`. Inspect the returned image before claiming a
-layout renders correctly; a valid spec alone is insufficient evidence.
+`light`, `dark`, or `both`; optional `width` is `mobile` (390 px), `tablet`
+(768 px), or `desktop` (1280 px, the default). The result includes one MCP PNG
+image per theme, and `structuredContent.snapshots` lists each image's `theme`,
+`width`, `height`, `mimeType` and `bytes`. Inspect the returned image before
+claiming a layout renders correctly; a valid spec alone is insufficient evidence.
+Pai Agent chat sessions omit `snapshot` from `view_render`; other MCP clients
+keep it.
 
 For an existing view, pass the same `snapshot` alongside `organizationId`,
 `projectId`, and `source` rather than copying its spec. The read uses the caller's
-audience, and multiple blocks still require selecting a returned `blockId`.
+audience. When the page has several view blocks and no `blockId`, the tool
+returns references and renders no image: choose a `blockId` and call again.
 Snapshots fetch no network resources. Asset-bearing views remain refused by the
 conversational-view rules; do not replace an asset id with a URL. Images are
-transient and do not save or publish a page. `VIEW_SNAPSHOT_TIMEOUT` in
-`error.cause.code` means the bounded render expired: simplify the view or render
-one theme before retrying. Report unavailable or oversized renders as such;
+transient and do not save or publish a page. Failures carry `error.cause.code`:
+`VIEW_SNAPSHOT_TIMEOUT` (the 15-second bounded render expired: simplify the view
+or render one theme before retrying), `VIEW_SNAPSHOT_TOO_LARGE` (spec, layout
+height or PNG exceeds the budget: shrink the view), `VIEW_SNAPSHOT_UNAVAILABLE`
+(no renderer on this server) and `VIEW_SNAPSHOT_FAILED`. Report these as such;
 never claim an image exists when the tool returned only validation or an error.
 
 ## Data rules (all modes)
