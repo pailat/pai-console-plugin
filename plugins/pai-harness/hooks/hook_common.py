@@ -31,6 +31,24 @@ def toplevel(path: Path) -> Path | None:
     return Path(os.path.realpath(top)) if top else None
 
 
+def in_repository(path: Path) -> bool:
+    """True when path, or the nearest existing ancestor, sits under a directory holding a `.git` entry. Tells a git lookup that
+    failed (fail closed) from a path that is not in any repository (left alone)."""
+    here = Path(os.path.realpath(path))
+    while not here.exists() and here != here.parent:
+        here = here.parent
+    return any((d / ".git").exists() for d in (here, *here.parents))
+
+
+def common_dir(path: Path) -> Path | None:
+    """The real git common directory (shared by every worktree of a repository) of path, or None when the lookup fails."""
+    found = (git(path, "rev-parse", "--git-common-dir") or "").strip()
+    if not found:
+        return None
+    candidate = Path(found)
+    return Path(os.path.realpath(candidate if candidate.is_absolute() else path / candidate))
+
+
 def read_event() -> dict:
     try:
         event = json.loads(sys.stdin.read() or "{}")

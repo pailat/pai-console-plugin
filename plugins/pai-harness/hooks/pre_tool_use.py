@@ -24,6 +24,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import hook_common as common  # noqa: E402
+from harness_lib import WRITING_ROLES  # noqa: E402
 
 WRITE_TOOLS = {"Write": "file_path", "Edit": "file_path", "MultiEdit": "file_path", "NotebookEdit": "notebook_path"}
 REDIRECTS = {">", ">>", ">|", "&>", "&>>"}
@@ -85,6 +86,8 @@ def zone_roots(config_root: Path, cwd: Path) -> list[Path]:
     if here_top is None:
         return [config_root] if Path(os.path.realpath(cwd)).is_relative_to(config_root) else []
     if config_top is None:
+        if common.in_repository(config_root):
+            return []  # git failed for the config's directory, so its place in the repository is unknown: fail closed
         return [here_top, config_root] if here_top != config_root else [config_root]
     if here_top == config_top:
         return [config_root]
@@ -95,6 +98,26 @@ def zone_root_for(target: Path, roots: list[Path]) -> Path | None:
     """The most specific root that contains target, or None when it lies in none (such paths are not policed)."""
     inside = [r for r in roots if target.is_relative_to(r)]
     return max(inside, key=lambda r: len(r.parts)) if inside else None
+
+
+def sibling_root(target: Path, config_root: Path) -> tuple[Path | None, str]:
+    """For a target that lies in none of the zone roots: (the root to judge it under, "") when it sits in another worktree of the
+    config's repository (the toplevel of its checkout plus the config's subdirectory); (None, "") when it is outside that repository
+    or outside any repository (not policed); (None, reason) when the lookup failed and the target may be in the config's repository."""
+    start = target
+    while not start.exists() and start != start.parent:
+        start = start.parent
+    top, mine = common.toplevel(start), common.toplevel(config_root)
+    if top is None or mine is None:
+        if (top is None and common.in_repository(start)) or (mine is None and common.in_repository(config_root)):
+            return None, "its git checkout could not be determined"
+        return None, ""
+    other, own = common.common_dir(start), common.common_dir(config_root)
+    if other is None or own is None:
+        return None, "its git repository could not be determined"
+    if other != own:
+        return None, ""
+    return top / config_root.relative_to(mine), ""
 
 
 def zone_verdict(path: str, cwd: Path, config: dict, root: Path, state: Path | None, agent: str) -> str:
@@ -357,6 +380,11 @@ def main() -> None:
                 return
             continue
         root = zone_root_for(target, roots)
+        if root is None:  # in none of the known roots: it may be another worktree of the same repository
+            root, problem = sibling_root(target, Path(os.path.realpath(config_path.parent)))
+            if problem and common.role() in WRITING_ROLES:
+                common.deny(f"Write zone: {target} cannot be checked against the zones: {problem}; the write is refused.")
+                return
         reason = zone_verdict(path, cwd, config, root, state, agent) if root is not None else ""
         if reason:
             common.deny(reason)
