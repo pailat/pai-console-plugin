@@ -20,6 +20,10 @@ import harness_config as hc  # noqa: E402
 VALID = '[project]\npai_org = "acme"\npai_project = "acme-app"\nlinear_team = "ACME"\n'
 
 
+HOTFIX = ('[gates.hotfix]\nactive_when = "make typecheck-all"\napplies_to = "release-red"\npre_merge = ["make typecheck-all"]\n'
+          'post_merge = "make gate-full"\nrevert_on_failure = true\n')
+
+
 def run(script: str, *args: str) -> subprocess.CompletedProcess:
     return subprocess.run([sys.executable, str(PLUGIN / "scripts" / script), *args], capture_output=True, text=True)
 
@@ -28,7 +32,7 @@ class PluginLayoutTest(unittest.TestCase):
     def test_manifest_matches_the_contract(self) -> None:
         manifest = json.loads((PLUGIN / ".claude-plugin/plugin.json").read_text())
         console = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
-        self.assertEqual((manifest["name"], manifest["version"], manifest["license"]), ("pai-harness", "0.1.0", "UNLICENSED"))
+        self.assertEqual((manifest["name"], manifest["version"], manifest["license"]), ("pai-harness", "0.1.2", "UNLICENSED"))
         self.assertEqual(manifest["author"], console["author"])
 
     def test_marketplace_has_a_second_entry_and_leaves_pai_console_alone(self) -> None:
@@ -52,7 +56,7 @@ class PluginLayoutTest(unittest.TestCase):
     def test_codex_package_is_generated_and_reproducible(self) -> None:
         self.assertEqual(build_codex.build(ROOT, check=True), [])
         package = ROOT / build_codex.HARNESS_CODEX
-        self.assertEqual(json.loads((package / "plugin.json").read_text())["version"], "0.1.0")
+        self.assertEqual(json.loads((package / "plugin.json").read_text())["version"], "0.1.2")
         self.assertTrue((package / "scripts/validate_config.py").is_file())
         self.assertTrue((package / "skills/orchestration/agents/openai.yaml").is_file())
 
@@ -73,6 +77,19 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config["limits"]["max_agents"], 6)
         self.assertEqual(config["limits"]["max_open_prs"], 5)  # default
 
+    def test_hotfix_is_a_typed_table_and_other_gates_stay_commands(self) -> None:
+        config = hc.validate(__import__("tomllib").loads(VALID + '[gates]\nunit = "make test"\n' + HOTFIX))
+        self.assertEqual(config["gates"]["unit"], ["make test"])
+        self.assertEqual(config["gates"]["hotfix"], {"active_when": "make typecheck-all", "applies_to": "release-red", "pre_merge": ["make typecheck-all"],
+                                                     "post_merge": "make gate-full", "revert_on_failure": True})
+        default = hc.validate(__import__("tomllib").loads(VALID + HOTFIX.replace("revert_on_failure = true\n", "")))
+        self.assertTrue(default["gates"]["hotfix"]["revert_on_failure"])
+
+    def test_the_acme_example_shows_the_hotfix_profile(self) -> None:
+        config = hc.load_file(PLUGIN / "examples/acme/.pai-harness.toml")
+        self.assertEqual(sorted(config["gates"]), ["hotfix", "lint", "unit"])
+        self.assertEqual(config["gates"]["hotfix"]["post_merge"], "make gate-full")
+
     def test_minimal_file_gets_defaults(self) -> None:
         config = hc.validate(__import__("tomllib").loads(VALID))
         self.assertEqual(config["models"], hc.DEFAULT_MODELS)
@@ -92,6 +109,12 @@ class ConfigTest(unittest.TestCase):
             "zones.web.globs[0]": (VALID + '[zones.web]\nglobs = [3]\n', "zones.web.globs[0]: expected string"),
             "queues.q.machine": (VALID + '[queues.q]\nmachine = "nowhere"\n', "queues.q.machine: unknown machine"),
             "gates.Unit": (VALID + '[gates]\nUnit = "make test"\n', "gates.Unit: name must be"),
+            "gates.hotfix": (VALID + '[gates]\nhotfix = "make test"\n', "gates.hotfix: expected table"),
+            "gates.hotfix.post_merge": (VALID + HOTFIX.replace('post_merge = "make gate-full"\n', ''), "gates.hotfix.post_merge: required key is missing"),
+            "gates.hotfix.pre_merge": (VALID + HOTFIX.replace('["make typecheck-all"]', '[]'), "gates.hotfix.pre_merge: command list must not be empty"),
+            "gates.hotfix.applies_to": (VALID + HOTFIX.replace('"release-red"', '"("'), "gates.hotfix.applies_to: invalid regular expression"),
+            "gates.hotfix.revert_on_failure": (VALID + HOTFIX.replace("true", '"yes"'), "gates.hotfix.revert_on_failure: expected boolean"),
+            "gates.hotfix.colour": (VALID + HOTFIX + 'colour = "red"\n', "gates.hotfix.colour: unknown key"),
             "bogus": ('bogus = 1\n' + VALID, "bogus: unknown section"),
             "rules.push_wrapper": (VALID + '[rules]\npush_wrapper = ""\n', "rules.push_wrapper: must not be empty"),
             "role_zones.pilot": (VALID + '[role_zones]\npilot = []\n', "role_zones.pilot: unknown key"),
@@ -129,6 +152,9 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(schema["properties"]["models"]["default"], hc.DEFAULT_MODELS)
         self.assertEqual(sorted(schema["properties"]["limits"]["properties"]), sorted(hc.DEFAULTS["limits"]))
         self.assertEqual(sorted(schema["properties"]["rules"]["properties"]), sorted(hc.DEFAULTS["rules"]))
+        hotfix = schema["properties"]["gates"]["properties"]["hotfix"]
+        self.assertEqual(sorted(hotfix["properties"]), ["active_when", "applies_to", "post_merge", "pre_merge", "revert_on_failure"])
+        self.assertEqual(hotfix["required"], ["active_when", "applies_to", "pre_merge", "post_merge"])
         self.assertEqual(sorted(schema["properties"]["role_zones"]["propertyNames"]["enum"]), sorted(hc.ROLES))
         self.assertEqual(schema["properties"]["rules"]["properties"]["push_wrapper"]["type"], "string")
         self.assertEqual(schema["properties"]["models"]["properties"]["lead"]["enum"], [m for m in hc.MODEL_CHOICES if m != "none"])

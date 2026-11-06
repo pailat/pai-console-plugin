@@ -14,7 +14,7 @@ import harness_lib as lib  # noqa: E402
 
 
 def summary_of(name: str) -> dict:
-    return lib.parse_stream((FIXTURES / f"{name}.jsonl").read_text().splitlines())
+    return lib.parse_stream((FIXTURES / f"{name}.jsonl").read_text().splitlines())  # init placeholders are irrelevant to run_state
 
 
 class RunStateTest(HarnessCase):
@@ -53,7 +53,7 @@ class LaunchTest(HarnessCase):
     def test_a_successful_run_records_stream_state_cost_turns_and_session(self) -> None:
         done = self.launch("ACME-7", "success", 0, "--queue", "main")
         self.assertEqual(done.returncode, 0, done.stderr)
-        self.assertEqual((self.state / "runs/ACME-7.jsonl").read_text(), (FIXTURES / "success.jsonl").read_text())
+        self.assertEqual((self.state / "runs/ACME-7.jsonl").read_text(), self.fixture("success").read_text())
         record = self.record("ACME-7")
         self.assertEqual((record["state"], record["turns"], record["cost_usd"], record["exit_code"]), ("done", 2, 0.0086, 0))
         self.assertEqual((record["session_id"], record["machine"]), ("11111111-2222-3333-4444-555555555555", "acme-desktop"))
@@ -76,7 +76,7 @@ class LaunchTest(HarnessCase):
         wrapper.write_text(f"#!/bin/sh\nexec {sys.executable} {probe} \"$@\"\n")
         wrapper.chmod(0o755)
         done = self.run_script("launch.sh", issue, "--prompt-file", str(self.prompt), *extra, PAI_HARNESS_CLAUDE=str(wrapper),
-                               FAKE_CLAUDE_FIXTURE=str(FIXTURES / "success.jsonl"), PROBE_LOG=str(self.tmp / "env.json"), **{"PAI_HARNESS_CONFIG": str(EXAMPLE), **env})
+                               FAKE_CLAUDE_FIXTURE=str(self.fixture("success")), PROBE_LOG=str(self.tmp / "env.json"), **{"PAI_HARNESS_CONFIG": str(EXAMPLE), **env})
         self.assertEqual(done.returncode, 0, done.stderr)
         return json.loads((self.tmp / "env.json").read_text())
 
@@ -100,7 +100,7 @@ class LaunchTest(HarnessCase):
         wrapper = self.tmp / "claude"
         wrapper.write_text("#!/bin/sh\ncat > /dev/null\ncat \"$FAKE_CLAUDE_FIXTURE\"\n")
         wrapper.chmod(0o755)
-        done = self.run_script("launch.sh", "ACME-7", "--prompt", "Do ACME-7.", PAI_HARNESS_CLAUDE=str(wrapper), FAKE_CLAUDE_FIXTURE=str(FIXTURES / "success.jsonl"),
+        done = self.run_script("launch.sh", "ACME-7", "--prompt", "Do ACME-7.", PAI_HARNESS_CLAUDE=str(wrapper), FAKE_CLAUDE_FIXTURE=str(self.fixture("success")),
                                PAI_HARNESS_CONFIG=str(EXAMPLE))
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertEqual((self.state / "briefs/ACME-7.md").read_text(), "Do ACME-7.")
@@ -149,7 +149,7 @@ class LaunchTest(HarnessCase):
         self.launch("ACME-8", "permission", 0)
         self.assertEqual(self.run_script("launch.sh", "ACME-8", "--park").returncode, 0)
         self.assertEqual(lib.read_json(self.state / "registry/ACME-8.json")["state"], "parked")
-        done = self.run_script("launch.sh", "ACME-8", "--resume", FAKE_CLAUDE_FIXTURE=str(FIXTURES / "success.jsonl"))
+        done = self.run_script("launch.sh", "ACME-8", "--resume", FAKE_CLAUDE_FIXTURE=str(self.fixture("success")))
         self.assertEqual(done.returncode, 0, done.stderr)
         argv = json.loads((self.tmp / "claude.json").read_text())["argv"]
         self.assertEqual(argv[argv.index("--resume") + 1], "11111111-2222-3333-4444-555555555555")
@@ -177,7 +177,7 @@ class PaneLaunchTest(HarnessCase):
         done = self.run_script(
             "launch.sh", "ACME-7", "--prompt-file", str(self.prompt), "--pane", "pane-1",
             PAI_HARNESS_HERDR=str(FIXTURES / "fake_herdr.py"), FAKE_HERDR_LOG=str(log),
-            FAKE_CLAUDE_FIXTURE=str(FIXTURES / "success.jsonl"))
+            FAKE_CLAUDE_FIXTURE=str(self.fixture("success")))
         self.assertEqual(done.returncode, 0, done.stderr)
         calls = [json.loads(line) for line in log.read_text().splitlines()]
         self.assertEqual([c[:2] for c in calls], [["pane", "run"], ["pane", "wait-output"]])
@@ -189,7 +189,7 @@ class PaneLaunchTest(HarnessCase):
     def test_a_blocked_pane_run_returns_3(self) -> None:
         done = self.run_script("launch.sh", "ACME-8", "--prompt-file", str(self.prompt), "--pane", "pane-1",
                                PAI_HARNESS_HERDR=str(FIXTURES / "fake_herdr.py"), FAKE_HERDR_LOG=str(self.tmp / "h.log"),
-                               FAKE_CLAUDE_FIXTURE=str(FIXTURES / "permission.jsonl"))
+                               FAKE_CLAUDE_FIXTURE=str(self.fixture("permission")))
         self.assertEqual(done.returncode, 3)
 
 

@@ -1,0 +1,17 @@
+# Fictional Acme config with a red-release hotfix profile, for the gate-request hotfix tests.
+schema_version = 1
+
+[project]
+pai_org = "acme"
+pai_project = "acme-app"
+linear_team = "ACME"
+
+[gates]
+unit = "true"
+
+[gates.hotfix]
+active_when = "tip-check"
+applies_to = "(?i)release-red|^hotfix:"
+pre_merge = ["typecheck-all", "test-touched"]
+post_merge = "gate-full"
+revert_on_failure = true
