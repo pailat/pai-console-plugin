@@ -7,7 +7,15 @@ description: "Turns a finished task into Pai Knowledge: searches first, writes p
 
 Distiller. At the end of a task it records what was learned in Pai Knowledge, without duplicates, and leaves the marker that lets the session stop.
 
-Roles are skill plus agent plus hooks. This skill is the duties; `agents/distiller.md` fixes the model and the tool allowlist; the Stop hook enforces the marker. The default model can be overridden under `[models]` in `.pai-harness.toml`. Tools: Read, Grep, Glob, Write (the marker only) and the Knowledge search, get and batch tools. No shell and no Edit.
+Roles are skill plus agent plus hooks. This skill is the duties; `agents/distiller.md` fixes the model and the tool allowlist; the Stop hook enforces the marker. The default model can be overridden under `[models]` in `.pai-harness.toml`. Tools: Read, Grep, Glob, Write (the marker only) and the pai-console Knowledge tools `knowledge_search`, `knowledge_get`, `knowledge_create`, `knowledge_update`, `knowledge_link`, `knowledge_batch` and `knowledge_audit`, plus `page_search` to find sources. No shell, no Edit and no other Pai tools.
+
+## Knowledge target
+
+Resolve the target before any Knowledge call; it says where the delta is written.
+
+1. The launcher exports `PAI_HARNESS_KNOWLEDGE_ORG` and one of `PAI_HARNESS_KNOWLEDGE_PROJECT` or `PAI_HARNESS_KNOWLEDGE_PRODUCT`, and the first line of your brief reads `Knowledge target: organization=... project=...` (or `product=...`). Use exactly those values on every Knowledge and `page_search` call.
+2. The target comes from `[knowledge]` in `.pai-harness.toml`. A `[knowledge.streams.NAME]` entry, chosen by the launcher's `--stream` option or the queue name, overrides the default for that stream.
+3. Fail closed: if no target resolved (no exports, no header line, or the header says `none resolved`), write nothing, create no marker and report `BLOCKER no knowledge target resolved for distiller/<stream>` (use `default` when there is no stream). Never guess an organization or project from the repo name, a page or memory. `delta_marker.py plan` and `write` refuse with the same BLOCKER.
 
 ## Duties
 
@@ -20,14 +28,14 @@ Roles are skill plus agent plus hooks. This skill is the duties; `agents/distill
 
 ## Inputs
 
-The finished-task transcript or turn record id, the issue brief, `[project]` in `.pai-harness.toml` (organization and project for Knowledge), and the agent name (`PAI_HARNESS_AGENT`).
+The finished-task transcript or turn record id, the issue brief with its `Knowledge target:` header, `[knowledge]` in `.pai-harness.toml` (organization and project or product), the stream (`PAI_HARNESS_STREAM`) and the agent name (`PAI_HARNESS_AGENT`).
 
 ## Quiet-channel report lines
 
 One line per event, nothing else. Report to your parent, never only on your own screen.
 
 - `RESULT <issue> distilled: <n> created, <n> duplicates skipped, marker <path>`
-- `BLOCKER <what blocks, since when, what you continue with>`
+- `BLOCKER <what blocks, since when, what you continue with>`; with no target: `BLOCKER no knowledge target resolved for distiller/<stream>`
 - `DECISION-NEEDED <question> | recommended: <default>`
 
 ## Scripts and commands

@@ -9,16 +9,22 @@ Commands (all print JSON or a note on stdout; exit 0 ok, 1 invalid input, 2 usag
 CANDIDATES.json: {"turn": "<turn record id>", "nodes": [{"ref", "kind", "title", "summary", "status", "sources"}]}.
 EXISTING.json: the nodes a Knowledge search returned: [{"id", "slug", "kind", "title"}]. The marker is
 {"nodes": [...]}, the shape the Stop hook requires. Decision-like kinds must be proposed; sources must be real.
+
+plan and write fail closed: with no Knowledge target (PAI_HARNESS_KNOWLEDGE_ORG plus _PROJECT or _PRODUCT from the launcher,
+else [knowledge] in the config for PAI_HARNESS_STREAM) they print `BLOCKER <agent>: no knowledge target resolved for
+ROLE/STREAM` and exit 1, so a distiller never writes a delta that has nowhere to go.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import re
+import os
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import harness_config  # noqa: E402
 import harness_lib as lib  # noqa: E402
 from linear_status import compose as lib_compose  # noqa: E402
 
@@ -122,6 +128,33 @@ def write_marker(state: Path, agent: str, refs: list[str]) -> Path:
     return path
 
 
+def knowledge_target(config_path: str | None, env: dict | None = None, agent: str | None = None) -> dict:
+    """The Knowledge target this run writes to, or DeltaError with the named BLOCKER (fail closed).
+
+    The launcher's exports win; without them the config's [knowledge] is resolved for PAI_HARNESS_STREAM.
+    """
+    env = os.environ if env is None else env
+    org, project, product = (env.get(k) for k in ("PAI_HARNESS_KNOWLEDGE_ORG", "PAI_HARNESS_KNOWLEDGE_PROJECT", "PAI_HARNESS_KNOWLEDGE_PRODUCT"))
+    stream = env.get("PAI_HARNESS_STREAM") or None
+    if org and bool(project) != bool(product):
+        return {"organization": org, **({"project": project} if project else {"product": product}), "stream": stream}
+    target, config = None, None
+    try:
+        config, _ = lib.load_config(config_path)
+        target = harness_config.resolve_knowledge(config, stream)
+    except SystemExit:
+        pass  # an unreadable config resolves nothing
+    if target:
+        return target
+    agent = agent or env.get("PAI_HARNESS_AGENT") or "distiller"
+    reason = f"no knowledge target resolved for {env.get('PAI_HARNESS_ROLE') or 'distiller'}/{stream or 'default'}"
+    if config is not None:
+        lib.blocker(lib.state_dir(config), agent, reason)  # journals and prints `BLOCKER <agent>: <reason>`
+    else:
+        print(f"BLOCKER {agent}: {reason}")
+    raise DeltaError(reason)
+
+
 def owners_for(paths: list[str], zones: dict) -> list[tuple[str, list[str], bool]]:
     """Zones (name, owners, root) whose globs match any path; the first match decides each path."""
     found: dict[str, tuple[str, list[str], bool]] = {}
@@ -170,6 +203,8 @@ def main(argv: list[str]) -> int:
     t.add_argument("output")
     args = parser.parse_args(argv)
     try:
+        if args.command in ("plan", "write"):
+            knowledge_target(args.config, agent=getattr(args, "agent", None))
         if args.command == "plan":
             lib.show(plan(json.loads(Path(args.candidates).read_text()), json.loads(Path(args.existing).read_text())))
         elif args.command == "write":

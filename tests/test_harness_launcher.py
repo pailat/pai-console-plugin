@@ -117,7 +117,7 @@ class LaunchTest(HarnessCase):
     def test_the_dry_run_shows_the_hook_environment_and_writes_no_brief(self) -> None:
         plan = json.loads(self.run_script("launch.sh", "ACME-7", "--prompt", "x", "--role", "lead", "--dry-run", PAI_HARNESS_CONFIG=str(EXAMPLE)).stdout)
         self.assertEqual(plan["hook_env"]["PAI_HARNESS_ZONES"], "frontend,contracts")
-        self.assertEqual(sorted(plan["hook_env"]), ["PAI_HARNESS_AGENT", "PAI_HARNESS_BRIEF", "PAI_HARNESS_PUSH_WRAPPER", "PAI_HARNESS_ROLE", "PAI_HARNESS_ZONES"])
+        self.assertEqual(sorted(plan["hook_env"]), ["PAI_HARNESS_AGENT", "PAI_HARNESS_BRIEF", "PAI_HARNESS_KNOWLEDGE_ORG", "PAI_HARNESS_KNOWLEDGE_PROJECT", "PAI_HARNESS_PUSH_WRAPPER", "PAI_HARNESS_ROLE", "PAI_HARNESS_ZONES"])
         self.assertFalse(self.state.exists())
 
     def test_without_a_push_wrapper_in_the_config_a_stale_one_is_not_passed_on(self) -> None:
