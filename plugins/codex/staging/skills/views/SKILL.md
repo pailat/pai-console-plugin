@@ -65,6 +65,12 @@ When unsure, render first and offer saving; do not save without authorization. *
 
 Put controls belonging inside a component (chat scope selector, card-header badge) in its slot, not an adjacent Stack.
 
+**Dense layouts** (closed tokens, organization theme in light and dark):
+- `Text.weight`: `regular | medium | semibold`; `Text.lines`: `1 | 2 | 3`. Clamped text keeps its full content in `title`, including the `code` variant. Omission preserves wrapping and weight.
+- Stack `gap`: `none | xs | sm | md | lg | xl`; Grid `gap`: `xs | sm | md | lg | xl`. Both accept `padding: none | xs | sm | md | lg | xl` (0, 1, 2, 4, 6 or 8 theme spacing units). Omitted gap stays `md`; omitted padding adds nothing.
+- `Stack.surface`: `none | muted | card | outline`. Uses organization colors and radius, with no automatic padding. These surfaces may nest inside a Card or another surface. Grid has no surface prop. Use a Card for a content section, a Stack surface for a dense zone within one.
+- `SplitView.listWidth` remains `narrow | medium | wide`.
+
 **Sizing/placement** (Stack/Grid only; closed values, omission preserves prior behavior):
 - `width: "fit" | "full"`; full fills parent even inside `align: "center"`, where it otherwise shrinks.
 - `maxWidth: "sm" | "md" | "lg" | "xl" | "full"`: readable width.
