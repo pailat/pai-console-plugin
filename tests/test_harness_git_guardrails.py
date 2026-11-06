@@ -194,7 +194,108 @@ class ProtectedListTest(GuardrailTest):
         self.assertTrue(self.verdict("scripts/queue-push.sh origin develop", only))
         self.assertTrue(self.verdict("scripts/queue-push.sh origin HEAD:hotfix/1", only))
         self.assertEqual(self.verdict("scripts/queue-push.sh origin main", only), "")
-        self.assertEqual(self.verdict("scripts/queue-push.sh origin staging", {"PAI_HARNESS_PROTECTED_BRANCHES": ""}), "")
+        for empty in ("", ",", " : "):  # an empty or separator-only value keeps the default list; it never disables protection
+            self.assertTrue(self.verdict("scripts/queue-push.sh origin staging", {"PAI_HARNESS_PROTECTED_BRANCHES": empty}))
+
+
+class DeltaRoundTest(GuardrailTest):
+    """Second review round: crashes and fail-open inputs first, then over-denial."""
+
+    def on(self, branch: str) -> None:
+        subprocess.run(["git", "-C", str(self.project), "symbolic-ref", "HEAD", f"refs/heads/{branch}"], check=True)
+
+    def test_an_unparseable_wrapper_never_crashes_the_hook(self) -> None:
+        self.assertEqual(git_guardrails.check("git status", "scripts/q 'x", self.project), "")
+        self.env["PAI_HARNESS_PUSH_WRAPPER"] = "scripts/q 'x"
+        self.hook("git push origin main", "bypassPermissions")  # hook() asserts a zero exit status
+        self.hook("scripts/q origin main", "default")
+
+    def test_an_internal_error_denies(self) -> None:
+        class Common:
+            reasons: list = []
+
+            @staticmethod
+            def deny(reason: str) -> None:
+                Common.reasons.append(reason)
+
+        original, git_guardrails.check = git_guardrails.check, lambda *a: 1 / 0
+        try:
+            self.assertTrue(git_guardrails.deny_dangerous(Common, "git status", WRAPPER, self.project))
+        finally:
+            git_guardrails.check = original
+        self.assertIn("could not be checked", Common.reasons[0])
+
+    def test_any_spelling_of_the_wrapper_path_is_the_wrapper(self) -> None:
+        for spelling in ("./scripts/queue-push.sh", str(self.project / "scripts/queue-push.sh"), "scripts/../scripts/queue-push.sh"):
+            for tail in ("origin main", "--all origin", "-f origin x"):
+                with self.subTest(spelling=spelling, tail=tail):
+                    self.assertTrue(self.verdict(f"{spelling} {tail}"), "not blocked")
+        self.assertEqual(self.verdict("./scripts/queue-push.sh origin feat/acme-7"), "")
+        out = self.hook("./scripts/queue-push.sh git push origin feat/acme-7", "default")
+        self.assertIsNone(out)  # a wrapper push is not a direct push, whatever its spelling
+        self.assertIsNotNone(self.hook("./scripts/queue-push.sh --no-verify origin feat/acme-7", "default"))
+
+    def test_a_shell_with_combined_flags_does_not_hide_a_push(self) -> None:
+        for command in ("bash -lc 'git push --force origin main'", "bash -ec 'git push origin main'", "sudo -u x bash -lc 'git push origin main'",
+                        "bash -lc 'scripts/queue-push.sh --no-verify origin x'", "bash -lc 'scripts/queue-push.sh origin main'"):
+            with self.subTest(command=command):
+                out = self.hook(command, "bypassPermissions")
+                self.assertEqual(out["hookSpecificOutput"]["permissionDecision"], "deny")
+
+    def test_a_refspec_built_at_run_time_is_refused(self) -> None:
+        self.on("feat/acme-7")
+        for tail in ("origin $B", "origin ${B}", "origin $(echo main)", "origin `echo main`", "origin HEAD:$B", "origin ~", "origin feat:heads/main",
+                     "origin feat:refs/heads/main", "origin \"$(git branch --show-current)\""):
+            with self.subTest(tail=tail):
+                self.assertTrue(self.verdict(f"scripts/queue-push.sh {tail}"), "not blocked")
+        self.assertEqual(self.verdict("scripts/queue-push.sh origin feat/acme-7"), "")
+
+    def test_an_unknown_cwd_is_not_rescued_by_a_relative_dash_c(self) -> None:
+        self.on("feat/acme-7")
+        (self.project / "sub").mkdir(exist_ok=True)
+        self.assertTrue(self.verdict("cd $X && scripts/queue-push.sh git -C sub push origin HEAD"))
+        self.assertEqual(self.verdict("scripts/queue-push.sh git -C sub push origin feat/acme-7"), "")
+
+    def test_a_detached_head_names_no_branch(self) -> None:
+        git = ["git", "-C", str(self.project), "-c", "user.name=Acme", "-c", "user.email=a@acme.test"]
+        subprocess.run([*git, "commit", "-q", "--allow-empty", "-m", "x"], check=True)
+        subprocess.run([*git, "checkout", "-q", "--detach"], check=True)
+        self.assertIn("detached", self.verdict("scripts/queue-push.sh origin HEAD"))
+        self.assertEqual(self.verdict("scripts/queue-push.sh origin feat/acme-7"), "")
+
+    def test_a_missing_directory_is_not_blamed_on_a_timeout(self) -> None:
+        self.on("feat/acme-7")
+        self.assertEqual(self.verdict("git -C /nonexistent-acme status"), "")
+        self.assertEqual(self.verdict("git clone https://acme.test/y.git y && cd y && git status"), "")
+        self.assertEqual(self.verdict("mkdir d && git -C d init"), "")
+        reason = self.verdict("cd y && scripts/queue-push.sh origin HEAD")
+        self.assertIn("does not exist", reason)
+
+    def test_rm_of_an_ordinary_glob_is_allowed_but_a_dot_glob_is_not(self) -> None:
+        for command in ("rm -rf dist/*", "rm -rf node_modules/*", "rm -rf build/[a-z]*"):
+            with self.subTest(command=command):
+                self.assertEqual(self.verdict(command), "")
+        for command in ("rm -rf .*", "rm -rf .g*", "rm -rf .[g]it", "rm -rf [.]git"):
+            with self.subTest(command=command):
+                self.assertTrue(self.verdict(command), "not blocked")
+
+    def test_the_pipe_scan_only_fires_for_a_shell_that_a_pipe_feeds(self) -> None:
+        self.on("feat/acme-7")
+        for command in ("bash run.sh && git restore --staged foo", "bash run.sh && scripts/queue-push.sh origin feat/acme-7"):
+            with self.subTest(command=command):
+                self.assertEqual(self.verdict(command), "")
+        self.assertEqual(git_guardrails.check("bash scripts/queue-push.sh origin feat/acme-7", "bash scripts/queue-push.sh", self.project), "")
+        self.assertTrue(git_guardrails.check("echo hi | bash scripts/queue-push.sh origin main", "bash scripts/queue-push.sh", self.project))
+        self.assertTrue(self.verdict("echo 'git reset --hard' | sh"))
+
+    def test_commands_with_the_same_effect_as_blocked_ones_are_blocked(self) -> None:
+        for command in ("git switch -f x", "git switch --discard-changes x", "git switch -C x", "git checkout -B x", "git filter-branch --all",
+                        "git reflog expire --expire=now --all", "git reflog delete HEAD@{1}", "git gc --prune=now", "git tag -d v1", "git remote rm origin"):
+            with self.subTest(command=command):
+                self.assertTrue(self.verdict(command), "not blocked")
+        for command in ("git switch -c x", "git switch x", "git gc", "git tag v1", "git reflog", "git remote -v", "git fetch --prune", "git reset --merge"):
+            with self.subTest(command=command):
+                self.assertEqual(self.verdict(command), "")
 
 
 class ThrowawayTest(GuardrailTest):

@@ -1,7 +1,9 @@
 """git-guardrails: refuse destructive git commands in a Bash tool call. Stdlib only.
 
 pre_tool_use.py calls `deny_dangerous` once for every Bash command of a role-bearing agent. A PreToolUse deny holds in
-bypass-permissions mode too, because the harness runs the hook before any permission decision.
+bypass-permissions mode too (expected: the harness runs the hook before any permission decision; verified here only with simulated hook runs
+whose permission_mode is bypassPermissions, not against an installed client). A crash of the hook is non-blocking in every mode, so deny_dangerous
+denies on any internal error instead of raising.
 
 BLOCKED (each block names the command and the safe alternative):
 - a push to main, staging, production or release/* through the wrapper (`wrapper origin main` and `wrapper git push origin main`);
@@ -177,19 +179,21 @@ def refuse(command: list[str], why: str, alternative: str) -> str:
 
 PROTECTED = ("main", "staging", "production", "release/*")
 GLOB = re.compile(r"[*?\[]")
+UNREADABLE = re.compile(r"[$`~]")
+MISSING = "\0missing"  # current_branch: the directory does not exist (yet)
 
 
 def protected_patterns() -> tuple[str, ...]:
-    """PAI_HARNESS_PROTECTED_BRANCHES (comma or colon separated globs) replaces the default list; an empty value protects nothing."""
-    value = os.environ.get("PAI_HARNESS_PROTECTED_BRANCHES")
-    if value is None:
-        return PROTECTED
-    return tuple(p.strip() for p in re.split(r"[,:]", value) if p.strip())
+    """PAI_HARNESS_PROTECTED_BRANCHES (comma or colon separated globs) replaces the default list; an unset, empty or separator-only value keeps the default."""
+    found = tuple(p.strip() for p in re.split(r"[,:]", os.environ.get("PAI_HARNESS_PROTECTED_BRANCHES", "")) if p.strip())
+    return found or PROTECTED
 
 
 def current_branch(directory: Path, ctx: Context) -> str | None:
     """The branch HEAD names in directory ("" for a detached HEAD); None when it cannot be told (timeout, not a repository). Cached per check()."""
     key = os.path.realpath(directory)
+    if not directory.is_dir():
+        return MISSING
     if key not in ctx.branches:
         done = ctx.git(["symbolic-ref", "--short", "-q", "HEAD"], directory)
         ctx.branches[key] = None if done is None or done.returncode not in (0, 1) else done.stdout.strip()
@@ -221,18 +225,25 @@ def push_check(args: list[str], shown: list[str], ctx: Context) -> str:
     refspecs = plain[1:] or ["HEAD"]
     patterns = protected_patterns()
     for spec in refspecs:
-        destination = spec.rpartition(":")[2].removeprefix("refs/heads/")
+        destination = spec.rpartition(":")[2]
+        destination = destination.removeprefix("refs/heads/") if destination.startswith("refs/heads/") else destination.removeprefix("heads/")  # git resolves `heads/x` to refs/heads/x
+        if UNREADABLE.search(destination):  # the shell or git expands it at run time: it cannot be read statically
+            return refuse(shown, f"the refspec {destination} is built at run time", "name the feature branch as a literal branch name")
         if GLOB.search(destination):  # a pattern can update any head, protected ones included
             return refuse(shown, f"the pattern {destination} can update protected branches", "name the feature branch to push")
         if destination in {"HEAD", "@"}:  # `@` is an alias of HEAD: the branch the working directory is on
-            if "\0unknown" in directories or ctx.unknown_cwd and not directories:
+            if "\0unknown" in directories or ctx.unknown_cwd and not any(os.path.isabs(d) for d in directories):
                 return refuse(shown, "the directory the push runs in cannot be read, so HEAD cannot be resolved", "push a named feature branch")
             where = [effective_dir(directories, ctx)]
             if not directories and ctx.cwd != ctx.origin:  # a `cd` inside a subshell does not carry over: check where the session started too
                 where.append(ctx.origin)
             names = [current_branch(d, ctx) for d in where]
+            if MISSING in names:
+                return refuse(shown, "the directory the push runs in does not exist at this point, so HEAD cannot be resolved", "push a named feature branch from an existing directory")
             if None in names:
                 return refuse(shown, "the current branch could not be read in time, so HEAD cannot be resolved", "push a named feature branch")
+            if "" in names:
+                return refuse(shown, "HEAD is detached, so it names no branch", "push a named feature branch")
             destination = next((n for n in names if any(fnmatch.fnmatchcase(n, p) for p in patterns)), names[0])
         if any(fnmatch.fnmatchcase(destination, p) or fnmatch.fnmatchcase(p, destination) for p in patterns):
             return refuse(shown, f"a push to the protected branch {destination}", "push a feature branch and open a pull request; the merge is done by the orchestrator")
@@ -288,7 +299,10 @@ def config_aliases(directory: Path, ctx: Context) -> dict[str, str] | None:
     """The aliases git config knows in directory (cached per check()); None when git cannot answer in time."""
     key = os.path.realpath(directory)
     if key not in ctx.aliases:
-        done = ctx.git(["config", "--get-regexp", r"^alias\."], directory)
+        existing = directory
+        while not existing.is_dir() and existing.parent != existing:  # a directory that does not exist yet: its nearest parent holds the config
+            existing = existing.parent
+        done = ctx.git(["config", "--get-regexp", r"^alias\."], existing)
         if done is None or done.returncode not in (0, 1):  # 1 means "no alias set"
             ctx.aliases[key] = None
         else:
@@ -318,6 +332,18 @@ def subcommand_check(sub: str, args: list[str], shown: list[str], ctx: Context, 
         return refuse(shown, "git clean deletes untracked files for good", "git clean -n to preview, then delete the named files yourself; a throwaway path needs PAI_HARNESS_GIT_THROWAWAY")
     if sub == "branch" and ("D" in letters or "f" in letters or any(longopt(t, "force") for t in args)):
         return refuse(shown, "branch -D / -f deletes or moves a branch without the merged check", "git branch -d (refuses an unmerged branch), or ask your lead")
+    if sub == "switch" and ("f" in letters or "C" in letters or any(longopt(t, "force", "discard-changes", "force-create") for t in args)):
+        return refuse(shown, "switch -f / --discard-changes / -C discards local changes or resets a branch", "commit or stash first, then git switch <branch> (or -c for a new branch)")
+    if sub == "filter-branch":
+        return refuse(shown, "filter-branch rewrites the history of every ref it touches", "ask your lead; a rewrite needs an explicit decision")
+    if sub == "reflog" and plain and plain[0] in {"expire", "delete"}:
+        return refuse(shown, "reflog expire / delete removes the only record that can recover lost commits", "git reflog (read only), and leave the entries in place")
+    if sub == "gc" and any(t.split("=", 1)[0] == "--prune" and t.partition("=")[2] in {"now", "all"} for t in args):
+        return refuse(shown, "gc --prune=now deletes unreachable objects immediately", "git gc (default grace period), or ask your lead")
+    if sub == "tag" and ("d" in letters or any(longopt(t, "delete") for t in args)):
+        return refuse(shown, "tag -d deletes a tag", "leave the tag in place, or ask your lead")
+    if sub == "remote" and plain and plain[0] in {"rm", "remove"}:
+        return refuse(shown, "remote rm removes the remote and its tracking branches", "ask your lead")
     if sub == "stash" and plain and plain[0] in {"drop", "clear"}:
         return refuse(shown, "stash drop / clear loses saved work", "git stash list and git stash apply, and leave the entry in place")
     if sub == "rebase" and ("i" in letters or any(longopt(t, "interactive") for t in args)):
@@ -327,6 +353,8 @@ def subcommand_check(sub: str, args: list[str], shown: list[str], ctx: Context, 
     if sub == "worktree" and plain and plain[0] == "remove" and ("f" in letters or any(longopt(t, "force") for t in args)):
         return refuse(shown, "worktree remove --force deletes a worktree with uncommitted work", "git worktree remove (refuses a dirty worktree), after committing or stashing")
     if sub == "checkout":
+        if "B" in letters:
+            return refuse(shown, "checkout -B resets an existing branch like branch -f", "git switch -c <new-branch>")
         if "f" in letters or any(longopt(t, "force") for t in args):
             return refuse(shown, "checkout -f discards local changes", "commit or stash first, then git switch <branch>")
         _, plain_c = positionals(args, {"-b", "-B", "--orphan", "-t", "--track", "--conflict", "--pathspec-from-file"})
@@ -368,7 +396,7 @@ def rm_check(tokens: list[str], ctx: Context) -> str:
     top = toplevel(ctx.cwd)
     for target in plain:
         parts = [p for p in re.split(r"/+", target) if p]
-        on_git = ".git" in parts or any(any(c in p for c in "*?[") and fnmatch.fnmatchcase(".git", p) for p in parts)
+        on_git = ".git" in parts or any(p[:1] in {".", "[", "\\"} and any(c in p for c in "*?[") and fnmatch.fnmatchcase(".git", p) for p in parts)
         resolved = Path(os.path.realpath(ctx.cwd / os.path.expandvars(os.path.expanduser(target))))
         covers = top is not None and Path(os.path.realpath(top)).is_relative_to(resolved)
         if on_git or covers:
@@ -376,13 +404,41 @@ def rm_check(tokens: list[str], ctx: Context) -> str:
     return ""
 
 
+def wrapper_words(wrapper: str) -> list[str]:
+    """The configured wrapper as words; an unbalanced quote falls back to a plain split (never raises)."""
+    try:
+        return shlex.split(wrapper) if wrapper else []
+    except ValueError:
+        return wrapper.split()
+
+
+def same_file(token: str, wanted: str, cwd: Path) -> bool:
+    """True when two spellings (`scripts/q.sh`, `./scripts/q.sh`, an absolute path) name the same file, relative to the cwd or its git top level."""
+    token, wanted = os.path.expanduser(token), os.path.expanduser(wanted)
+    if token == wanted:
+        return True
+    if "/" not in token and "/" not in wanted:
+        return False
+    top = toplevel(cwd) or cwd
+    seen = Path(os.path.realpath(cwd / token))
+    return any(Path(os.path.realpath(base / wanted)) == seen for base in (top, cwd)) and "/" in token + wanted
+
+
+def matches_wrapper(tokens: list[str], wrapper: str, cwd: Path) -> int:
+    """The number of words the wrapper takes at the start of tokens (0 when tokens do not start with it). Any spelling of its path matches."""
+    wanted = wrapper_words(wrapper)
+    if not wanted or len(tokens) < len(wanted) or not same_file(tokens[0], wanted[0], cwd):
+        return 0
+    return len(wanted) if [os.path.expanduser(t) for t in tokens[1:len(wanted)]] == [os.path.expanduser(t) for t in wanted[1:]] else 0
+
+
 def segment_check(tokens: list[str], ctx: Context, depth: int) -> str:
-    wanted = [os.path.expanduser(t) for t in shlex.split(ctx.wrapper)] if ctx.wrapper else []
     lead = True  # still in the prefix zone: assignments, prefix commands, options, redirections
     for i, token in enumerate(tokens):
         base = os.path.basename(token)
-        if wanted and os.path.expanduser(token) == wanted[0] and [os.path.expanduser(t) for t in tokens[i:i + len(wanted)]] == wanted:
-            reason = push_check(tokens[i + len(wanted):], tokens[i:], ctx)
+        taken = matches_wrapper(tokens[i:], ctx.wrapper, ctx.cwd)
+        if taken:
+            reason = push_check(tokens[i + taken:], tokens[i:], ctx)
             if reason:
                 return reason
         if base == "git":
@@ -446,17 +502,26 @@ def check(command: str, wrapper: str, cwd: Path) -> str:
     reason = check_command(command, ctx)
     if reason:
         return reason
-    for tokens in segments(command):  # a shell fed from a pipe or a here-string: scan the whole command text
-        if any(os.path.basename(t) in SHELLS for t in tokens) and not any(cluster(t).endswith("c") for t in tokens):
-            wrapper_name = os.path.basename(shlex.split(wrapper)[-1]) if wrapper.strip() else ""
+    fed = re.search(r"\||<<", command) is not None
+    for tokens in segments(command):  # a shell with no script and no -c that a pipe or here-string feeds: scan the whole command text
+        shell = next((i for i, t in enumerate(tokens) if os.path.basename(t) in SHELLS), None)
+        if fed and shell is not None and not any(cluster(t).endswith("c") for t in tokens) and all(t.startswith("-") for t in tokens[shell + 1:]):
+            words = wrapper_words(wrapper)
+            wrapper_name = os.path.basename(words[-1]) if words else ""
             if CRUDE.search(command) or wrapper_name and wrapper_name in command:
                 return refuse(["<command that feeds a shell>"], "a shell reads a git or push command from a pipe that cannot be inspected", "run the git command directly, or call the push queue wrapper without a pipe")
+    if wrapper_words(wrapper) and re.search(re.escape(os.path.basename(wrapper_words(wrapper)[-1])) + r"[^;&|\n]*(\$\(|`|\$\{)", command):
+        return refuse(["<wrapper call with a substitution>"], "a substitution can build the refspec at run time", "name the feature branch as a literal branch name")
     return ""
 
 
 def deny_dangerous(common, command: str, wrapper: str, cwd: Path) -> bool:
-    """The single call site of pre_tool_use.py: deny and return True when the Bash command is a dangerous git command."""
-    reason = check(command, wrapper, cwd)
+    """The single call site of pre_tool_use.py: deny and return True when the Bash command is a dangerous git command.
+    Any internal error denies too: a hook that raises does not block, so a role never runs on an unguarded command."""
+    try:
+        reason = check(command, wrapper, cwd)
+    except Exception as error:  # noqa: BLE001 - fail closed on every failure
+        reason = f"git-guardrails: the command could not be checked ({type(error).__name__}: {error}). Safe alternative: split it into plain git commands or ask your lead."
     if reason:
         common.deny(reason)
     return bool(reason)

@@ -166,10 +166,8 @@ def unwrap(tokens: list[str]) -> list[str]:
     return tokens
 
 
-def through_wrapper(tokens: list[str], wrapper: str) -> bool:
-    wanted = [expand(t) for t in shlex.split(wrapper)] if wrapper else []
-    got = [expand(t) for t in unwrap(tokens)]
-    return bool(wanted) and got[: len(wanted)] == wanted
+def through_wrapper(tokens: list[str], wrapper: str, cwd: Path) -> bool:
+    return bool(git_guardrails.matches_wrapper([expand(t) for t in unwrap(tokens)], wrapper, cwd))
 
 
 def is_no_verify(token: str) -> bool:
@@ -264,11 +262,12 @@ def analyze(command: str, wrapper: str, cwd: Path, depth: int = 0) -> Analysis:
             found.targets += [t for t in bare[1:] if not t.startswith("-")]
         if bare and depth < 3:
             name = os.path.basename(bare[0])
-            if name in SHELLS and "-c" in bare and bare.index("-c") + 1 < len(bare):
-                found.merge(analyze(bare[bare.index("-c") + 1], wrapper, cwd, depth + 1))
+            flag = next((k for k, t in enumerate(bare) if k and git_guardrails.cluster(t).endswith("c")), None)  # -c, -lc, -ec
+            if name in SHELLS and flag is not None and flag + 1 < len(bare):
+                found.merge(analyze(bare[flag + 1], wrapper, cwd, depth + 1))
             elif name == "eval":
                 found.merge(analyze(" ".join(bare[1:]), wrapper, cwd, depth + 1))
-        if through_wrapper(tokens, wrapper):
+        if through_wrapper(tokens, wrapper, cwd):
             found.no_verify = found.no_verify or any(is_no_verify(t) or t.lower().startswith("core.hookspath") for t in bare)
             continue
         is_push, bypass = push_form(bare, cwd, wrapper, depth)
