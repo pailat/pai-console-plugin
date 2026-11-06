@@ -1,0 +1,4 @@
+$ make unit
+FAIL: test_rounding (tools/rounding_test.py:9)
+AssertionError: 0.1 != 0.10000001
+make: *** [Makefile:3: unit] Error 1

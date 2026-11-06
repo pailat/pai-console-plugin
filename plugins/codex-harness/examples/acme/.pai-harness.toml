@@ -27,6 +27,11 @@ globs = ["packages/contracts/**", "AGENTS.md"]
 owners = ["acme-lead"]
 root = true
 
+# Which zones each role may write. A role not listed falls back to the zones that name the agent as an owner.
+[role_zones]
+implementer = ["frontend"]
+lead = ["frontend", "contracts"]
+
 [machines.acme-desktop]
 host = "acme-desktop.example.com"
 os = "linux"
@@ -44,6 +49,7 @@ max_agents = 6
 agents_file = "AGENTS.md"
 root_paths = ["packages/contracts/**"]
 must = ["Write English in code, comments and docs."]
+push_wrapper = "scripts/queue-push.sh"   # the only way an agent may push; hooks refuse every other form
 never = ["Push to main directly.", "Contact owner@example.com about builds."]
 
 [models]

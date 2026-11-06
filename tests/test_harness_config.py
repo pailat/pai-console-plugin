@@ -116,6 +116,9 @@ class ConfigTest(unittest.TestCase):
             "gates.hotfix.revert_on_failure": (VALID + HOTFIX.replace("true", '"yes"'), "gates.hotfix.revert_on_failure: expected boolean"),
             "gates.hotfix.colour": (VALID + HOTFIX + 'colour = "red"\n', "gates.hotfix.colour: unknown key"),
             "bogus": ('bogus = 1\n' + VALID, "bogus: unknown section"),
+            "rules.push_wrapper": (VALID + '[rules]\npush_wrapper = ""\n', "rules.push_wrapper: must not be empty"),
+            "role_zones.pilot": (VALID + '[role_zones]\npilot = []\n', "role_zones.pilot: unknown key"),
+            "role_zones.implementer[0]": (VALID + '[role_zones]\nimplementer = ["web"]\n', "role_zones.implementer[0]: unknown zone 'web'"),
             "schema_version": ('schema_version = 2\n' + VALID, "schema_version: unsupported"),
         }
         for key, (text, message) in cases.items():
@@ -134,6 +137,13 @@ class ConfigTest(unittest.TestCase):
             path.unlink()
             self.assertIn("no .pai-harness.toml found", run("load_config.py", tmp).stderr)
 
+    def test_the_example_maps_roles_to_zones_and_names_a_push_wrapper(self) -> None:
+        config = hc.load_file(PLUGIN / "examples/acme/.pai-harness.toml")
+        self.assertEqual(config["role_zones"], {"implementer": ["frontend"], "lead": ["frontend", "contracts"]})
+        self.assertEqual(config["rules"]["push_wrapper"], "scripts/queue-push.sh")
+        defaults = hc.validate(__import__("tomllib").loads(VALID))
+        self.assertEqual((defaults["role_zones"], defaults["rules"]["push_wrapper"]), ({}, ""))
+
     def test_json_schema_agrees_with_the_validator(self) -> None:
         schema = json.loads((PLUGIN / "schema/pai-harness.schema.json").read_text())
         self.assertEqual(sorted(schema["properties"]), sorted(["schema_version", *hc.DEFAULTS.keys() - {"schema_version"}]))
@@ -145,6 +155,8 @@ class ConfigTest(unittest.TestCase):
         hotfix = schema["properties"]["gates"]["properties"]["hotfix"]
         self.assertEqual(sorted(hotfix["properties"]), ["active_when", "applies_to", "post_merge", "pre_merge", "revert_on_failure"])
         self.assertEqual(hotfix["required"], ["active_when", "applies_to", "pre_merge", "post_merge"])
+        self.assertEqual(sorted(schema["properties"]["role_zones"]["propertyNames"]["enum"]), sorted(hc.ROLES))
+        self.assertEqual(schema["properties"]["rules"]["properties"]["push_wrapper"]["type"], "string")
         self.assertEqual(schema["properties"]["models"]["properties"]["lead"]["enum"], [m for m in hc.MODEL_CHOICES if m != "none"])
 
 

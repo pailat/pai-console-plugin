@@ -244,6 +244,10 @@
             "minLength": 1
           },
           "uniqueItems": true
+        },
+        "push_wrapper": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -334,6 +338,31 @@
         "gate-triager": "sonnet",
         "mechanical": "haiku",
         "watcher": "none"
+      }
+    },
+    "role_zones": {
+      "type": "object",
+      "propertyNames": {
+        "enum": [
+          "relay",
+          "orchestrator",
+          "lead",
+          "implementer",
+          "root-reviewer",
+          "integrator",
+          "distiller",
+          "gate-triager",
+          "mechanical",
+          "watcher"
+        ]
+      },
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniqueItems": true
       }
     }
   }
