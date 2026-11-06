@@ -32,7 +32,7 @@ class PluginLayoutTest(unittest.TestCase):
     def test_manifest_matches_the_contract(self) -> None:
         manifest = json.loads((PLUGIN / ".claude-plugin/plugin.json").read_text())
         console = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
-        self.assertEqual((manifest["name"], manifest["version"], manifest["license"]), ("pai-harness", "0.1.1", "UNLICENSED"))
+        self.assertEqual((manifest["name"], manifest["version"], manifest["license"]), ("pai-harness", "0.1.2", "UNLICENSED"))
         self.assertEqual(manifest["author"], console["author"])
 
     def test_marketplace_has_a_second_entry_and_leaves_pai_console_alone(self) -> None:
@@ -56,7 +56,7 @@ class PluginLayoutTest(unittest.TestCase):
     def test_codex_package_is_generated_and_reproducible(self) -> None:
         self.assertEqual(build_codex.build(ROOT, check=True), [])
         package = ROOT / build_codex.HARNESS_CODEX
-        self.assertEqual(json.loads((package / "plugin.json").read_text())["version"], "0.1.1")
+        self.assertEqual(json.loads((package / "plugin.json").read_text())["version"], "0.1.2")
         self.assertTrue((package / "scripts/validate_config.py").is_file())
         self.assertTrue((package / "skills/orchestration/agents/openai.yaml").is_file())
 

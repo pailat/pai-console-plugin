@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "pai-harness",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Horizontal multi-agent harness for Claude Code: orchestration roles, gates, write zones and Herdr plugins, configured per project through a .pai-harness.toml file.",
   "author": {
     "name": "Pai",
