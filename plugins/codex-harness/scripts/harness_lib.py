@@ -175,6 +175,59 @@ def run_state(summary: dict, exit_code: int | None, timed_out: bool = False) -> 
     return {**base, "state": "done", "reason": "result success"}
 
 
+PLUGIN_NAME = "pai-harness"
+REQUIRED_HOOK_EVENTS = ("SessionStart", "Stop", "PreToolUse")
+INIT_TIMEOUT_SECONDS = 60
+
+
+def plugin_root() -> Path:
+    """The plugin root, resolved from this file's own location (scripts/ sits directly under it)."""
+    return Path(__file__).resolve().parent.parent
+
+
+def expected_skills(root: Path) -> list[str]:
+    """Namespaced names of the plugin's skills as the init event lists them: `pai-harness:<skill dir>`."""
+    return sorted(f"{PLUGIN_NAME}:{d.name}" for d in (root / "skills").glob("*") if (d / "SKILL.md").is_file())
+
+
+def installed_plugin() -> bool:
+    """True when the user's Claude Code has pai-harness installed (then `--plugin-dir` is not passed)."""
+    chosen = os.environ.get("PAI_HARNESS_INSTALLED_PLUGINS")
+    path = Path(chosen) if chosen else Path.home() / ".claude/plugins/installed_plugins.json"
+    data = read_json(path) or {}
+    plugins = data.get("plugins") if isinstance(data.get("plugins"), dict) else data
+    return any(isinstance(k, str) and k.split("@")[0] == PLUGIN_NAME and v for k, v in plugins.items())
+
+
+def init_problems(frame: dict, skills: list[str]) -> list[str]:
+    """What a stream-json `system/init` event fails to prove about the loaded pai-harness plugin (empty list = proven).
+
+    Real field names (Claude Code 2.1.x): `plugins` is a list of {name, path, source, version}; `skills` is a list of
+    namespaced strings. The event has NO hooks field, so the hooks are read from the hooks.json of the plugin directory the
+    event reports as loaded.
+    """
+    listed = [p for p in frame.get("plugins") or [] if isinstance(p, dict) and p.get("name") == PLUGIN_NAME]
+    if not listed:
+        return [f"plugin {PLUGIN_NAME} is not in init plugins"]
+    problems = []
+    loaded = {s for s in frame.get("skills") or [] if isinstance(s, str)}
+    problems += [f"skill {name} not loaded" for name in skills if name not in loaded]
+    hooks = (read_json(Path(str(listed[0].get("path") or "")) / "hooks/hooks.json") or {}).get("hooks")
+    hooks = hooks if isinstance(hooks, dict) else {}
+    problems += [f"hook {event} not registered" for event in REQUIRED_HOOK_EVENTS if not hooks.get(event)]
+    return problems
+
+
+def blocker(state: Path, issue: str, reason: str) -> str:
+    """Append a BLOCKER line to the state journal and print it; returns the line."""
+    line = f"BLOCKER {issue}: {reason}"
+    state.mkdir(parents=True, exist_ok=True)
+    with (state / "journal.jsonl").open("a", encoding="utf-8") as journal:
+        journal.write(json.dumps({"ts": stamp(), "kind": "BLOCKER", "issue": issue, "line": line, "delivered": False}, sort_keys=True) + "\n")
+    print(line)
+    return line
+
+
 def exit_for(state_name: str) -> int:
     return {"done": EXIT_DONE, "blocked": EXIT_BLOCKED}.get(state_name, EXIT_FAILED)
 

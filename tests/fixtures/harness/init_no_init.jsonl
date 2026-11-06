@@ -1,0 +1,5 @@
+{"type":"assistant","session_id":"11111111-2222-3333-4444-555555555555","message":{"role":"assistant","content":[{"type":"text","text":"Reading the Acme checkout."}]}}
+{"type":"assistant","session_id":"11111111-2222-3333-4444-555555555555","message":{"role":"assistant","content":[{"type":"tool_use","name":"Read","input":{"file_path":"README.md"}}]}}
+{"type":"user","session_id":"11111111-2222-3333-4444-555555555555","message":{"role":"user","content":[{"type":"tool_result","content":"Acme app"}]}}
+{"type":"rate_limit_event","session_id":"11111111-2222-3333-4444-555555555555"}
+{"type":"result","subtype":"success","is_error":false,"num_turns":2,"result":"TEST-OK","session_id":"11111111-2222-3333-4444-555555555555","total_cost_usd":0.0086,"permission_denials":[]}
