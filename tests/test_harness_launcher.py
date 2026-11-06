@@ -70,6 +70,17 @@ class LaunchTest(HarnessCase):
         self.assertEqual((record["session_id"], record["machine"]), ("11111111-2222-3333-4444-555555555555", "acme-desktop"))
         self.assertEqual([e["kind"] for e in self.journal()], ["run.started", "run.finished"])
 
+    def test_budgets_are_always_passed_and_usage_lands_in_the_record(self) -> None:
+        self.launch("ACME-7", "heavy", 0, "--role", "implementer")
+        argv = json.loads((self.tmp / "claude.json").read_text())["argv"]
+        self.assertEqual(argv[argv.index("--max-turns") + 1], "80")
+        self.assertEqual(argv[argv.index("--max-budget-usd") + 1], "3")
+        record = self.record("ACME-7")
+        self.assertEqual((record["peak_context_tokens"], record["output_tokens"], record["cache_read_tokens"]), (130000, 150, 2000))
+        self.assertEqual(record["model"], "sonnet")
+        alerts = [e for e in self.journal() if e["kind"] == "run.compaction_alert"]
+        self.assertEqual([a["context_tokens"] for a in alerts], [130000])  # once, at the first crossing of 120k
+
     def test_the_command_is_headless_stream_json_with_the_prompt_on_stdin_and_no_permission_bypass(self) -> None:
         self.launch("ACME-7", "success", 0, "--role", "mechanical")
         sent = json.loads((self.tmp / "claude.json").read_text())

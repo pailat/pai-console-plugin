@@ -2,6 +2,13 @@
 
 Every release has an entry. Merged work never stays unversioned for more than one pull request.
 
+## Unreleased (cost)
+
+- Every run carries `--max-turns` and `--max-budget-usd` from `[limits]` (`max_turns` 80, `max_budget_usd` 3): a cap stop ends the run `failed`, never `done`.
+- The run record adds `model`, token totals (input, cache write, cache read, output) and `peak_context_tokens`; one `run.compaction_alert` journal event and a render line when the context first crosses `limits.compaction_alert_tokens` (120000).
+- `cost_report.sh`: per-day totals by role and model from the run records, cost per merged PR with `--merged N`; unpriced runs are counted apart, never as zero.
+- Default model routing: relay and orchestrator move from Opus to Sonnet; Opus stays only for root-reviewer.
+
 ## 0.1.3
 
 Pull requests #40 to #44:

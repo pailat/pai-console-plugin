@@ -215,6 +215,18 @@
         "turn_timeout_minutes": {
           "type": "integer",
           "minimum": 1
+        },
+        "max_turns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_budget_usd": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "compaction_alert_tokens": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     },
@@ -333,8 +345,8 @@
         }
       },
       "default": {
-        "relay": "opus",
-        "orchestrator": "opus",
+        "relay": "sonnet",
+        "orchestrator": "sonnet",
         "lead": "sonnet",
         "implementer": "sonnet",
         "root-reviewer": "opus",

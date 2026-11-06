@@ -17,10 +17,10 @@ SCHEMA_VERSION = 1
 ROLES = ("relay", "orchestrator", "lead", "implementer", "root-reviewer", "integrator",
          "distiller", "gate-triager", "mechanical", "watcher")
 MODEL_CHOICES = ("opus", "sonnet", "haiku", "none")  # "none" is only for the watcher, a script
-# Role models (the v4 roles decision): Opus for relay, orchestrator and root-reviewer; Haiku for mechanical work behind
+# Role models (cost routing): Opus only for root-reviewer (a ROOT decision); Sonnet for relay and orchestrator too; Haiku for mechanical work behind
 # rails; Sonnet for lead, implementer, integrator, distiller and gate-triager; the watcher is a script (no model).
 DEFAULT_MODELS = {
-    "relay": "opus", "orchestrator": "opus", "lead": "sonnet", "implementer": "sonnet",
+    "relay": "sonnet", "orchestrator": "sonnet", "lead": "sonnet", "implementer": "sonnet",
     "root-reviewer": "opus", "integrator": "sonnet", "distiller": "sonnet",
     "gate-triager": "sonnet", "mechanical": "haiku", "watcher": "none",
 }
@@ -34,7 +34,8 @@ DEFAULTS = {
     "zones": {},
     "machines": {},
     "queues": {},
-    "limits": {"max_agents": 6, "max_agents_per_machine": 3, "max_open_prs": 5, "turn_timeout_minutes": 60},
+    "limits": {"max_agents": 6, "max_agents_per_machine": 3, "max_open_prs": 5, "turn_timeout_minutes": 60,
+               "max_turns": 80, "max_budget_usd": 3, "compaction_alert_tokens": 120000},
     "role_zones": {},
     "rules": {"agents_file": "AGENTS.md", "root_paths": [], "must": [], "never": [], "push_wrapper": ""},
     "models": dict(DEFAULT_MODELS),
@@ -78,6 +79,12 @@ def _positive(path: str, value: object) -> int:
     if value < 1:  # type: ignore[operator]
         raise ConfigError(f"{path}: must be at least 1, got {value}")
     return value  # type: ignore[return-value]
+
+
+def _positive_number(path: str, value: object) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+        raise ConfigError(f"{path}: expected a number greater than 0, got {value!r}")
+    return value
 
 
 def _table(path: str, value: object, allowed: set[str], required: set[str] = frozenset()) -> dict:  # type: ignore[assignment]
@@ -159,7 +166,7 @@ def validate(data: object) -> dict:
 
     limits = _table("limits", data.get("limits", {}), set(DEFAULTS["limits"]))
     for key, value in limits.items():
-        out["limits"][key] = _positive(f"limits.{key}", value)
+        out["limits"][key] = (_positive_number if key == "max_budget_usd" else _positive)(f"limits.{key}", value)
 
     rules = _table("rules", data.get("rules", {}), set(DEFAULTS["rules"]))
     for key in ("agents_file", "push_wrapper"):

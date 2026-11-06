@@ -99,6 +99,8 @@ def claude_command(args: argparse.Namespace, config: dict, resume: str | None, m
         command += ["--plugin-dir", str(lib.plugin_root())]  # every run loads the plugin, from the launcher's own location
     if mcp_config:  # only the machine config: a user or plugin OAuth server must not stand in for it
         command += ["--mcp-config", str(mcp_config), "--strict-mcp-config"]
+    # Budgets fail closed: every run carries a turn cap and a dollar cap, from [limits]; claude stops the run when either is hit.
+    command += ["--max-turns", str(config["limits"]["max_turns"]), "--max-budget-usd", str(config["limits"]["max_budget_usd"])]
     if resume:
         command += ["--resume", resume]
     if args.allowed_tools:
@@ -236,6 +238,32 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
         except Exception as error:  # noqa: BLE001 - display only
             print(f"render error: {error}", file=sys.stderr)
 
+    usage = {"peak_context_tokens": 0, "compaction_alert": False, "input_tokens": 0, "cache_write_tokens": 0, "cache_read_tokens": 0,
+             "output_tokens": 0}
+    seen_messages: set[str] = set()
+
+    def track(frame_line: str) -> None:
+        """Sum token usage once per model message and alert once when the context crosses the compaction threshold."""
+        try:
+            frame = json.loads(frame_line)
+            message = frame.get("message") if frame.get("type") == "assistant" else None
+            if not isinstance(message, dict) or (message.get("id") and message["id"] in seen_messages):
+                return  # a message streams as one frame per content block: count its usage once
+            seen_messages.add(message.get("id"))
+            u = message.get("usage") or {}
+            usage["input_tokens"] += u.get("input_tokens", 0)
+            usage["cache_write_tokens"] += u.get("cache_creation_input_tokens", 0)
+            usage["cache_read_tokens"] += u.get("cache_read_input_tokens", 0)
+            usage["output_tokens"] += u.get("output_tokens", 0)
+            context = u.get("input_tokens", 0) + u.get("cache_creation_input_tokens", 0) + u.get("cache_read_input_tokens", 0)
+            usage["peak_context_tokens"] = max(usage["peak_context_tokens"], context)
+            if context >= config["limits"]["compaction_alert_tokens"] and not usage["compaction_alert"]:
+                usage["compaction_alert"] = True
+                lib.emit(state, "run.compaction_alert", {"issue": args.issue, "run_id": run_id, "context_tokens": context})
+                renderer.say(f"⚠ context {context} tokens: compact or hand off")
+        except (ValueError, AttributeError, TypeError):
+            pass  # accounting only; never touches the run
+
     def closing(record_state: str, text: str) -> None:
         renderer.say(f"■ record {record_state} {text}".rstrip())
         status.finish(record_state, renderer.step, renderer.turns)
@@ -264,6 +292,7 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
                     out.flush()
                     lines.append(line)
                     init.feed(line)
+                    track(line)
                     show(line)
                     if time.monotonic() - last_beat > 60:
                         lib.register(state, args.issue, state="running")
@@ -294,7 +323,8 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
     summary = lib.parse_stream(lines)
     verdict = lib.run_state(summary, exit_code, timed_out)
     record = {"issue": args.issue, "queue": queue, "machine": machine, "role": args.role, "started": started, "finished": lib.stamp(),
-              "stream": str(stream), "resumed": bool(resume), "run_id": run_id, **verdict}
+              "stream": str(stream), "resumed": bool(resume), "run_id": run_id, "model": args.model or config["models"].get(args.role or "implementer", "sonnet"),
+              **usage, **verdict}
     lib.write_json(state_file, record)
     lib.register(state, args.issue, state=verdict["state"], session_id=verdict["session_id"])
     lib.emit(state, "run.finished", {k: record[k] for k in ("issue", "state", "reason", "exit_code", "session_id", "cost_usd", "turns")})
