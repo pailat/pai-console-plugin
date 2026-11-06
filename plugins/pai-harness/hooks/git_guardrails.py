@@ -4,7 +4,7 @@ pre_tool_use.py calls `deny_dangerous` once for every Bash command of a role-bea
 bypass-permissions mode too, because the harness runs the hook before any permission decision.
 
 BLOCKED (each block names the command and the safe alternative):
-- a push to main, staging, production or release/* through the wrapper;
+- a push to main, staging, production or release/* through the wrapper (`wrapper origin main` and `wrapper git push origin main`);
 - git push with --force, -f, --force-with-lease, --delete, -d, --mirror, --prune, a `+ref` refspec or a `:branch` refspec,
   also through the push queue wrapper (the wrapper path is found anywhere in the command, e.g. `bash scripts/queue-push.sh`);
 - git reset --hard, git clean (unless it is a dry run), git branch -D / -f, git stash drop / clear, git rebase -i,
@@ -28,8 +28,10 @@ A command that cannot be parsed is read as best as possible, never skipped. Know
 """
 from __future__ import annotations
 
+import copy
 import fnmatch
 import os
+import time
 import re
 import shlex
 import subprocess
@@ -99,8 +101,37 @@ def positionals(args: list[str], valued: set[str] = frozenset()) -> tuple[list[s
 
 
 class Context:
+    """One check() call. `cwd` follows `cd` from segment to segment; `unknown_cwd` is set when a cd target cannot be read statically.
+    `branches` and `aliases` cache the git subprocess results for the whole call, and `deadline` bounds them: after it every lookup fails (and so denies)."""
+
     def __init__(self, cwd: Path, wrapper: str, owned: Path | None) -> None:
         self.cwd, self.wrapper, self.owned = cwd, wrapper, owned
+        self.origin, self.unknown_cwd = cwd, False
+        self.branches: dict[str, str | None] = {}
+        self.aliases: dict[str, dict[str, str] | None] = {}
+        self.deadline = time.monotonic() + LOOKUP_BUDGET
+
+    def moved(self, cwd: Path | None) -> "Context":
+        other = copy.copy(self)  # shares the caches and the deadline
+        if cwd is None:
+            other.unknown_cwd = True
+        else:
+            other.cwd = cwd
+        return other
+
+    def git(self, args: list[str], directory: Path) -> "subprocess.CompletedProcess | None":
+        """Run git once; None when git cannot answer in time (a timeout must deny, never allow)."""
+        left = self.deadline - time.monotonic()
+        if left <= 0 or not directory.is_dir():
+            return None
+        try:
+            return run_process(["git", *args], cwd=directory, capture_output=True, text=True, timeout=min(left, LOOKUP_TIMEOUT))
+        except (OSError, subprocess.SubprocessError):
+            return None
+
+
+LOOKUP_TIMEOUT = 3  # seconds for one git call; pre_tool_use.py has a 10 s hook timeout, and a hook timeout does not block
+LOOKUP_BUDGET = 5  # seconds for all git calls of one check()
 
 
 def toplevel(directory: Path) -> Path | None:
@@ -145,35 +176,66 @@ def refuse(command: list[str], why: str, alternative: str) -> str:
 
 
 PROTECTED = ("main", "staging", "production", "release/*")
+GLOB = re.compile(r"[*?\[]")
 
 
-def current_branch(directory: Path) -> str:
-    try:
-        done = run_process(["git", "symbolic-ref", "--short", "-q", "HEAD"], cwd=directory if directory.is_dir() else None,
-                           capture_output=True, text=True, timeout=5)
-        return done.stdout.strip()
-    except (OSError, subprocess.SubprocessError):
-        return ""
+def protected_patterns() -> tuple[str, ...]:
+    """PAI_HARNESS_PROTECTED_BRANCHES (comma or colon separated globs) replaces the default list; an empty value protects nothing."""
+    value = os.environ.get("PAI_HARNESS_PROTECTED_BRANCHES")
+    if value is None:
+        return PROTECTED
+    return tuple(p.strip() for p in re.split(r"[,:]", value) if p.strip())
 
 
-def push_check(args: list[str], shown: list[str], cwd: Path) -> str:
+def current_branch(directory: Path, ctx: Context) -> str | None:
+    """The branch HEAD names in directory ("" for a detached HEAD); None when it cannot be told (timeout, not a repository). Cached per check()."""
+    key = os.path.realpath(directory)
+    if key not in ctx.branches:
+        done = ctx.git(["symbolic-ref", "--short", "-q", "HEAD"], directory)
+        ctx.branches[key] = None if done is None or done.returncode not in (0, 1) else done.stdout.strip()
+    return ctx.branches[key]
+
+
+def push_check(args: list[str], shown: list[str], ctx: Context) -> str:
     for token in args:
         letters = cluster(token)
         forced = longopt(token, "force", "force-with-lease", "delete", "mirror", "prune") or "f" in letters or "d" in letters
         if forced or (token.startswith("+") and len(token) > 1) or token.startswith(":") or ":+" in token:
             return refuse(shown, "force, delete, mirror and prune pushes rewrite or remove remote history",
                           "push the feature branch normally through the push queue wrapper; for a rewritten branch or a remote branch deletion, ask your lead")
-        if longopt(token, "no-verify", least=5) or token.startswith("core.hooksPath"):
-            return refuse(shown, "a push that skips the pre-push hook", "fix what the pre-push hook reports instead of bypassing it")
+        if longopt(token, "all", "branches", least=4):
+            return refuse(shown, "--all / --branches pushes every local branch, protected ones included", "name the feature branch to push")
+    directories = []
+    if args and os.path.basename(args[0]) == "git":  # the wrapper may be called as `wrapper git push ...`: read the push after the git options
+        j = 1
+        while j < len(args) and args[j].startswith("-"):
+            if args[j] == "-C" and j + 1 < len(args):
+                directories.append(args[j + 1])
+            if args[j].startswith("--git-dir") or args[j].startswith("--work-tree"):
+                directories.append("\0unknown")
+            j += 2 if args[j] in GIT_VALUE_OPTIONS else 1
+        if j < len(args) and args[j] != "push":  # `wrapper git status`: not a push, so no destination to check
+            return ""
+        args = args[j + 1:]
     _, plain = positionals(args, {"-o", "--push-option", "--repo", "--receive-pack", "--exec", "-c"})
-    refspecs = plain[1:]
-    destinations = [spec.rpartition(":")[2] for spec in refspecs] or ["HEAD"]
-    for destination, spec in zip(destinations, refspecs or ["HEAD"]):
-        branch = destination.removeprefix("refs/heads/")
-        if branch == "HEAD" and ":" not in spec:
-            branch = current_branch(cwd)
-        if any(fnmatch.fnmatchcase(branch, pattern) for pattern in PROTECTED):
-            return refuse(shown, f"a push to the protected branch {branch}", "push a feature branch and open a pull request; the merge is done by the orchestrator")
+    refspecs = plain[1:] or ["HEAD"]
+    patterns = protected_patterns()
+    for spec in refspecs:
+        destination = spec.rpartition(":")[2].removeprefix("refs/heads/")
+        if GLOB.search(destination):  # a pattern can update any head, protected ones included
+            return refuse(shown, f"the pattern {destination} can update protected branches", "name the feature branch to push")
+        if destination in {"HEAD", "@"}:  # `@` is an alias of HEAD: the branch the working directory is on
+            if "\0unknown" in directories or ctx.unknown_cwd and not directories:
+                return refuse(shown, "the directory the push runs in cannot be read, so HEAD cannot be resolved", "push a named feature branch")
+            where = [effective_dir(directories, ctx)]
+            if not directories and ctx.cwd != ctx.origin:  # a `cd` inside a subshell does not carry over: check where the session started too
+                where.append(ctx.origin)
+            names = [current_branch(d, ctx) for d in where]
+            if None in names:
+                return refuse(shown, "the current branch could not be read in time, so HEAD cannot be resolved", "push a named feature branch")
+            destination = next((n for n in names if any(fnmatch.fnmatchcase(n, p) for p in patterns)), names[0])
+        if any(fnmatch.fnmatchcase(destination, p) or fnmatch.fnmatchcase(p, destination) for p in patterns):
+            return refuse(shown, f"a push to the protected branch {destination}", "push a feature branch and open a pull request; the merge is done by the orchestrator")
     return ""
 
 
@@ -195,11 +257,15 @@ def git_check(tokens: list[str], ctx: Context, depth: int, inline: dict[str, str
     if not rest:
         return ""
     effective = effective_dir(directories, ctx)
-    reason = subcommand_check(rest[0], rest[1:], tokens, ctx, effective, "\0unknown" in directories)
+    unknown = "\0unknown" in directories or ctx.unknown_cwd
+    reason = subcommand_check(rest[0], rest[1:], tokens, ctx, effective, unknown)
     if reason or depth >= 3:
         return reason
     name, args, seen = rest[0].lower(), rest[1:], set()
-    known = {**config_aliases(effective), **aliases}
+    configured = config_aliases(effective, ctx)
+    if configured is None:
+        return refuse(tokens, "the git aliases could not be read in time", "retry the command; spell the git command out without an alias")
+    known = {**configured, **aliases}
     while name in known and name not in seen:  # also check the expansion: git ignores an alias that shadows a builtin
         seen.add(name)
         value = known[name].strip()
@@ -212,23 +278,26 @@ def git_check(tokens: list[str], ctx: Context, depth: int, inline: dict[str, str
         if not parts:
             return ""
         name, args = parts[0].lower(), parts[1:] + args
-        reason = subcommand_check(name, args, ["git", name, *args], ctx, effective, "\0unknown" in directories)
+        reason = subcommand_check(name, args, ["git", name, *args], ctx, effective, unknown)
         if reason:
             return reason
     return ""
 
 
-def config_aliases(directory: Path) -> dict[str, str]:
-    aliases: dict[str, str] = {}
-    try:
-        done = run_process(["git", "config", "--get-regexp", r"^alias\."], cwd=directory if directory.is_dir() else None,
-                           capture_output=True, text=True, timeout=5)
-        for line in done.stdout.splitlines():
-            key, _, value = line.partition(" ")
-            aliases[key[len("alias."):].lower()] = value
-    except (OSError, subprocess.SubprocessError):
-        pass
-    return aliases
+def config_aliases(directory: Path, ctx: Context) -> dict[str, str] | None:
+    """The aliases git config knows in directory (cached per check()); None when git cannot answer in time."""
+    key = os.path.realpath(directory)
+    if key not in ctx.aliases:
+        done = ctx.git(["config", "--get-regexp", r"^alias\."], directory)
+        if done is None or done.returncode not in (0, 1):  # 1 means "no alias set"
+            ctx.aliases[key] = None
+        else:
+            found: dict[str, str] = {}
+            for line in done.stdout.splitlines():
+                name, _, value = line.partition(" ")
+                found[name[len("alias."):].lower()] = value
+            ctx.aliases[key] = found
+    return ctx.aliases[key]
 
 
 def subcommand_check(sub: str, args: list[str], shown: list[str], ctx: Context, effective: Path, unknown_dir: bool) -> str:
@@ -313,7 +382,7 @@ def segment_check(tokens: list[str], ctx: Context, depth: int) -> str:
     for i, token in enumerate(tokens):
         base = os.path.basename(token)
         if wanted and os.path.expanduser(token) == wanted[0] and [os.path.expanduser(t) for t in tokens[i:i + len(wanted)]] == wanted:
-            reason = push_check(tokens[i + len(wanted):], tokens[i:], ctx.cwd)
+            reason = push_check(tokens[i + len(wanted):], tokens[i:], ctx)
             if reason:
                 return reason
         if base == "git":
@@ -344,11 +413,29 @@ def segment_check(tokens: list[str], ctx: Context, depth: int) -> str:
     return ""
 
 
+def cd_target(tokens: list[str]) -> tuple[bool, str | None]:
+    """(is this segment a cd, its target; None when the target is not static: a variable, a substitution, `cd -`)."""
+    words = tokens[:]
+    while words and (re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*=.*", words[0]) or words[0] in KEYWORDS):
+        words = words[1:]
+    if not words or os.path.basename(words[0]) not in {"cd", "pushd"}:
+        return False, None
+    args = [t for t in words[1:] if t not in {"-L", "-P", "-e", "-@", "--"}]
+    if not args:
+        return True, "~"
+    if len(args) > 1 or args[0] == "-" or re.search(r"[$`*?\[]", args[0]) or args[0].startswith("~") and not args[0].startswith("~/") and args[0] != "~":
+        return True, None
+    return True, args[0]
+
+
 def check_command(command: str, ctx: Context, depth: int = 0) -> str:
     for tokens in segments(command):
         reason = segment_check(tokens, ctx, depth)
         if reason:
             return reason
+        is_cd, target = cd_target(tokens)  # later segments run where this one went (a conservative reading of subshells and `||`)
+        if is_cd:
+            ctx = ctx.moved(None if target is None else Path(os.path.realpath(ctx.cwd / os.path.expanduser(target))))
     return ""
 
 
@@ -361,8 +448,9 @@ def check(command: str, wrapper: str, cwd: Path) -> str:
         return reason
     for tokens in segments(command):  # a shell fed from a pipe or a here-string: scan the whole command text
         if any(os.path.basename(t) in SHELLS for t in tokens) and not any(cluster(t).endswith("c") for t in tokens):
-            if CRUDE.search(command):
-                return refuse(["<command that feeds a shell>"], "a shell reads a git command from a pipe that cannot be inspected", "run the git command directly")
+            wrapper_name = os.path.basename(shlex.split(wrapper)[-1]) if wrapper.strip() else ""
+            if CRUDE.search(command) or wrapper_name and wrapper_name in command:
+                return refuse(["<command that feeds a shell>"], "a shell reads a git or push command from a pipe that cannot be inspected", "run the git command directly, or call the push queue wrapper without a pipe")
     return ""
 
 

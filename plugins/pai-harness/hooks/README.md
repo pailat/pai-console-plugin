@@ -20,6 +20,6 @@ The hooks only allow or deny; they never ask. Tests: `python3 -m unittest tests.
 
 ## Git guardrails
 
-`git_guardrails.py` is called once from `pre_tool_use.py` for every Bash command of an agent with a role. It denies force, delete, mirror and prune pushes, `--no-verify` and pushes to main, staging, production or release/* (all through the push queue wrapper), `git reset --hard`, `git clean`, `git branch -D`, `git stash drop`, `git rebase -i`, `git update-ref -d`, `git worktree remove --force`, `git checkout .` / `git restore .` and `rm -rf .git`. Each denial names the command and a safe alternative. A PreToolUse deny also holds in bypass-permissions mode.
+`git_guardrails.py` is called once from `pre_tool_use.py` for every Bash command of an agent with a role. It denies force, delete, mirror and prune pushes, and pushes to main, staging, production or release/* (all through the push queue wrapper), `git reset --hard`, `git clean`, `git branch -D`, `git stash drop`, `git rebase -i`, `git update-ref -d`, `git worktree remove --force`, `git checkout .` / `git restore .` and `rm -rf .git`. Each denial names the command and a safe alternative. A PreToolUse deny also holds in bypass-permissions mode.
 
 Opt-in for a throwaway path: set `PAI_HARNESS_GIT_THROWAWAY` to relative paths of the agent's own git top level (separated by `,` or `:`). Only `checkout`/`restore` of a broad pathspec and `git clean` can be opted in, and only for targets inside those paths. Code generated at run time (`python -c`, `base64 -d | sh`) is not read.
