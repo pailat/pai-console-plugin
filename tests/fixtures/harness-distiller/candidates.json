@@ -1,0 +1,17 @@
+{
+  "turn": "turn-acme-0142",
+  "nodes": [
+    {"ref": "$retry", "kind": "decision", "title": "Invoice export retries at most 3 times with exponential backoff",
+     "summary": "Retries are capped at 3 with 1s, 2s, 4s waits because the export API allows 5 calls per minute.",
+     "status": "proposed",
+     "sources": [{"type": "repo", "path": "apps/acme-app/export/client.py"}, {"type": "chat"}]},
+    {"ref": "$swallow", "kind": "lesson", "title": "Export client must not swallow 429 responses",
+     "summary": "The client dropped rate-limit responses silently, so failures looked like empty exports.",
+     "status": "active",
+     "sources": [{"type": "repo", "path": "apps/acme-app/export/client.py", "ref": "abc1234"}, {"type": "chat"}]},
+    {"ref": "$clock", "kind": "lesson", "title": "A retry test fakes the clock",
+     "summary": "Without a fake clock the retry test sleeps for seven seconds.",
+     "status": "active",
+     "sources": [{"type": "chat"}]}
+  ]
+}
