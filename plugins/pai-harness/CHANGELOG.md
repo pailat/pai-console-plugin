@@ -2,6 +2,16 @@
 
 Every release has an entry. Merged work never stays unversioned for more than one pull request.
 
+## Unreleased (cost)
+
+- Every run carries `--max-turns` and `--max-budget-usd` from `[limits]` (`max_turns` 80, `max_budget_usd` 3): a cap stop ends the run `failed`, never `done`.
+- The run record adds `model`, token totals (input, cache write, cache read, output) and `peak_context_tokens`; one `run.compaction_alert` journal event and a render line when the context first crosses `limits.compaction_alert_tokens` (120000).
+- `cost_report.sh`: per-day totals by role and model from the run records, cost per merged PR with `--merged N`; unpriced runs are counted apart, never as zero.
+- Caps are per role: `[role_limits.<role>]` (`max_turns`, `max_budget_usd`) over `[limits]`; defaults give relay and orchestrator 400 turns / $15, lead 300 / $10 and root-reviewer 120 / $8, every other role the `[limits]` values. `max_budget_usd` must be finite and at least 0.01.
+- The caps bound the total per issue: the run record holds totals over every invocation (`runs` lists each one), a resume is given only the turns and dollars left, and a capped issue is not resumed (BLOCKER, record untouched) until its cap is raised.
+- Usage accounting skips subagent (sidechain) frames, the compaction alert re-arms after the context falls, the record adds `model_reported` from the init frame, and `cost_report.sh` validates `--day` (UTC) and `--merged`, prints the unpriced count in the total and marks cost per merged PR a lower bound when runs are unpriced.
+- Default model routing: relay and orchestrator move from Opus to Sonnet; Opus stays only for root-reviewer.
+
 ## 0.1.3
 
 Pull requests #40 to #44:

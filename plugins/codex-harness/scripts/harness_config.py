@@ -6,6 +6,7 @@ tests keep the two in step. This module is what the plugin runs.
 from __future__ import annotations
 
 import copy
+import math
 import os
 import re
 import tomllib
@@ -17,12 +18,19 @@ SCHEMA_VERSION = 1
 ROLES = ("relay", "orchestrator", "lead", "implementer", "root-reviewer", "integrator",
          "distiller", "gate-triager", "mechanical", "watcher")
 MODEL_CHOICES = ("opus", "sonnet", "haiku", "none")  # "none" is only for the watcher, a script
-# Role models (the v4 roles decision): Opus for relay, orchestrator and root-reviewer; Haiku for mechanical work behind
+# Role models (cost routing): Opus only for root-reviewer (a ROOT decision); Sonnet for relay and orchestrator too; Haiku for mechanical work behind
 # rails; Sonnet for lead, implementer, integrator, distiller and gate-triager; the watcher is a script (no model).
 DEFAULT_MODELS = {
-    "relay": "opus", "orchestrator": "opus", "lead": "sonnet", "implementer": "sonnet",
+    "relay": "sonnet", "orchestrator": "sonnet", "lead": "sonnet", "implementer": "sonnet",
     "root-reviewer": "opus", "integrator": "sonnet", "distiller": "sonnet",
     "gate-triager": "sonnet", "mechanical": "haiku", "watcher": "none",
+}
+# Per-role caps over [limits] max_turns / max_budget_usd. Long-lived supervisory roles (relay, orchestrator, lead) run many turns by design and
+# the Opus root-reviewer reads big diffs, so they get their own larger caps; every other role uses [limits]. Override with [role_limits.<role>].
+MIN_BUDGET_USD = 0.01  # below this a cap ends every run within a turn
+DEFAULT_ROLE_LIMITS = {
+    "relay": {"max_turns": 400, "max_budget_usd": 15}, "orchestrator": {"max_turns": 400, "max_budget_usd": 15},
+    "lead": {"max_turns": 300, "max_budget_usd": 10}, "root-reviewer": {"max_turns": 120, "max_budget_usd": 8},
 }
 TOKEN_SCOPES = ("read", "write")
 TOKEN_SCOPE_ENV = "PAI_HARNESS_TOKEN_SCOPE"
@@ -34,7 +42,9 @@ DEFAULTS = {
     "zones": {},
     "machines": {},
     "queues": {},
-    "limits": {"max_agents": 6, "max_agents_per_machine": 3, "max_open_prs": 5, "turn_timeout_minutes": 60},
+    "limits": {"max_agents": 6, "max_agents_per_machine": 3, "max_open_prs": 5, "turn_timeout_minutes": 60,
+               "max_turns": 80, "max_budget_usd": 3, "compaction_alert_tokens": 120000},
+    "role_limits": copy.deepcopy(DEFAULT_ROLE_LIMITS),
     "role_zones": {},
     "rules": {"agents_file": "AGENTS.md", "root_paths": [], "must": [], "never": [], "push_wrapper": ""},
     "models": dict(DEFAULT_MODELS),
@@ -80,6 +90,17 @@ def _positive(path: str, value: object) -> int:
     return value  # type: ignore[return-value]
 
 
+def _positive_number(path: str, value: object) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < MIN_BUDGET_USD:
+        raise ConfigError(f"{path}: expected a finite number of at least {MIN_BUDGET_USD}, got {value!r}")
+    return value
+
+
+def role_limits(config: dict, role: str) -> dict:
+    """The effective turn and dollar caps for a role: [limits] overlaid by the role's [role_limits.<role>] entry."""
+    return {"max_turns": config["limits"]["max_turns"], "max_budget_usd": config["limits"]["max_budget_usd"], **config.get("role_limits", {}).get(role, {})}
+
+
 def _table(path: str, value: object, allowed: set[str], required: set[str] = frozenset()) -> dict:  # type: ignore[assignment]
     _expect(path, value, dict)
     for key in sorted(value):  # type: ignore[arg-type]
@@ -101,7 +122,7 @@ def _named(path: str, value: object) -> dict:
 
 def validate(data: object) -> dict:
     """Return the config with defaults applied, or raise ConfigError naming the first bad key."""
-    top = {"schema_version", "project", "gates", "zones", "machines", "queues", "limits", "rules", "models", "role_zones", "pai", "knowledge"}
+    top = {"schema_version", "project", "gates", "zones", "machines", "queues", "limits", "role_limits", "rules", "models", "role_zones", "pai", "knowledge"}
     data = _table("", data, top, {"project"})
     out = copy.deepcopy(DEFAULTS)
     if "schema_version" in data:
@@ -159,7 +180,12 @@ def validate(data: object) -> dict:
 
     limits = _table("limits", data.get("limits", {}), set(DEFAULTS["limits"]))
     for key, value in limits.items():
-        out["limits"][key] = _positive(f"limits.{key}", value)
+        out["limits"][key] = (_positive_number if key == "max_budget_usd" else _positive)(f"limits.{key}", value)
+
+    for role, entry in _table("role_limits", data.get("role_limits", {}), set(ROLES)).items():
+        entry = _table(f"role_limits.{role}", entry, {"max_turns", "max_budget_usd"})
+        out["role_limits"].setdefault(role, {}).update(
+            {k: (_positive_number if k == "max_budget_usd" else _positive)(f"role_limits.{role}.{k}", v) for k, v in entry.items()})
 
     rules = _table("rules", data.get("rules", {}), set(DEFAULTS["rules"]))
     for key in ("agents_file", "push_wrapper"):

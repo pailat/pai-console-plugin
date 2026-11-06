@@ -70,6 +70,81 @@ class LaunchTest(HarnessCase):
         self.assertEqual((record["session_id"], record["machine"]), ("11111111-2222-3333-4444-555555555555", "acme-desktop"))
         self.assertEqual([e["kind"] for e in self.journal()], ["run.started", "run.finished"])
 
+    def test_budgets_are_always_passed_and_usage_lands_in_the_record(self) -> None:
+        self.launch("ACME-7", "heavy", 0, "--role", "implementer")
+        argv = json.loads((self.tmp / "claude.json").read_text())["argv"]
+        self.assertEqual(argv[argv.index("--max-turns") + 1], "80")
+        self.assertEqual(argv[argv.index("--max-budget-usd") + 1], "3")
+        record = self.record("ACME-7")
+        self.assertEqual((record["peak_context_tokens"], record["output_tokens"], record["cache_read_tokens"]), (130000, 150, 2000))
+        self.assertEqual(record["model"], "sonnet")
+        alerts = [e for e in self.journal() if e["kind"] == "run.compaction_alert"]
+        self.assertEqual([a["context_tokens"] for a in alerts], [130000])  # once, at the first crossing of 120k
+
+    def argv_of(self) -> list[str]:
+        return json.loads((self.tmp / "claude.json").read_text())["argv"]
+
+    def test_caps_are_per_role_with_a_default_and_long_lived_roles_get_their_own(self) -> None:
+        for role, turns, budget in (("implementer", "80", "3"), ("lead", "300", "10"), ("orchestrator", "400", "15"), ("root-reviewer", "120", "8")):
+            self.launch("ACME-7", "success", 0, "--role", role)
+            argv = self.argv_of()
+            self.assertEqual((argv[argv.index("--max-turns") + 1], argv[argv.index("--max-budget-usd") + 1]), (turns, budget), role)
+
+    def test_a_resume_adds_to_the_record_and_gets_only_the_cap_that_is_left(self) -> None:
+        self.launch("ACME-9", "failed", 1)  # error_max_turns after 30 turns, $0.41
+        self.assertEqual(self.record("ACME-9")["turns"], 30)
+        done = self.run_script("launch.sh", "ACME-9", "--resume", FAKE_CLAUDE_FIXTURE=str(self.fixture("success")))
+        self.assertEqual(done.returncode, 0, done.stderr)
+        argv = self.argv_of()
+        self.assertEqual((argv[argv.index("--max-turns") + 1], argv[argv.index("--max-budget-usd") + 1]), ("50", "2.59"))  # 80 - 30, 3 - 0.41
+        record = self.record("ACME-9")
+        self.assertEqual((record["turns"], record["cost_usd"], record["invocations"]), (32, 0.4186, 2))  # totals over both invocations
+        self.assertEqual([r["cost_usd"] for r in record["runs"]], [0.41, 0.0086])
+        self.assertEqual(record["state"], "done")
+
+    def test_a_capped_run_is_not_resumed_into_a_fresh_allowance(self) -> None:
+        self.launch("ACME-9", "capped_budget", 1)
+        before = self.record("ACME-9")
+        (self.tmp / "claude.json").unlink(missing_ok=True)
+        done = self.run_script("launch.sh", "ACME-9", "--resume", FAKE_CLAUDE_FIXTURE=str(self.fixture("success")))
+        self.assertEqual(done.returncode, 1)
+        self.assertIn("budget cap reached", done.stderr)
+        self.assertFalse((self.tmp / "claude.json").exists())  # claude was never started
+        self.assertEqual(self.record("ACME-9"), before)  # the record is untouched
+        self.assertIn("run.blocked", [e["kind"] for e in self.journal()])
+
+    def test_raising_the_role_cap_allows_the_resume_and_it_deducts_the_spend(self) -> None:
+        self.launch("ACME-9", "capped_budget", 1)
+        raised = self.tmp / "raised.toml"
+        raised.write_text((FIXTURES / "acme.pai-harness.toml").read_text() + "\n[role_limits.implementer]\nmax_budget_usd = 5\n")
+        done = self.run_script("launch.sh", "ACME-9", "--resume", "--config", str(raised), FAKE_CLAUDE_FIXTURE=str(self.fixture("success")))
+        self.assertEqual(done.returncode, 0, done.stderr)
+        argv = self.argv_of()
+        self.assertEqual(argv[argv.index("--max-budget-usd") + 1], "1.99")  # 5 - 3.01
+
+    def test_a_fresh_launch_starts_a_new_accumulation(self) -> None:
+        self.launch("ACME-9", "failed", 1)
+        self.launch("ACME-9", "success", 0)
+        record = self.record("ACME-9")
+        self.assertEqual((record["turns"], record["invocations"]), (2, 1))
+
+    def test_subagent_frames_and_id_less_frames_are_counted_correctly(self) -> None:
+        self.launch("ACME-7", "sidechain", 0)
+        record = self.record("ACME-7")
+        self.assertEqual(record["peak_context_tokens"], 1005)  # the 500000-token subagent context is not the parent's
+        self.assertEqual(record["output_tokens"], 20)  # subagent output is not added; the two id-less parent frames are both counted
+        self.assertNotIn("run.compaction_alert", [e["kind"] for e in self.journal()])
+
+    def test_the_compaction_alert_rearms_after_the_context_falls(self) -> None:
+        self.launch("ACME-7", "recompact", 0)
+        alerts = [e["context_tokens"] for e in self.journal() if e["kind"] == "run.compaction_alert"]
+        self.assertEqual(alerts, [130005, 125005])  # includes the 5 uncached input tokens
+
+    def test_the_init_model_is_recorded_beside_the_routed_one(self) -> None:
+        self.launch("ACME-7", "success", 0, "--role", "mechanical")
+        record = self.record("ACME-7")
+        self.assertEqual((record["model"], record["model_reported"]), ("haiku", "claude-sonnet-5-5"))
+
     def test_the_command_is_headless_stream_json_with_the_prompt_on_stdin_and_no_permission_bypass(self) -> None:
         self.launch("ACME-7", "success", 0, "--role", "mechanical")
         sent = json.loads((self.tmp / "claude.json").read_text())

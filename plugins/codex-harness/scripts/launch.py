@@ -92,13 +92,36 @@ def write_mcp_config(config: dict, state: Path, issue: str, config_path: Path) -
     return path
 
 
-def claude_command(args: argparse.Namespace, config: dict, resume: str | None, mcp_config: Path | None = None) -> list[str]:
+SPENT_KEYS = ("input_tokens", "cache_write_tokens", "cache_read_tokens", "output_tokens")
+
+
+def remaining_caps(args: argparse.Namespace, config: dict, previous: dict | None) -> tuple[int, float, str | None]:
+    """The turn and dollar caps this invocation may spend: the role's caps minus what earlier invocations of the same issue already used.
+
+    The caps bound the total per issue, not each invocation: a resume gets what is left, and when nothing is left the third value
+    names why (the launcher then stops with a BLOCKER instead of retrying into the same cap).
+    """
+    caps = harness_config.role_limits(config, args.role or "implementer")
+    spent = previous if (args.resume_run and previous) else {}
+    turns = caps["max_turns"] - (spent.get("turns") or 0)
+    budget = round(caps["max_budget_usd"] - (spent.get("cost_usd") or 0), 4)
+    if turns < 1:
+        return 0, budget, f"turn cap reached: {spent.get('turns')} of {caps['max_turns']} turns used (raise [role_limits.{args.role or 'implementer'}] max_turns)"
+    if budget < harness_config.MIN_BUDGET_USD:
+        return turns, budget, f"budget cap reached: ${spent.get('cost_usd')} of ${caps['max_budget_usd']} used (raise [role_limits.{args.role or 'implementer'}] max_budget_usd)"
+    return turns, budget, None
+
+
+def claude_command(args: argparse.Namespace, config: dict, resume: str | None, mcp_config: Path | None = None, previous: dict | None = None) -> list[str]:
     model = args.model or config["models"].get(args.role or "implementer", "sonnet")
     command = [os.environ.get("PAI_HARNESS_CLAUDE", "claude"), "-p", "--output-format", "stream-json", "--verbose", "--model", model]
     if not lib.installed_plugin():
         command += ["--plugin-dir", str(lib.plugin_root())]  # every run loads the plugin, from the launcher's own location
     if mcp_config:  # only the machine config: a user or plugin OAuth server must not stand in for it
         command += ["--mcp-config", str(mcp_config), "--strict-mcp-config"]
+    # Budgets fail closed: every run carries a turn cap and a dollar cap (the role's, from [limits] / [role_limits]); claude stops the run when either is hit.
+    turns, budget, _ = remaining_caps(args, config, previous)
+    command += ["--max-turns", str(max(turns, 1)), "--max-budget-usd", format(budget, ".4f").rstrip("0").rstrip(".")]
     if resume:
         command += ["--resume", resume]
     if args.allowed_tools:
@@ -162,6 +185,7 @@ class InitCheck:
 
     def __init__(self, skills: list[str], pai_server: str | None = None) -> None:
         self.skills, self.pai_server, self.problems, self.mcp, self.done = skills, pai_server, [], [], threading.Event()
+        self.model: str | None = None  # the model id the init frame reports
 
     def feed(self, line: str) -> None:
         if self.done.is_set():
@@ -173,6 +197,7 @@ class InitCheck:
         if not isinstance(frame, dict):
             return
         if frame.get("type") == "system" and frame.get("subtype") == "init":
+            self.model = frame.get("model") if isinstance(frame.get("model"), str) else None
             self.problems = lib.init_problems(frame, self.skills)
             self.mcp = lib.mcp_problems(frame, self.pai_server) if self.pai_server else []
             self.done.set()
@@ -187,14 +212,34 @@ def init_reason(problems: list[str], mcp: list[str]) -> str:
     return "; ".join(parts)
 
 
+def accumulate(previous: dict, resumed: bool, this: dict) -> dict:
+    """The record fields after this invocation: totals over every invocation of the issue (a resume adds, never overwrites) plus the runs list.
+
+    `this` holds the invocation's own cost_usd (None when no result frame), turns, token counts and peak context. A fresh launch starts a new
+    accumulation; a resume continues the previous record's. An unpriced invocation adds no cost and is counted in `unpriced_runs`.
+    """
+    base = previous if resumed else {}
+    runs = list(base.get("runs") or [])
+    if base and not runs:  # a record written before `runs` existed counts as one earlier invocation
+        runs.append({k: base.get(k) for k in ("run_id", "started", "finished", "state", "cost_usd", "turns", "reason", *SPENT_KEYS, "peak_context_tokens")})
+    runs.append({k: this.get(k) for k in ("run_id", "started", "finished", "state", "cost_usd", "turns", "reason", *SPENT_KEYS, "peak_context_tokens")})
+    priced = [r["cost_usd"] for r in runs if r.get("cost_usd") is not None]
+    return {**{k: sum(r.get(k) or 0 for r in runs) for k in (*SPENT_KEYS, "turns")},
+            "peak_context_tokens": max(r.get("peak_context_tokens") or 0 for r in runs),
+            "cost_usd": round(sum(priced), 6) if priced else None, "unpriced_runs": len(runs) - len(priced), "invocations": len(runs), "runs": runs}
+
+
 def fail_closed(args: argparse.Namespace, state: Path, started: str, stream: Path, queue: str | None, machine: str | None, problems: list[str],
-                run_id: str | None = None, mcp: list[str] | None = None) -> int:
+                run_id: str | None = None, mcp: list[str] | None = None, previous: dict | None = None) -> int:
     """The plugin or the Pai MCP is not proven: the run is already killed; journal and print a BLOCKER, record failed, exit non-zero."""
     reason = init_reason(problems, mcp or [])
     lib.blocker(state, args.issue, reason)
     record = {"issue": args.issue, "queue": queue, "machine": machine, "role": args.role, "started": started, "finished": lib.stamp(),
               "stream": str(stream), "resumed": bool(args.resume_run), "state": "failed", "reason": reason, "exit_code": None,
               "session_id": None, "cost_usd": None, "turns": None, "run_id": run_id}
+    if args.resume_run and previous:  # the failed self-check must not erase what the earlier invocations spent
+        record.update({k: v for k, v in previous.items() if k in (*SPENT_KEYS, "peak_context_tokens", "cost_usd", "turns", "runs", "unpriced_runs", "invocations", "session_id")})
+        record["failed_resume"] = {"run_id": run_id, "started": started, "reason": reason}
     lib.write_json(run_paths(state, args.issue)[1], record)
     lib.register(state, args.issue, state="failed")
     lib.emit(state, "run.finished", {k: record[k] for k in ("issue", "state", "reason", "exit_code", "session_id", "cost_usd", "turns")})
@@ -211,6 +256,14 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
         return lib.EXIT_USAGE
     prompt = Path(args.prompt_file).read_text(encoding="utf-8") if args.prompt_file else (args.prompt or "")
     queue = args.queue or previous.get("queue")
+    if resume:
+        _, _, exhausted = remaining_caps(args, config, previous)
+        if exhausted:  # fail closed: a capped issue is never resumed into a fresh allowance
+            reason = f"{args.issue}: not resumed, {exhausted}"
+            lib.blocker(state, args.issue, reason)
+            lib.emit(state, "run.blocked", {"issue": args.issue, "role": args.role, "blocker": reason})
+            print(reason, file=sys.stderr)
+            return lib.EXIT_FAILED
     if not resume:
         prompt = knowledge_header(args, config, state) + prompt
     machine = config["queues"].get(queue or "", {}).get("machine")
@@ -236,13 +289,47 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
         except Exception as error:  # noqa: BLE001 - display only
             print(f"render error: {error}", file=sys.stderr)
 
+    usage = {"peak_context_tokens": 0, "compaction_alert": False, "input_tokens": 0, "cache_write_tokens": 0, "cache_read_tokens": 0,
+             "output_tokens": 0}
+    seen_messages: set[str] = set()
+    armed = [True]
+
+    def track(frame_line: str) -> None:
+        """Sum token usage once per model message and alert once when the context crosses the compaction threshold."""
+        try:
+            frame = json.loads(frame_line)
+            message = frame.get("message") if frame.get("type") == "assistant" else None
+            if not isinstance(message, dict) or frame.get("parent_tool_use_id"):
+                return  # a subagent (sidechain) frame is the subagent's own context and spend, not the parent's
+            if message.get("id"):
+                if message["id"] in seen_messages:
+                    return  # a message streams as one frame per content block: count its usage once
+                seen_messages.add(message["id"])
+            u = message.get("usage") or {}
+            usage["input_tokens"] += u.get("input_tokens", 0)
+            usage["cache_write_tokens"] += u.get("cache_creation_input_tokens", 0)
+            usage["cache_read_tokens"] += u.get("cache_read_input_tokens", 0)
+            usage["output_tokens"] += u.get("output_tokens", 0)
+            context = u.get("input_tokens", 0) + u.get("cache_creation_input_tokens", 0) + u.get("cache_read_input_tokens", 0)
+            usage["peak_context_tokens"] = max(usage["peak_context_tokens"], context)
+            threshold = config["limits"]["compaction_alert_tokens"]
+            if context < threshold:
+                armed[0] = True  # the context fell (a compaction): the next crossing alerts again
+            elif armed[0]:
+                armed[0] = False
+                usage["compaction_alert"] = True
+                lib.emit(state, "run.compaction_alert", {"issue": args.issue, "run_id": run_id, "context_tokens": context})
+                renderer.say(f"⚠ context {context} tokens: compact or hand off")
+        except (ValueError, AttributeError, TypeError):
+            pass  # accounting only; never touches the run
+
     def closing(record_state: str, text: str) -> None:
         renderer.say(f"■ record {record_state} {text}".rstrip())
         status.finish(record_state, renderer.step, renderer.turns)
     renderer.say(f"▶ {args.issue} run {run_id} → {stream}")
     with stream.open("w", encoding="utf-8") as out, stderr_log.open("w", encoding="utf-8") as err:
         try:
-            proc = subprocess.Popen(claude_command(args, config, resume, mcp_config), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            proc = subprocess.Popen(claude_command(args, config, resume, mcp_config, previous), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                     stderr=err, text=True, cwd=args.cwd or None, env=hook_env(args, config, state, config_path, base=base))
         except OSError as error:
             err.write(f"cannot start claude: {error}\n")
@@ -264,6 +351,7 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
                     out.flush()
                     lines.append(line)
                     init.feed(line)
+                    track(line)
                     show(line)
                     if time.monotonic() - last_beat > 60:
                         lib.register(state, args.issue, state="running")
@@ -283,7 +371,7 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
                 proc.wait()
                 reader.join(10)
                 closing("failed", "self-check: " + init_reason(init.problems, init.mcp))
-                return fail_closed(args, state, started, stream, queue, machine, init.problems, run_id, init.mcp)
+                return fail_closed(args, state, started, stream, queue, machine, init.problems, run_id, init.mcp, previous)
             try:
                 exit_code = proc.wait(timeout=timeout)
             except subprocess.TimeoutExpired:
@@ -293,8 +381,13 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
             reader.join(10)
     summary = lib.parse_stream(lines)
     verdict = lib.run_state(summary, exit_code, timed_out)
-    record = {"issue": args.issue, "queue": queue, "machine": machine, "role": args.role, "started": started, "finished": lib.stamp(),
-              "stream": str(stream), "resumed": bool(resume), "run_id": run_id, **verdict}
+    finished = lib.stamp()
+    this_run = {"run_id": run_id, "started": started, "finished": finished, "state": verdict["state"], "reason": verdict.get("reason"),
+                "cost_usd": verdict.get("cost_usd"), "turns": verdict.get("turns"), **{k: usage[k] for k in (*SPENT_KEYS, "peak_context_tokens")}}
+    # The record's cost_usd / turns / token fields are totals over every invocation of the issue; the last invocation's own numbers are in `runs`.
+    record = {"issue": args.issue, "queue": queue, "machine": machine, "role": args.role, "started": started, "finished": finished,
+              "stream": str(stream), "resumed": bool(resume), "run_id": run_id, "model": args.model or config["models"].get(args.role or "implementer", "sonnet"),
+              "model_reported": init.model, "compaction_alert": usage["compaction_alert"], **verdict, **accumulate(previous, bool(resume), this_run)}
     lib.write_json(state_file, record)
     lib.register(state, args.issue, state=verdict["state"], session_id=verdict["session_id"])
     lib.emit(state, "run.finished", {k: record[k] for k in ("issue", "state", "reason", "exit_code", "session_id", "cost_usd", "turns")})
@@ -406,7 +499,7 @@ def main(argv: list[str]) -> int:
     if args.dry_run:
         previous = lib.read_json(state_file) or {}
         resume = previous.get("session_id") if args.resume_run else None
-        lib.show({"dry_run": True, "issue": args.issue, "command": claude_command(args, config, resume, mcp_config_path(state, args.issue) if config["pai"]["mcp_url"] else None), "pane": args.pane,
+        lib.show({"dry_run": True, "issue": args.issue, "command": claude_command(args, config, resume, mcp_config_path(state, args.issue) if config["pai"]["mcp_url"] else None, previous), "pane": args.pane,
                   "hook_env": {k: v for k, v in hook_env(args, config, state, config_path, write=False, base=launch_base(args, previous)).items() if k in HOOK_KEYS},
                   "stream": str(run_paths(state, args.issue)[0]), "state_file": str(state_file), "state_dir": str(state)})
         return 0

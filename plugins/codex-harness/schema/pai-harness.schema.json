@@ -215,6 +215,38 @@
         "turn_timeout_minutes": {
           "type": "integer",
           "minimum": 1
+        },
+        "max_turns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_budget_usd": {
+          "type": "number",
+          "minimum": 0.01
+        },
+        "compaction_alert_tokens": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "role_limits": {
+      "type": "object",
+      "default": {
+        "relay": {"max_turns": 400, "max_budget_usd": 15},
+        "orchestrator": {"max_turns": 400, "max_budget_usd": 15},
+        "lead": {"max_turns": 300, "max_budget_usd": 10},
+        "root-reviewer": {"max_turns": 120, "max_budget_usd": 8}
+      },
+      "propertyNames": {
+        "enum": ["relay", "orchestrator", "lead", "implementer", "root-reviewer", "integrator", "distiller", "gate-triager", "mechanical", "watcher"]
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "max_turns": {"type": "integer", "minimum": 1},
+          "max_budget_usd": {"type": "number", "minimum": 0.01}
         }
       }
     },
@@ -333,8 +365,8 @@
         }
       },
       "default": {
-        "relay": "opus",
-        "orchestrator": "opus",
+        "relay": "sonnet",
+        "orchestrator": "sonnet",
         "lead": "sonnet",
         "implementer": "sonnet",
         "root-reviewer": "opus",
