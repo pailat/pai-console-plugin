@@ -1,7 +1,6 @@
 ---
 name: watcher
 description: "Describes the watcher script that checks agent heartbeats; there is no model in the loop."
-model: haiku
 tools: Bash
 ---
 

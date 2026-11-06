@@ -119,7 +119,7 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(schema["properties"]["models"]["default"], hc.DEFAULT_MODELS)
         self.assertEqual(sorted(schema["properties"]["limits"]["properties"]), sorted(hc.DEFAULTS["limits"]))
         self.assertEqual(sorted(schema["properties"]["rules"]["properties"]), sorted(hc.DEFAULTS["rules"]))
-        self.assertEqual(schema["properties"]["models"]["properties"]["lead"]["enum"], list(hc.MODEL_CHOICES))
+        self.assertEqual(schema["properties"]["models"]["properties"]["lead"]["enum"], [m for m in hc.MODEL_CHOICES if m != "none"])
 
 
 if __name__ == "__main__":
