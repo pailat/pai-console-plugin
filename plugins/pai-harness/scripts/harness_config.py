@@ -14,13 +14,13 @@ CONFIG_NAME = ".pai-harness.toml"
 SCHEMA_VERSION = 1
 ROLES = ("relay", "orchestrator", "lead", "implementer", "root-reviewer", "integrator",
          "distiller", "gate-triager", "mechanical", "watcher")
-MODEL_CHOICES = ("opus", "sonnet", "haiku")
-# Proposed defaults: Opus only for orchestrators, leads and ROOT review; Haiku for mechanical and
-# monitoring work behind rails; Sonnet for everything else.
+MODEL_CHOICES = ("opus", "sonnet", "haiku", "none")  # "none" is only for the watcher, a script
+# Role models (the v4 roles decision): Opus for relay, orchestrator and root-reviewer; Haiku for mechanical work behind
+# rails; Sonnet for lead, implementer, integrator, distiller and gate-triager; the watcher is a script (no model).
 DEFAULT_MODELS = {
-    "relay": "sonnet", "orchestrator": "opus", "lead": "opus", "implementer": "sonnet",
+    "relay": "opus", "orchestrator": "opus", "lead": "sonnet", "implementer": "sonnet",
     "root-reviewer": "opus", "integrator": "sonnet", "distiller": "sonnet",
-    "gate-triager": "sonnet", "mechanical": "haiku", "watcher": "haiku",
+    "gate-triager": "sonnet", "mechanical": "haiku", "watcher": "none",
 }
 DEFAULTS = {
     "schema_version": SCHEMA_VERSION,
@@ -167,6 +167,8 @@ def _choice(path: str, value: object) -> str:
     _string(path, value)
     if value not in MODEL_CHOICES:
         raise ConfigError(f"{path}: unknown model {value!r} (allowed: {', '.join(MODEL_CHOICES)})")
+    if value == "none" and not path.endswith(".watcher"):
+        raise ConfigError(f"{path}: 'none' is only allowed for the watcher, which is a script")
     return value  # type: ignore[return-value]
 
 
