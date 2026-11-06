@@ -18,6 +18,7 @@ import os
 import re
 import shlex
 import subprocess
+import time
 from subprocess import run as run_process  # bare name: the denylist reads a dotted call ending in the run top-level domain as a hostname
 import sys
 from pathlib import Path
@@ -31,7 +32,7 @@ WRITE_TOOLS = {"Write": "file_path", "Edit": "file_path", "MultiEdit": "file_pat
 REDIRECTS = {">", ">>", ">|", "&>", "&>>"}
 SEPARATORS = {";", "&&", "||", "|", "&", "|&", "(", ")", "{", "}"}
 SHELL_KEYWORDS = {"do", "then", "else", "elif", "while", "until", "if", "!", "time"}  # may open a segment: `for i in 1 2; do CMD; done`
-SHELLS = {"sh", "bash", "zsh", "dash"}
+SHELLS = git_guardrails.SHELLS
 IGNORED_TARGETS = {"/dev/null", "/dev/stdout", "/dev/stderr", "/dev/tty"}
 GIT_OPTIONS_WITH_VALUE = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path"}
 PREFIX_COMMANDS = {"env", "command", "exec", "nohup", "time", "builtin", "setsid", "sudo", "doas", "nice", "timeout", "xargs", "stdbuf", "ionice"}
@@ -237,15 +238,24 @@ def is_no_verify(token: str) -> bool:
     return token.startswith("--no-v") and "--no-verify".startswith(token)
 
 
+ALIAS_DEADLINE = time.monotonic() + 2  # the hook is one process per tool call
+ALIAS_STATE = {"timed_out": False}
+
+
 def git_aliases(cwd: Path, directory: str | None, inline: dict[str, str]) -> dict[str, str]:
     """Aliases from `git config` (read in the directory the push would run in) plus those given inline with -c."""
     aliases: dict[str, str] = {}
     command = ["git"] + (["-C", directory] if directory else []) + ["config", "--get-regexp", r"^alias\."]
+    left = ALIAS_DEADLINE - time.monotonic()  # one budget for every git segment, below the 10 s hook timeout; an overrun denies in main()
     try:
-        done = run_process(command, cwd=cwd, capture_output=True, text=True, timeout=5)
+        if left <= 0:
+            raise subprocess.TimeoutExpired(command, 0)
+        done = run_process(command, cwd=cwd, capture_output=True, text=True, timeout=min(5, left))
         for line in done.stdout.splitlines():
             key, _, value = line.partition(" ")
             aliases[key[len("alias."):].lower()] = value
+    except subprocess.TimeoutExpired:
+        ALIAS_STATE["timed_out"] = True
     except (OSError, subprocess.SubprocessError):
         pass
     return {**aliases, **inline}
@@ -324,9 +334,9 @@ def analyze(command: str, wrapper: str, cwd: Path, depth: int = 0) -> Analysis:
             found.targets += [t for t in bare[1:] if not t.startswith("-")]
         if bare and depth < 3:
             name = os.path.basename(bare[0])
-            flag = next((k for k, t in enumerate(bare) if k and git_guardrails.cluster(t).endswith("c")), None)  # -c, -lc, -ec
-            if name in SHELLS and flag is not None and flag + 1 < len(bare):
-                found.merge(analyze(bare[flag + 1], wrapper, cwd, depth + 1))
+            script = git_guardrails.shell_script(bare[1:], name)[1] if name in SHELLS else None  # -c, -lc, -ce, -c -e, -c --
+            if script is not None:
+                found.merge(analyze(script, wrapper, cwd, depth + 1))
             elif name == "eval":
                 found.merge(analyze(" ".join(bare[1:]), wrapper, cwd, depth + 1))
         if through_wrapper(tokens, wrapper, cwd):
@@ -361,6 +371,9 @@ def main() -> None:
         if git_guardrails.deny_dangerous(common, command, wrapper, Path(event.get("cwd") or os.getcwd())): return  # noqa: E702
         found = analyze(command, wrapper, Path(event.get("cwd") or os.getcwd()))
         direct_paths, pushed, no_verify = found.targets, found.pushed, found.no_verify
+        if ALIAS_STATE["timed_out"]:
+            common.deny("git aliases could not be read in time, so the command cannot be checked for a push. Retry, or spell the git command out without an alias.")
+            return
     else:
         return
     direct_paths = [p for p in direct_paths if p]

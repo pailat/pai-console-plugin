@@ -199,29 +199,212 @@
   },
   "throwaway": {
     "deny": [
-      {"command": "git checkout .", "env": {}},
-      {"command": "git checkout .", "env": {"PAI_HARNESS_GIT_THROWAWAY": "scratch"}, "cwd": "."},
-      {"command": "git restore .", "env": {"PAI_HARNESS_GIT_THROWAWAY": "/tmp"}, "cwd": "scratch"},
-      {"command": "git restore .", "env": {"PAI_HARNESS_GIT_THROWAWAY": "../scratch"}, "cwd": "scratch"},
-      {"command": "git restore .", "env": {"PAI_HARNESS_GIT_THROWAWAY": "."}, "cwd": "scratch"},
-      {"command": "git restore .", "env": {"PAI_HARNESS_GIT_THROWAWAY": ".git"}, "cwd": ".git"},
-      {"command": "git -C . restore .", "env": {"PAI_HARNESS_GIT_THROWAWAY": "scratch"}, "cwd": "."},
-      {"command": "git --git-dir=.git restore .", "env": {"PAI_HARNESS_GIT_THROWAWAY": "scratch"}, "cwd": "scratch"},
-      {"command": "git clean -fd ..", "env": {"PAI_HARNESS_GIT_THROWAWAY": "scratch"}, "cwd": "scratch"},
-      {"command": "git clean -fd scratch ../apps", "env": {"PAI_HARNESS_GIT_THROWAWAY": "scratch"}, "cwd": "scratch"},
-      {"command": "git reset --hard", "env": {"PAI_HARNESS_GIT_THROWAWAY": "scratch"}, "cwd": "scratch"},
-      {"command": "git branch -D x", "env": {"PAI_HARNESS_GIT_THROWAWAY": "scratch"}, "cwd": "scratch"},
-      {"command": "git push --force origin HEAD", "env": {"PAI_HARNESS_GIT_THROWAWAY": "scratch"}, "cwd": "scratch"},
-      {"command": "rm -rf .git", "env": {"PAI_HARNESS_GIT_THROWAWAY": "scratch"}, "cwd": "scratch"},
-      {"command": "rm -rf ../.git", "env": {"PAI_HARNESS_GIT_THROWAWAY": "scratch"}, "cwd": "scratch"}
+      {
+        "command": "git checkout .",
+        "env": {}
+      },
+      {
+        "command": "git checkout .",
+        "env": {
+          "PAI_HARNESS_GIT_THROWAWAY": "scratch"
+        },
+        "cwd": "."
+      },
+      {
+        "command": "git restore .",
+        "env": {
+          "PAI_HARNESS_GIT_THROWAWAY": "/tmp"
+        },
+        "cwd": "scratch"
+      },
+      {
+        "command": "git restore .",
+        "env": {
+          "PAI_HARNESS_GIT_THROWAWAY": "../scratch"
+        },
+        "cwd": "scratch"
+      },
+      {
+        "command": "git restore .",
+        "env": {
+          "PAI_HARNESS_GIT_THROWAWAY": "."
+        },
+        "cwd": "scratch"
+      },
+      {
+        "command": "git restore .",
+        "env": {
+          "PAI_HARNESS_GIT_THROWAWAY": ".git"
+        },
+        "cwd": ".git"
+      },
+      {
+        "command": "git -C . restore .",
+        "env": {
+          "PAI_HARNESS_GIT_THROWAWAY": "scratch"
+        },
+        "cwd": "."
+      },
+      {
+        "command": "git --git-dir=.git restore .",
+        "env": {
+          "PAI_HARNESS_GIT_THROWAWAY": "scratch"
+        },
+        "cwd": "scratch"
+      },
+      {
+        "command": "git clean -fd ..",
+        "env": {
+          "PAI_HARNESS_GIT_THROWAWAY": "scratch"
+        },
+        "cwd": "scratch"
+      },
+      {
+        "command": "git clean -fd scratch ../apps",
+        "env": {
+          "PAI_HARNESS_GIT_THROWAWAY": "scratch"
+        },
+        "cwd": "scratch"
+      },
+      {
+        "command": "git reset --hard",
+        "env": {
+          "PAI_HARNESS_GIT_THROWAWAY": "scratch"
+        },
+        "cwd": "scratch"
+      },
+      {
+        "command": "git branch -D x",
+        "env": {
+          "PAI_HARNESS_GIT_THROWAWAY": "scratch"
+        },
+        "cwd": "scratch"
+      },
+      {
+        "command": "git push --force origin HEAD",
+        "env": {
+          "PAI_HARNESS_GIT_THROWAWAY": "scratch"
+        },
+        "cwd": "scratch"
+      },
+      {
+        "command": "rm -rf .git",
+        "env": {
+          "PAI_HARNESS_GIT_THROWAWAY": "scratch"
+        },
+        "cwd": "scratch"
+      },
+      {
+        "command": "rm -rf ../.git",
+        "env": {
+          "PAI_HARNESS_GIT_THROWAWAY": "scratch"
+        },
+        "cwd": "scratch"
+      }
     ],
     "allow": [
-      {"command": "git checkout .", "env": {"PAI_HARNESS_GIT_THROWAWAY": "scratch"}, "cwd": "scratch"},
-      {"command": "git restore .", "env": {"PAI_HARNESS_GIT_THROWAWAY": "scratch"}, "cwd": "scratch"},
-      {"command": "git restore .", "env": {"PAI_HARNESS_GIT_THROWAWAY": "scratch"}, "cwd": "scratch/sub"},
-      {"command": "git -C scratch restore .", "env": {"PAI_HARNESS_GIT_THROWAWAY": "scratch"}, "cwd": "."},
-      {"command": "git clean -fd", "env": {"PAI_HARNESS_GIT_THROWAWAY": "scratch"}, "cwd": "scratch"},
-      {"command": "git clean -fd scratch/build", "env": {"PAI_HARNESS_GIT_THROWAWAY": "other,scratch"}, "cwd": "."}
+      {
+        "command": "git checkout .",
+        "env": {
+          "PAI_HARNESS_GIT_THROWAWAY": "scratch"
+        },
+        "cwd": "scratch"
+      },
+      {
+        "command": "git restore .",
+        "env": {
+          "PAI_HARNESS_GIT_THROWAWAY": "scratch"
+        },
+        "cwd": "scratch"
+      },
+      {
+        "command": "git restore .",
+        "env": {
+          "PAI_HARNESS_GIT_THROWAWAY": "scratch"
+        },
+        "cwd": "scratch/sub"
+      },
+      {
+        "command": "git -C scratch restore .",
+        "env": {
+          "PAI_HARNESS_GIT_THROWAWAY": "scratch"
+        },
+        "cwd": "."
+      },
+      {
+        "command": "git clean -fd",
+        "env": {
+          "PAI_HARNESS_GIT_THROWAWAY": "scratch"
+        },
+        "cwd": "scratch"
+      },
+      {
+        "command": "git clean -fd scratch/build",
+        "env": {
+          "PAI_HARNESS_GIT_THROWAWAY": "other,scratch"
+        },
+        "cwd": "."
+      }
+    ]
+  },
+  "nogo": {
+    "deny": [
+      "bash -ce 'git reset --hard'",
+      "sh -c -e 'git reset --hard'",
+      "bash -c -- 'git reset --hard'",
+      "bash -ce 'git push --force origin main'",
+      "bash -cx 'git clean -fd'",
+      "bash -c -e -- 'git branch -D x'",
+      "bash -o pipefail -c 'git reset --hard'",
+      "bash -eo pipefail -c 'git reset --hard'",
+      "zsh -fc 'git reset --hard'",
+      "bash -c",
+      "sh -ce",
+      "echo --hard | xargs git reset",
+      "echo .git | xargs rm -rf",
+      "echo x | xargs -n1 git branch -D",
+      "ls | xargs -I{} git checkout {}",
+      "echo x | xargs rm -r",
+      "git reset $(echo --hard)",
+      "git reset `echo --hard`",
+      "git reset ${H}",
+      "$(which git) reset --hard",
+      "`which git` reset --hard",
+      "$(which git) push --force origin HEAD",
+      "git branch $(echo -D) x",
+      "git $(echo reset) --hard",
+      "git clean $(echo -fd)",
+      "$(which rm) -rf .git",
+      "$(command -v git) status",
+      "fish -c 'git reset --hard'",
+      "fish --command='git reset --hard'",
+      "fish -C 'git reset --hard'",
+      "pwsh -c 'git reset --hard'",
+      "pwsh -Command 'git reset --hard'",
+      "pwsh -EncodedCommand AAAA",
+      "env --split-string='git reset --hard'",
+      "env -S'git reset --hard'",
+      "env -S 'git clean -fd'",
+      "env --split-string 'git reset --hard'",
+      "env -S",
+      "alias g=git; g reset --hard",
+      "sh -c 'sh -c '\"'\"'sh -c '\"'\"'\"'\"'\"'\"'\"'\"'sh -c '\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'sh -c '\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'git reset --hard'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"''\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"''\"'\"'\"'\"'\"'\"'\"'\"''\"'\"''"
+    ],
+    "allow": [
+      "scripts/queue-push.sh git push origin feat/acme-7",
+      "git status",
+      "git diff",
+      "git commit -m 'document the guard'",
+      "rm -rf dist",
+      "bash -c 'git status'",
+      "bash -ce 'git status'",
+      "sh -c -e 'git log -1'",
+      "fish -c 'git status'",
+      "echo dist | xargs rm",
+      "git commit -m \"$(date)\"",
+      "git log --since=$(date +%Y) --oneline",
+      "env -S 'git status'",
+      "alias ll='ls -l'; ll"
     ]
   }
 }

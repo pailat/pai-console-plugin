@@ -42,13 +42,80 @@ from subprocess import run as run_process  # bare name: the denylist reads a dot
 
 SEPARATORS = {";", "&&", "||", "|", "&", "|&", "(", ")", "{", "}"}
 KEYWORDS = {"do", "then", "else", "elif", "while", "until", "if", "!", "time", "coproc"}
-SHELLS = {"sh", "bash", "zsh", "dash", "ksh", "ash"}
+SHELLS = {"sh", "bash", "zsh", "dash", "ksh", "ash", "fish", "csh", "tcsh", "pwsh", "powershell"}
 STRING_RUNNERS = {"ssh", "su", "runuser", "watch", "sg", "script"}  # commands that run a string argument as a command line
 PREFIXES = {"env", "command", "exec", "nohup", "builtin", "setsid", "sudo", "doas", "nice", "timeout", "xargs", "stdbuf", "ionice", "time"}
 GIT_VALUE_OPTIONS = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path", "--super-prefix", "--config-env"}
 BROAD = {".", "./", ":/", ":(top)", "*", "./*", ":/*", "..", "../", ".*"}
 CRUDE = re.compile(r"git\b.*\b(reset\b.*--ha|clean\b|push\b.*(-\w*[fd]\b|--(f|de|mi|pr)|\s[+:])|branch\b.*-\w*[Df]|stash\s+(drop|clear)|rebase\b.*(-\w*i|--inter)"
                    r"|update-ref\b.*-\w*d|worktree\s+remove|checkout\b.*(\s\.(\s|$)|-f)|restore\b)|rm\b.*\.git\b")
+
+
+def extract_substitutions(text: str) -> tuple[str, list[str]]:
+    """Replace every $(...), backtick and ${...} expansion (not inside single quotes) with a marker word and return the inner command texts,
+    so the outer command is read with the expansion unreadable and every inner command is checked on its own."""
+    out, inners, i, single = [], [], 0, False
+    while i < len(text):
+        c = text[i]
+        if c == "\\" and not single and i + 1 < len(text):
+            out.append(text[i:i + 2])
+            i += 2
+            continue
+        if c == "'":
+            single = not single
+        if not single and (text.startswith("$(", i) or text.startswith("${", i) or c == "`"):
+            opener, closer = ("`", "`") if c == "`" else (text[i:i + 2], ")" if text[i + 1] == "(" else "}")
+            j, depth = i + len(opener), 1
+            while j < len(text):
+                if text[j] == "\\" and closer != ")":
+                    j += 2
+                    continue
+                if closer != "`" and text.startswith(opener, j):
+                    depth += 1
+                elif text[j] == closer:
+                    depth -= 1
+                    if depth == 0:
+                        break
+                j += 1
+            inner = text[i + len(opener):j]  # an unclosed expansion reads to the end of the text
+            if closer != "}":
+                inners.append(inner)
+            out.append(SUBST_GIT if closer != "}" and re.search(r"\b(git|rm)\b", inner) else SUBST)
+            i = j + 1
+            continue
+        out.append(c)
+        i += 1
+    return "".join(out), inners
+
+
+def shell_script(args: list[str], name: str) -> tuple[bool, str | None]:
+    """For a shell's arguments: (a -c style flag was given, the script string). The script is the first non-option word after all options
+    (skipping `--`, `-o NAME`, `+o NAME`, `-O NAME`); None when a -c flag was given but no script can be found."""
+    has_c, j = False, 0
+    while j < len(args):
+        token = args[j]
+        if token == "--":
+            j += 1
+            break
+        if token.startswith("--command="):
+            return True, token.partition("=")[2]
+        lowered = token.lower()
+        letters = cluster(token) if name not in {"pwsh", "powershell"} else ("c" if lowered.startswith("-c") else "")
+        if name in {"pwsh", "powershell"} and lowered.startswith("-e"):
+            return True, None  # -EncodedCommand: unreadable
+        if name == "fish" and token == "-C":
+            letters = "c"
+        if token.startswith("--") or not (token.startswith("-") or token.startswith("+")) or len(token) == 1:
+            if token.startswith("--"):
+                j += 2 if token in {"--rcfile", "--init-file"} else 1
+                continue
+            break
+        has_c = has_c or "c" in letters
+        j += 2 if ("o" in letters or "O" in letters) and name not in {"pwsh", "powershell"} else 1
+    if not has_c:
+        return False, None
+    rest = args[j:]
+    return True, rest[0] if rest else None
 
 
 def segments(command: str) -> list[list[str]]:
@@ -132,6 +199,10 @@ class Context:
             return None
 
 
+XARGS_GIT_SUBS = {"reset", "branch", "clean", "checkout", "restore", "stash", "rebase", "update-ref", "worktree", "push"}
+CAPABLE_SUBS = XARGS_GIT_SUBS - {"push"}  # a direct push is refused whole by the push guard
+SUBST = "$SUBST"  # stands for a $(...), backtick or ${...} expansion once its inner command has been checked on its own
+SUBST_GIT = "$SUBSTGIT"  # the same, when the inner command text names git or rm
 LOOKUP_TIMEOUT = 3  # seconds for one git call; pre_tool_use.py has a 10 s hook timeout, and a hook timeout does not block
 LOOKUP_BUDGET = 5  # seconds for all git calls of one check()
 
@@ -175,6 +246,7 @@ def effective_dir(directories: list[str], ctx: Context) -> Path:
 
 def refuse(command: list[str], why: str, alternative: str) -> str:
     shown = " ".join(repr(t) if re.search(r"\s", t) else t for t in command)[:160]
+    shown = shown.replace(SUBST_GIT, "$(...)").replace(SUBST, "$(...)")
     return f"git-guardrails: `{shown}` is blocked ({why}). Safe alternative: {alternative}"
 
 
@@ -316,7 +388,12 @@ def config_aliases(directory: Path, ctx: Context) -> dict[str, str] | None:
 
 
 def subcommand_check(sub: str, args: list[str], shown: list[str], ctx: Context, effective: Path, unknown_dir: bool) -> str:
+    if SUBST in sub:
+        return refuse(shown, "the git subcommand is built by a substitution, so it cannot be read", "spell the git subcommand out")
     sub = sub.lower()
+    if sub in CAPABLE_SUBS and any(SUBST in t for t in args):
+        return refuse(shown, f"an argument of git {sub} is built by a substitution ($(...), backticks or ${{...}}), so it cannot be read",
+                      "spell the arguments out as literal words")
     letters = {c for token in args for c in cluster(token)}
     options, plain = positionals(args)
     if sub == "push":  # a direct push is refused whole by the push guard of pre_tool_use.py; the wrapper path is checked in segment_check
@@ -433,6 +510,33 @@ def matches_wrapper(tokens: list[str], wrapper: str, cwd: Path) -> int:
     return len(wanted) if [os.path.expanduser(t) for t in tokens[1:len(wanted)]] == [os.path.expanduser(t) for t in wanted[1:]] else 0
 
 
+def xargs_check(tokens: list[str]) -> str:
+    """`xargs ... git <sub>` or `xargs ... rm -r/-f`: the arguments come from a pipe and cannot be read, so a dangerous-capable command is refused."""
+    for k in range(1, len(tokens)):
+        name = os.path.basename(tokens[k])
+        if name == "git":
+            j = k + 1
+            while j < len(tokens) and tokens[j].startswith("-"):
+                j += 2 if tokens[j] in GIT_VALUE_OPTIONS else 1
+            if j < len(tokens) and tokens[j].lower() in XARGS_GIT_SUBS:
+                return refuse(tokens, f"xargs feeds git {tokens[j]} arguments that cannot be read", f"run git {tokens[j]} directly with literal arguments")
+        if name == "rm" and any(longopt(t, "recursive", "force") or {"r", "R", "f"} & set(cluster(t)) for t in tokens[k + 1:]):
+            return refuse(tokens, "xargs feeds rm -r/-f arguments that cannot be read", "run rm directly with literal paths")
+    return ""
+
+
+def split_string(args: list[str]) -> str | None:
+    """The command text of `env -S X`, `--split-string X`, `--split-string=X` and the joined `-SX`; None when env has no such option."""
+    for k, token in enumerate(args):
+        if token in {"-S", "--split-string"}:
+            return args[k + 1] if k + 1 < len(args) else ""
+        if token.startswith("--split-string="):
+            return token.partition("=")[2]
+        if token.startswith("-S") and not token.startswith("--"):
+            return token[2:]
+    return None
+
+
 def segment_check(tokens: list[str], ctx: Context, depth: int) -> str:
     lead = True  # still in the prefix zone: assignments, prefix commands, options, redirections
     for i, token in enumerate(tokens):
@@ -448,19 +552,26 @@ def segment_check(tokens: list[str], ctx: Context, depth: int) -> str:
             reason = rm_check(tokens[i:], ctx)
         elif base == "find" and ".git" in tokens[i:] and any(t in {"-delete", "-exec", "-execdir", "-ok"} for t in tokens[i:]):
             reason = refuse(tokens[i:], "find on .git with -delete / -exec destroys the repository", "name the files to remove explicitly")
+        elif lead and token == SUBST_GIT:  # the command name is built by a substitution that names git or rm
+            reason = refuse(tokens[i:], "the command name is built by a substitution that resolves to git or rm", "call git or rm by name")
         elif lead and re.search(r"\$", token):  # a command name built from a variable: read the rest as git or rm
             reason = git_check(["git", *tokens[i + 1:]], ctx, depth) or rm_check(["rm", *tokens[i + 1:]], ctx)
-        elif depth < 3 and base in SHELLS and any(cluster(t).endswith("c") for t in tokens[i + 1:]):
-            index = next(k for k in range(i + 1, len(tokens)) if cluster(tokens[k]).endswith("c"))
-            reason = check_command(tokens[index + 1], ctx, depth + 1) if index + 1 < len(tokens) else ""
-        elif depth < 3 and base in SHELLS and not any(not t.startswith("-") for t in tokens[i + 1:]):
-            reason = ""  # a shell reading its script from stdin: handled on the whole command by check()
+        elif base == "xargs":
+            reason = xargs_check(tokens[i:])
+        elif base == "alias" and any(re.search(r"=.*\b(git|rm)\b", t) for t in tokens[i + 1:]):
+            reason = refuse(tokens[i:], "an alias for git or rm defined in the same command hides what runs next", "call git or rm by name")
+        elif base in SHELLS and (found := shell_script(tokens[i + 1:], base))[0]:
+            if found[1] is None:
+                reason = refuse(tokens[i:], "the script of the shell -c cannot be found", "put the command in the shell script string as one plain word")
+            elif depth >= 3:
+                reason = refuse(tokens[i:], "shells nested more than three deep cannot be read", "run the git command directly")
+            else:
+                reason = check_command(found[1], ctx, depth + 1)
         elif depth < 3 and (base == "eval" or base in STRING_RUNNERS):
             reason = check_command(" ".join(tokens[i + 1:]), ctx, depth + 1) or next(
                 (r for t in tokens[i + 1:] if " " in t for r in [check_command(t, ctx, depth + 1)] if r), "")
-        elif depth < 3 and base == "env" and any(t in {"-S", "--split-string"} for t in tokens[i + 1:]):
-            k = next(k for k in range(i + 1, len(tokens)) if tokens[k] in {"-S", "--split-string"})
-            reason = check_command(tokens[k + 1], ctx, depth + 1) if k + 1 < len(tokens) else ""
+        elif base == "env" and (split := split_string(tokens[i + 1:])) is not None:
+            reason = check_command(split, ctx, depth + 1) if split and depth < 3 else refuse(tokens[i:], "env --split-string builds a command that cannot be read", "call the command directly")
         else:
             reason = ""
         if reason:
@@ -486,6 +597,13 @@ def cd_target(tokens: list[str]) -> tuple[bool, str | None]:
 
 
 def check_command(command: str, ctx: Context, depth: int = 0) -> str:
+    command, inners = extract_substitutions(command)
+    if inners and depth >= 4:
+        return refuse(["<command>"], "substitutions nested too deep cannot be read", "run the git command directly")
+    for inner in inners:
+        reason = check_command(inner, ctx, depth + 1)
+        if reason:
+            return reason
     for tokens in segments(command):
         reason = segment_check(tokens, ctx, depth)
         if reason:
@@ -506,7 +624,7 @@ def check(command: str, wrapper: str, cwd: Path) -> str:
     fed = re.search(r"\||<<", command) is not None
     for tokens in segments(command):  # a shell with no script and no -c that a pipe or here-string feeds: scan the whole command text
         shell = next((i for i, t in enumerate(tokens) if os.path.basename(t) in SHELLS), None)
-        if fed and shell is not None and not any(cluster(t).endswith("c") for t in tokens) and all(t.startswith("-") for t in tokens[shell + 1:]):
+        if fed and shell is not None and not shell_script(tokens[shell + 1:], os.path.basename(tokens[shell]))[0] and all(t.startswith("-") for t in tokens[shell + 1:]):
             words = wrapper_words(wrapper)
             wrapper_name = os.path.basename(words[-1]) if words else ""
             if CRUDE.search(command) or wrapper_name and wrapper_name in command:

@@ -107,6 +107,34 @@ class SyntaxTest(GuardrailTest):
         self.assertEqual(self.verdict("git ok"), "")
 
 
+class NoGoRoundTest(GuardrailTest):
+    """ROOT NO-GO on PR 49: shell flag clusters, xargs, substitutions, other shells, env -S, same-command aliases."""
+
+    def test_every_repro_row_is_denied_in_every_permission_mode(self) -> None:
+        for mode in ("default", "acceptEdits", "bypassPermissions"):
+            for command in CASES["nogo"]["deny"]:
+                with self.subTest(mode=mode, command=command):
+                    out = self.hook(command, mode)
+                    self.assertIsNotNone(out, "not blocked")
+                    self.assertEqual(out["hookSpecificOutput"]["permissionDecision"], "deny")
+
+    def test_the_controls_still_pass_in_every_permission_mode(self) -> None:
+        for mode in ("default", "bypassPermissions"):
+            for command in CASES["nogo"]["allow"]:
+                with self.subTest(mode=mode, command=command):
+                    self.assertIsNone(self.hook(command, mode))
+
+    def test_the_older_guard_reads_the_same_shell_clusters(self) -> None:
+        for command in ("bash -ce 'git push origin HEAD'", "sh -c -e 'git push origin HEAD'", "bash -c -- 'git push origin HEAD'"):
+            with self.subTest(command=command):
+                self.assertEqual(self.hook(command, "bypassPermissions")["hookSpecificOutput"]["permissionDecision"], "deny")
+
+    def test_a_substitution_is_read_as_its_own_command(self) -> None:
+        self.assertTrue(self.verdict("echo $(git reset --hard)"))
+        self.assertTrue(self.verdict("echo \"$(git clean -fd)\""))
+        self.assertEqual(self.verdict("echo '$(git reset --hard)'"), "")
+
+
 class ProtectedBranchTest(GuardrailTest):
     def test_head_is_resolved_to_the_current_branch(self) -> None:
         git = ["git", "-C", str(self.project)]
