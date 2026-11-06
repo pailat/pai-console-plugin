@@ -86,9 +86,12 @@ class SessionStartTest(HookCase):
 
 
 class StopTest(HookCase):
+    def deltas(self, name: str) -> Path:
+        return self.state / "deltas" / name
+
     def marker(self, data: object) -> Path:
         path = self.state / "deltas" / "acme-7.json"
-        path.parent.mkdir(parents=True)
+        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(data if isinstance(data, str) else json.dumps(data))
         return path
 
@@ -110,8 +113,7 @@ class StopTest(HookCase):
             with self.subTest(data=data):
                 path = self.marker(data)
                 self.assertEqual(self.run_hook("stop.py", "stop"), self.blocked('the marker has no node reference in its "nodes" list'))
-                path.unlink()
-                path.parent.rmdir()
+                shutil.rmtree(path.parent)
 
     def test_blocks_a_marker_that_is_not_json(self) -> None:
         self.marker("not json")
@@ -127,6 +129,39 @@ class StopTest(HookCase):
 
     def test_without_a_role_it_does_nothing(self) -> None:
         self.assertIsNone(self.run_hook("stop.py", "stop", PAI_HARNESS_ROLE=None))
+
+    def test_stop_never_loops_it_allows_after_three_blocks_and_writes_a_missing_marker(self) -> None:
+        for attempt in (1, 2, 3):
+            self.assertEqual(self.run_hook("stop.py", "stop")["decision"], "block", attempt)
+            self.assertEqual(self.deltas("acme-7.blocks").read_text().strip(), str(attempt))
+            self.assertFalse(self.deltas("acme-7.missing").exists())
+        self.assertIsNone(self.run_hook("stop.py", "stop"))  # the fourth stop goes through
+        missing = json.loads(self.deltas("acme-7.missing").read_text())
+        self.assertEqual((missing["agent"], missing["blocks"], missing["problem"]), ("acme-7", 3, "the marker file does not exist"))
+        self.assertIsNone(self.run_hook("stop.py", "stop"))  # and keeps going through: a claude -p run ends
+
+    def test_the_block_count_is_per_agent_and_a_valid_delta_clears_it(self) -> None:
+        for _ in range(2):
+            self.run_hook("stop.py", "stop")
+        self.assertEqual(self.run_hook("stop.py", "stop", PAI_HARNESS_AGENT="acme-8")["decision"], "block")
+        self.assertEqual(self.deltas("acme-8.blocks").read_text().strip(), "1")
+        path = self.deltas("acme-7.json")
+        path.write_text(json.dumps({"nodes": ["decision/acme-uses-cas"]}))
+        self.assertIsNone(self.run_hook("stop.py", "stop"))
+        self.assertFalse(self.deltas("acme-7.blocks").exists())
+
+    def test_a_valid_delta_removes_an_old_missing_marker(self) -> None:
+        for _ in range(4):
+            self.run_hook("stop.py", "stop")
+        self.assertTrue(self.deltas("acme-7.missing").exists())
+        self.deltas("acme-7.json").write_text(json.dumps({"nodes": ["decision/acme-uses-cas"]}))
+        self.assertIsNone(self.run_hook("stop.py", "stop"))
+        self.assertFalse(self.deltas("acme-7.missing").exists())
+
+    def test_if_the_count_cannot_be_kept_the_stop_is_allowed(self) -> None:
+        self.state.mkdir()
+        (self.state / "deltas").write_text("a file where the directory should be")
+        self.assertIsNone(self.run_hook("stop.py", "stop"))
 
 
 class WriteZoneTest(HookCase):
@@ -177,6 +212,44 @@ class WriteZoneTest(HookCase):
         self.assertEqual(out["hookSpecificOutput"]["permissionDecision"], "deny")
         self.assertIn("harness config could not be loaded", out["hookSpecificOutput"]["permissionDecisionReason"])
         self.assertIsNone(self.pre("bash-status"))
+
+
+class PushBypassTest(HookCase):
+    """Every spelling of a push is refused outside the wrapper; --no-verify is refused even through it."""
+    DIRECT = "Direct git push is refused. Push through the push queue wrapper (queue-push.sh)."
+    NO_VERIFY = ("git push --no-verify (or a core.hooksPath override) is refused, even through the push queue wrapper. "
+                 "Fix what the pre-push hook reports instead of bypassing it.")
+
+    def setUp(self) -> None:
+        super().setUp()
+        git = ["git", "-c", "init.defaultBranch=main"]
+        subprocess.run([*git, "init", "-q", str(self.project)], check=True, env={**self.env})
+        for name, value in (("pp", "push"), ("pp2", "pp -u"), ("sp", "!git push")):
+            subprocess.run(["git", "-C", str(self.project), "config", f"alias.{name}", value], check=True, env={**self.env})
+
+    def test_every_direct_spelling_is_refused(self) -> None:
+        for name in ("push-abs-path", "push-git-dir", "push-env", "push-command", "push-env-assign", "push-sudo-nice", "push-eval",
+                     "push-alias", "push-alias-shell", "push-alias-chain", "push-inline-alias"):
+            with self.subTest(name=name):
+                self.assertEqual(self.pre(f"bash-{name}"), deny(self.DIRECT))
+
+    def test_the_alias_is_read_from_the_git_config(self) -> None:
+        subprocess.run(["git", "-C", str(self.project), "config", "--unset", "alias.pp"], check=True, env={**self.env})
+        self.assertIsNone(self.pre("bash-push-alias"))  # no longer an alias: `git pp` is not a push
+
+    def test_a_push_alias_in_the_global_config_is_refused_too(self) -> None:
+        subprocess.run(["git", "-C", str(self.project), "config", "--unset", "alias.pp"], check=True, env={**self.env})
+        Path(self._tmp.name, ".gitconfig").write_text("[alias]\n\tpp = push\n")
+        self.assertEqual(self.pre("bash-push-alias"), deny(self.DIRECT))
+
+    def test_no_verify_is_refused_direct_and_through_the_wrapper(self) -> None:
+        for name in ("push-no-verify-direct", "push-no-verify-wrapper", "push-no-verify-abbrev", "push-hooks-path"):
+            with self.subTest(name=name):
+                self.assertEqual(self.pre(f"bash-{name}"), deny(self.NO_VERIFY))
+
+    def test_a_wrapper_push_with_an_env_prefix_is_allowed(self) -> None:
+        self.assertIsNone(self.pre("bash-push-wrapper-env"))
+        self.assertIsNone(self.pre("bash-push-wrapper"))
 
 
 class PushTest(HookCase):

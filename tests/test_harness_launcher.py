@@ -46,6 +46,9 @@ class RunStateTest(HarnessCase):
         self.assertEqual((summary["bad_lines"], summary["frames"]), (2, 1))
 
 
+EXAMPLE = SCRIPTS.parent / "examples/acme/.pai-harness.toml"  # maps roles to zones and names a push wrapper
+
+
 class LaunchTest(HarnessCase):
     def test_a_successful_run_records_stream_state_cost_turns_and_session(self) -> None:
         done = self.launch("ACME-7", "success", 0, "--queue", "main")
@@ -63,6 +66,54 @@ class LaunchTest(HarnessCase):
         self.assertEqual(sent["argv"][5], "haiku")
         self.assertIn("Implement ACME-7", sent["prompt"])
         self.assertFalse([a for a in sent["argv"] if "skip-permissions" in a or a == "bypassPermissions"])
+
+    def run_with_env_probe(self, issue: str, *extra: str, **env: str) -> dict:
+        probe = self.tmp / "probe_claude.py"
+        probe.write_text("import json, os, sys\nsys.stdin.read()\n"
+                         "json.dump({k: v for k, v in os.environ.items() if k.startswith('PAI_HARNESS_')}, open(os.environ['PROBE_LOG'], 'w'))\n"
+                         "print(open(os.environ['FAKE_CLAUDE_FIXTURE']).read(), end='')\n")
+        wrapper = self.tmp / "claude"
+        wrapper.write_text(f"#!/bin/sh\nexec {sys.executable} {probe} \"$@\"\n")
+        wrapper.chmod(0o755)
+        done = self.run_script("launch.sh", issue, "--prompt-file", str(self.prompt), *extra, PAI_HARNESS_CLAUDE=str(wrapper),
+                               FAKE_CLAUDE_FIXTURE=str(FIXTURES / "success.jsonl"), PROBE_LOG=str(self.tmp / "env.json"), **{"PAI_HARNESS_CONFIG": str(EXAMPLE), **env})
+        self.assertEqual(done.returncode, 0, done.stderr)
+        return json.loads((self.tmp / "env.json").read_text())
+
+    def test_the_run_gets_the_hook_environment_from_the_config(self) -> None:
+        seen = self.run_with_env_probe("ACME-7", "--role", "lead", PAI_HARNESS_ZONES="stale", PAI_HARNESS_KNOWLEDGE_CMD="knowledge.sh")
+        self.assertEqual(seen["PAI_HARNESS_ROLE"], "lead")
+        self.assertEqual(seen["PAI_HARNESS_AGENT"], "ACME-7")
+        self.assertEqual(seen["PAI_HARNESS_ZONES"], "frontend,contracts")
+        self.assertEqual(seen["PAI_HARNESS_BRIEF"], str(self.prompt))
+        self.assertEqual(seen["PAI_HARNESS_PUSH_WRAPPER"], "scripts/queue-push.sh")
+        self.assertEqual(seen["PAI_HARNESS_KNOWLEDGE_CMD"], "knowledge.sh")  # site tooling passes through
+        self.assertEqual((seen["PAI_HARNESS_CONFIG"], seen["PAI_HARNESS_STATE_DIR"]), (str(EXAMPLE), str(self.state)))
+
+    def test_the_role_defaults_to_implementer_and_an_unmapped_role_drops_a_stale_zone_list(self) -> None:
+        seen = self.run_with_env_probe("ACME-7", PAI_HARNESS_ZONES="stale")
+        self.assertEqual((seen["PAI_HARNESS_ROLE"], seen["PAI_HARNESS_ZONES"]), ("implementer", "frontend"))
+        seen = self.run_with_env_probe("ACME-7", "--role", "mechanical", PAI_HARNESS_ZONES="stale")
+        self.assertNotIn("PAI_HARNESS_ZONES", seen)
+
+    def test_a_prompt_given_inline_becomes_the_brief_file(self) -> None:
+        wrapper = self.tmp / "claude"
+        wrapper.write_text("#!/bin/sh\ncat > /dev/null\ncat \"$FAKE_CLAUDE_FIXTURE\"\n")
+        wrapper.chmod(0o755)
+        done = self.run_script("launch.sh", "ACME-7", "--prompt", "Do ACME-7.", PAI_HARNESS_CLAUDE=str(wrapper), FAKE_CLAUDE_FIXTURE=str(FIXTURES / "success.jsonl"),
+                               PAI_HARNESS_CONFIG=str(EXAMPLE))
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual((self.state / "briefs/ACME-7.md").read_text(), "Do ACME-7.")
+
+    def test_the_dry_run_shows_the_hook_environment_and_writes_no_brief(self) -> None:
+        plan = json.loads(self.run_script("launch.sh", "ACME-7", "--prompt", "x", "--role", "lead", "--dry-run", PAI_HARNESS_CONFIG=str(EXAMPLE)).stdout)
+        self.assertEqual(plan["hook_env"]["PAI_HARNESS_ZONES"], "frontend,contracts")
+        self.assertEqual(sorted(plan["hook_env"]), ["PAI_HARNESS_AGENT", "PAI_HARNESS_BRIEF", "PAI_HARNESS_PUSH_WRAPPER", "PAI_HARNESS_ROLE", "PAI_HARNESS_ZONES"])
+        self.assertFalse(self.state.exists())
+
+    def test_without_a_push_wrapper_in_the_config_a_stale_one_is_not_passed_on(self) -> None:
+        seen = self.run_with_env_probe("ACME-7", PAI_HARNESS_CONFIG=self.env["PAI_HARNESS_CONFIG"], PAI_HARNESS_PUSH_WRAPPER="stale.sh")
+        self.assertNotIn("PAI_HARNESS_PUSH_WRAPPER", seen)
 
     def test_a_permission_blocked_run_fails_fast_with_exit_3(self) -> None:
         done = self.launch("ACME-8", "permission", 0)

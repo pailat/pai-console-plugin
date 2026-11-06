@@ -27,6 +27,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import harness_lib as lib  # noqa: E402
 
 
+HOOK_KEYS = ("PAI_HARNESS_ROLE", "PAI_HARNESS_AGENT", "PAI_HARNESS_ZONES", "PAI_HARNESS_BRIEF", "PAI_HARNESS_PUSH_WRAPPER")
+
+
 def run_paths(state: Path, issue: str) -> tuple[Path, Path, Path]:
     runs = state / "runs"
     return runs / f"{issue}.jsonl", runs / f"{issue}.state.json", runs / f"{issue}.stderr.log"
@@ -42,7 +45,33 @@ def claude_command(args: argparse.Namespace, config: dict, resume: str | None) -
     return command
 
 
-def inner(args: argparse.Namespace, config: dict, state: Path) -> int:
+def hook_env(args: argparse.Namespace, config: dict, state: Path, config_path: Path, write: bool = True) -> dict[str, str]:
+    """The environment that activates the hooks for this run: role, agent, zones, brief, push wrapper and Knowledge command."""
+    role = args.role or "implementer"
+    env = {**os.environ, "PAI_HARNESS_ROLE": role, "PAI_HARNESS_AGENT": args.issue, "PAI_HARNESS_CONFIG": str(config_path),
+           "PAI_HARNESS_STATE_DIR": str(state)}
+    zones = config["role_zones"].get(role)
+    if zones is not None:
+        env["PAI_HARNESS_ZONES"] = ",".join(zones)
+    else:
+        env.pop("PAI_HARNESS_ZONES", None)  # a stale value must not leak in; the hooks fall back to zone owners
+    if config["rules"]["push_wrapper"]:
+        env["PAI_HARNESS_PUSH_WRAPPER"] = config["rules"]["push_wrapper"]
+    else:
+        env.pop("PAI_HARNESS_PUSH_WRAPPER", None)
+    if args.prompt_file:
+        env["PAI_HARNESS_BRIEF"] = str(Path(args.prompt_file).resolve())
+    elif args.prompt:
+        brief = state / "briefs" / f"{args.issue}.md"
+        if write:
+            brief.parent.mkdir(parents=True, exist_ok=True)
+            brief.write_text(args.prompt, encoding="utf-8")
+        env["PAI_HARNESS_BRIEF"] = str(brief)
+    # PAI_HARNESS_KNOWLEDGE_CMD has no config key (it is site tooling); an operator's value passes through the inherited environment.
+    return env
+
+
+def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path) -> int:
     """Run claude here, write the stream, then the state file. Returns the exit code of the launcher."""
     stream, state_file, stderr_log = run_paths(state, args.issue)
     previous = lib.read_json(state_file) or {}
@@ -62,7 +91,7 @@ def inner(args: argparse.Namespace, config: dict, state: Path) -> int:
     with stream.open("w", encoding="utf-8") as out, stderr_log.open("w", encoding="utf-8") as err:
         try:
             proc = subprocess.Popen(claude_command(args, config, resume), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                    stderr=err, text=True, cwd=args.cwd or None)
+                                    stderr=err, text=True, cwd=args.cwd or None, env=hook_env(args, config, state, config_path))
         except OSError as error:
             err.write(f"cannot start claude: {error}\n")
             proc = None
@@ -136,7 +165,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--park", action="store_true", help="mark ISSUE parked")
     parser.add_argument("--status", action="store_true", help="print the recorded state of ISSUE")
     args = parser.parse_args(argv)
-    config, _ = lib.load_config(args.config)
+    config, config_path = lib.load_config(args.config)
     state = lib.state_dir(config)
     args.issue = lib.issue_id(args.issue, config)
     _, state_file, _ = run_paths(state, args.issue)
@@ -164,11 +193,12 @@ def main(argv: list[str]) -> int:
         previous = lib.read_json(state_file) or {}
         resume = previous.get("session_id") if args.resume_run else None
         lib.show({"dry_run": True, "issue": args.issue, "command": claude_command(args, config, resume), "pane": args.pane,
+                  "hook_env": {k: v for k, v in hook_env(args, config, state, config_path, write=False).items() if k in HOOK_KEYS},
                   "stream": str(run_paths(state, args.issue)[0]), "state_file": str(state_file), "state_dir": str(state)})
         return 0
     if args.pane and not args.inner:
         return in_pane(args, state, [a for a in argv if a not in ("--pane", args.pane)])
-    return inner(args, config, state)
+    return inner(args, config, state, config_path)
 
 
 if __name__ == "__main__":

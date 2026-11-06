@@ -30,7 +30,8 @@ DEFAULTS = {
     "machines": {},
     "queues": {},
     "limits": {"max_agents": 6, "max_agents_per_machine": 3, "max_open_prs": 5, "turn_timeout_minutes": 60},
-    "rules": {"agents_file": "AGENTS.md", "root_paths": [], "must": [], "never": []},
+    "role_zones": {},
+    "rules": {"agents_file": "AGENTS.md", "root_paths": [], "must": [], "never": [], "push_wrapper": ""},
     "models": dict(DEFAULT_MODELS),
 }
 NAME = re.compile(r"^[a-z][a-z0-9_-]*$")
@@ -92,7 +93,7 @@ def _named(path: str, value: object) -> dict:
 
 def validate(data: object) -> dict:
     """Return the config with defaults applied, or raise ConfigError naming the first bad key."""
-    top = {"schema_version", "project", "gates", "zones", "machines", "queues", "limits", "rules", "models"}
+    top = {"schema_version", "project", "gates", "zones", "machines", "queues", "limits", "rules", "models", "role_zones"}
     data = _table("", data, top, {"project"})
     out = copy.deepcopy(DEFAULTS)
     if "schema_version" in data:
@@ -151,11 +152,19 @@ def validate(data: object) -> dict:
         out["limits"][key] = _positive(f"limits.{key}", value)
 
     rules = _table("rules", data.get("rules", {}), set(DEFAULTS["rules"]))
-    if "agents_file" in rules:
-        out["rules"]["agents_file"] = _string("rules.agents_file", rules["agents_file"])
+    for key in ("agents_file", "push_wrapper"):
+        if key in rules:
+            out["rules"][key] = _string(f"rules.{key}", rules[key])
     for key in ("root_paths", "must", "never"):
         if key in rules:
             out["rules"][key] = _strings(f"rules.{key}", rules[key])
+
+    role_zones = _table("role_zones", data.get("role_zones", {}), set(ROLES))
+    for role, names in role_zones.items():
+        out["role_zones"][role] = _strings(f"role_zones.{role}", names)
+        for i, zone in enumerate(out["role_zones"][role]):
+            if zone not in out["zones"]:
+                raise ConfigError(f"role_zones.{role}[{i}]: unknown zone {zone!r} (declare it in [zones])")
 
     models = _table("models", data.get("models", {}), set(ROLES))
     for role, model in models.items():
