@@ -1,0 +1,4 @@
+{
+  "session_id": "sess-1", "transcript_path": "__PROJECT__/transcript.jsonl", "cwd": "__PROJECT__", "permission_mode": "default",
+  "hook_event_name": "PreToolUse", "tool_name": "Write", "tool_use_id": "toolu_05", "tool_input": {"file_path": "__STATE__/deltas/acme-7.json", "content": "{}"}
+}
