@@ -58,3 +58,7 @@ under the same item, and re-run step 3 on every machine that holds the old one. 
 4. Issue a new token and place it (Set up).
 
 Until step 4 the launcher fails closed on that machine: runs stop with `pai mcp not connected` instead of falling back to another login.
+
+## Read-only token
+
+A machine whose token cannot write Knowledge sets `[pai] token_scope = "read"` (or `PAI_HARNESS_TOKEN_SCOPE=read`; the launcher exports the config value). The distiller then searches and reads only, saves its proposed nodes with `scripts/delta_marker.py report` as `<state dir>/deltas/<agent>.report.json`, and stops with the BLOCKER `knowledge write needs a project-scope write token`. A write the MCP rejects with permission denied ends the same way (`report --denied`). The Stop hook does not count the report as a delta; the `.missing` marker records `knowledge write blocked: read-only token`. Once a project-scope write token is placed, set the scope back to `write` (the default) and re-run the distiller on the saved report.

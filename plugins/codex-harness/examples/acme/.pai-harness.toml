@@ -71,3 +71,4 @@ mechanical = "haiku"
 [pai]
 token_file = "~/.config/pai-harness/token"   # the default; PAI_HARNESS_TOKEN_FILE overrides it
 mcp_url = "https://mcp.acme.example.com/mcp"
+token_scope = "write"   # "read" for a read-only machine: the distiller reports its proposed nodes and stops with a named BLOCKER; PAI_HARNESS_TOKEN_SCOPE overrides it

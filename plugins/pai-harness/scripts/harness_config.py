@@ -6,6 +6,7 @@ tests keep the two in step. This module is what the plugin runs.
 from __future__ import annotations
 
 import copy
+import os
 import re
 import tomllib
 from urllib.parse import urlsplit
@@ -23,6 +24,8 @@ DEFAULT_MODELS = {
     "root-reviewer": "opus", "integrator": "sonnet", "distiller": "sonnet",
     "gate-triager": "sonnet", "mechanical": "haiku", "watcher": "none",
 }
+TOKEN_SCOPES = ("read", "write")
+TOKEN_SCOPE_ENV = "PAI_HARNESS_TOKEN_SCOPE"
 DEFAULT_TOKEN_FILE = "~/.config/pai-harness/token"  # a path only; the value inside is the owner's machine token and is never read here
 DEFAULTS = {
     "schema_version": SCHEMA_VERSION,
@@ -35,7 +38,7 @@ DEFAULTS = {
     "role_zones": {},
     "rules": {"agents_file": "AGENTS.md", "root_paths": [], "must": [], "never": [], "push_wrapper": ""},
     "models": dict(DEFAULT_MODELS),
-    "pai": {"token_file": DEFAULT_TOKEN_FILE, "mcp_url": ""},
+    "pai": {"token_file": DEFAULT_TOKEN_FILE, "mcp_url": "", "token_scope": "write"},
     "knowledge": {},  # empty = no Pai Knowledge target named; the distiller then fails closed
 }
 NAME = re.compile(r"^[a-z][a-z0-9_-]*$")
@@ -185,9 +188,25 @@ def validate(data: object) -> dict:
         out["pai"]["token_file"] = token_file
     if "mcp_url" in pai:
         out["pai"]["mcp_url"] = _mcp_url("pai.mcp_url", pai["mcp_url"])
+    if "token_scope" in pai:
+        scope = _string("pai.token_scope", pai["token_scope"])
+        if scope not in TOKEN_SCOPES:
+            raise ConfigError(f"pai.token_scope: must be one of {', '.join(TOKEN_SCOPES)}, got {scope!r}")
+        out["pai"]["token_scope"] = scope
     if "knowledge" in data:
         out["knowledge"] = _knowledge(data["knowledge"])
     return out
+
+
+def token_scope(config: dict | None, env: dict | None = None) -> str:
+    """The machine token's scope: PAI_HARNESS_TOKEN_SCOPE, else [pai] token_scope, else write.
+
+    Fails closed: a set but unrecognised environment value counts as read, so a typo can never grant a write attempt.
+    """
+    chosen = (os.environ if env is None else env).get(TOKEN_SCOPE_ENV, "").strip().lower()
+    if chosen:
+        return chosen if chosen in TOKEN_SCOPES else "read"
+    return ((config or {}).get("pai") or {}).get("token_scope", "write")
 
 
 KNOWLEDGE_KEYS = {"organization", "project", "product"}

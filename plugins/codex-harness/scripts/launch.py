@@ -143,6 +143,7 @@ def hook_env(args: argparse.Namespace, config: dict, state: Path, config_path: P
             brief.parent.mkdir(parents=True, exist_ok=True)
             brief.write_text(args.prompt, encoding="utf-8")
         env["PAI_HARNESS_BRIEF"] = str(brief)
+    env[harness_config.TOKEN_SCOPE_ENV] = harness_config.token_scope(config, os.environ)  # the distiller reads it: scope read means report only
     for key in KNOWLEDGE_ENV:
         env.pop(key, None)  # a stale target must not leak in; only the resolved one is exported
     target = knowledge_target(args, config, state)

@@ -8,6 +8,9 @@ is PAI_HARNESS_AGENT, else the session id.
 The block is bounded so a `claude -p` run can never loop: after MAX_BLOCKS blocks (counted in <state dir>/deltas/<agent>.blocks)
 the next stop is allowed and a `.missing` marker is written next to the delta marker, for the parent to see.
 
+A saved report (<agent>.report.json from `delta_marker.py report`, a read-only token) is not a delta: the block and the `.missing` reason
+become `knowledge write blocked: read-only token`; the 3-block bound is unchanged.
+
 The stop is also blocked while the worktree holds changes outside the agent's zones (see zone_diff.py): that covers
 the writes PreToolUse cannot see (`sed -i`, `cp`, `mv`, python or node scripts). The block names the zone owner. It shares
 the same bound; the `.missing` marker then also lists the out-of-zone paths.
@@ -67,6 +70,13 @@ def valid_delta(path: Path) -> str:
     return ""
 
 
+READ_ONLY_REASON = "knowledge write blocked: read-only token"
+
+
+def report_path(state: Path, name: str) -> Path:
+    return state / "deltas" / f"{name}.report.json"
+
+
 def main() -> None:
     event = common.read_event()
     if not common.role():
@@ -80,6 +90,9 @@ def main() -> None:
         return
     path = delta_path(state, name)
     problem = valid_delta(path)
+    report = bool(problem) and report_path(state, name).is_file()  # a saved report is not a delta: it names why none exists
+    if report:
+        problem = READ_ONLY_REASON
     zoneless = ""
     if config is not None and common.role() in WRITING_ROLES and not zones.my_zones(config, name):
         zoneless = f"no write zone configured for {common.role()}; ask your lead"
@@ -108,7 +121,10 @@ def main() -> None:
     except OSError:
         return  # cannot count, so cannot bound: allow rather than risk a loop
     parts = []
-    if problem:
+    if report:
+        parts.append(f"You cannot stop yet: {READ_ONLY_REASON}. {report_path(state, name)} is a report, not a delta. Stop with the BLOCKER "
+                     "`knowledge write needs a project-scope write token` reported to your parent; never write a marker for nodes that were not written.")
+    elif problem:
         parts.append(f"You cannot stop yet: a knowledge delta is required and {problem}. Distill what this session "
                      f"learned into Pai Knowledge (search first, decisions as proposals, real sources), then write {path} as "
                      '{"nodes": ["<node id or slug>", ...]} with at least one node you created or changed.')
