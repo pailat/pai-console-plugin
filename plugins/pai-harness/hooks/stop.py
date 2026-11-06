@@ -104,6 +104,7 @@ def main() -> None:
         missing_path(state, name).unlink(missing_ok=True)
         return
     blocks = blocks_so_far(counter)
+    unchecked = any(zone_diff.is_unchecked(reason) for _, reason in flagged)  # an unreadable zone diff is never waved through by the bound
     if blocks >= MAX_BLOCKS:
         marker = {"agent": name, "blocks": blocks, "problem": problem or zoneless or "changes outside the agent's zones",
                   "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
@@ -115,12 +116,14 @@ def main() -> None:
             missing_path(state, name).write_text(json.dumps(marker) + "\n", encoding="utf-8")
         except OSError:
             pass  # still allow the stop: the bound matters more than the marker
-        return
+        if not unchecked:
+            return
     try:
         counter.parent.mkdir(parents=True, exist_ok=True)
         counter.write_text(f"{blocks + 1}\n", encoding="utf-8")
     except OSError:
-        return  # cannot count, so cannot bound: allow rather than risk a loop
+        if not unchecked:
+            return  # cannot count, so cannot bound: allow rather than risk a loop
     parts = []
     if report:
         parts.append(f"You cannot stop yet: {READ_ONLY_REASON}. {report_path(state, name)} is a report, not a delta. Stop with the BLOCKER "

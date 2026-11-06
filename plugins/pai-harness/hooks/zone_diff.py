@@ -7,7 +7,10 @@ the merge-base of HEAD with the config's [project] base_branch (origin/ form fir
 Every changed path goes through the same `zone_verdict` as the PreToolUse hook, so the state dir and paths outside
 the project are never flagged. A role with no zones assigned is not checked. A directory that is in no repository at all is not
 flagged. Fail closed: when git fails or times out for a root inside a repository, or no base commit can be found, or a changed
-path resolves outside its root (a symlink), that is reported as "cannot be checked" with the reason, and Stop blocks.
+path sits in a directory that resolves outside its root, that is reported as "cannot be checked" with the reason, and Stop blocks.
+A changed symlink is judged by its own path, not by where it points. Stop does not lift this block after 3 tries (stop.py): an
+unreadable diff must not turn into an allowed stop. Only the roots of zone_roots are diffed; a shell write into another
+worktree of the repository is not seen (PreToolUse covers the Write tools and redirects there).
 """
 from __future__ import annotations
 
@@ -16,7 +19,13 @@ from pathlib import Path
 
 import pre_tool_use as zones
 
+UNCHECKED = "cannot be checked"
 BASE_CANDIDATES = ("origin/HEAD", "origin/main", "origin/master", "main", "master")
+
+
+def is_unchecked(reason: str) -> bool:
+    """True for a verdict that says the diff could not be read (git failure, no base, unresolvable path), not that a path is out of zone."""
+    return UNCHECKED in reason
 
 
 def git(root: Path, *args: str) -> str | None:
@@ -84,23 +93,23 @@ def out_of_zone(config: dict, config_path: Path, state: Path | None, agent: str,
     cwd = cwd or Path.cwd()
     roots = zones.zone_roots(config_path.parent, cwd)
     if not roots:
-        return [(str(cwd), f"Write zone: the working directory {cwd} is outside the harness config's directory and is not a git work tree, "
-                           "so the zone diff cannot be checked. Ask your lead.")]
+        return [(str(cwd), f"Write zone: {zones.roots_problem(config_path.parent, cwd)}, so the zone diff {UNCHECKED}. Ask your lead.")]
     flagged, seen = [], set()
     for root in roots:
         paths, problem = changed_paths(root, config.get("project", {}).get("base_branch", ""))
         if problem:
-            flagged.append((str(root), f"Write zone: {root} cannot be checked: {problem}. Stop is blocked until the zone diff can be read; ask your lead."))
+            flagged.append((str(root), f"Write zone: {root} {UNCHECKED}: {problem}. Stop is blocked until the zone diff can be read; ask your lead."))
             continue
         for absolute in paths:
             if absolute in seen or zones.zone_root_for(Path(absolute), roots) != root:
                 continue
             seen.add(absolute)
-            real = Path(os.path.realpath(absolute))
+            # A changed symlink is judged by its own path; only a parent directory that resolves outside the root is unjudgeable.
+            real = Path(os.path.realpath(os.path.dirname(absolute)))
             if not real.is_relative_to(Path(os.path.realpath(root))) and not (state is not None and real.is_relative_to(Path(os.path.realpath(state)))):
-                flagged.append((absolute, f"Write zone: {absolute} cannot be checked: it resolves to {real}, outside {root}. Stop is blocked; ask your lead."))
+                flagged.append((absolute, f"Write zone: {absolute} {UNCHECKED}: its directory resolves to {real}, outside {root}. Stop is blocked; ask your lead."))
                 continue
-            reason = zones.zone_verdict(absolute, root, config, root, state, agent)
+            reason = zones.zone_verdict(absolute, root, config, root, state, agent, follow=False)
             if reason:
                 try:
                     shown = Path(os.path.realpath(absolute)).relative_to(Path(os.path.realpath(root))).as_posix()
