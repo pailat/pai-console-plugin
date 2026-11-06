@@ -369,6 +369,25 @@
         },
         "uniqueItems": true
       }
+    },
+    "pai": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "How headless runs reach the Pai MCP with a machine token. The token itself is never configured here: token_file only names the file, which must be mode 0600 and owned by the current user.",
+      "properties": {
+        "token_file": {
+          "type": "string",
+          "minLength": 1,
+          "default": "~/.config/pai-harness/token",
+          "description": "Path of the machine token file; PAI_HARNESS_TOKEN_FILE overrides it."
+        },
+        "mcp_url": {
+          "type": "string",
+          "default": "",
+          "pattern": "^$|^https://|^http://(localhost|127\\.0\\.0\\.1|\\[::1\\])",
+          "description": "Pai MCP endpoint. When set, the launcher passes a machine-only MCP config and fails closed unless the server connects."
+        }
+      }
     }
   }
 }

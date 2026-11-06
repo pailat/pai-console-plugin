@@ -222,6 +222,27 @@ def init_problems(frame: dict, skills: list[str]) -> list[str]:
     return problems
 
 
+PAI_SERVER = "pai"  # the key of the one server in the machine-only MCP config; its tools are mcp__pai__*
+
+
+def mcp_problems(frame: dict, server: str = PAI_SERVER) -> list[str]:
+    """What a stream-json `system/init` event fails to prove about the Pai MCP server (empty list = connected with its tools listed).
+
+    Real field names (Claude Code 2.1.x): `mcp_servers` is a list of {name, status}; `tools` is a list of tool-name strings.
+    """
+    listed = [m for m in frame.get("mcp_servers") or [] if isinstance(m, dict) and m.get("name") == server]
+    if not listed:
+        return [f"server {server} is not in init mcp_servers"]
+    problems = []
+    status = listed[0].get("status")
+    if status != "connected":
+        problems.append(f"server {server} status is {str(status or 'missing')[:40]}, not connected")
+    prefix = f"mcp__{server}__"
+    if not any(isinstance(t, str) and t.startswith(prefix) for t in frame.get("tools") or []):
+        problems.append(f"no {prefix}* tools listed")
+    return problems
+
+
 def blocker(state: Path, issue: str, reason: str) -> str:
     """Append a BLOCKER line to the state journal and print it; returns the line."""
     line = f"BLOCKER {issue}: {reason}"

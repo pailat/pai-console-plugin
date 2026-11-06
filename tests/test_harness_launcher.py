@@ -87,7 +87,7 @@ class LaunchTest(HarnessCase):
         wrapper.write_text(f"#!/bin/sh\nexec {sys.executable} {probe} \"$@\"\n")
         wrapper.chmod(0o755)
         done = self.run_script("launch.sh", issue, "--prompt-file", str(self.prompt), *extra, PAI_HARNESS_CLAUDE=str(wrapper),
-                               FAKE_CLAUDE_FIXTURE=str(self.fixture("success")), PROBE_LOG=str(self.tmp / "env.json"), **{"PAI_HARNESS_CONFIG": str(EXAMPLE), **env})
+                               FAKE_CLAUDE_FIXTURE=str(self.fixture("pai_connected")), PROBE_LOG=str(self.tmp / "env.json"), **{"PAI_HARNESS_CONFIG": str(EXAMPLE), **env})
         self.assertEqual(done.returncode, 0, done.stderr)
         return json.loads((self.tmp / "env.json").read_text())
 
@@ -128,7 +128,7 @@ class LaunchTest(HarnessCase):
         wrapper = self.tmp / "claude"
         wrapper.write_text("#!/bin/sh\ncat > /dev/null\ncat \"$FAKE_CLAUDE_FIXTURE\"\n")
         wrapper.chmod(0o755)
-        done = self.run_script("launch.sh", "ACME-7", "--prompt", "Do ACME-7.", PAI_HARNESS_CLAUDE=str(wrapper), FAKE_CLAUDE_FIXTURE=str(self.fixture("success")),
+        done = self.run_script("launch.sh", "ACME-7", "--prompt", "Do ACME-7.", PAI_HARNESS_CLAUDE=str(wrapper), FAKE_CLAUDE_FIXTURE=str(self.fixture("pai_connected")),
                                PAI_HARNESS_CONFIG=str(EXAMPLE))
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertEqual((self.state / "briefs/ACME-7.md").read_text(), "Do ACME-7.")
