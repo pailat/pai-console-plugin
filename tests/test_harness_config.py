@@ -96,6 +96,15 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config["project"]["issue_prefix"], "ACME")
         self.assertEqual(config["gates"], {})
 
+    def test_base_branch_is_optional_and_must_be_a_non_empty_string(self) -> None:
+        tomllib = __import__("tomllib")
+        self.assertNotIn("base_branch", hc.validate(tomllib.loads(VALID))["project"])
+        self.assertEqual(hc.validate(tomllib.loads(VALID + 'base_branch = "release/1.2"\n'))["project"]["base_branch"], "release/1.2")
+        for bad in ('base_branch = ""\n', "base_branch = 3\n"):
+            with self.assertRaises(hc.ConfigError) as caught:
+                hc.validate(tomllib.loads(VALID + bad))
+            self.assertIn("project.base_branch", str(caught.exception))
+
     def test_bad_files_fail_naming_the_key(self) -> None:
         cases = {
             "project": ('[limits]\nmax_agents = 2\n', "project: required section is missing"),

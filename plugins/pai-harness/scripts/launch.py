@@ -35,7 +35,7 @@ import harness_lib as lib  # noqa: E402
 import render_stream  # noqa: E402
 
 
-HOOK_KEYS = ("PAI_HARNESS_ROLE", "PAI_HARNESS_AGENT", "PAI_HARNESS_ZONES", "PAI_HARNESS_BRIEF", "PAI_HARNESS_PUSH_WRAPPER",
+HOOK_KEYS = ("PAI_HARNESS_ROLE", "PAI_HARNESS_AGENT", "PAI_HARNESS_ZONES", "PAI_HARNESS_BRIEF", "PAI_HARNESS_PUSH_WRAPPER", "PAI_HARNESS_BASE",
              "PAI_HARNESS_STREAM", "PAI_HARNESS_KNOWLEDGE_ORG", "PAI_HARNESS_KNOWLEDGE_PROJECT", "PAI_HARNESS_KNOWLEDGE_PRODUCT")
 KNOWLEDGE_ENV = ("PAI_HARNESS_STREAM", "PAI_HARNESS_KNOWLEDGE_ORG", "PAI_HARNESS_KNOWLEDGE_PROJECT", "PAI_HARNESS_KNOWLEDGE_PRODUCT")
 
@@ -83,8 +83,19 @@ def claude_command(args: argparse.Namespace, config: dict, resume: str | None) -
     return command
 
 
-def hook_env(args: argparse.Namespace, config: dict, state: Path, config_path: Path, write: bool = True) -> dict[str, str]:
-    """The environment that activates the hooks for this run: role, agent, zones, brief, push wrapper and Knowledge command."""
+def launch_base(args: argparse.Namespace, previous: dict) -> str | None:
+    """The commit the Stop zone diff compares against: the one recorded when the run first started (a resume keeps it), else HEAD in the run cwd."""
+    if args.resume_run and previous.get("base"):
+        return previous["base"]
+    try:
+        done = run_process(["git", "-C", str(args.cwd or os.getcwd()), "rev-parse", "HEAD"], capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return done.stdout.strip() if done.returncode == 0 and done.stdout.strip() else None
+
+
+def hook_env(args: argparse.Namespace, config: dict, state: Path, config_path: Path, write: bool = True, base: str | None = None) -> dict[str, str]:
+    """The environment that activates the hooks for this run: role, agent, zones, brief, push wrapper, start commit and Knowledge command."""
     role = args.role or "implementer"
     env = {**os.environ, "PAI_HARNESS_ROLE": role, "PAI_HARNESS_AGENT": args.issue, "PAI_HARNESS_CONFIG": str(config_path),
            "PAI_HARNESS_STATE_DIR": str(state)}
@@ -97,6 +108,10 @@ def hook_env(args: argparse.Namespace, config: dict, state: Path, config_path: P
         env["PAI_HARNESS_PUSH_WRAPPER"] = config["rules"]["push_wrapper"]
     else:
         env.pop("PAI_HARNESS_PUSH_WRAPPER", None)
+    if base:
+        env["PAI_HARNESS_BASE"] = base
+    else:
+        env.pop("PAI_HARNESS_BASE", None)  # a stale value must not leak in; zone_diff falls back to [project] base_branch
     if args.prompt_file:
         env["PAI_HARNESS_BRIEF"] = str(Path(args.prompt_file).resolve())
     elif args.prompt:
@@ -170,7 +185,8 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
     machine = config["queues"].get(queue or "", {}).get("machine")
     started = lib.stamp()
     stream.parent.mkdir(parents=True, exist_ok=True)
-    lib.register(state, args.issue, state="running", queue=queue, machine=machine, role=args.role, stream=str(stream))
+    base = launch_base(args, previous)
+    lib.register(state, args.issue, state="running", queue=queue, machine=machine, role=args.role, stream=str(stream), base=base)
     lib.emit(state, "run.started", {"issue": args.issue, "queue": queue, "resume": bool(resume)})
     timeout = config["limits"]["turn_timeout_minutes"] * 60
     exit_code, timed_out, last_beat, lines = None, False, time.monotonic(), []
@@ -195,7 +211,7 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
     with stream.open("w", encoding="utf-8") as out, stderr_log.open("w", encoding="utf-8") as err:
         try:
             proc = subprocess.Popen(claude_command(args, config, resume), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                    stderr=err, text=True, cwd=args.cwd or None, env=hook_env(args, config, state, config_path))
+                                    stderr=err, text=True, cwd=args.cwd or None, env=hook_env(args, config, state, config_path, base=base))
         except OSError as error:
             err.write(f"cannot start claude: {error}\n")
             renderer.say(f"✗ cannot start claude: {error}")
@@ -359,7 +375,7 @@ def main(argv: list[str]) -> int:
         previous = lib.read_json(state_file) or {}
         resume = previous.get("session_id") if args.resume_run else None
         lib.show({"dry_run": True, "issue": args.issue, "command": claude_command(args, config, resume), "pane": args.pane,
-                  "hook_env": {k: v for k, v in hook_env(args, config, state, config_path, write=False).items() if k in HOOK_KEYS},
+                  "hook_env": {k: v for k, v in hook_env(args, config, state, config_path, write=False, base=launch_base(args, previous)).items() if k in HOOK_KEYS},
                   "stream": str(run_paths(state, args.issue)[0]), "state_file": str(state_file), "state_dir": str(state)})
         return 0
     if not args.inner:

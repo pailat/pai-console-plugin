@@ -1,0 +1,4 @@
+{
+  "session_id": "sess-1", "transcript_path": "__PROJECT__/transcript.jsonl", "cwd": "__PROJECT__", "permission_mode": "default",
+  "hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_use_id": "toolu_13", "tool_input": {"command": "for i in 1 2; do __WRAPPER__ git push -u origin feat/acme-7; done", "description": "loop"}
+}

@@ -8,7 +8,7 @@ Write, Edit, MultiEdit and NotebookEdit are checked by file path; Bash is checke
 - A path inside the project that is outside the agent's zones is denied with the owner of the zone it falls in
   named, so the agent files a zone request. With no zone assigned, only paths inside a declared zone are denied.
 - Paths outside the project root and the harness state dir are never policed (the delta marker lives there).
-- `git push` is allowed only as a command that starts with the push queue wrapper: the config key rules.push_wrapper
+- `git push` is allowed only as a command that starts with the push queue wrapper (after shell keywords such as `do` or `then`): the config key rules.push_wrapper
   when the schema has it, else PAI_HARNESS_PUSH_WRAPPER. With none configured every push is refused.
 - With a role set and no usable config, writes and pushes are denied (fail closed). With no role the hook does nothing.
 """
@@ -28,6 +28,7 @@ import hook_common as common  # noqa: E402
 WRITE_TOOLS = {"Write": "file_path", "Edit": "file_path", "MultiEdit": "file_path", "NotebookEdit": "notebook_path"}
 REDIRECTS = {">", ">>", ">|", "&>", "&>>"}
 SEPARATORS = {";", "&&", "||", "|", "&", "|&", "(", ")", "{", "}"}
+SHELL_KEYWORDS = {"do", "then", "else", "elif", "while", "until", "if", "!", "time"}  # may open a segment: `for i in 1 2; do CMD; done`
 SHELLS = {"sh", "bash", "zsh", "dash"}
 IGNORED_TARGETS = {"/dev/null", "/dev/stdout", "/dev/stderr", "/dev/tty"}
 GIT_OPTIONS_WITH_VALUE = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path"}
@@ -129,6 +130,14 @@ def segments(command: str) -> list[list[str]]:
     if current:
         out.append(current)
     return out
+
+
+def strip_keywords(tokens: list[str]) -> list[str]:
+    """Drop leading shell keywords, so `do CMD` and `then ! CMD` are read as CMD. This only reveals the real command to every check below."""
+    i = 0
+    while i < len(tokens) and tokens[i] in SHELL_KEYWORDS:
+        i += 1
+    return tokens[i:]
 
 
 def strip_assignments(tokens: list[str]) -> list[str]:
@@ -245,7 +254,7 @@ def push_form(tokens: list[str], cwd: Path, wrapper: str, depth: int) -> tuple[b
 def analyze(command: str, wrapper: str, cwd: Path, depth: int = 0) -> Analysis:
     """Find write targets, a direct git push (every spelling: absolute path, -C, env/command prefixes, aliases) and --no-verify."""
     found = Analysis()
-    for tokens in segments(command):
+    for tokens in map(strip_keywords, segments(command)):
         for i, token in enumerate(tokens):
             if token in REDIRECTS and i + 1 < len(tokens) and not tokens[i + 1].startswith("&"):
                 found.targets.append(tokens[i + 1])

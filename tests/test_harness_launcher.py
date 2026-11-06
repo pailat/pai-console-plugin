@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -99,6 +101,23 @@ class LaunchTest(HarnessCase):
         self.assertEqual(seen["PAI_HARNESS_KNOWLEDGE_CMD"], "knowledge.sh")  # site tooling passes through
         self.assertEqual((seen["PAI_HARNESS_CONFIG"], seen["PAI_HARNESS_STATE_DIR"]), (str(EXAMPLE), str(self.state)))
 
+    def test_the_run_exports_its_start_commit_as_the_zone_diff_base(self) -> None:
+        repo = self.tmp / "repo"
+        repo.mkdir()
+        env = {**os.environ, "HOME": str(self.tmp)}
+        for argv in (["init", "-q", "-b", "main"], ["-c", "user.name=Acme", "-c", "user.email=acme@example.com", "commit", "-q", "--allow-empty", "-m", "start"]):
+            subprocess.run(["git", "-C", str(repo), *argv], check=True, capture_output=True, env=env)
+        head = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], check=True, capture_output=True, text=True, env=env).stdout.strip()
+        seen = self.run_with_env_probe("ACME-7", "--cwd", str(repo), PAI_HARNESS_BASE="stale")
+        self.assertEqual(seen["PAI_HARNESS_BASE"], head)
+        self.assertEqual(lib.read_json(self.state / "registry/ACME-7.json")["base"], head)
+
+    def test_a_cwd_outside_git_drops_a_stale_base(self) -> None:
+        plain = self.tmp / "plain"
+        plain.mkdir()
+        seen = self.run_with_env_probe("ACME-7", "--role", "lead", "--cwd", str(plain), PAI_HARNESS_BASE="stale")
+        self.assertNotIn("PAI_HARNESS_BASE", seen)
+
     def test_the_role_defaults_to_implementer_and_an_unmapped_role_drops_a_stale_zone_list(self) -> None:
         seen = self.run_with_env_probe("ACME-7", PAI_HARNESS_ZONES="stale")
         self.assertEqual((seen["PAI_HARNESS_ROLE"], seen["PAI_HARNESS_ZONES"]), ("implementer", "frontend"))
@@ -117,7 +136,7 @@ class LaunchTest(HarnessCase):
     def test_the_dry_run_shows_the_hook_environment_and_writes_no_brief(self) -> None:
         plan = json.loads(self.run_script("launch.sh", "ACME-7", "--prompt", "x", "--role", "lead", "--dry-run", PAI_HARNESS_CONFIG=str(EXAMPLE)).stdout)
         self.assertEqual(plan["hook_env"]["PAI_HARNESS_ZONES"], "frontend,contracts")
-        self.assertEqual(sorted(plan["hook_env"]), ["PAI_HARNESS_AGENT", "PAI_HARNESS_BRIEF", "PAI_HARNESS_KNOWLEDGE_ORG", "PAI_HARNESS_KNOWLEDGE_PROJECT", "PAI_HARNESS_PUSH_WRAPPER", "PAI_HARNESS_ROLE", "PAI_HARNESS_ZONES"])
+        self.assertEqual(sorted(plan["hook_env"]), ["PAI_HARNESS_AGENT", "PAI_HARNESS_BASE", "PAI_HARNESS_BRIEF", "PAI_HARNESS_KNOWLEDGE_ORG", "PAI_HARNESS_KNOWLEDGE_PROJECT", "PAI_HARNESS_PUSH_WRAPPER", "PAI_HARNESS_ROLE", "PAI_HARNESS_ZONES"])
         self.assertFalse(self.state.exists())
 
     def test_without_a_push_wrapper_in_the_config_a_stale_one_is_not_passed_on(self) -> None:

@@ -5,6 +5,7 @@ schema_version = 1
 pai_org = "acme"
 pai_project = "acme-app"
 linear_team = "ACME"        # issues look like ACME-123
+# base_branch = "release/1.2"  # optional: Stop zone diff fallback when the run recorded no start commit
 
 # Where the distiller writes Pai Knowledge: an organization and exactly one of project or product.
 [knowledge]
