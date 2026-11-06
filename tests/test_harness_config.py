@@ -93,6 +93,9 @@ class ConfigTest(unittest.TestCase):
             "queues.q.machine": (VALID + '[queues.q]\nmachine = "nowhere"\n', "queues.q.machine: unknown machine"),
             "gates.Unit": (VALID + '[gates]\nUnit = "make test"\n', "gates.Unit: name must be"),
             "bogus": ('bogus = 1\n' + VALID, "bogus: unknown section"),
+            "rules.push_wrapper": (VALID + '[rules]\npush_wrapper = ""\n', "rules.push_wrapper: must not be empty"),
+            "role_zones.pilot": (VALID + '[role_zones]\npilot = []\n', "role_zones.pilot: unknown key"),
+            "role_zones.implementer[0]": (VALID + '[role_zones]\nimplementer = ["web"]\n', "role_zones.implementer[0]: unknown zone 'web'"),
             "schema_version": ('schema_version = 2\n' + VALID, "schema_version: unsupported"),
         }
         for key, (text, message) in cases.items():
@@ -111,6 +114,13 @@ class ConfigTest(unittest.TestCase):
             path.unlink()
             self.assertIn("no .pai-harness.toml found", run("load_config.py", tmp).stderr)
 
+    def test_the_example_maps_roles_to_zones_and_names_a_push_wrapper(self) -> None:
+        config = hc.load_file(PLUGIN / "examples/acme/.pai-harness.toml")
+        self.assertEqual(config["role_zones"], {"implementer": ["frontend"], "lead": ["frontend", "contracts"]})
+        self.assertEqual(config["rules"]["push_wrapper"], "scripts/queue-push.sh")
+        defaults = hc.validate(__import__("tomllib").loads(VALID))
+        self.assertEqual((defaults["role_zones"], defaults["rules"]["push_wrapper"]), ({}, ""))
+
     def test_json_schema_agrees_with_the_validator(self) -> None:
         schema = json.loads((PLUGIN / "schema/pai-harness.schema.json").read_text())
         self.assertEqual(sorted(schema["properties"]), sorted(["schema_version", *hc.DEFAULTS.keys() - {"schema_version"}]))
@@ -119,6 +129,8 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(schema["properties"]["models"]["default"], hc.DEFAULT_MODELS)
         self.assertEqual(sorted(schema["properties"]["limits"]["properties"]), sorted(hc.DEFAULTS["limits"]))
         self.assertEqual(sorted(schema["properties"]["rules"]["properties"]), sorted(hc.DEFAULTS["rules"]))
+        self.assertEqual(sorted(schema["properties"]["role_zones"]["propertyNames"]["enum"]), sorted(hc.ROLES))
+        self.assertEqual(schema["properties"]["rules"]["properties"]["push_wrapper"]["type"], "string")
         self.assertEqual(schema["properties"]["models"]["properties"]["lead"]["enum"], list(hc.MODEL_CHOICES))
 
 

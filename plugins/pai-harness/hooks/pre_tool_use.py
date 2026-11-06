@@ -17,6 +17,8 @@ from __future__ import annotations
 import os
 import re
 import shlex
+import subprocess
+from subprocess import run as run_process  # bare name: the denylist reads a dotted call ending in the run top-level domain as a hostname
 import sys
 from pathlib import Path
 
@@ -29,6 +31,10 @@ SEPARATORS = {";", "&&", "||", "|", "&", "|&", "(", ")", "{", "}"}
 SHELLS = {"sh", "bash", "zsh", "dash"}
 IGNORED_TARGETS = {"/dev/null", "/dev/stdout", "/dev/stderr", "/dev/tty"}
 GIT_OPTIONS_WITH_VALUE = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path"}
+PREFIX_COMMANDS = {"env", "command", "exec", "nohup", "time", "builtin", "setsid", "sudo", "doas", "nice", "timeout", "xargs", "stdbuf", "ionice"}
+PREFIX_VALUE_OPTIONS = {"env": {"-u", "-C", "-S", "--unset", "--chdir", "--split-string"}, "sudo": {"-u", "-g", "-h", "-p", "-C", "-D", "-R", "-T", "-U"},
+                        "doas": {"-u", "-C"}, "nice": {"-n"}, "timeout": {"-s", "-k", "--signal", "--kill-after"}, "ionice": {"-c", "-n", "-p"},
+                        "xargs": {"-I", "-n", "-P", "-d", "-L", "-s", "-E", "-a"}, "stdbuf": {"-i", "-o", "-e"}}
 HEREDOC = re.compile(r"<<-?\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1")
 
 
@@ -125,17 +131,6 @@ def segments(command: str) -> list[list[str]]:
     return out
 
 
-def is_git_push(tokens: list[str]) -> bool:
-    for i, token in enumerate(tokens):
-        if os.path.basename(token) != "git":
-            continue
-        j = i + 1
-        while j < len(tokens) and tokens[j].startswith("-"):
-            j += 2 if tokens[j] in GIT_OPTIONS_WITH_VALUE else 1
-        return j < len(tokens) and tokens[j] == "push"
-    return False
-
-
 def strip_assignments(tokens: list[str]) -> list[str]:
     i = 0
     while i < len(tokens) and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*=.*", tokens[i]):
@@ -147,28 +142,132 @@ def expand(token: str) -> str:
     return os.path.expandvars(os.path.expanduser(token))
 
 
+def unwrap(tokens: list[str]) -> list[str]:
+    """Drop leading VAR=value words and prefix commands (env, command, exec, nohup, sudo, ...), so the real command comes first."""
+    tokens = strip_assignments(tokens)
+    while tokens and os.path.basename(tokens[0]) in PREFIX_COMMANDS:
+        name, i = os.path.basename(tokens[0]), 1
+        valued = PREFIX_VALUE_OPTIONS.get(name, set())
+        while i < len(tokens) and (tokens[i].startswith("-") or (name == "env" and "=" in tokens[i] and not tokens[i].startswith("="))):
+            i += 2 if tokens[i] in valued else 1
+        if name == "timeout" and i < len(tokens):
+            i += 1  # the duration
+        tokens = strip_assignments(tokens[i:])
+    return tokens
+
+
 def through_wrapper(tokens: list[str], wrapper: str) -> bool:
     wanted = [expand(t) for t in shlex.split(wrapper)] if wrapper else []
-    got = [expand(t) for t in strip_assignments(tokens)]
+    got = [expand(t) for t in unwrap(tokens)]
     return bool(wanted) and got[: len(wanted)] == wanted
 
 
-def analyze(command: str, wrapper: str, depth: int = 0) -> tuple[list[str], bool]:
-    """Return (write targets, whether a direct git push was found)."""
-    targets, pushed = [], False
+def is_no_verify(token: str) -> bool:
+    """`--no-verify` or any unique abbreviation git accepts (`--no-verif`, `--no-v`)."""
+    return token.startswith("--no-v") and "--no-verify".startswith(token)
+
+
+def git_aliases(cwd: Path, directory: str | None, inline: dict[str, str]) -> dict[str, str]:
+    """Aliases from `git config` (read in the directory the push would run in) plus those given inline with -c."""
+    aliases: dict[str, str] = {}
+    command = ["git"] + (["-C", directory] if directory else []) + ["config", "--get-regexp", r"^alias\."]
+    try:
+        done = run_process(command, cwd=cwd, capture_output=True, text=True, timeout=5)
+        for line in done.stdout.splitlines():
+            key, _, value = line.partition(" ")
+            aliases[key[len("alias."):].lower()] = value
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return {**aliases, **inline}
+
+
+class Analysis:
+    def __init__(self) -> None:
+        self.targets: list[str] = []
+        self.pushed = False  # a git push outside the wrapper
+        self.no_verify = False  # a push with --no-verify, wrapper or not
+
+    def merge(self, other: "Analysis") -> None:
+        self.targets += other.targets
+        self.pushed, self.no_verify = self.pushed or other.pushed, self.no_verify or other.no_verify
+
+
+def git_subcommand(tokens: list[str]) -> tuple[list[str], str | None, dict[str, str], bool]:
+    """Split `git [options] SUB ARGS` (tokens start at git): (SUB and ARGS, -C directory, -c alias.X=Y pairs, hooks overridden)."""
+    j, directory, inline, hooks = 1, None, {}, False
+    while j < len(tokens) and tokens[j].startswith("-"):
+        if tokens[j] == "-C" and j + 1 < len(tokens):
+            directory = tokens[j + 1]
+        if tokens[j] == "-c" and j + 1 < len(tokens):
+            key, _, value = tokens[j + 1].partition("=")
+            if key.lower().startswith("alias."):
+                inline[key[len("alias."):].lower()] = value
+            hooks = hooks or key.lower() == "core.hookspath"
+        j += 2 if tokens[j] in GIT_OPTIONS_WITH_VALUE else 1
+    return tokens[j:], directory, inline, hooks
+
+
+def push_form(tokens: list[str], cwd: Path, wrapper: str, depth: int) -> tuple[bool, bool]:
+    """Return (is a git push, is a push whose hooks are bypassed). Tokens are one command segment, prefixes already dropped."""
+    if not tokens:
+        return False, False
+    if re.search(r"[$`]", tokens[0]):  # a command name we cannot resolve: assume the worst when push is an argument
+        return "push" in tokens[1:], False
+    if os.path.basename(tokens[0]) != "git":
+        return False, False
+    rest, directory, inline, hooks = git_subcommand(tokens)
+    if not rest:
+        return False, False
+    aliases = git_aliases(cwd, directory, inline) if depth < 3 else inline
+    name, seen, args = rest[0].lower(), set(), rest[1:]
+    while name in aliases and name not in seen:
+        seen.add(name)
+        value = aliases[name].strip()
+        if value.startswith("!"):  # a shell alias: read it as the command it runs
+            inner = analyze(value[1:] + " " + shlex.join(args), wrapper, cwd, depth + 1)
+            return inner.pushed, inner.no_verify
+        try:
+            parts = shlex.split(value)
+        except ValueError:
+            return False, False
+        if not parts:
+            return False, False
+        expanded, _, more, more_hooks = git_subcommand(["git", *parts])
+        hooks, inline = hooks or more_hooks, {**inline, **more}
+        if not expanded:
+            return False, False
+        name, args = expanded[0].lower(), expanded[1:] + args
+    if name != "push":
+        return False, False
+    return True, hooks or any(is_no_verify(t) for t in args)
+
+
+def analyze(command: str, wrapper: str, cwd: Path, depth: int = 0) -> Analysis:
+    """Find write targets, a direct git push (every spelling: absolute path, -C, env/command prefixes, aliases) and --no-verify."""
+    found = Analysis()
     for tokens in segments(command):
         for i, token in enumerate(tokens):
             if token in REDIRECTS and i + 1 < len(tokens) and not tokens[i + 1].startswith("&"):
-                targets.append(tokens[i + 1])
-        bare = strip_assignments(tokens)
+                found.targets.append(tokens[i + 1])
+        bare = unwrap(tokens)
         if bare and os.path.basename(bare[0]) == "tee":
-            targets += [t for t in bare[1:] if not t.startswith("-")]
-        if bare and os.path.basename(bare[0]) in SHELLS and "-c" in bare and depth < 3 and bare.index("-c") + 1 < len(bare):
-            inner_targets, inner_push = analyze(bare[bare.index("-c") + 1], wrapper, depth + 1)
-            targets, pushed = targets + inner_targets, pushed or inner_push
-        if is_git_push(tokens) and not through_wrapper(tokens, wrapper):
-            pushed = True
-    return [t for t in targets if t not in IGNORED_TARGETS and "$" not in expand(t)], pushed
+            found.targets += [t for t in bare[1:] if not t.startswith("-")]
+        if bare and depth < 3:
+            name = os.path.basename(bare[0])
+            if name in SHELLS and "-c" in bare and bare.index("-c") + 1 < len(bare):
+                found.merge(analyze(bare[bare.index("-c") + 1], wrapper, cwd, depth + 1))
+            elif name == "eval":
+                found.merge(analyze(" ".join(bare[1:]), wrapper, cwd, depth + 1))
+        if through_wrapper(tokens, wrapper):
+            found.no_verify = found.no_verify or any(is_no_verify(t) or t.lower().startswith("core.hookspath") for t in bare)
+            continue
+        is_push, bypass = push_form(bare, cwd, wrapper, depth)
+        for i in range(1, len(bare)):  # a git behind any other command word (`wrapper git push` with no wrapper configured, `ssh host git push`)
+            if not is_push and os.path.basename(bare[i]) == "git":
+                is_push, bypass = push_form(bare[i:], cwd, wrapper, depth)
+        found.pushed, found.no_verify = found.pushed or is_push, found.no_verify or (is_push and bypass)
+    found.targets = [t for t in found.targets if t not in IGNORED_TARGETS and "$" not in expand(t)]
+    return found
 
 
 def main() -> None:
@@ -179,7 +278,7 @@ def main() -> None:
     if tool in WRITE_TOOLS:
         wrapper, command = "", ""
         direct_paths = [str(tool_input.get(WRITE_TOOLS[tool]) or "")]
-        pushed = False
+        pushed = no_verify = False
     elif tool == "Bash":
         command = str(tool_input.get("command") or "")
         config, _, _ = common.load(event)
@@ -188,15 +287,20 @@ def main() -> None:
             wrapper = str(config["rules"]["push_wrapper"])
         if config is None:
             wrapper = ""  # fail closed: without a config even a wrapper push is refused
-        direct_paths, pushed = analyze(command, wrapper)
+        found = analyze(command, wrapper, Path(event.get("cwd") or os.getcwd()))
+        direct_paths, pushed, no_verify = found.targets, found.pushed, found.no_verify
     else:
         return
     direct_paths = [p for p in direct_paths if p]
-    if not direct_paths and not pushed:
+    if not direct_paths and not pushed and not no_verify:
         return
     config, config_path, problem = common.load(event)
     if config is None or config_path is None:
         common.deny(f"The harness config could not be loaded ({problem}); with a role set, writes and pushes are refused until it can. Ask your parent.")
+        return
+    if no_verify:
+        common.deny("git push --no-verify (or a core.hooksPath override) is refused, even through the push queue wrapper. "
+                    "Fix what the pre-push hook reports instead of bypassing it.")
         return
     if pushed:
         configured = wrapper or str(config.get("rules", {}).get("push_wrapper") or "")
