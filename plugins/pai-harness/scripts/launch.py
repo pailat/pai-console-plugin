@@ -11,6 +11,9 @@ status is never read. A run that needs a permission is not given one: it ends `b
 
 Usage: launch.sh ISSUE (--prompt TEXT | --prompt-file FILE) [--pane PANE] [--model M] [--role R] [--cwd DIR]
                  [--queue Q] [--stream S] [--allowed-tools T ...] [--config FILE] [--dry-run]
+       launch.sh ISSUE --profile mechanical --files F [F ...] --instruction TEXT [--model haiku|sonnet] [--cwd DIR]
+                 the mechanical lane: a closed brief, Haiku, an empty strict MCP config, Read/Edit/Grep/Glob only, `--output-format json`;
+                 check the result with verify-mechanical.sh before closing it
        launch.sh --resume ISSUE   continue a parked or blocked run by its recorded session id
        launch.sh --park ISSUE     mark a run parked (no process is touched)
        launch.sh --status ISSUE   print the recorded state
@@ -35,6 +38,9 @@ import harness_lib as lib  # noqa: E402
 import render_stream  # noqa: E402
 
 
+MECHANICAL_TOOLS = ("Read", "Edit", "Grep", "Glob")  # the whole tool set of the mechanical lane: no Bash, no MCP, no web
+MECHANICAL_MODELS = ("haiku", "sonnet")  # Haiku by default; `--model sonnet` is the opt-in
+GLOB_CHARS = set("*?[]{}")
 HOOK_KEYS = ("PAI_HARNESS_ROLE", "PAI_HARNESS_AGENT", "PAI_HARNESS_ZONES", "PAI_HARNESS_BRIEF", "PAI_HARNESS_PUSH_WRAPPER", "PAI_HARNESS_BASE",
              "PAI_HARNESS_STREAM", "PAI_HARNESS_KNOWLEDGE_ORG", "PAI_HARNESS_KNOWLEDGE_PROJECT", "PAI_HARNESS_KNOWLEDGE_PRODUCT")
 KNOWLEDGE_ENV = ("PAI_HARNESS_STREAM", "PAI_HARNESS_KNOWLEDGE_ORG", "PAI_HARNESS_KNOWLEDGE_PROJECT", "PAI_HARNESS_KNOWLEDGE_PRODUCT")
@@ -73,6 +79,42 @@ def run_paths(state: Path, issue: str) -> tuple[Path, Path, Path]:
 
 def mcp_config_path(state: Path, issue: str) -> Path:
     return state / "mcp" / f"{issue}.json"
+
+
+def write_empty_mcp_config(state: Path, issue: str) -> Path:
+    """The mechanical lane's MCP config: no servers at all. With --strict-mcp-config no user or plugin server (Pai, OAuth) can load."""
+    path = mcp_config_path(state, issue)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lib.write_json(path, {"mcpServers": {}})
+    return path
+
+
+def closed_brief(instruction: str, files: list[str]) -> str:
+    """The only input of a mechanical run: the exact instruction and the explicit list of files it may touch."""
+    listing = "\n".join(f"- {f}" for f in files)
+    return (f"Instruction (do exactly this, nothing else):\n{instruction.strip()}\n\n"
+            f"Files you may change (the only ones; do not create, delete or rename files):\n{listing}\n\n"
+            "Use only Read, Edit, Grep and Glob. If the instruction cannot be done inside these files, change nothing and say why in one line.\n")
+
+
+def clean_files(files: list[str]) -> list[str]:
+    """Validate the brief's file list: relative literal paths inside the worktree, no globs, no duplicates. Raises ValueError."""
+    out: list[str] = []
+    for raw in files:
+        path = os.path.normpath(raw)
+        if not raw.strip() or os.path.isabs(path) or path == ".." or path.startswith("../") or path == "." or GLOB_CHARS & set(raw):
+            raise ValueError(f"--files entry {raw!r} must be a literal relative path inside the worktree (no glob, no ..)")
+        if path.startswith(".git/") or path == ".git":
+            raise ValueError(f"--files entry {raw!r} points into .git")
+        if path not in out:
+            out.append(path)
+    return out
+
+
+def worktree_dirty(cwd: str | None) -> bool:
+    """True when the worktree has uncommitted or untracked changes (the verifier discards by path, so the lane starts from a clean tree)."""
+    done = run_process(["git", "-C", str(cwd or os.getcwd()), "status", "--porcelain"], capture_output=True, text=True, timeout=30)
+    return done.returncode != 0 or bool(done.stdout.strip())
 
 
 def pai_mcp_config(config: dict, config_path: Path) -> dict:
@@ -114,17 +156,20 @@ def remaining_caps(args: argparse.Namespace, config: dict, previous: dict | None
 
 def claude_command(args: argparse.Namespace, config: dict, resume: str | None, mcp_config: Path | None = None, previous: dict | None = None) -> list[str]:
     model = args.model or config["models"].get(args.role or "implementer", "sonnet")
-    command = [os.environ.get("PAI_HARNESS_CLAUDE", "claude"), "-p", "--output-format", "stream-json", "--verbose", "--model", model]
+    output = ["--output-format", "json"] if args.profile else ["--output-format", "stream-json", "--verbose"]
+    command = [os.environ.get("PAI_HARNESS_CLAUDE", "claude"), "-p", *output, "--model", model]
     if not lib.installed_plugin():
         command += ["--plugin-dir", str(lib.plugin_root())]  # every run loads the plugin, from the launcher's own location
-    if mcp_config:  # only the machine config: a user or plugin OAuth server must not stand in for it
+    if mcp_config:  # only the machine config (the mechanical lane: an empty one): a user or plugin OAuth server must not stand in for it
         command += ["--mcp-config", str(mcp_config), "--strict-mcp-config"]
     # Budgets fail closed: every run carries a turn cap and a dollar cap (the role's, from [limits] / [role_limits]); claude stops the run when either is hit.
     turns, budget, _ = remaining_caps(args, config, previous)
     command += ["--max-turns", str(max(turns, 1)), "--max-budget-usd", format(budget, ".4f").rstrip("0").rstrip(".")]
     if resume:
         command += ["--resume", resume]
-    if args.allowed_tools:
+    if args.profile:  # the tool set is fixed: --tools removes every other built-in tool, --allowed-tools approves these without a prompt
+        command += ["--tools", ",".join(MECHANICAL_TOOLS), "--allowed-tools", *MECHANICAL_TOOLS]
+    elif args.allowed_tools:
         command += ["--allowed-tools", *args.allowed_tools]
     return command
 
@@ -274,8 +319,11 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
     lib.emit(state, "run.started", {"issue": args.issue, "queue": queue, "resume": bool(resume)})
     timeout = config["limits"]["turn_timeout_minutes"] * 60
     exit_code, timed_out, last_beat, lines = None, False, time.monotonic(), []
-    mcp_config = write_mcp_config(config, state, args.issue, config_path) if config["pai"]["mcp_url"] else None
-    init = InitCheck(lib.expected_skills(lib.plugin_root()), lib.PAI_SERVER if mcp_config else None)
+    if args.profile:
+        mcp_config = write_empty_mcp_config(state, args.issue)  # always empty and strict: the Pai MCP, its token and OAuth never reach this lane
+    else:
+        mcp_config = write_mcp_config(config, state, args.issue, config_path) if config["pai"]["mcp_url"] else None
+    init = InitCheck(lib.expected_skills(lib.plugin_root()), lib.PAI_SERVER if mcp_config and not args.profile else None)
     run_id = uuid.uuid4().hex[:8]
     renderer = render_stream.Renderer(sys.stderr, render_stream.hooks_of(lib.plugin_root()))
     status = render_stream.HerdrStatus(args.issue, run_id, args.herdr_workspace, args.herdr_tab)
@@ -350,28 +398,30 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
                     out.write(line)
                     out.flush()
                     lines.append(line)
-                    init.feed(line)
-                    track(line)
-                    show(line)
+                    if not args.profile:  # `--output-format json` has no init or live frames: the result is read once the run ends
+                        init.feed(line)
+                        track(line)
+                        show(line)
                     if time.monotonic() - last_beat > 60:
                         lib.register(state, args.issue, state="running")
                         last_beat = time.monotonic()
             reader = threading.Thread(target=read, daemon=True)
             reader.start()
-            init_wait = float(os.environ.get("PAI_HARNESS_INIT_TIMEOUT") or lib.INIT_TIMEOUT_SECONDS)
-            deadline = time.monotonic() + init_wait
-            while not init.done.is_set() and proc.poll() is None and time.monotonic() < deadline:
-                init.done.wait(0.05)
-            if proc.poll() is not None:
-                reader.join(10)  # the stream is complete: the init verdict below is final
-            if not init.done.is_set():
-                init.problems.append(f"no init event within {init_wait:g}s" if proc.poll() is None else "no init event before the run ended")
-            if init.problems or init.mcp:
-                proc.kill()  # the exact child PID; never a pattern
-                proc.wait()
-                reader.join(10)
-                closing("failed", "self-check: " + init_reason(init.problems, init.mcp))
-                return fail_closed(args, state, started, stream, queue, machine, init.problems, run_id, init.mcp, previous)
+            if not args.profile:
+                init_wait = float(os.environ.get("PAI_HARNESS_INIT_TIMEOUT") or lib.INIT_TIMEOUT_SECONDS)
+                deadline = time.monotonic() + init_wait
+                while not init.done.is_set() and proc.poll() is None and time.monotonic() < deadline:
+                    init.done.wait(0.05)
+                if proc.poll() is not None:
+                    reader.join(10)  # the stream is complete: the init verdict below is final
+                if not init.done.is_set():
+                    init.problems.append(f"no init event within {init_wait:g}s" if proc.poll() is None else "no init event before the run ended")
+                if init.problems or init.mcp:
+                    proc.kill()  # the exact child PID; never a pattern
+                    proc.wait()
+                    reader.join(10)
+                    closing("failed", "self-check: " + init_reason(init.problems, init.mcp))
+                    return fail_closed(args, state, started, stream, queue, machine, init.problems, run_id, init.mcp, previous)
             try:
                 exit_code = proc.wait(timeout=timeout)
             except subprocess.TimeoutExpired:
@@ -379,6 +429,10 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
                 proc.terminate()
                 exit_code = proc.wait()
             reader.join(10)
+    if args.profile:
+        lines = json_frames(lines)
+        for frame_line in lines:
+            show(frame_line)
     summary = lib.parse_stream(lines)
     verdict = lib.run_state(summary, exit_code, timed_out)
     finished = lib.stamp()
@@ -388,11 +442,42 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
     record = {"issue": args.issue, "queue": queue, "machine": machine, "role": args.role, "started": started, "finished": finished,
               "stream": str(stream), "resumed": bool(resume), "run_id": run_id, "model": args.model or config["models"].get(args.role or "implementer", "sonnet"),
               "model_reported": init.model, "compaction_alert": usage["compaction_alert"], **verdict, **accumulate(previous, bool(resume), this_run)}
+    if args.profile:  # what the verifier needs: the lane, the listed files, the worktree the start commit
+        record.update({"profile": args.profile, "files": args.files, "base": base, "cwd": str(Path(args.cwd or os.getcwd()).resolve())})
     lib.write_json(state_file, record)
     lib.register(state, args.issue, state=verdict["state"], session_id=verdict["session_id"])
     lib.emit(state, "run.finished", {k: record[k] for k in ("issue", "state", "reason", "exit_code", "session_id", "cost_usd", "turns")})
     closing(verdict["state"], f"exit={exit_code} {verdict['reason']}")
     return lib.exit_for(verdict["state"])
+
+
+def mechanical_problem(args: argparse.Namespace, config: dict) -> str | None:
+    """Check and complete the arguments of the mechanical profile (closed brief, role, model). Returns the usage error, else None."""
+    if args.role not in (None, "mechanical"):
+        return f"--profile mechanical runs the mechanical role, not {args.role}"
+    if args.prompt or args.prompt_file or args.allowed_tools or args.resume_run:
+        return "--profile mechanical takes a closed brief (--files, --instruction) only: no --prompt, --prompt-file, --allowed-tools or --resume"
+    if not args.files or not (args.instruction or "").strip():
+        return "--profile mechanical needs --files (the explicit file list) and --instruction (the exact instruction)"
+    try:
+        args.files = clean_files(args.files)
+    except ValueError as error:
+        return str(error)
+    args.role = "mechanical"
+    args.model = args.model or config["models"].get("mechanical", "haiku")
+    if args.model not in MECHANICAL_MODELS:
+        return f"--profile mechanical runs {' or '.join(MECHANICAL_MODELS)}, not {args.model}"
+    args.prompt = closed_brief(args.instruction, args.files)
+    return None
+
+
+def json_frames(lines: list[str]) -> list[str]:
+    """`--output-format json` prints one result object (or, in some versions, an array of frames): return it as one JSON frame per line."""
+    try:
+        data = json.loads("".join(lines))
+    except json.JSONDecodeError:
+        return lines  # the bad text is counted by parse_stream and the run fails with "no result frame"
+    return [json.dumps(item) for item in data] if isinstance(data, list) else [json.dumps(data)]
 
 
 def herdr_json(*argv: str) -> dict:
@@ -451,6 +536,9 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--queue")
     parser.add_argument("--stream", help="Knowledge stream (default: the queue name, else the default [knowledge] target)")
     parser.add_argument("--allowed-tools", nargs="+")
+    parser.add_argument("--profile", choices=("mechanical",), help="the mechanical lane: closed brief (--files, --instruction), Haiku, empty strict MCP, Read/Edit/Grep/Glob")
+    parser.add_argument("--files", nargs="+", help="mechanical profile: the only files the run may change (literal relative paths)")
+    parser.add_argument("--instruction", help="mechanical profile: the exact instruction")
     parser.add_argument("--config")
     parser.add_argument("--wait-ms", type=int, default=5400000)
     parser.add_argument("--dry-run", action="store_true")
@@ -482,6 +570,14 @@ def main(argv: list[str]) -> int:
         lib.emit(state, "run.parked", {"issue": args.issue})
         lib.show(plan)
         return 0
+    if args.profile:
+        problem = mechanical_problem(args, config)
+        if problem:
+            print(f"{args.issue}: {problem}", file=sys.stderr)
+            return lib.EXIT_USAGE
+    elif args.files or args.instruction:
+        print("--files and --instruction belong to --profile mechanical", file=sys.stderr)
+        return lib.EXIT_USAGE
     if not (args.prompt or args.prompt_file or args.resume_run):
         print("need --prompt or --prompt-file (or --resume)", file=sys.stderr)
         return lib.EXIT_USAGE
@@ -496,10 +592,17 @@ def main(argv: list[str]) -> int:
         if not args.dry_run:
             lib.emit(state, "run.blocked", {"issue": args.issue, "role": role, "blocker": blocker})
         return lib.EXIT_FAILED
+    if args.profile and worktree_dirty(args.cwd):
+        # Fail closed: the verifier discards a bad run by path, so the lane only starts from a clean tree (nothing of yours can be discarded).
+        blocker = f"BLOCKER {args.issue}: the mechanical lane needs a clean worktree; commit or stash the changes in {args.cwd or os.getcwd()} first"
+        print(blocker, file=sys.stderr)
+        if not args.dry_run:
+            lib.emit(state, "run.blocked", {"issue": args.issue, "role": role, "blocker": blocker})
+        return lib.EXIT_FAILED
     if args.dry_run:
         previous = lib.read_json(state_file) or {}
         resume = previous.get("session_id") if args.resume_run else None
-        lib.show({"dry_run": True, "issue": args.issue, "command": claude_command(args, config, resume, mcp_config_path(state, args.issue) if config["pai"]["mcp_url"] else None, previous), "pane": args.pane,
+        lib.show({"dry_run": True, "issue": args.issue, "command": claude_command(args, config, resume, mcp_config_path(state, args.issue) if (config["pai"]["mcp_url"] or args.profile) else None, previous), "pane": args.pane,
                   "hook_env": {k: v for k, v in hook_env(args, config, state, config_path, write=False, base=launch_base(args, previous)).items() if k in HOOK_KEYS},
                   "stream": str(run_paths(state, args.issue)[0]), "state_file": str(state_file), "state_dir": str(state)})
         return 0
