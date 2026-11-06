@@ -87,9 +87,9 @@ class StopZoneDiffTest(ZoneDiffCase):
         (inside / "journal.jsonl").write_text("{}\n")
         self.assertIsNone(self.stop(**env))
 
-    def test_a_role_with_no_zones_assigned_is_not_blocked(self) -> None:
+    def test_a_non_writing_role_with_no_zones_assigned_is_not_checked(self) -> None:
         self.sh("sed -i s/one/two/ packages/contracts/api.ts")
-        self.assertIsNone(self.stop(PAI_HARNESS_ZONES=None, PAI_HARNESS_AGENT="acme-7"))
+        self.assertIsNone(self.stop(PAI_HARNESS_ZONES=None, PAI_HARNESS_AGENT="acme-7", PAI_HARNESS_ROLE="watcher"))
 
     def test_the_block_names_the_delta_problem_too(self) -> None:
         self.delta.unlink()

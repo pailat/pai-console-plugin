@@ -11,6 +11,10 @@ the next stop is allowed and a `.missing` marker is written next to the delta ma
 The stop is also blocked while the worktree holds changes outside the agent's zones (see zone_diff.py): that covers
 the writes PreToolUse cannot see (`sed -i`, `cp`, `mv`, python or node scripts). The block names the zone owner. It shares
 the same bound; the `.missing` marker then also lists the out-of-zone paths.
+
+A writing role (harness_lib.WRITING_ROLES: implementer, mechanical, integrator) with no zone assigned is blocked too: with
+no zone the diff above checks nothing, so that would fail open. The block text is "no write zone configured for ROLE; ask
+your lead", inside the same bound. Non-writing roles may run zoneless.
 """
 from __future__ import annotations
 
@@ -21,7 +25,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import hook_common as common  # noqa: E402
+import pre_tool_use as zones  # noqa: E402
 import zone_diff  # noqa: E402
+from harness_lib import WRITING_ROLES  # noqa: E402
 
 
 def delta_path(state: Path, name: str) -> Path:
@@ -73,16 +79,21 @@ def main() -> None:
         return
     path = delta_path(state, name)
     problem = valid_delta(path)
+    zoneless = ""
+    if config is not None and common.role() in WRITING_ROLES and not zones.my_zones(config, name):
+        zoneless = f"no write zone configured for {common.role()}; ask your lead"
     flagged = zone_diff.out_of_zone(config, config_path, state, name) if config is not None and config_path is not None else []
     counter = count_path(state, name)
-    if not problem and not flagged:
+    if not problem and not flagged and not zoneless:
         counter.unlink(missing_ok=True)
         missing_path(state, name).unlink(missing_ok=True)
         return
     blocks = blocks_so_far(counter)
     if blocks >= MAX_BLOCKS:
-        marker = {"agent": name, "blocks": blocks, "problem": problem or "changes outside the agent's zones",
+        marker = {"agent": name, "blocks": blocks, "problem": problem or zoneless or "changes outside the agent's zones",
                   "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+        if zoneless:
+            marker["zoneless"] = zoneless
         if flagged:
             marker["out_of_zone"] = [path_ for path_, _ in flagged]
         try:
@@ -100,9 +111,11 @@ def main() -> None:
         parts.append(f"You cannot stop yet: a knowledge delta is required and {problem}. Distill what this session "
                      f"learned into Pai Knowledge (search first, decisions as proposals, real sources), then write {path} as "
                      '{"nodes": ["<node id or slug>", ...]} with at least one node you created or changed.')
+    if zoneless:
+        parts.append(("You cannot stop yet: " if not parts else "Also, ") + zoneless + ".")
     if flagged:
         lines = "\n".join(f"- {reason}" for _, reason in flagged)
-        parts.append(("You cannot stop yet: " if not problem else "Also, ") +
+        parts.append(("You cannot stop yet: " if not parts else "Also, ") +
                      "the worktree holds changes outside your zones (sed -i, cp, mv and scripts are checked at Stop). "
                      f"Revert them or hand them to the zone owner:\n{lines}")
     common.emit({"decision": "block", "reason": "\n\n".join(parts)})

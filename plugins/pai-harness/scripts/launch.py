@@ -243,6 +243,14 @@ def main(argv: list[str]) -> int:
     if not (args.prompt or args.prompt_file or args.resume_run):
         print("need --prompt or --prompt-file (or --resume)", file=sys.stderr)
         return lib.EXIT_USAGE
+    role = args.role or "implementer"
+    if role in lib.WRITING_ROLES and not lib.in_git_worktree(args.cwd):
+        # Fail closed: Stop reads the changed paths from git, so a writing role outside a worktree would go unchecked.
+        blocker = f"BLOCKER {args.issue}: writing role {role} must run inside a git worktree; {args.cwd or os.getcwd()} is not one"
+        print(blocker, file=sys.stderr)
+        if not args.dry_run:
+            lib.emit(state, "run.blocked", {"issue": args.issue, "role": role, "blocker": blocker})
+        return lib.EXIT_FAILED
     if args.dry_run:
         previous = lib.read_json(state_file) or {}
         resume = previous.get("session_id") if args.resume_run else None
