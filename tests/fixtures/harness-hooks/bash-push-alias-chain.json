@@ -1,0 +1,4 @@
+{
+  "session_id": "sess-1", "transcript_path": "__PROJECT__/transcript.jsonl", "cwd": "__PROJECT__", "permission_mode": "default",
+  "hook_event_name": "PreToolUse", "tool_name": "Bash", "tool_use_id": "toolu_20", "tool_input": {"command": "git pp2 origin main", "description": "Push"}
+}

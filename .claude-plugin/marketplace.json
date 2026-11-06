@@ -17,6 +17,18 @@
         "crm",
         "knowledge"
       ]
+    },
+    {
+      "name": "pai-harness",
+      "source": "./plugins/pai-harness",
+      "description": "Horizontal multi-agent harness: orchestration roles, gates, write zones and Herdr plugins, configured per project with a .pai-harness.toml file.",
+      "category": "productivity",
+      "tags": [
+        "pai",
+        "harness",
+        "orchestration",
+        "agents"
+      ]
     }
   ],
   "renames": {
