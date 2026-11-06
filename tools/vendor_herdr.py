@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Refresh skills/herdr, the vendored upstream Herdr skill, from the pin in vendor/herdr/PIN.json.
+"""Refresh skills/herdr and plugins/pai-harness/skills/herdr, the vendored upstream Herdr skill, from the pin in vendor/herdr/PIN.json.
 
 Usage:
   python3 tools/vendor_herdr.py              re-vendor the pinned commit (restores the files exactly)
@@ -7,7 +7,7 @@ Usage:
   python3 tools/vendor_herdr.py --latest     move the pin to the newest upstream release, then vendor it
 
 The tool fetches exactly the pinned commit from upstream, checks that its tag still points at it,
-copies the upstream skill directory verbatim into skills/herdr and rewrites
+copies the upstream skill directory verbatim into both skill directories and rewrites
 vendor/herdr/PROVENANCE.json with sha256 digests. Never edit skills/herdr by hand. Afterwards run
 `python3 tools/build_codex.py` to regenerate the Codex packages; `make check` fails on any drift
 between the pin, the record and the files.
@@ -26,7 +26,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parent.parent
 PIN = ROOT / "vendor/herdr/PIN.json"
 RECORD = ROOT / "vendor/herdr/PROVENANCE.json"
-TARGET = ROOT / "skills/herdr"
+TARGETS = (ROOT / "skills/herdr", ROOT / "plugins/pai-harness/skills/herdr")  # pai-console and pai-harness each ship the skill
 TAG = re.compile(r"^v\d+\.\d+\.\d+$")
 
 
@@ -82,14 +82,15 @@ def main() -> int:
             source = work / pin["path"]
             if any(p.is_symlink() for p in source.rglob("*")):
                 raise ValueError("Upstream skill contains symlinks, which are not portable")
-            for old in sorted(TARGET.rglob("*"), reverse=True) if TARGET.exists() else []:
-                old.unlink() if old.is_file() else old.rmdir()
             files = {}
-            for path in sorted(p for p in source.rglob("*") if p.is_file()):
-                relative = path.relative_to(source)
-                (TARGET / relative).parent.mkdir(parents=True, exist_ok=True)
-                (TARGET / relative).write_bytes(path.read_bytes())
-                files[relative.as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
+            for target in TARGETS:
+                for old in sorted(target.rglob("*"), reverse=True) if target.exists() else []:
+                    old.unlink() if old.is_file() else old.rmdir()
+                for path in sorted(p for p in source.rglob("*") if p.is_file()):
+                    relative = path.relative_to(source)
+                    (target / relative).parent.mkdir(parents=True, exist_ok=True)
+                    (target / relative).write_bytes(path.read_bytes())
+                    files[relative.as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
     except (ValueError, subprocess.CalledProcessError) as error:
         print(error, file=sys.stderr)
         return 1

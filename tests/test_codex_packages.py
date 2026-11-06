@@ -100,6 +100,7 @@ class CodexPackagesTest(unittest.TestCase):
             shutil.copytree(ROOT / "skills", root / "skills")
             shutil.copytree(ROOT / "hooks", root / "hooks")
             shutil.copytree(ROOT / "vendor", root / "vendor")
+            shutil.copytree(ROOT / "plugins/pai-harness", root / "plugins/pai-harness")  # its Codex package is generated too
             (root / ".claude-plugin").mkdir()
             shutil.copy2(ROOT / ".claude-plugin/marketplace.json", root / ".claude-plugin/marketplace.json")
             (root / "tools").mkdir()
