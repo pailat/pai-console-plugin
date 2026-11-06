@@ -70,12 +70,12 @@ class SinglePluginTest(unittest.TestCase):
         pin = json.loads((ROOT / "vendor/herdr/PIN.json").read_text())
         self.assertEqual((pin["repository"], pin["path"]), ("https://github.com/herdrdev/herdr", "skills/herdr"))
 
-    def test_pai_console_is_the_only_plugin_and_has_no_dependencies(self) -> None:
+    def test_pai_console_has_no_dependencies_and_pai_harness_is_a_separate_entry(self) -> None:
         console = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
         self.assertNotIn("dependencies", console)
         self.assertEqual(console["version"], "0.0.12")
         marketplace = json.loads((ROOT / ".claude-plugin/marketplace.json").read_text())
-        self.assertEqual([p["name"] for p in marketplace["plugins"]], ["pai-console"])
+        self.assertEqual([p["name"] for p in marketplace["plugins"]], ["pai-console", "pai-harness"])
         self.assertEqual(marketplace["plugins"][0]["source"], "./")
         self.assertNotIn("dependencies", marketplace["plugins"][0])
         self.assertFalse((ROOT / "plugins/orchestration").exists())
@@ -133,6 +133,7 @@ class VendorDriftTest(unittest.TestCase):
         self.addCleanup(shutil.rmtree, tmp, True)
         shutil.copytree(ROOT / "vendor", tmp / "vendor")
         shutil.copytree(ROOT / "skills/herdr", tmp / "skills/herdr")
+        shutil.copytree(ROOT / "plugins/pai-harness/skills/herdr", tmp / "plugins/pai-harness/skills/herdr")  # second vendored copy
         return tmp
 
     def test_vendored_files_match_their_record(self) -> None:

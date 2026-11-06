@@ -1,0 +1,4 @@
+[
+  {"id": "kn-acme-0007", "slug": "swallowed-429", "kind": "lesson", "title": "Export client must not swallow 429 responses!"},
+  {"id": "kn-acme-0011", "slug": "export-api-limit", "kind": "fact", "title": "Export API allows 5 calls per minute"}
+]

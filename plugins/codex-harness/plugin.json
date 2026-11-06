@@ -1,0 +1,28 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "pai-harness",
+  "version": "0.1.0",
+  "description": "Horizontal multi-agent harness for Claude Code: orchestration roles, gates, write zones and Herdr plugins, configured per project through a .pai-harness.toml file.",
+  "author": {
+    "name": "Pai",
+    "email": "alex.sanchez@pai.lat",
+    "url": "https://pai.lat"
+  },
+  "homepage": "https://pai.lat",
+  "repository": "https://github.com/pailat/pai-console-plugin",
+  "license": "UNLICENSED",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Pai Harness",
+        "shortDescription": "Horizontal multi-agent harness for Claude Code: orchestration roles, gates, write zones and Herdr plugins, configured per project through a .pai-harness.toml file.",
+        "developerName": "Pai",
+        "category": "Productivity",
+        "capabilities": [
+          "Read",
+          "Write"
+        ]
+      }
+    }
+  }
+}

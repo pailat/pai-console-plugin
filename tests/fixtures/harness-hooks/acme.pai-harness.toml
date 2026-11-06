@@ -1,0 +1,16 @@
+# Fictional Acme config for the hook tests.
+schema_version = 1
+
+[project]
+pai_org = "acme"
+pai_project = "acme-app"
+linear_team = "ACME"
+
+[zones.frontend]
+globs = ["apps/acme-app/**", "docs/*.md"]
+owners = ["acme-app-owner"]
+
+[zones.contracts]
+globs = ["packages/contracts/**", "AGENTS.md"]
+owners = ["acme-lead"]
+root = true

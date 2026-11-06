@@ -33,13 +33,13 @@ jobs:
           # 1. Prove the committed skill is exactly upstream at the pin: re-vendor with no flags and fail on any difference
           #    (a coordinated hand edit of the skill and its record would otherwise pass the offline checks).
           python3 tools/vendor_herdr.py
-          if ! git diff --exit-code -- skills/herdr vendor/herdr || [ -n "$(git status --porcelain -- skills/herdr vendor/herdr)" ]; then
+          if ! git diff --exit-code -- skills/herdr vendor/herdr plugins/pai-harness/skills/herdr || [ -n "$(git status --porcelain -- skills/herdr vendor/herdr plugins/pai-harness/skills/herdr)" ]; then
             echo "::error title=Vendored Herdr skill differs from upstream::skills/herdr or vendor/herdr no longer equals upstream at the pinned commit. Never edit them by hand: restore them with tools/vendor_herdr.py."
             exit 1
           fi
           # 2. Move to the newest upstream release, if there is one.
           python3 tools/vendor_herdr.py --latest
-          if [ -z "$(git status --porcelain -- vendor skills/herdr)" ]; then
+          if [ -z "$(git status --porcelain -- vendor skills/herdr plugins/pai-harness/skills/herdr)" ]; then
             echo "Herdr is already at the newest upstream release."
             exit 0
           fi
@@ -64,7 +64,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$branch"
-          git add -A vendor skills/herdr plugins/codex
+          git add -A vendor skills/herdr plugins/pai-harness/skills/herdr plugins/codex plugins/codex-harness
           git commit -m "chore: vendor Herdr ${tag}"
           git push origin "$branch"
           body="Automated by the herdr-release-watch workflow: upstream Herdr released ${tag}. \`tools/vendor_herdr.py --latest\` re-vendored \`skills/herdr\` from the new commit and \`tools/build_codex.py\` regenerated the Codex packages. Nothing was edited by hand. \`make check\` ${checks} on this branch.
