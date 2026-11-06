@@ -4,6 +4,8 @@
 Commands (all print JSON or a note on stdout; exit 0 ok, 1 invalid input, 2 usage):
   plan CANDIDATES.json EXISTING.json   check candidate nodes and drop any that already exist; prints the plan
   write AGENT REF [REF ...]            validate the node references and write <state dir>/deltas/AGENT.json
+  report AGENT CANDIDATES.json [--denied]   token scope read, or a write the MCP rejected: save the proposed nodes as
+                                       <state dir>/deltas/AGENT.report.json, print the named BLOCKER, exit 3
   triage GATE_OUTPUT.txt               route a failed gate's output to the zone owner (three-line note)
 
 CANDIDATES.json: {"turn": "<turn record id>", "nodes": [{"ref", "kind", "title", "summary", "status", "sources"}]}.
@@ -28,6 +30,8 @@ import harness_config  # noqa: E402
 import harness_lib as lib  # noqa: E402
 from linear_status import compose as lib_compose  # noqa: E402
 
+WRITE_BLOCKER = "knowledge write needs a project-scope write token"  # the one named BLOCKER for a read-only token
+EXIT_BLOCKER = 3
 PROPOSED_KINDS = frozenset(("objective", "decision", "adr", "business_rule", "constraint"))
 # Allowed keys per source type; sources are strict, extra keys are refused.
 SOURCES = {
@@ -128,6 +132,21 @@ def write_marker(state: Path, agent: str, refs: list[str]) -> Path:
     return path
 
 
+def report_path(state: Path, agent: str) -> Path:
+    return state / "deltas" / f"{agent}.report.json"
+
+
+def write_report(state: Path, agent: str, candidates: object, denied: bool = False) -> Path:
+    """Save the proposed nodes as a report (never a delta: the Stop hook does not accept it). Same node checks as plan."""
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", agent or ""):
+        raise DeltaError("the agent name is the file name; use letters, digits, dot, dash or underscore")
+    checked = plan(candidates, [])  # validates the turn, nodes, sources and kinds; nothing is dropped without an existing list
+    path = report_path(state, agent)
+    lib.write_json(path, {"blocker": WRITE_BLOCKER, "reason": "permission denied" if denied else "token scope read",
+                          "turn": checked["turn"], "nodes": checked["create"], "at": lib.stamp()})
+    return path
+
+
 def knowledge_target(config_path: str | None, env: dict | None = None, agent: str | None = None) -> dict:
     """The Knowledge target this run writes to, or DeltaError with the named BLOCKER (fail closed).
 
@@ -199,10 +218,19 @@ def main(argv: list[str]) -> int:
     w = sub.add_parser("write")
     w.add_argument("agent")
     w.add_argument("refs", nargs="+")
+    r = sub.add_parser("report")
+    r.add_argument("agent")
+    r.add_argument("candidates")
+    r.add_argument("--denied", action="store_true", help="the MCP rejected a Knowledge write with permission denied")
     t = sub.add_parser("triage")
     t.add_argument("output")
     args = parser.parse_args(argv)
     try:
+        if args.command == "write":
+            loaded, _ = lib.load_config(args.config)
+            if harness_config.token_scope(loaded) != "write":
+                lib.blocker(lib.state_dir(loaded), args.agent, WRITE_BLOCKER)  # a read-only token has no delta to mark
+                return EXIT_BLOCKER
         if args.command in ("plan", "write"):
             knowledge_target(args.config, agent=getattr(args, "agent", None))
         if args.command == "plan":
@@ -210,6 +238,12 @@ def main(argv: list[str]) -> int:
         elif args.command == "write":
             config, _ = lib.load_config(args.config)
             print(write_marker(lib.state_dir(config), args.agent, args.refs))
+        elif args.command == "report":
+            config, _ = lib.load_config(args.config)
+            path = write_report(lib.state_dir(config), args.agent, json.loads(Path(args.candidates).read_text()), args.denied)
+            print(f"report saved: {path}")
+            lib.blocker(lib.state_dir(config), args.agent, WRITE_BLOCKER)
+            return EXIT_BLOCKER
         else:
             config, _ = lib.load_config(args.config)
             print(triage(Path(args.output).read_text(), config))

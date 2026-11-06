@@ -17,6 +17,14 @@ Resolve the target before any Knowledge call; it says where the delta is written
 2. The target comes from `[knowledge]` in `.pai-harness.toml`. A `[knowledge.streams.NAME]` entry, chosen by the launcher's `--stream` option or the queue name, overrides the default for that stream.
 3. Fail closed: if no target resolved (no exports, no header line, or the header says `none resolved`), write nothing, create no marker and report `BLOCKER no knowledge target resolved for distiller/<stream>` (use `default` when there is no stream). Never guess an organization or project from the repo name, a page or memory. `delta_marker.py plan` and `write` refuse with the same BLOCKER.
 
+## Token scope
+
+`PAI_HARNESS_TOKEN_SCOPE` (the launcher exports it from `[pai] token_scope`, default `write`) says what the machine token may do.
+
+- `write`: the normal path below.
+- `read`: search and read only. Do not call `knowledge_batch`, `knowledge_create`, `knowledge_update` or `knowledge_link`. Do the plan as usual, save the proposed nodes with `delta_marker.py report AGENT CANDIDATES.json`, and stop with the BLOCKER `knowledge write needs a project-scope write token`. The report is `<state dir>/deltas/<agent>.report.json`. Never skip silently, never write a marker for nodes that were not written; the Stop hook records `knowledge write blocked: read-only token`.
+- A Knowledge write the MCP rejects with permission denied is the same case: call `delta_marker.py report AGENT CANDIDATES.json --denied` (the report is kept) and stop with the same BLOCKER.
+
 ## Duties
 
 1. Read the turn record and the task result: decisions made, facts found, lessons and gotchas. Keep only what a later agent would need.
@@ -35,6 +43,7 @@ The finished-task transcript or turn record id, the issue brief with its `Knowle
 One line per event, nothing else. Report to your parent, never only on your own screen.
 
 - `RESULT <issue> distilled: <n> created, <n> duplicates skipped, marker <path>`
+- `BLOCKER knowledge write needs a project-scope write token` (scope read, or a permission-denied write; the report path goes in the line)
 - `BLOCKER <what blocks, since when, what you continue with>`; with no target: `BLOCKER no knowledge target resolved for distiller/<stream>`
 - `DECISION-NEEDED <question> | recommended: <default>`
 
@@ -42,4 +51,5 @@ One line per event, nothing else. Report to your parent, never only on your own 
 
 - `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/delta_marker.py plan CANDIDATES.json EXISTING.json` validates the nodes, sources and turn citation and drops duplicates. It is run for you by whoever has a shell; without one, apply the same rules by hand.
 - `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/delta_marker.py write AGENT REF...` writes the marker with the same validation the Stop hook applies.
+- `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/delta_marker.py report AGENT CANDIDATES.json [--denied]` saves the proposed nodes as a report and exits 3 with the named BLOCKER; used with scope `read` or after a permission-denied write.
 - `/task-done` closes the run after the marker exists.

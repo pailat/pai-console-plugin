@@ -138,11 +138,11 @@ class ConfigTest(unittest.TestCase):
 
     def test_defaults(self) -> None:
         pai = hc.validate(hc.tomllib.loads(self.BASE))["pai"]
-        self.assertEqual(pai, {"token_file": "~/.config/pai-harness/token", "mcp_url": ""})
+        self.assertEqual(pai, {"token_file": "~/.config/pai-harness/token", "mcp_url": "", "token_scope": "write"})
 
     def test_values_and_refusals(self) -> None:
         ok = hc.validate(hc.tomllib.loads(self.BASE + '[pai]\ntoken_file = "/srv/acme/token"\nmcp_url = "https://mcp.acme.example.com/mcp"\n'))
-        self.assertEqual(ok["pai"], {"token_file": "/srv/acme/token", "mcp_url": "https://mcp.acme.example.com/mcp"})
+        self.assertEqual(ok["pai"], {"token_file": "/srv/acme/token", "mcp_url": "https://mcp.acme.example.com/mcp", "token_scope": "write"})
         hc.validate(hc.tomllib.loads(self.BASE + '[pai]\nmcp_url = "http://localhost:3000/mcp"\n'))
         for text, fragment in (
             ('mcp_url = "http://mcp.acme.example.com/mcp"', "pai.mcp_url: must be an https URL"),

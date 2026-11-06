@@ -484,6 +484,12 @@
           "default": "",
           "pattern": "^$|^https://|^http://(localhost|127\\.0\\.0\\.1|\\[::1\\])",
           "description": "Pai MCP endpoint. When set, the launcher passes a machine-only MCP config and fails closed unless the server connects."
+        },
+        "token_scope": {
+          "type": "string",
+          "enum": ["read", "write"],
+          "default": "write",
+          "description": "What the machine token may do in Pai Knowledge. With read, the distiller searches and reads only, saves the proposed nodes as a report and stops with the BLOCKER `knowledge write needs a project-scope write token`. PAI_HARNESS_TOKEN_SCOPE overrides it; the launcher exports it."
         }
       }
     }
