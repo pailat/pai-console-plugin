@@ -46,7 +46,7 @@ class DispatcherTest(HarnessCase):
         return "# ready\n" + "".join(f"{i} prompt-file={self.prompt}\n" for i in issues)
 
     def dispatch(self, text: str, *args: str, queue: str = "main") -> subprocess.CompletedProcess:
-        return self.run_script("dispatcher.sh", "--queue", queue, *args, stdin=text, FAKE_CLAUDE_FIXTURE=str(FIXTURES / "success.jsonl"))
+        return self.run_script("dispatcher.sh", "--queue", queue, *args, stdin=text, FAKE_CLAUDE_FIXTURE=str(self.fixture("success")))
 
     def test_launches_at_most_the_queue_limit(self) -> None:
         done = self.dispatch(self.ready("ACME-1", "ACME-2", "ACME-3"), "--dry-run")

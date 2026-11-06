@@ -35,6 +35,7 @@ DEFAULTS = {
     "models": dict(DEFAULT_MODELS),
 }
 NAME = re.compile(r"^[a-z][a-z0-9_-]*$")
+HOTFIX_GATE = "hotfix"  # the one [gates.*] entry that is a typed table; every other gate is a command or a list of commands
 
 
 class ConfigError(ValueError):
@@ -108,7 +109,9 @@ def validate(data: object) -> dict:
         raise ConfigError("project.issue_prefix: must be upper-case letters and digits, like ACME")
 
     for name, command in _named("gates", data.get("gates", {})).items():
-        if isinstance(command, list):
+        if name == HOTFIX_GATE:
+            out["gates"][name] = _hotfix(command)
+        elif isinstance(command, list):
             if not command:
                 raise ConfigError(f"gates.{name}: command list must not be empty")
             out["gates"][name] = _strings(f"gates.{name}", command, unique=False)
@@ -170,6 +173,25 @@ def validate(data: object) -> dict:
     for role, model in models.items():
         out["models"][role] = _choice(f"models.{role}", model)
     return out
+
+
+def _hotfix(value: object) -> dict:
+    """The red-release hotfix profile: active only while active_when FAILS on the release tip."""
+    path = f"gates.{HOTFIX_GATE}"
+    table = _table(path, value, {"active_when", "applies_to", "pre_merge", "post_merge", "revert_on_failure"},
+                   {"active_when", "applies_to", "pre_merge", "post_merge"})
+    pre_merge = _strings(f"{path}.pre_merge", table["pre_merge"], unique=False)
+    if not pre_merge:
+        raise ConfigError(f"{path}.pre_merge: command list must not be empty")
+    applies_to = _string(f"{path}.applies_to", table["applies_to"])
+    try:
+        re.compile(applies_to)
+    except re.error as error:
+        raise ConfigError(f"{path}.applies_to: invalid regular expression: {error}") from None
+    if "revert_on_failure" in table:
+        _expect(f"{path}.revert_on_failure", table["revert_on_failure"], bool)
+    return {"active_when": _string(f"{path}.active_when", table["active_when"]), "applies_to": applies_to, "pre_merge": pre_merge,
+            "post_merge": _string(f"{path}.post_merge", table["post_merge"]), "revert_on_failure": table.get("revert_on_failure", True)}
 
 
 def _choice(path: str, value: object) -> str:

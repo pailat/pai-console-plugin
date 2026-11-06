@@ -13,6 +13,7 @@ Usage: launch.sh ISSUE (--prompt TEXT | --prompt-file FILE) [--pane PANE] [--mod
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shlex
 import subprocess
@@ -38,6 +39,8 @@ def run_paths(state: Path, issue: str) -> tuple[Path, Path, Path]:
 def claude_command(args: argparse.Namespace, config: dict, resume: str | None) -> list[str]:
     model = args.model or config["models"].get(args.role or "implementer", "sonnet")
     command = [os.environ.get("PAI_HARNESS_CLAUDE", "claude"), "-p", "--output-format", "stream-json", "--verbose", "--model", model]
+    if not lib.installed_plugin():
+        command += ["--plugin-dir", str(lib.plugin_root())]  # every run loads the plugin, from the launcher's own location
     if resume:
         command += ["--resume", resume]
     if args.allowed_tools:
@@ -71,6 +74,42 @@ def hook_env(args: argparse.Namespace, config: dict, state: Path, config_path: P
     return env
 
 
+class InitCheck:
+    """Watches the stream for the first `system/init` event and proves the pai-harness plugin from it (fail closed)."""
+
+    def __init__(self, skills: list[str]) -> None:
+        self.skills, self.problems, self.done = skills, [], threading.Event()
+
+    def feed(self, line: str) -> None:
+        if self.done.is_set():
+            return
+        try:
+            frame = json.loads(line)
+        except json.JSONDecodeError:
+            return
+        if not isinstance(frame, dict):
+            return
+        if frame.get("type") == "system" and frame.get("subtype") == "init":
+            self.problems = lib.init_problems(frame, self.skills)
+            self.done.set()
+        elif frame.get("type") in ("assistant", "user", "result"):
+            self.problems = ["init event came after the first model frame"]
+            self.done.set()
+
+
+def fail_closed(args: argparse.Namespace, state: Path, started: str, stream: Path, queue: str | None, machine: str | None, problems: list[str]) -> int:
+    """The plugin is not proven loaded: the run is already killed; journal and print a BLOCKER, record failed, exit non-zero."""
+    reason = "pai-harness self-check failed: " + "; ".join(problems)
+    lib.blocker(state, args.issue, reason)
+    record = {"issue": args.issue, "queue": queue, "machine": machine, "role": args.role, "started": started, "finished": lib.stamp(),
+              "stream": str(stream), "resumed": bool(args.resume_run), "state": "failed", "reason": reason, "exit_code": None,
+              "session_id": None, "cost_usd": None, "turns": None}
+    lib.write_json(run_paths(state, args.issue)[1], record)
+    lib.register(state, args.issue, state="failed")
+    lib.emit(state, "run.finished", {k: record[k] for k in ("issue", "state", "reason", "exit_code", "session_id", "cost_usd", "turns")})
+    return lib.EXIT_FAILED
+
+
 def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path) -> int:
     """Run claude here, write the stream, then the state file. Returns the exit code of the launcher."""
     stream, state_file, stderr_log = run_paths(state, args.issue)
@@ -88,6 +127,7 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
     lib.emit(state, "run.started", {"issue": args.issue, "queue": queue, "resume": bool(resume)})
     timeout = config["limits"]["turn_timeout_minutes"] * 60
     exit_code, timed_out, last_beat, lines = None, False, time.monotonic(), []
+    init = InitCheck(lib.expected_skills(lib.plugin_root()))
     with stream.open("w", encoding="utf-8") as out, stderr_log.open("w", encoding="utf-8") as err:
         try:
             proc = subprocess.Popen(claude_command(args, config, resume), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -110,11 +150,25 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
                     out.write(line)
                     out.flush()
                     lines.append(line)
+                    init.feed(line)
                     if time.monotonic() - last_beat > 60:
                         lib.register(state, args.issue, state="running")
                         last_beat = time.monotonic()
             reader = threading.Thread(target=read, daemon=True)
             reader.start()
+            init_wait = float(os.environ.get("PAI_HARNESS_INIT_TIMEOUT") or lib.INIT_TIMEOUT_SECONDS)
+            deadline = time.monotonic() + init_wait
+            while not init.done.is_set() and proc.poll() is None and time.monotonic() < deadline:
+                init.done.wait(0.05)
+            if proc.poll() is not None:
+                reader.join(10)  # the stream is complete: the init verdict below is final
+            if not init.done.is_set():
+                init.problems.append(f"no init event within {init_wait:g}s" if proc.poll() is None else "no init event before the run ended")
+            if init.problems:
+                proc.kill()  # the exact child PID; never a pattern
+                proc.wait()
+                reader.join(10)
+                return fail_closed(args, state, started, stream, queue, machine, init.problems)
             try:
                 exit_code = proc.wait(timeout=timeout)
             except subprocess.TimeoutExpired:
@@ -189,6 +243,14 @@ def main(argv: list[str]) -> int:
     if not (args.prompt or args.prompt_file or args.resume_run):
         print("need --prompt or --prompt-file (or --resume)", file=sys.stderr)
         return lib.EXIT_USAGE
+    role = args.role or "implementer"
+    if role in lib.WRITING_ROLES and not lib.in_git_worktree(args.cwd):
+        # Fail closed: Stop reads the changed paths from git, so a writing role outside a worktree would go unchecked.
+        blocker = f"BLOCKER {args.issue}: writing role {role} must run inside a git worktree; {args.cwd or os.getcwd()} is not one"
+        print(blocker, file=sys.stderr)
+        if not args.dry_run:
+            lib.emit(state, "run.blocked", {"issue": args.issue, "role": role, "blocker": blocker})
+        return lib.EXIT_FAILED
     if args.dry_run:
         previous = lib.read_json(state_file) or {}
         resume = previous.get("session_id") if args.resume_run else None
