@@ -271,6 +271,12 @@ class PushKeywordTest(HookCase):
     def test_no_verify_behind_a_keyword_is_refused_even_through_the_wrapper(self) -> None:
         self.assertEqual(self.pre("bash-push-loop-no-verify"), deny(self.NO_VERIFY))
 
+    def test_keywords_only_expose_the_command_they_never_exempt_it(self) -> None:
+        for name in ("keyword-for-direct", "keyword-while-abs-direct"):
+            with self.subTest(name=name):
+                self.assertEqual(self.pre(f"bash-push-{name}"), deny(self.DIRECT))
+        self.assertEqual(self.pre("bash-push-keyword-if-no-verify-direct"), deny(self.NO_VERIFY))
+
     def test_without_a_wrapper_the_loop_form_is_refused(self) -> None:
         self.assertEqual(self.pre("bash-push-loop-wrapper", PAI_HARNESS_PUSH_WRAPPER=None)["hookSpecificOutput"]["permissionDecision"], "deny")
 
