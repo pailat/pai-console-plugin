@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# pai-pane-meta <pane_id> key=value ...  Set the pane's pai metadata tokens (role, parent, requester, issue, name, verdict,
+# wake_on_done) AND cache them in <plugin config dir>/agents/<name>.json (name= token, else pane-<id>, sanitized to [A-Za-z0-9_-]) as
+# {"pane":"<id>","tokens":{...}}: herdr drops tokens when the server restarts and before pane.exited fires, and pane ids change on every
+# relaunch, so one file per agent is rewritten in place. The hook finds it by its pane field. Any old panes/<id>.json of this pane is removed.
+# Launchers call this instead of `herdr pane report-metadata`. Never fails the launcher. Uses HERDR_BIN_PATH (else herdr).
+H=${HERDR_BIN_PATH:-herdr}; pane=${1:?pane_id}; shift
+[ $# -gt 0 ] || exit 0
+args=(); json='{}'
+for kv in "$@"; do k=${kv%%=*}; v=${kv#*=}; args=(${args[@]+"${args[@]}"} --token "$k=$v"); json=$(jq -c --arg k "$k" --arg v "$v" '.tokens[$k]=$v' <<<"$json"); done
+"$H" pane report-metadata "$pane" --source pai "${args[@]}" >/dev/null 2>&1 || exit 0
+C=${HERDR_PLUGIN_CONFIG_DIR:-$("$H" plugin config-dir pai.orchestration-wake 2>/dev/null)}; [ -n "$C" ] || exit 0
+san=$(printf %s "$pane" | tr -c 'A-Za-z0-9' _); name=$(jq -r '.tokens.name // empty' <<<"$json"); name=$(printf %s "${name:-pane-$san}" | tr -c 'A-Za-z0-9_-' _)
+mkdir -p "$C/agents" 2>/dev/null
+# One file per pane: drop any other agent file that names this pane (an earlier call with another name, a stale entry).
+for f in "$C"/agents/*.json; do [ -f "$f" ] && [ "$f" != "$C/agents/$name.json" ] && [ "$(jq -r '.pane // empty' "$f" 2>/dev/null)" = "$pane" ] && rm -f "$f"; done
+jq -c --arg p "$pane" '{pane:$p, tokens:.tokens}' <<<"$json" >"$C/agents/$name.json"
+[ -f "$C/panes/$san.json" ] && rm -f "$C/panes/$san.json"
+exit 0

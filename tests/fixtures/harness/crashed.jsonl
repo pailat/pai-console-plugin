@@ -1,0 +1,2 @@
+{"type":"system","subtype":"init","session_id":"11111111-2222-3333-4444-555555555555","model":"claude-sonnet-5-5","apiKeySource":"none"}
+{"type":"assistant","session_id":"11111111-2222-3333-4444-555555555555","message":{"role":"assistant","content":[{"type":"text","text":"Working"}]}}

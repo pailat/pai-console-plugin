@@ -1,0 +1,324 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/pai-harness.schema.json",
+  "title": ".pai-harness.toml",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "project"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pai_org",
+        "pai_project",
+        "linear_team"
+      ],
+      "properties": {
+        "pai_org": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pai_project": {
+          "type": "string",
+          "minLength": 1
+        },
+        "linear_team": {
+          "type": "string",
+          "minLength": 1
+        },
+        "issue_prefix": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9]*$"
+        }
+      }
+    },
+    "gates": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_-]*$"
+      },
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "string",
+            "minLength": 1
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1
+          }
+        ]
+      }
+    },
+    "zones": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_-]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "globs"
+        ],
+        "properties": {
+          "globs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true,
+            "minItems": 1
+          },
+          "owners": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "root": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "machines": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_-]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "host": {
+            "type": "string",
+            "minLength": 1
+          },
+          "os": {
+            "type": "string",
+            "minLength": 1
+          },
+          "max_agents": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "queues": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_-]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "machine": {
+            "type": "string",
+            "minLength": 1
+          },
+          "model": {
+            "enum": [
+              "opus",
+              "sonnet",
+              "haiku"
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_agents": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_agents_per_machine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_open_prs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "turn_timeout_minutes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "agents_file": {
+          "type": "string",
+          "minLength": 1
+        },
+        "root_paths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "must": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "never": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "push_wrapper": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "models": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "relay": {
+          "enum": [
+            "opus",
+            "sonnet",
+            "haiku"
+          ]
+        },
+        "orchestrator": {
+          "enum": [
+            "opus",
+            "sonnet",
+            "haiku"
+          ]
+        },
+        "lead": {
+          "enum": [
+            "opus",
+            "sonnet",
+            "haiku"
+          ]
+        },
+        "implementer": {
+          "enum": [
+            "opus",
+            "sonnet",
+            "haiku"
+          ]
+        },
+        "root-reviewer": {
+          "enum": [
+            "opus",
+            "sonnet",
+            "haiku"
+          ]
+        },
+        "integrator": {
+          "enum": [
+            "opus",
+            "sonnet",
+            "haiku"
+          ]
+        },
+        "distiller": {
+          "enum": [
+            "opus",
+            "sonnet",
+            "haiku"
+          ]
+        },
+        "gate-triager": {
+          "enum": [
+            "opus",
+            "sonnet",
+            "haiku"
+          ]
+        },
+        "mechanical": {
+          "enum": [
+            "opus",
+            "sonnet",
+            "haiku"
+          ]
+        },
+        "watcher": {
+          "enum": [
+            "opus",
+            "sonnet",
+            "haiku",
+            "none"
+          ]
+        }
+      },
+      "default": {
+        "relay": "opus",
+        "orchestrator": "opus",
+        "lead": "sonnet",
+        "implementer": "sonnet",
+        "root-reviewer": "opus",
+        "integrator": "sonnet",
+        "distiller": "sonnet",
+        "gate-triager": "sonnet",
+        "mechanical": "haiku",
+        "watcher": "none"
+      }
+    },
+    "role_zones": {
+      "type": "object",
+      "propertyNames": {
+        "enum": [
+          "relay",
+          "orchestrator",
+          "lead",
+          "implementer",
+          "root-reviewer",
+          "integrator",
+          "distiller",
+          "gate-triager",
+          "mechanical",
+          "watcher"
+        ]
+      },
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniqueItems": true
+      }
+    }
+  }
+}

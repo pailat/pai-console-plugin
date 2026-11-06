@@ -1,0 +1,34 @@
+# Fictional Acme config for the harness script tests.
+schema_version = 1
+
+[project]
+pai_org = "acme"
+pai_project = "acme-app"
+linear_team = "ACME"
+
+[gates]
+unit = "true"
+lint = ["true", "true"]
+
+[zones.contracts]
+globs = ["packages/contracts/**", "AGENTS.md"]
+root = true
+
+[machines.acme-desktop]
+host = "acme-desktop.example.com"
+max_agents = 2
+
+[queues.main]
+machine = "acme-desktop"
+model = "sonnet"
+limit = 2
+
+[queues.side]
+limit = 1
+
+[limits]
+max_agents = 3
+turn_timeout_minutes = 1
+
+[rules]
+root_paths = ["db/migrations/**"]
