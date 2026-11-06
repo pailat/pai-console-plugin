@@ -12,4 +12,4 @@ Start the task `$ARGUMENTS` (issue id, prompt file, optional queue from `[queues
 4. The exit code is the verdict: 0 done, 1 failed, 3 blocked on a permission. State comes only from the stream-json `result` frame and the exit code, never from the Herdr agent status of the pane or the metadata above.
 5. Report the recorded state with `${CLAUDE_PLUGIN_ROOT}/scripts/launch.sh <ISSUE-ID> --status`.
 
-Add `--dry-run` to any script to see its plan without side effects. Never pass a permission-bypass flag: a run that needs a permission must end blocked.
+Add `--dry-run` to any script to see its plan without side effects. Runs pass `--permission-mode bypassPermissions` by default (`[run] bypass_permissions = false` in `.pai-harness.toml` opts a project out; a run that then needs a permission ends blocked). Safety is `permissions.deny` rules plus the plugin hooks, and a denied action is never worked around: report a BLOCKER. Bypass removes prompts, not process: merges need the orchestrator's line and ROOT zones need ROOT GO.

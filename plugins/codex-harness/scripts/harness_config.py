@@ -49,6 +49,7 @@ DEFAULTS = {
     "rules": {"agents_file": "AGENTS.md", "root_paths": [], "must": [], "never": [], "push_wrapper": ""},
     "models": dict(DEFAULT_MODELS),
     "pai": {"token_file": DEFAULT_TOKEN_FILE, "mcp_url": "", "token_scope": "write"},
+    "run": {"bypass_permissions": True},  # owner policy: every run uses --permission-mode bypassPermissions; safety is deny rules + hooks
     "knowledge": {},  # empty = no Pai Knowledge target named; the distiller then fails closed
 }
 NAME = re.compile(r"^[a-z][a-z0-9_-]*$")
@@ -122,7 +123,7 @@ def _named(path: str, value: object) -> dict:
 
 def validate(data: object) -> dict:
     """Return the config with defaults applied, or raise ConfigError naming the first bad key."""
-    top = {"schema_version", "project", "gates", "zones", "machines", "queues", "limits", "role_limits", "rules", "models", "role_zones", "pai", "knowledge"}
+    top = {"schema_version", "project", "gates", "zones", "machines", "queues", "limits", "role_limits", "rules", "models", "role_zones", "pai", "knowledge", "run"}
     data = _table("", data, top, {"project"})
     out = copy.deepcopy(DEFAULTS)
     if "schema_version" in data:
@@ -219,6 +220,10 @@ def validate(data: object) -> dict:
         if scope not in TOKEN_SCOPES:
             raise ConfigError(f"pai.token_scope: must be one of {', '.join(TOKEN_SCOPES)}, got {scope!r}")
         out["pai"]["token_scope"] = scope
+    run = _table("run", data.get("run", {}), set(DEFAULTS["run"]))
+    if "bypass_permissions" in run:
+        _expect("run.bypass_permissions", run["bypass_permissions"], bool)
+        out["run"]["bypass_permissions"] = run["bypass_permissions"]
     if "knowledge" in data:
         out["knowledge"] = _knowledge(data["knowledge"])
     return out

@@ -145,13 +145,15 @@ class LaunchTest(HarnessCase):
         record = self.record("ACME-7")
         self.assertEqual((record["model"], record["model_reported"]), ("haiku", "claude-sonnet-5-5"))
 
-    def test_the_command_is_headless_stream_json_with_the_prompt_on_stdin_and_no_permission_bypass(self) -> None:
+    def test_the_command_is_headless_stream_json_with_the_prompt_on_stdin_and_bypass_permissions_by_default(self) -> None:
         self.launch("ACME-7", "success", 0, "--role", "mechanical")
         sent = json.loads((self.tmp / "claude.json").read_text())
         self.assertEqual(sent["argv"][:5], ["-p", "--output-format", "stream-json", "--verbose", "--model"])
         self.assertEqual(sent["argv"][5], "haiku")
         self.assertIn("Implement ACME-7", sent["prompt"])
-        self.assertFalse([a for a in sent["argv"] if "skip-permissions" in a or a == "bypassPermissions"])
+        at = sent["argv"].index("--permission-mode")
+        self.assertEqual(sent["argv"][at + 1], "bypassPermissions")
+        self.assertFalse([a for a in sent["argv"] if "skip-permissions" in a])  # the mode flag, never the blanket skip flag
 
     def run_with_env_probe(self, issue: str, *extra: str, **env: str) -> dict:
         probe = self.tmp / "probe_claude.py"

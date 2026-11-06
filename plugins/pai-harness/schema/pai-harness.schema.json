@@ -250,6 +250,17 @@
         }
       }
     },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "bypass_permissions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Pass --permission-mode bypassPermissions to every claude run (owner policy). Set false to opt this project out; safety then relies on prompts. Deny rules and hooks apply either way."
+        }
+      }
+    },
     "rules": {
       "type": "object",
       "additionalProperties": false,

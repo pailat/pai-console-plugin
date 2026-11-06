@@ -7,7 +7,8 @@ and to render_stream.py, which prints one readable line per event, and (in Herdr
 metadata (state, task, run, step, turns, 2-minute TTL) and the tab label. That display never decides anything.
 
 State comes only from the stream-json `result` frame and the exit code (see harness_lib.run_state); the Herdr agent
-status is never read. A run that needs a permission is not given one: it ends `blocked` (exit 3).
+status is never read. Runs use --permission-mode bypassPermissions by default ([run] bypass_permissions = false opts a project out; then a run that
+needs a permission is not given one and ends `blocked`, exit 3). Safety is the deny rules plus the plugin hooks, never prompts.
 
 Usage: launch.sh ISSUE (--prompt TEXT | --prompt-file FILE) [--pane PANE] [--model M] [--role R] [--cwd DIR]
                  [--queue Q] [--stream S] [--allowed-tools T ...] [--config FILE] [--dry-run]
@@ -124,6 +125,8 @@ def claude_command(args: argparse.Namespace, config: dict, resume: str | None, m
     command += ["--max-turns", str(max(turns, 1)), "--max-budget-usd", format(budget, ".4f").rstrip("0").rstrip(".")]
     if resume:
         command += ["--resume", resume]
+    if config.get("run", {}).get("bypass_permissions", True):  # opt out per project with [run] bypass_permissions = false
+        command += ["--permission-mode", "bypassPermissions"]
     if args.allowed_tools:
         command += ["--allowed-tools", *args.allowed_tools]
     return command
