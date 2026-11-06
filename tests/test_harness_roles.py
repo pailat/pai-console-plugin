@@ -14,7 +14,7 @@ import harness_config  # noqa: E402
 ROLES = ("relay", "orchestrator", "lead", "implementer", "root-reviewer", "integrator", "mechanical", "watcher",
          "distiller", "gate-triager")
 MODELS = {"relay": "opus", "orchestrator": "opus", "lead": "sonnet", "implementer": "sonnet",
-          "root-reviewer": "opus", "integrator": "sonnet", "mechanical": "haiku", "watcher": "haiku", "distiller": "sonnet", "gate-triager": "sonnet"}
+          "root-reviewer": "opus", "integrator": "sonnet", "mechanical": "haiku", "watcher": "none", "distiller": "sonnet", "gate-triager": "sonnet"}
 READ_ONLY = {"Read", "Grep", "Glob"}
 WRITE_TOOLS = {"Bash", "Edit", "Write", "NotebookEdit", "Agent", "Task"}
 REPORT_LINE = re.compile(r"^## Quiet-channel report lines\n(?:.*\n)*?- `", re.M)
@@ -53,7 +53,7 @@ class RolesTest(unittest.TestCase):
 
     def test_models_are_allowed_and_match_the_defaults(self) -> None:
         for role in ROLES:
-            model = frontmatter(HARNESS / "agents" / f"{role}.md")["model"]
+            model = frontmatter(HARNESS / "agents" / f"{role}.md").get("model", "none")  # the watcher has no model
             self.assertIn(model, harness_config.MODEL_CHOICES, role)
             self.assertEqual(model, MODELS[role], role)
 
