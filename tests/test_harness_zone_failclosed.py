@@ -127,9 +127,8 @@ class ExistingFileTest(FailClosedCase):
         self.assertEqual(self.decision(self.pre(self.worktree, unrelated / "packages/contracts/api.ts")), "allow")
 
 
-class ConfigSubdirectoryTest(FailClosedCase):
-    """Pinned behavior: when git fails only for the config's directory, the subdirectory is kept (the root is worktree/svc), so the
-    write is judged by zone, not refused wholesale."""
+class SubdirConfig:
+    """Mixin: the config lives in <repo>/svc (moved there in setUp); failbin() makes git fail for everything under the primary checkout."""
 
     def setUp(self) -> None:
         super().setUp()
@@ -137,9 +136,22 @@ class ConfigSubdirectoryTest(FailClosedCase):
         self.sub.mkdir()
         shutil.move(str(self.project / ".pai-harness.toml"), str(self.sub / ".pai-harness.toml"))
         (self.worktree / "svc").mkdir(exist_ok=True)
+        self.sub_config = str(self.sub / ".pai-harness.toml")
+
+    def failbin(self) -> str:
+        bin_dir = Path(self._tmp.name) / "failbin"
+        bin_dir.mkdir(exist_ok=True)
+        (bin_dir / "git").write_text(f'#!/bin/sh\ncase "$2" in {self.project}*) exit 1;; esac\nexec {shutil.which("git")} "$@"\n')
+        (bin_dir / "git").chmod(0o755)
+        return f"{bin_dir}:{os.environ['PATH']}"
+
+
+class ConfigSubdirectoryTest(SubdirConfig, FailClosedCase):
+    """Pinned behavior: when git fails only for the config's directory, the subdirectory is kept (the root is worktree/svc), so the
+    write is judged by zone, not refused wholesale."""
 
     def pre_sub(self, target: Path, fail: str) -> dict | None:
-        return self.pre(self.worktree, target, PAI_HARNESS_CONFIG=str(self.sub / ".pai-harness.toml"), PATH=self.fake_git(fail))
+        return self.pre(self.worktree, target, PAI_HARNESS_CONFIG=self.sub_config, PATH=self.fake_git(fail))
 
     def test_an_in_zone_write_is_allowed(self) -> None:
         self.assertEqual(self.decision(self.pre_sub(self.worktree / "svc/apps/acme-app/x.ts", f"-C {self.sub}")), "allow")
@@ -150,41 +162,45 @@ class ConfigSubdirectoryTest(FailClosedCase):
         self.assertIn("belongs to zone 'contracts'", out["hookSpecificOutput"]["permissionDecisionReason"])
 
     def test_git_failing_for_the_config_dir_and_every_ancestor_denies_with_its_own_reason(self) -> None:
-        out = self.pre_sub(self.worktree / "svc/apps/acme-app/x.ts", f"-C {self.sub}")  # baseline allow above
-        self.assertEqual(self.decision(out), "allow")
-        real = shutil.which("git")
-        bin_dir = Path(self._tmp.name) / "failbin"
-        bin_dir.mkdir()
-        (bin_dir / "git").write_text(f'#!/bin/sh\ncase "$2" in {self.project}*) exit 1;; esac\nexec {real} "$@"\n')
-        (bin_dir / "git").chmod(0o755)
-        out = self.pre(self.worktree, self.worktree / "svc/apps/acme-app/x.ts", PAI_HARNESS_CONFIG=str(self.sub / ".pai-harness.toml"),
-                       PATH=f"{bin_dir}:{os.environ['PATH']}")
+        out = self.pre(self.worktree, self.worktree / "svc/apps/acme-app/x.ts", PAI_HARNESS_CONFIG=self.sub_config, PATH=self.failbin())
         self.assertEqual(self.decision(out), "deny")
         self.assertIn("could not locate the harness config's directory", out["hookSpecificOutput"]["permissionDecisionReason"])
 
 
-class EmptyRootsSiblingTest(ConfigSubdirectoryTest):
+class EmptyRootsSiblingTest(SubdirConfig, FailClosedCase):
     """git fails for the config dir and every ancestor (no zone root at all): a sibling worktree is still not waved through."""
 
-    def failbin(self) -> str:
-        real = shutil.which("git")
-        bin_dir = Path(self._tmp.name) / "failbin2"
-        bin_dir.mkdir()
-        (bin_dir / "git").write_text(f'#!/bin/sh\ncase "$2" in {self.project}*) exit 1;; esac\nexec {real} "$@"\n')
-        (bin_dir / "git").chmod(0o755)
-        return f"{bin_dir}:{os.environ['PATH']}"
-
-    def test_a_write_into_a_sibling_worktree_is_denied(self) -> None:
+    def test_a_write_into_a_sibling_worktree_is_denied_with_the_cause(self) -> None:
         other = self.second_worktree()
-        out = self.pre(self.worktree, other / "packages/contracts/x.txt", PAI_HARNESS_CONFIG=str(self.sub / ".pai-harness.toml"), PATH=self.failbin())
+        out = self.pre(self.worktree, other / "packages/contracts/x.txt", PAI_HARNESS_CONFIG=self.sub_config, PATH=self.failbin())
         self.assertEqual(self.decision(out), "deny")
-        self.assertIn("cannot be checked against the zones", out["hookSpecificOutput"]["permissionDecisionReason"])
+        reason = out["hookSpecificOutput"]["permissionDecisionReason"]
+        self.assertIn("cannot be checked against the zones", reason)
+        self.assertIn("could not locate the harness config's directory", reason)
+        self.assertIn("set PAI_HARNESS_CONFIG", reason)
 
     def test_a_target_proven_outside_the_repository_is_still_allowed(self) -> None:
         scratch = Path(self._tmp.name).resolve() / "scratch"
         scratch.mkdir()
-        out = self.pre(self.worktree, scratch / "x.txt", PAI_HARNESS_CONFIG=str(self.sub / ".pai-harness.toml"), PATH=self.failbin())
+        out = self.pre(self.worktree, scratch / "x.txt", PAI_HARNESS_CONFIG=self.sub_config, PATH=self.failbin())
         self.assertEqual(self.decision(out), "allow")
+
+
+class NonGitCwdSiblingTest(FailClosedCase):
+    """cwd is a plain directory outside the config dir: no zone root, yet a sibling worktree is judged by zone."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.plain = Path(self._tmp.name).resolve() / "plain"
+        self.plain.mkdir()
+        self.other = self.second_worktree()
+
+    def test_out_of_zone_denied_in_zone_allowed_under_cwd_denied(self) -> None:
+        out = self.pre(self.plain, self.other / "packages/contracts/x.txt")
+        self.assertEqual(self.decision(out), "deny")
+        self.assertIn("belongs to zone 'contracts'", out["hookSpecificOutput"]["permissionDecisionReason"])
+        self.assertEqual(self.decision(self.pre(self.plain, self.other / "apps/acme-app/x.ts")), "allow")
+        self.assertEqual(self.decision(self.pre(self.plain, self.plain / "x.ts")), "deny")
 
 
 class SymlinkTest(FailClosedCase):

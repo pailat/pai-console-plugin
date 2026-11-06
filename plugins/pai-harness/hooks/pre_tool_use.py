@@ -393,11 +393,12 @@ def main() -> None:
                 common.deny(f"Write zone: {target} could belong to a zone, but {roots_problem(config_root, cwd)}; the write is refused. "
                             "Start the agent inside the project checkout or set PAI_HARNESS_CONFIG to its own copy.")
                 return
-        root = zone_root_for(target, roots) if roots else None
+        root = zone_root_for(target, roots)
         if root is None:  # in none of the known roots (or no root at all): it may be another worktree of the same repository
             root, problem = sibling_root(target, Path(os.path.realpath(config_path.parent)))
             if problem and common.role() in WRITING_ROLES:
-                common.deny(f"Write zone: {target} cannot be checked against the zones: {problem}; the write is refused.")
+                why = f" ({roots_problem(Path(os.path.realpath(config_path.parent)), cwd)}; set PAI_HARNESS_CONFIG to the checkout's own copy)" if not roots else ""
+                common.deny(f"Write zone: {target} cannot be checked against the zones: {problem}{why}; the write is refused.")
                 return
         reason = zone_verdict(path, cwd, config, root, state, agent) if root is not None else ""
         if reason:
