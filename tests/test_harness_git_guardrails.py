@@ -210,6 +210,27 @@ class DeltaRoundTest(GuardrailTest):
         self.hook("git push origin main", "bypassPermissions")  # hook() asserts a zero exit status
         self.hook("scripts/q origin main", "default")
 
+    def test_git_dir_and_work_tree_do_not_crash_the_guard(self) -> None:
+        for command in ("git --git-dir=.git status", "git --git-dir .git status", "git --work-tree=. status", "git --git-dir=.git config alias.x y"):
+            with self.subTest(command=command):
+                self.assertEqual(git_guardrails.check(command, WRAPPER, self.project), "")
+        for command in ("git --git-dir=.git reset --hard", "git --work-tree=. clean -fd",
+                        "git --git-dir=.git checkout .", "git --git-dir=.git branch -D x"):
+            with self.subTest(command=command):
+                self.assertTrue(git_guardrails.check(command, WRAPPER, self.project), "not blocked")
+        for command in ("git --git-dir=.git reset --hard", "git --git-dir=.git push --force origin main", "scripts/queue-push.sh git --git-dir=.git push -f origin x"):
+            out = self.hook(command, "bypassPermissions")  # hook() asserts a zero exit status
+            self.assertEqual(out["hookSpecificOutput"]["permissionDecision"], "deny", command)
+
+    def test_a_parser_crash_denies_through_the_real_hook(self) -> None:
+        sentinel = self.project / "boom.py"
+        sentinel.write_text("import sys; sys.path.insert(0, %r)\nimport git_guardrails as g\ng.segments = lambda c: 1 / 0\nimport pre_tool_use as p; p.main()\n" % str(HOOKS))
+        event = {"session_id": "s", "cwd": str(self.project), "permission_mode": "bypassPermissions", "hook_event_name": "PreToolUse",
+                 "tool_name": "Bash", "tool_use_id": "t", "tool_input": {"command": "git status"}}
+        done = subprocess.run([sys.executable, str(sentinel)], input=json.dumps(event), text=True, capture_output=True, env=self.env, cwd=self.project, timeout=60)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn("could not be checked", json.loads(done.stdout)["hookSpecificOutput"]["permissionDecisionReason"])
+
     def test_an_internal_error_denies(self) -> None:
         class Common:
             reasons: list = []

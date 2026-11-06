@@ -168,7 +168,8 @@ def in_throwaway(targets: list[Path], ctx: Context, effective: Path) -> bool:
 def effective_dir(directories: list[str], ctx: Context) -> Path:
     current = ctx.cwd
     for directory in directories:
-        current = current / os.path.expanduser(directory)
+        if directory != "\0unknown":  # the sentinel marks an unreadable --git-dir / --work-tree; it is never a path
+            current = current / os.path.expanduser(directory)
     return current
 
 
