@@ -35,6 +35,11 @@
         "issue_prefix": {
           "type": "string",
           "pattern": "^[A-Z][A-Z0-9]*$"
+        },
+        "base_branch": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Branch the Stop zone diff falls back to when the run recorded no start commit (PAI_HARNESS_BASE), before origin/HEAD, main and master."
         }
       }
     },

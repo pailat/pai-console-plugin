@@ -102,7 +102,7 @@ def validate(data: object) -> dict:
         if data["schema_version"] != SCHEMA_VERSION:
             raise ConfigError(f"schema_version: unsupported {data['schema_version']}, this plugin reads {SCHEMA_VERSION}")
 
-    project = _table("project", data["project"], {"pai_org", "pai_project", "linear_team", "issue_prefix"}, {"pai_org", "pai_project", "linear_team"})
+    project = _table("project", data["project"], {"pai_org", "pai_project", "linear_team", "issue_prefix", "base_branch"}, {"pai_org", "pai_project", "linear_team"})
     out["project"] = {k: _string(f"project.{k}", v) for k, v in project.items()}
     out["project"].setdefault("issue_prefix", out["project"]["linear_team"])
     if not re.fullmatch(r"[A-Z][A-Z0-9]*", out["project"]["issue_prefix"]):
