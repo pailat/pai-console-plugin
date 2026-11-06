@@ -24,6 +24,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import hook_common as common  # noqa: E402
+from harness_lib import WRITING_ROLES  # noqa: E402
 
 WRITE_TOOLS = {"Write": "file_path", "Edit": "file_path", "MultiEdit": "file_path", "NotebookEdit": "notebook_path"}
 REDIRECTS = {">", ">>", ">|", "&>", "&>>"}
@@ -74,9 +75,70 @@ def resolve(path: str, cwd: Path) -> Path:
     return Path(os.path.realpath(expanded if expanded.is_absolute() else cwd / expanded))
 
 
-def zone_verdict(path: str, cwd: Path, config: dict, root: Path, state: Path | None, agent: str) -> str:
-    """Return "" when the write is allowed, else the denial reason."""
+def zone_roots(config_root: Path, cwd: Path) -> list[Path]:
+    """Directories the zone globs are relative to, found by comparing git toplevels (never path containment, so a worktree
+    nested under the config's checkout is its own root). The config's directory when cwd is in the config's checkout;
+    otherwise the same directory inside cwd's checkout first, then the config's directory so the other checkout is policed
+    too. If git cannot answer for the config's directory itself, its place in the repository is taken from the nearest
+    ancestor that git can answer for, so a config in a subdirectory keeps that subdirectory. Empty when no root can be derived
+    (see roots_problem for why): the caller must fail closed."""
+    config_root = Path(os.path.realpath(config_root))
+    here_top, config_top = common.toplevel(Path(os.path.realpath(cwd))), common.toplevel(config_root)
+    if here_top is None:
+        return [config_root] if Path(os.path.realpath(cwd)).is_relative_to(config_root) else []
+    if config_top is None:
+        if not common.in_repository(config_root):
+            return [here_top, config_root] if here_top != config_root else [config_root]
+        config_top = next((t for t in map(common.toplevel, config_root.parents) if t is not None and config_root.is_relative_to(t)), None)
+        if config_top is None:
+            return []  # git fails for the config's directory and every ancestor: its place in the repository is unknown
+    if here_top == config_top:
+        return [config_root]
+    return [here_top / config_root.relative_to(config_top), config_root]
+
+
+def roots_problem(config_root: Path, cwd: Path) -> str:
+    """Why zone_roots came back empty, for the denial and the Stop text."""
+    if common.toplevel(Path(os.path.realpath(cwd))) is None:
+        return (f"the working directory {cwd} is outside the harness config's directory ({config_root}) and is not a git work tree, "
+                "so no zone can be applied")
+    return f"git could not locate the harness config's directory ({config_root}) in its repository (it failed or timed out), so no zone can be applied"
+
+
+def zone_root_for(target: Path, roots: list[Path]) -> Path | None:
+    """The most specific root that contains target, or None when it lies in none (such paths are not policed)."""
+    inside = [r for r in roots if target.is_relative_to(r)]
+    return max(inside, key=lambda r: len(r.parts)) if inside else None
+
+
+def sibling_root(target: Path, config_root: Path) -> tuple[Path | None, str]:
+    """For a target that lies in none of the zone roots: (the root to judge it under, "") when it sits in another worktree of the
+    config's repository (the toplevel of its checkout plus the config's subdirectory); (None, "") when it is outside that repository
+    or outside any repository (not policed); (None, reason) when the lookup failed and the target may be in the config's repository."""
+    start = common.nearest_existing_dir(target)
+    top, mine = common.toplevel(start), common.toplevel(config_root)
+    if top is None and not common.in_repository(start):
+        return None, ""  # proven outside every repository, whatever happened to the config's lookup
+    if top is None or mine is None:
+        if top is None or common.in_repository(config_root):
+            return None, "its git checkout could not be determined"
+        return None, ""
+    other, own = common.common_dir(start), common.common_dir(config_root)
+    if other is None or own is None:
+        return None, "its git repository could not be determined"
+    if other != own:
+        return None, ""
+    return top / config_root.relative_to(mine), ""
+
+
+def zone_verdict(path: str, cwd: Path, config: dict, root: Path, state: Path | None, agent: str, follow: bool = True) -> str:
+    """Return "" when the write is allowed, else the denial reason. follow=False judges a symlink by its own path (only its
+    parent is resolved): a changed link is the agent's change, wherever it points."""
     target = resolve(path, cwd)
+    if not follow:
+        expanded = Path(os.path.expandvars(os.path.expanduser(path)))
+        unresolved = os.path.abspath(expanded if expanded.is_absolute() else cwd / expanded)
+        target = Path(os.path.realpath(os.path.dirname(unresolved))) / os.path.basename(unresolved)
     if state is not None and target.is_relative_to(Path(os.path.realpath(state))):
         return ""
     try:
@@ -318,12 +380,30 @@ def main() -> None:
         return
     cwd = Path(event.get("cwd") or os.getcwd())
     state, agent = common.state_dir(config), common.agent_name(event)
+    roots = zone_roots(config_path.parent, cwd)
     for path in direct_paths:
-        reason = zone_verdict(path, cwd, config, config_path.parent, state, agent)
+        target = resolve(path, cwd)
+        if state is not None and target.is_relative_to(Path(os.path.realpath(state))):
+            continue  # the delta marker and other state files are never policed, even with no root
+        if not roots:
+            # No root: police the config's checkout; a path under cwd could belong to an unknown checkout, so refuse it.
+            # Anything else cannot land in a zone and is left alone.
+            config_root = Path(os.path.realpath(config_path.parent))
+            if target.is_relative_to(config_root) or target.is_relative_to(Path(os.path.realpath(cwd))):
+                common.deny(f"Write zone: {target} could belong to a zone, but {roots_problem(config_root, cwd)}; the write is refused. "
+                            "Start the agent inside the project checkout or set PAI_HARNESS_CONFIG to its own copy.")
+                return
+        root = zone_root_for(target, roots)
+        if root is None:  # in none of the known roots (or no root at all): it may be another worktree of the same repository
+            root, problem = sibling_root(target, Path(os.path.realpath(config_path.parent)))
+            if problem and common.role() in WRITING_ROLES:
+                why = f" ({roots_problem(Path(os.path.realpath(config_path.parent)), cwd)}; set PAI_HARNESS_CONFIG to the checkout's own copy)" if not roots else ""
+                common.deny(f"Write zone: {target} cannot be checked against the zones: {problem}{why}; the write is refused.")
+                return
+        reason = zone_verdict(path, cwd, config, root, state, agent) if root is not None else ""
         if reason:
             common.deny(reason)
             return
-
 
 if __name__ == "__main__":
     main()

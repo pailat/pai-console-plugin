@@ -33,7 +33,7 @@ class HookCase(unittest.TestCase):
 
     def event(self, name: str) -> str:
         text = (FIXTURES / f"{name}.json").read_text()
-        for key, value in (("__PROJECT__", str(self.project)), ("__STATE__", str(self.state)), ("__WRAPPER__", WRAPPER)):
+        for key, value in (("__PROJECT__", str(self.project)), ("__WORKTREE__", str(getattr(self, "worktree", self.project))), ("__STATE__", str(self.state)), ("__WRAPPER__", WRAPPER)):
             text = text.replace(key, value)
         json.loads(text)
         return text
