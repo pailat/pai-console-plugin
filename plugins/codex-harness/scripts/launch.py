@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Run `claude -p` for one issue, optionally inside a Herdr pane, and record its stream, state, cost and session id.
+"""Run `claude -p` for one issue, inside a Herdr pane, and record its stream, state, cost and session id.
+
+The run is never hidden: with --pane it runs in that pane; inside Herdr (HERDR_ENV=1) without --pane the launcher opens
+its own tab; outside Herdr it runs in the foreground of your terminal. In every case the stream is teed to the JSONL log
+and to render_stream.py, which prints one readable line per event, and (in Herdr) mirrors the run into workspace
+metadata (state, task, run, step, turns, 2-minute TTL) and the tab label. That display never decides anything.
 
 State comes only from the stream-json `result` frame and the exit code (see harness_lib.run_state); the Herdr agent
 status is never read. A run that needs a permission is not given one: it ends `blocked` (exit 3).
@@ -26,6 +31,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import harness_lib as lib  # noqa: E402
+import render_stream  # noqa: E402
 
 
 HOOK_KEYS = ("PAI_HARNESS_ROLE", "PAI_HARNESS_AGENT", "PAI_HARNESS_ZONES", "PAI_HARNESS_BRIEF", "PAI_HARNESS_PUSH_WRAPPER")
@@ -97,13 +103,14 @@ class InitCheck:
             self.done.set()
 
 
-def fail_closed(args: argparse.Namespace, state: Path, started: str, stream: Path, queue: str | None, machine: str | None, problems: list[str]) -> int:
+def fail_closed(args: argparse.Namespace, state: Path, started: str, stream: Path, queue: str | None, machine: str | None, problems: list[str],
+                run_id: str | None = None) -> int:
     """The plugin is not proven loaded: the run is already killed; journal and print a BLOCKER, record failed, exit non-zero."""
     reason = "pai-harness self-check failed: " + "; ".join(problems)
     lib.blocker(state, args.issue, reason)
     record = {"issue": args.issue, "queue": queue, "machine": machine, "role": args.role, "started": started, "finished": lib.stamp(),
               "stream": str(stream), "resumed": bool(args.resume_run), "state": "failed", "reason": reason, "exit_code": None,
-              "session_id": None, "cost_usd": None, "turns": None}
+              "session_id": None, "cost_usd": None, "turns": None, "run_id": run_id}
     lib.write_json(run_paths(state, args.issue)[1], record)
     lib.register(state, args.issue, state="failed")
     lib.emit(state, "run.finished", {k: record[k] for k in ("issue", "state", "reason", "exit_code", "session_id", "cost_usd", "turns")})
@@ -128,12 +135,30 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
     timeout = config["limits"]["turn_timeout_minutes"] * 60
     exit_code, timed_out, last_beat, lines = None, False, time.monotonic(), []
     init = InitCheck(lib.expected_skills(lib.plugin_root()))
+    run_id = uuid.uuid4().hex[:8]
+    renderer = render_stream.Renderer(sys.stderr, render_stream.hooks_of(lib.plugin_root()))
+    status = render_stream.HerdrStatus(args.issue, run_id, args.herdr_workspace, args.herdr_tab)
+
+    def show(frame_line: str) -> None:
+        """Render one stream line and mirror it to Herdr; a display failure never touches the run."""
+        try:
+            frame = renderer.feed(frame_line)
+            if frame:
+                status.observe(frame, renderer)
+        except Exception as error:  # noqa: BLE001 - display only
+            print(f"render error: {error}", file=sys.stderr)
+
+    def closing(record_state: str, text: str) -> None:
+        renderer.say(f"■ record {record_state} {text}".rstrip())
+        status.finish(record_state, renderer.step, renderer.turns)
+    renderer.say(f"▶ {args.issue} run {run_id} → {stream}")
     with stream.open("w", encoding="utf-8") as out, stderr_log.open("w", encoding="utf-8") as err:
         try:
             proc = subprocess.Popen(claude_command(args, config, resume), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                     stderr=err, text=True, cwd=args.cwd or None, env=hook_env(args, config, state, config_path))
         except OSError as error:
             err.write(f"cannot start claude: {error}\n")
+            renderer.say(f"✗ cannot start claude: {error}")
             proc = None
         if proc:
             def feed() -> None:
@@ -151,6 +176,7 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
                     out.flush()
                     lines.append(line)
                     init.feed(line)
+                    show(line)
                     if time.monotonic() - last_beat > 60:
                         lib.register(state, args.issue, state="running")
                         last_beat = time.monotonic()
@@ -168,7 +194,8 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
                 proc.kill()  # the exact child PID; never a pattern
                 proc.wait()
                 reader.join(10)
-                return fail_closed(args, state, started, stream, queue, machine, init.problems)
+                closing("failed", "self-check: " + "; ".join(init.problems))
+                return fail_closed(args, state, started, stream, queue, machine, init.problems, run_id)
             try:
                 exit_code = proc.wait(timeout=timeout)
             except subprocess.TimeoutExpired:
@@ -179,18 +206,49 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
     summary = lib.parse_stream(lines)
     verdict = lib.run_state(summary, exit_code, timed_out)
     record = {"issue": args.issue, "queue": queue, "machine": machine, "role": args.role, "started": started, "finished": lib.stamp(),
-              "stream": str(stream), "resumed": bool(resume), **verdict}
+              "stream": str(stream), "resumed": bool(resume), "run_id": run_id, **verdict}
     lib.write_json(state_file, record)
     lib.register(state, args.issue, state=verdict["state"], session_id=verdict["session_id"])
     lib.emit(state, "run.finished", {k: record[k] for k in ("issue", "state", "reason", "exit_code", "session_id", "cost_usd", "turns")})
+    closing(verdict["state"], f"exit={exit_code} {verdict['reason']}")
     return lib.exit_for(verdict["state"])
 
 
-def in_pane(args: argparse.Namespace, state: Path, argv: list[str]) -> int:
+def herdr_json(*argv: str) -> dict:
+    """Run a herdr command and return its JSON `result` (empty when herdr is absent, fails or prints something else)."""
+    herdr = os.environ.get("PAI_HARNESS_HERDR", "herdr")
+    try:
+        done = run_process([herdr, *argv], capture_output=True, text=True, timeout=10)
+        result = json.loads(done.stdout).get("result") if done.returncode == 0 else None
+    except (OSError, subprocess.SubprocessError, ValueError, AttributeError):
+        return {}
+    return result if isinstance(result, dict) else {}
+
+
+def open_tab(args: argparse.Namespace) -> tuple[str | None, str | None, str | None]:
+    """Create the run's own Herdr tab (never focused). Returns (pane, tab, workspace), or Nones when Herdr cannot."""
+    workspace = os.environ.get("HERDR_WORKSPACE_ID")
+    command = ["tab", "create", "--cwd", str(Path(args.cwd or os.getcwd()).resolve()), "--label", f"{args.issue}{render_stream.SEPARATOR}starting"]
+    if workspace:
+        command += ["--workspace", workspace]
+    made = herdr_json(*command)
+    pane = (made.get("root_pane") or {}).get("pane_id")
+    tab = (made.get("tab") or {}).get("tab_id")
+    return (pane, tab, (made.get("tab") or {}).get("workspace_id") or workspace) if pane else (None, None, None)
+
+
+def in_pane(args: argparse.Namespace, state: Path, argv: list[str], tab: str | None, workspace: str | None, config_path: Path) -> int:
     """Run the inner launcher in a Herdr pane and wake on a unique marker; the state file it writes is the verdict."""
     herdr = os.environ.get("PAI_HARNESS_HERDR", "herdr")
     marker = f"HARNESS_{uuid.uuid4().hex[:12]}"
-    command = f"{shlex.join([sys.executable, str(Path(__file__).resolve()), '--inner', *argv])}; echo {marker}_RC=$?"
+    inner_argv = ["--inner", *argv]
+    if workspace:
+        inner_argv += ["--herdr-workspace", workspace]
+    if tab:
+        inner_argv += ["--herdr-tab", tab]
+    # A pane's shell is a fresh process: hand it this launcher's resolved config and state dir and every PAI_HARNESS_* setting.
+    carried = {**{k: v for k, v in os.environ.items() if k.startswith("PAI_HARNESS_")}, "PAI_HARNESS_CONFIG": str(config_path), "PAI_HARNESS_STATE_DIR": str(state)}
+    command = f"{shlex.join(['env', *[f'{k}={v}' for k, v in sorted(carried.items())], sys.executable, str(Path(__file__).resolve()), *inner_argv])}; echo {marker}_RC=$?"
     run_process([herdr, "pane", "run", args.pane, command], check=True)
     waited = run_process([herdr, "pane", "wait-output", args.pane, "--regex", f"{marker}_RC=[0-9]+", "--timeout", str(args.wait_ms)])
     record = lib.read_json(run_paths(state, args.issue)[1])
@@ -205,7 +263,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("issue")
     parser.add_argument("--prompt")
     parser.add_argument("--prompt-file")
-    parser.add_argument("--pane", help="run in this Herdr pane instead of this process")
+    parser.add_argument("--pane", help="run in this Herdr pane (default inside Herdr: the launcher opens its own tab; outside Herdr: this terminal)")
     parser.add_argument("--model")
     parser.add_argument("--role")
     parser.add_argument("--cwd")
@@ -215,6 +273,8 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--wait-ms", type=int, default=5400000)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--inner", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--herdr-workspace", help=argparse.SUPPRESS)
+    parser.add_argument("--herdr-tab", help=argparse.SUPPRESS)
     parser.add_argument("--resume", dest="resume_run", action="store_true", help="resume the recorded session of ISSUE")
     parser.add_argument("--park", action="store_true", help="mark ISSUE parked")
     parser.add_argument("--status", action="store_true", help="print the recorded state of ISSUE")
@@ -258,8 +318,25 @@ def main(argv: list[str]) -> int:
                   "hook_env": {k: v for k, v in hook_env(args, config, state, config_path, write=False).items() if k in HOOK_KEYS},
                   "stream": str(run_paths(state, args.issue)[0]), "state_file": str(state_file), "state_dir": str(state)})
         return 0
-    if args.pane and not args.inner:
-        return in_pane(args, state, [a for a in argv if a not in ("--pane", args.pane)])
+    if not args.inner:
+        tab = workspace = None
+        if args.pane:
+            info = herdr_json("pane", "get", args.pane).get("pane") or {}
+            tab, workspace = info.get("tab_id"), info.get("workspace_id")
+        elif os.environ.get("HERDR_ENV") == "1":
+            args.pane, tab, workspace = open_tab(args)
+            if not args.pane:
+                print(f"{args.issue}: could not open a Herdr tab; running in this terminal", file=sys.stderr)
+        if args.pane:
+            passed, skip = [], False
+            for item in argv:
+                if skip:
+                    skip = False
+                elif item == "--pane":
+                    skip = True
+                elif not item.startswith("--pane="):
+                    passed.append(item)
+            return in_pane(args, state, passed, tab, workspace, config_path)
     return inner(args, config, state, config_path)
 
 

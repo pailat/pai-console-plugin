@@ -7,10 +7,19 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness_support import FIXTURES, PLUGIN_ROOT, SCRIPTS, HarnessCase  # noqa: E402
+from harness_support import FIXTURES, PLUGIN_ROOT, SCRIPTS, HarnessCase as _HarnessCase  # noqa: E402
 
 sys.path.insert(0, str(SCRIPTS))
 import harness_lib as lib  # noqa: E402
+
+
+class HarnessCase(_HarnessCase):
+    """The shared case, run outside any Herdr: a launch here must not open a tab in the developer's own session."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        for name in [k for k in self.env if k.startswith("HERDR_")]:
+            self.env.pop(name)
 
 
 class SelfCheckTest(HarnessCase):
