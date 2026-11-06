@@ -1,2 +1,2 @@
-{"type":"system","subtype":"init","session_id":"11111111-2222-3333-4444-555555555555","model":"claude-sonnet-5-5","apiKeySource":"none"}
+{"type":"system","subtype":"init","session_id":"11111111-2222-3333-4444-555555555555","model":"claude-sonnet-5-5","apiKeySource":"none","plugins":[{"name":"other","path":"/opt/other","source":"other@inline"},{"name":"pai-harness","path":"__PLUGIN_ROOT__","source":"pai-harness@inline","version":"0.1.0"}],"skills":["review","__PAI_HARNESS_SKILLS__"],"agents":[],"slash_commands":[]}
 {"type":"assistant","session_id":"11111111-2222-3333-4444-555555555555","message":{"role":"assistant","content":[{"type":"text","text":"Working"}]}}
