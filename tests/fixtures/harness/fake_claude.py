@@ -14,7 +14,7 @@ prompt = sys.stdin.read()
 log = os.environ.get("FAKE_CLAUDE_LOG")
 if log:
     with open(log, "w") as handle:
-        json.dump({"argv": sys.argv[1:], "prompt": prompt}, handle)
+        json.dump({"argv": sys.argv[1:], "prompt": prompt, "env": sorted(os.environ)}, handle)
 if os.environ.get("FAKE_CLAUDE_RUN_HELPER") and "--mcp-config" in sys.argv:
     # Like Claude Code: run the server's headersHelper through a shell. Record only its exit code and the header's shape, never its value.
     import subprocess

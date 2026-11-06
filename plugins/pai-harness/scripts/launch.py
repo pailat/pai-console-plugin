@@ -13,7 +13,7 @@ Usage: launch.sh ISSUE (--prompt TEXT | --prompt-file FILE) [--pane PANE] [--mod
                  [--queue Q] [--stream S] [--allowed-tools T ...] [--config FILE] [--dry-run]
        launch.sh ISSUE --profile mechanical --files F [F ...] --instruction TEXT [--model haiku|sonnet] [--cwd DIR]
                  the mechanical lane: a closed brief, Haiku, an empty strict MCP config, Read/Edit/Grep/Glob only, `--output-format json`;
-                 check the result with verify-mechanical.sh before closing it
+                 check the result with verify-mechanical.sh before closing it (--files are relative to --cwd, which may be a repo subdirectory)
        launch.sh --resume ISSUE   continue a parked or blocked run by its recorded session id
        launch.sh --park ISSUE     mark a run parked (no process is touched)
        launch.sh --status ISSUE   print the recorded state
@@ -35,12 +35,17 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import harness_config  # noqa: E402
 import harness_lib as lib  # noqa: E402
+import mechanical_scope as scope  # noqa: E402
 import render_stream  # noqa: E402
 
 
 MECHANICAL_TOOLS = ("Read", "Edit", "Grep", "Glob")  # the whole tool set of the mechanical lane: no Bash, no MCP, no web
 MECHANICAL_MODELS = ("haiku", "sonnet")  # Haiku by default; `--model sonnet` is the opt-in
-GLOB_CHARS = set("*?[]{}")
+GLOB_CHARS = set("*?")  # [ ] { } are valid filename characters (app/[slug]/page.tsx); paths are compared and passed to git as literals
+LANE_ENV_KEYS = ("PATH", "HOME", "USER", "LOGNAME", "SHELL", "LANG", "LANGUAGE", "TERM", "TMPDIR", "TZ", "XDG_CONFIG_HOME", "XDG_DATA_HOME",
+                 "XDG_CACHE_HOME", "XDG_STATE_HOME", "XDG_RUNTIME_DIR", "CLAUDE_CONFIG_DIR", "CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_API_KEY",
+                 "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL")  # what `claude` needs to run and sign in; nothing of Pai, SSH or cloud credentials
+LANE_ENV_EXTRA = "PAI_HARNESS_LANE_ENV"  # the operator may name more variables (comma separated) to pass to the lane
 HOOK_KEYS = ("PAI_HARNESS_ROLE", "PAI_HARNESS_AGENT", "PAI_HARNESS_ZONES", "PAI_HARNESS_BRIEF", "PAI_HARNESS_PUSH_WRAPPER", "PAI_HARNESS_BASE",
              "PAI_HARNESS_STREAM", "PAI_HARNESS_KNOWLEDGE_ORG", "PAI_HARNESS_KNOWLEDGE_PROJECT", "PAI_HARNESS_KNOWLEDGE_PRODUCT")
 KNOWLEDGE_ENV = ("PAI_HARNESS_STREAM", "PAI_HARNESS_KNOWLEDGE_ORG", "PAI_HARNESS_KNOWLEDGE_PROJECT", "PAI_HARNESS_KNOWLEDGE_PRODUCT")
@@ -102,6 +107,8 @@ def clean_files(files: list[str]) -> list[str]:
     out: list[str] = []
     for raw in files:
         path = os.path.normpath(raw)
+        if any(ord(c) < 32 or ord(c) == 127 for c in raw):
+            raise ValueError(f"--files entry {raw!r} contains a control character or newline")
         if not raw.strip() or os.path.isabs(path) or path == ".." or path.startswith("../") or path == "." or GLOB_CHARS & set(raw):
             raise ValueError(f"--files entry {raw!r} must be a literal relative path inside the worktree (no glob, no ..)")
         if path.startswith(".git/") or path == ".git":
@@ -113,7 +120,10 @@ def clean_files(files: list[str]) -> list[str]:
 
 def worktree_dirty(cwd: str | None) -> bool:
     """True when the worktree has uncommitted or untracked changes (the verifier discards by path, so the lane starts from a clean tree)."""
-    done = run_process(["git", "-C", str(cwd or os.getcwd()), "status", "--porcelain"], capture_output=True, text=True, timeout=30)
+    try:
+        done = run_process(["git", "-C", str(cwd or os.getcwd()), "status", "--porcelain"], capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return True  # fail closed: a tree that cannot be inspected is not clean
     return done.returncode != 0 or bool(done.stdout.strip())
 
 
@@ -188,6 +198,8 @@ def launch_base(args: argparse.Namespace, previous: dict) -> str | None:
 def hook_env(args: argparse.Namespace, config: dict, state: Path, config_path: Path, write: bool = True, base: str | None = None) -> dict[str, str]:
     """The environment that activates the hooks for this run: role, agent, zones, brief, push wrapper, start commit and Knowledge command."""
     role = args.role or "implementer"
+    if args.profile:
+        return lane_env()
     env = {**os.environ, "PAI_HARNESS_ROLE": role, "PAI_HARNESS_AGENT": args.issue, "PAI_HARNESS_CONFIG": str(config_path),
            "PAI_HARNESS_STATE_DIR": str(state)}
     zones = config["role_zones"].get(role)
@@ -223,6 +235,17 @@ def hook_env(args: argparse.Namespace, config: dict, state: Path, config_path: P
         env["PAI_HARNESS_STREAM"] = stream
     # PAI_HARNESS_KNOWLEDGE_CMD has no config key (it is site tooling); an operator's value passes through the inherited environment.
     return env
+
+
+def lane_env() -> dict[str, str]:
+    """The environment of the mechanical lane: an allowlist, not os.environ, and no PAI_HARNESS_ROLE.
+
+    No Pai/machine token variable, SSH or cloud credential reaches the child. Without PAI_HARNESS_ROLE the plugin hooks (Stop delta
+    marker, zone checks) do nothing: the lane has no Write or MCP to satisfy them and its guard is verify-mechanical.sh, which checks the
+    diff against --files and discards the run otherwise.
+    """
+    extra = [n.strip() for n in os.environ.get(LANE_ENV_EXTRA, "").split(",") if n.strip()]
+    return {k: v for k, v in os.environ.items() if k in LANE_ENV_KEYS or k.startswith("LC_") or k in extra}
 
 
 class InitCheck:
@@ -309,8 +332,19 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
             lib.emit(state, "run.blocked", {"issue": args.issue, "role": args.role, "blocker": reason})
             print(reason, file=sys.stderr)
             return lib.EXIT_FAILED
-    if not resume:
+    if not resume and not args.profile:  # the mechanical brief is closed: nothing is prepended to it
         prompt = knowledge_header(args, config, state) + prompt
+    lane = None
+    if args.profile:  # fail closed before anything runs: the repo root, the start commit and the ignored-files baseline the verifier compares against
+        try:
+            root, prefix = scope.toplevel(str(Path(args.cwd or os.getcwd()).resolve()))
+            lane = {"root": root, "files": scope.root_relative(prefix, args.files), "ignored_baseline": str(scope.write_baseline(root, run_paths(state, args.issue)[1].with_name(f"{args.issue}.ignored.json")))}
+        except (scope.ScopeError, OSError) as error:
+            reason = f"{args.issue}: the mechanical lane cannot record its baseline: {error}"
+            lib.blocker(state, args.issue, reason)
+            lib.emit(state, "run.blocked", {"issue": args.issue, "role": args.role, "blocker": reason})
+            print(f"BLOCKER {reason}", file=sys.stderr)
+            return lib.EXIT_FAILED
     machine = config["queues"].get(queue or "", {}).get("machine")
     started = lib.stamp()
     stream.parent.mkdir(parents=True, exist_ok=True)
@@ -433,6 +467,7 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
         lines = json_frames(lines)
         for frame_line in lines:
             show(frame_line)
+            result_usage(frame_line, usage)
     summary = lib.parse_stream(lines)
     verdict = lib.run_state(summary, exit_code, timed_out)
     finished = lib.stamp()
@@ -443,7 +478,7 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
               "stream": str(stream), "resumed": bool(resume), "run_id": run_id, "model": args.model or config["models"].get(args.role or "implementer", "sonnet"),
               "model_reported": init.model, "compaction_alert": usage["compaction_alert"], **verdict, **accumulate(previous, bool(resume), this_run)}
     if args.profile:  # what the verifier needs: the lane, the listed files, the worktree the start commit
-        record.update({"profile": args.profile, "files": args.files, "base": base, "cwd": str(Path(args.cwd or os.getcwd()).resolve())})
+        record.update({"profile": args.profile, "base": base, "cwd": str(Path(args.cwd or os.getcwd()).resolve()), **lane})
     lib.write_json(state_file, record)
     lib.register(state, args.issue, state=verdict["state"], session_id=verdict["session_id"])
     lib.emit(state, "run.finished", {k: record[k] for k in ("issue", "state", "reason", "exit_code", "session_id", "cost_usd", "turns")})
@@ -469,6 +504,19 @@ def mechanical_problem(args: argparse.Namespace, config: dict) -> str | None:
         return f"--profile mechanical runs {' or '.join(MECHANICAL_MODELS)}, not {args.model}"
     args.prompt = closed_brief(args.instruction, args.files)
     return None
+
+
+def result_usage(frame_line: str, usage: dict) -> None:
+    """`--output-format json` has no per-message frames: the spend totals come from the result object's own `usage`. There is no per-turn peak."""
+    try:
+        frame = json.loads(frame_line)
+        total = frame.get("usage") if frame.get("type") == "result" else None
+        if isinstance(total, dict):
+            for key, field in (("input_tokens", "input_tokens"), ("cache_write_tokens", "cache_creation_input_tokens"),
+                               ("cache_read_tokens", "cache_read_input_tokens"), ("output_tokens", "output_tokens")):
+                usage[key] += int(total.get(field) or 0)
+    except (ValueError, AttributeError, TypeError):
+        pass  # accounting only
 
 
 def json_frames(lines: list[str]) -> list[str]:

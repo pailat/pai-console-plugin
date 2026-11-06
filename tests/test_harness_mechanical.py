@@ -2,15 +2,20 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
 import subprocess
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness_support import FIXTURES, SCRIPTS, HarnessCase  # noqa: E402
 
 sys.path.insert(0, str(SCRIPTS))
+import launch as launcher  # noqa: E402
+import mechanical_scope as scope  # noqa: E402
 import verify_mechanical as vm  # noqa: E402
 
 RESULT = FIXTURES / "mechanical_result.json"
@@ -27,10 +32,13 @@ def git(repo: Path, *argv: str) -> str:
 class MechanicalCase(HarnessCase):
     def setUp(self) -> None:
         super().setUp()
+        self.env["PAI_HARNESS_LANE_ENV"] = "FAKE_CLAUDE_FIXTURE,FAKE_CLAUDE_EXIT,FAKE_CLAUDE_LOG"  # the lane env is an allowlist: let the fake claude see its own switches
         self.repo = self.tmp / "repo"
         (self.repo / "src").mkdir(parents=True)
         for name in (*FILES, "src/other.py", "README.md"):
             (self.repo / name).write_text(f"# {name}\ndef calc_total():\n    return 1\n")
+        (self.repo / ".gitignore").write_text("*.env\nbuild/\n")
+        (self.repo / "prod.env").write_text("SECRET=1\n")  # ignored and already there when the lane starts: not the run's change
         git(self.repo, "init", "-q")
         git(self.repo, "add", "-A")
         git(self.repo, "commit", "-q", "-m", "init")
@@ -153,7 +161,8 @@ class ProfileTest(MechanicalCase):
 
 class VerifyTest(MechanicalCase):
     def started(self, **kwargs: object) -> None:
-        self.assertEqual(self.lane(**kwargs).returncode, 0)  # type: ignore[arg-type]
+        done = self.lane(**kwargs)  # type: ignore[arg-type]
+        self.assertEqual(done.returncode, 0, done.stderr)
 
     def edit(self, name: str, text: str = "def compute_total():\n    return 1\n") -> None:
         (self.repo / name).write_text(text)
@@ -264,20 +273,205 @@ class VerifyTest(MechanicalCase):
         self.assertIn("not a mechanical-lane run", done.stderr)
 
 
-class SamplerTest(unittest.TestCase):
-    def test_the_picker_is_deterministic_and_about_one_in_five(self) -> None:
-        picks = [vm.sampled(f"ACME-{n}", "a" * 40, 5) for n in range(1, 501)]
-        self.assertEqual(picks, [vm.sampled(f"ACME-{n}", "a" * 40, 5) for n in range(1, 501)])
-        self.assertTrue(70 <= sum(picks) <= 130, sum(picks))
+class ScopeTest(MechanicalCase):
+    """The review round: ignored files, subdirectories, git failure, checks that write, literal paths, dry run."""
 
-    def test_every_one_samples_everything(self) -> None:
-        self.assertTrue(all(vm.sampled(f"ACME-{n}", "b" * 40, 1) for n in range(1, 20)))
+    def started(self, **kwargs: object) -> None:
+        done = self.lane(**kwargs)  # type: ignore[arg-type]
+        self.assertEqual(done.returncode, 0, done.stderr)
+
+    def edit(self, name: str, text: str = "changed\n") -> None:
+        (self.repo / name).write_text(text)
+
+    def test_an_ignored_file_new_or_changed_is_outside_and_a_preexisting_one_is_not(self) -> None:
+        self.started()
+        self.edit("src/cart.py")
+        self.assertEqual(json.loads(self.verify().stdout)["verdict"], "pass")  # prod.env was there before the run and is untouched
+        self.edit("prod.env", "SECRET=2\n")
+        (self.repo / "build").mkdir()
+        (self.repo / "build/out.js").write_text("x\n")
+        done = self.verify()
+        self.assertEqual(done.returncode, 1)
+        result = json.loads(done.stdout)
+        self.assertEqual(result["outside"], ["build/out.js", "prod.env"])
+        self.assertFalse((self.repo / "build/out.js").exists())  # the new ignored file is removed
+        self.assertIn("prod.env: an ignored file that existed before the run", " ".join(result["reasons"]))  # the old one cannot be restored from git: said, not hidden
+
+    def test_a_subdirectory_cwd_uses_repo_root_paths_everywhere(self) -> None:
+        sub = self.repo / "sub"
+        sub.mkdir()
+        (sub / "a.txt").write_text("a\n")
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-q", "-m", "sub")
+        done = self.run_script("launch.sh", "ACME-7", "--profile", "mechanical", "--cwd", str(sub), "--instruction", INSTRUCTION, "--files", "a.txt",
+                               FAKE_CLAUDE_FIXTURE=str(RESULT))
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(self.record("ACME-7")["files"], ["sub/a.txt"])
+        (sub / "a.txt").write_text("changed\n")
+        self.assertEqual(json.loads(self.verify().stdout)["verdict"], "pass")
+        self.edit("src/other.py")  # outside the subtree: still seen
+        (self.repo / "untracked-elsewhere.txt").write_text("x\n")
+        bad = self.verify()
+        self.assertEqual(bad.returncode, 1)
+        self.assertEqual(json.loads(bad.stdout)["outside"], ["src/other.py", "untracked-elsewhere.txt"])
+        self.assertEqual(git(self.repo, "status", "--porcelain"), "")  # the whole run is undone, from the root-relative paths
+
+    def test_a_literal_bracket_path_is_listed_checked_and_restored(self) -> None:
+        page = "app/[slug]/page.tsx"
+        (self.repo / "app/[slug]").mkdir(parents=True)
+        (self.repo / page).write_text("x\n")
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-q", "-m", "next")
+        self.started(files=[page, "src/cart.py"])
+        self.edit(page)
+        self.assertEqual(json.loads(self.verify().stdout)["verdict"], "pass")
+        self.edit("src/other.py")
+        self.assertEqual(self.verify().returncode, 1)
+        self.assertEqual(git(self.repo, "status", "--porcelain"), "")  # restored through a literal pathspec, not a glob
+
+    def test_control_characters_in_a_path_are_refused(self) -> None:
+        done = self.run_script("launch.sh", "ACME-7", "--profile", "mechanical", "--cwd", str(self.repo), "--instruction", "x", "--files", "a\nb.py")
+        self.assertEqual(done.returncode, 2)
+        self.assertIn("control character", done.stderr)
+
+    def test_a_check_that_writes_outside_the_list_discards_the_run(self) -> None:
+        self.started()
+        self.edit("src/cart.py")
+        done = self.run_script("verify-mechanical.sh", "ACME-7", "--check", "echo snapshot > generated.txt; echo x > build-cache.env")
+        self.assertEqual(done.returncode, 1)
+        result = json.loads(done.stdout)
+        self.assertEqual(result["verdict"], "discard")
+        self.assertEqual(result["outside"], ["build-cache.env", "generated.txt"])
+        self.assertIn("after the checks", " ".join(result["reasons"]))
+        self.assertEqual(git(self.repo, "status", "--porcelain"), "")
+        self.assertFalse((self.repo / "build-cache.env").exists())
+
+    def test_a_git_failure_writes_a_discard_blocker_and_clears_an_earlier_pass(self) -> None:
+        self.started()
+        self.edit("src/cart.py")
+        self.assertEqual(self.verify().returncode, 0)
+        self.assertEqual(self.record("ACME-7")["verify"]["verdict"], "pass")
+        shutil.rmtree(self.repo / ".git")
+        done = self.verify()
+        self.assertEqual(done.returncode, 1)
+        self.assertIn("BLOCKER ACME-7", done.stderr)
+        verify = self.record("ACME-7")["verify"]
+        self.assertEqual(verify["verdict"], "discard")
+        self.assertIn("fail closed", verify["reasons"][0])
+        self.assertEqual(self.run_script("task-done.sh", "ACME-7").returncode, 1)  # the pass is gone, and so is the tree it described
+
+    def test_a_missing_baseline_fails_closed(self) -> None:
+        self.started()
+        self.edit("src/cart.py")
+        Path(self.record("ACME-7")["ignored_baseline"]).unlink()
+        done = self.verify()
+        self.assertEqual(done.returncode, 1)
+        self.assertEqual(self.record("ACME-7")["verify"]["verdict"], "discard")
+        self.assertIn("baseline", done.stdout)
+
+    def test_discard_never_raises_when_git_restore_fails(self) -> None:
+        self.started()
+        self.edit("src/other.py")
+        real = scope.git
+
+        def broken(root: str, *argv: str) -> subprocess.CompletedProcess:
+            if argv[0] == "restore":
+                raise scope.ScopeError("git restore failed: timeout")
+            return real(root, *argv)
+        with mock.patch.object(scope, "git", broken):
+            done, problems = vm.discard(str(self.repo), git(self.repo, "rev-parse", "HEAD"), ["src/other.py"], {})
+        self.assertEqual((done, len(problems)), ([], 1))
+        self.assertIn("timeout", problems[0])
+        with mock.patch.object(scope, "git", side_effect=OSError("disk gone")):  # any other failure is reported too, never raised
+            done, problems = vm.discard(str(self.repo), "0" * 40, ["src/other.py"], {})
+        self.assertEqual((done, len(problems)), ([], 1))
+
+    def test_the_dry_run_is_never_a_pass(self) -> None:
+        self.started()
+        self.edit("src/cart.py")
+        done = self.verify("--dry-run")
+        self.assertEqual(done.returncode, 1)
+        result = json.loads(done.stdout)
+        self.assertEqual((result["verdict"], result["dry_run"], result["checks"]), ("unverified", True, []))
+        self.assertIn("not a verified pass", done.stderr)
+        self.assertNotIn("verify", self.record("ACME-7"))
+        self.assertEqual(self.run_script("task-done.sh", "ACME-7").returncode, 1)
+
+
+class LaneEnvironmentTest(MechanicalCase):
+    def test_the_child_gets_an_allowlist_not_the_whole_environment(self) -> None:
+        done = self.lane(PAI_HARNESS_TOKEN_FILE="/x/token", PAI_HARNESS_TOKEN_SCOPE="write", AWS_SECRET_ACCESS_KEY="s", SSH_AUTH_SOCK="/s", GITHUB_TOKEN="g",
+                         ANTHROPIC_API_KEY="k")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        seen = set(json.loads((self.tmp / "claude.json").read_text())["env"])
+        self.assertTrue({"PATH", "HOME", "ANTHROPIC_API_KEY"} <= seen)
+        self.assertFalse({"PAI_HARNESS_TOKEN_FILE", "PAI_HARNESS_TOKEN_SCOPE", "AWS_SECRET_ACCESS_KEY", "SSH_AUTH_SOCK", "GITHUB_TOKEN", "PAI_HARNESS_ROLE",
+                          "PAI_HARNESS_CONFIG", "PAI_HARNESS_STATE_DIR"} & seen)
+
+    def test_the_real_hooks_are_inert_in_the_lane_environment(self) -> None:
+        hooks = Path(launcher.__file__).resolve().parent.parent / "hooks"
+        lane_env = {**launcher.lane_env(), "PAI_HARNESS_CONFIG": self.env["PAI_HARNESS_CONFIG"], "PAI_HARNESS_STATE_DIR": str(self.state)}
+        events = {"stop.py": {"session_id": "s1", "cwd": str(self.repo)},
+                  "pre_tool_use.py": {"tool_name": "Edit", "tool_input": {"file_path": str(self.repo / "src/other.py")}, "cwd": str(self.repo), "session_id": "s1"}}
+        for hook, event in events.items():
+            done = subprocess.run([sys.executable, str(hooks / hook)], input=json.dumps(event), text=True, capture_output=True, env=lane_env, timeout=30)
+            self.assertEqual((done.returncode, done.stdout.strip()), (0, ""), (hook, done.stderr))
+        # Control: with the role set the Stop hook would block this lane (no knowledge delta, no mechanical zone), which is why the lane runs without it.
+        blocked = subprocess.run([sys.executable, str(hooks / "stop.py")], input=json.dumps(events["stop.py"]), text=True, capture_output=True,
+                                 env={**lane_env, "PAI_HARNESS_ROLE": "mechanical", "PAI_HARNESS_AGENT": "ACME-7"}, timeout=30)
+        self.assertIn("block", blocked.stdout)
+
+    def test_the_brief_is_exactly_the_closed_text_and_tokens_are_accounted(self) -> None:
+        self.assertEqual(self.lane().returncode, 0)
+        self.assertEqual(json.loads((self.tmp / "claude.json").read_text())["prompt"], launcher.closed_brief(INSTRUCTION, FILES))
+        record = self.record("ACME-7")
+        self.assertEqual((record["input_tokens"], record["cache_write_tokens"], record["cache_read_tokens"], record["output_tokens"]), (120, 300, 4000, 55))
+        self.assertEqual(record["cost_usd"], 0.004)
+
+    def test_the_empty_strict_mcp_config_is_always_passed(self) -> None:
+        for extra in ((), ("--model", "sonnet")):
+            self.assertEqual(self.lane(*extra, PAI_HARNESS_CONFIG=str(FIXTURES / "acme-pai.pai-harness.toml")).returncode, 0)
+            argv = self.argv()
+            self.assertEqual(argv.count("--strict-mcp-config"), 1)
+            self.assertEqual(json.loads(Path(argv[argv.index("--mcp-config") + 1]).read_text()), {"mcpServers": {}})
+            git(self.repo, "checkout", "-q", "--", ".")
+
+
+class SamplerTest(MechanicalCase):
+    def passing_run(self, issue: str) -> dict:
+        git(self.repo, "checkout", "-q", "--", ".")
+        self.assertEqual(self.lane(issue=issue).returncode, 0)
+        (self.repo / "src/cart.py").write_text("changed\n")
+        done = self.verify(issue=issue)
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        return json.loads(done.stdout)
+
+    def test_exactly_every_fifth_pass_is_sampled_and_a_reverify_keeps_its_slot(self) -> None:
+        picks = [self.passing_run(f"ACME-{n}")["sample_review"] for n in range(1, 11)]
+        self.assertEqual(picks, [False] * 4 + [True] + [False] * 4 + [True])
+        again = self.verify(issue="ACME-5")  # the same issue verified again is the same slot: it cannot be re-rolled
+        self.assertTrue(json.loads(again.stdout)["sample_review"])
+
+    def test_the_rate_can_be_made_stricter_never_looser(self) -> None:
+        self.lane()
+        (self.repo / "src/cart.py").write_text("changed\n")
+        for value in ("1000000", "6", "0"):
+            done = self.verify("--sample-every", value)
+            self.assertEqual(done.returncode, 2, value)
+            self.assertIn("never looser", done.stderr)
+        self.assertTrue(json.loads(self.verify("--sample-every", "1").stdout)["sample_review"])
 
 
 class CloseTest(MechanicalCase):
-    def sampled_issue(self, want: bool) -> str:
-        base = git(self.repo, "rev-parse", "HEAD")
-        return next(f"ACME-{n}" for n in range(1, 500) if vm.sampled(f"ACME-{n}", base, 5) is want)
+    def verify_run(self, issue: str = "ACME-7", check: str = "true") -> subprocess.CompletedProcess:
+        return self.run_script("verify-mechanical.sh", issue, "--check", check)
+
+    def edited(self, issue: str = "ACME-7") -> dict:
+        self.assertEqual(self.lane(issue=issue).returncode, 0)
+        (self.repo / "src/cart.py").write_text("changed\n")
+        done = self.verify_run(issue)
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        return json.loads(done.stdout)
 
     def test_an_unverified_run_cannot_be_closed(self) -> None:
         self.assertEqual(self.lane().returncode, 0)
@@ -291,26 +485,39 @@ class CloseTest(MechanicalCase):
         self.verify_run()
         self.assertEqual(self.run_script("task-done.sh", "ACME-7").returncode, 1)
 
-    def verify_run(self, issue: str = "ACME-7") -> subprocess.CompletedProcess:
-        return self.run_script("verify-mechanical.sh", issue, "--check", "true")
+    def test_a_verified_run_closes(self) -> None:
+        self.edited()
+        self.assertEqual(self.run_script("task-done.sh", "ACME-7").returncode, 0)
 
-    def test_a_verified_run_closes_and_a_sampled_one_waits_for_its_review(self) -> None:
-        plain = self.sampled_issue(False)
-        self.lane(issue=plain)
+    def test_an_edit_after_the_pass_blocks_the_close(self) -> None:
+        self.edited()
+        (self.repo / "src/cart.py").write_text("changed again\n")
+        done = self.run_script("task-done.sh", "ACME-7")
+        self.assertEqual(done.returncode, 1)
+        self.assertIn("worktree changed after the verdict", done.stderr)
         (self.repo / "src/cart.py").write_text("changed\n")
-        self.assertFalse(json.loads(self.verify_run(plain).stdout)["sample_review"])
-        self.assertEqual(self.run_script("task-done.sh", plain).returncode, 0)
-        git(self.repo, "checkout", "-q", "--", ".")
-        picked = self.sampled_issue(True)
-        self.lane(issue=picked)
-        (self.repo / "src/cart.py").write_text("changed\n")
-        done = self.verify_run(picked)
-        self.assertTrue(json.loads(done.stdout)["sample_review"])
-        self.assertIn("SONNET REVIEW REQUIRED", done.stderr)
-        held = self.run_script("task-done.sh", picked)
+        (self.repo / "src/other.py").write_text("stray\n")
+        self.assertEqual(self.run_script("task-done.sh", "ACME-7").returncode, 1)
+
+    def test_a_sampled_run_needs_a_review_record_for_its_digest(self) -> None:
+        for n in range(1, 5):
+            self.edited(f"ACME-{n}")
+            git(self.repo, "checkout", "-q", "--", ".")
+        result = self.edited("ACME-5")
+        self.assertTrue(result["sample_review"])
+        held = self.run_script("task-done.sh", "ACME-5")
         self.assertEqual(held.returncode, 1)
-        self.assertIn("Sonnet sample review", held.stderr)
-        self.assertEqual(self.run_script("task-done.sh", picked, "--sample-reviewed").returncode, 0)
+        self.assertIn("no review record given", held.stderr)
+        bare = self.run_script("task-done.sh", "ACME-5", "--sample-reviewed", str(self.tmp / "missing.json"))
+        self.assertIn("review record unreadable", bare.stderr)
+        review = self.tmp / "review.json"
+        for body, message in (({"reviewer": "sonnet", "verdict": "clean", "diff_sha256": "0" * 64}, "different diff"),
+                              ({"reviewer": "sonnet", "verdict": "issues", "diff_sha256": result["digest"]}, "not 'clean'"),
+                              ({"verdict": "clean", "diff_sha256": result["digest"]}, "names no reviewer")):
+            review.write_text(json.dumps(body))
+            self.assertIn(message, self.run_script("task-done.sh", "ACME-5", "--sample-reviewed", str(review)).stderr)
+        review.write_text(json.dumps({"reviewer": "sonnet", "verdict": "clean", "diff_sha256": result["digest"]}))
+        self.assertEqual(self.run_script("task-done.sh", "ACME-5", "--sample-reviewed", str(review)).returncode, 0)
 
 
 if __name__ == "__main__":
