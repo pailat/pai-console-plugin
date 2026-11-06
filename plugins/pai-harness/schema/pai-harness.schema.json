@@ -277,21 +277,22 @@
           "enum": [
             "opus",
             "sonnet",
-            "haiku"
+            "haiku",
+            "none"
           ]
         }
       },
       "default": {
-        "relay": "sonnet",
+        "relay": "opus",
         "orchestrator": "opus",
-        "lead": "opus",
+        "lead": "sonnet",
         "implementer": "sonnet",
         "root-reviewer": "opus",
         "integrator": "sonnet",
         "distiller": "sonnet",
         "gate-triager": "sonnet",
         "mechanical": "haiku",
-        "watcher": "haiku"
+        "watcher": "none"
       }
     },
     "role_zones": {
