@@ -252,6 +252,35 @@ class PushBypassTest(HookCase):
         self.assertIsNone(self.pre("bash-push-wrapper"))
 
 
+class PushKeywordTest(HookCase):
+    """A shell keyword may open a segment (`for ...; do CMD; done`); the command after it is judged as if the keyword were not there."""
+    DIRECT = "Direct git push is refused. Push through the push queue wrapper (queue-push.sh)."
+    NO_VERIFY = PushBypassTest.NO_VERIFY
+
+    def test_the_wrapper_in_a_loop_or_a_conditional_is_allowed(self) -> None:
+        for name in ("push-loop-wrapper", "push-keywords-wrapper"):
+            with self.subTest(name=name):
+                self.assertIsNone(self.pre(f"bash-{name}"))
+
+    def test_every_direct_form_behind_a_keyword_is_refused(self) -> None:
+        for name in ("push-loop-direct", "push-then-direct", "push-keywords-direct", "push-loop-wrapper-then-direct", "push-loop-env-direct",
+                     "push-loop-fake-wrapper"):
+            with self.subTest(name=name):
+                self.assertEqual(self.pre(f"bash-{name}"), deny(self.DIRECT))
+
+    def test_no_verify_behind_a_keyword_is_refused_even_through_the_wrapper(self) -> None:
+        self.assertEqual(self.pre("bash-push-loop-no-verify"), deny(self.NO_VERIFY))
+
+    def test_keywords_only_expose_the_command_they_never_exempt_it(self) -> None:
+        for name in ("keyword-for-direct", "keyword-while-abs-direct"):
+            with self.subTest(name=name):
+                self.assertEqual(self.pre(f"bash-push-{name}"), deny(self.DIRECT))
+        self.assertEqual(self.pre("bash-push-keyword-if-no-verify-direct"), deny(self.NO_VERIFY))
+
+    def test_without_a_wrapper_the_loop_form_is_refused(self) -> None:
+        self.assertEqual(self.pre("bash-push-loop-wrapper", PAI_HARNESS_PUSH_WRAPPER=None)["hookSpecificOutput"]["permissionDecision"], "deny")
+
+
 class PushTest(HookCase):
     DIRECT = "Direct git push is refused. Push through the push queue wrapper (queue-push.sh)."
 

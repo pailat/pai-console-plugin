@@ -35,6 +35,7 @@ def delta_path(state: Path, name: str) -> Path:
 
 
 MAX_BLOCKS = 3
+MAX_LISTED = 10  # paths named in the block text; a long list once overflowed the run's context
 
 
 def count_path(state: Path, name: str) -> Path:
@@ -114,9 +115,12 @@ def main() -> None:
     if zoneless:
         parts.append(("You cannot stop yet: " if not parts else "Also, ") + zoneless + ".")
     if flagged:
-        lines = "\n".join(f"- {reason}" for _, reason in flagged)
+        lines = "\n".join(f"- {reason}" for _, reason in flagged[:MAX_LISTED])
+        if len(flagged) > MAX_LISTED:
+            lines += f"\n- ... and {len(flagged) - MAX_LISTED} more"
+        total = f" ({len(flagged)} paths in all)" if len(flagged) > MAX_LISTED else ""
         parts.append(("You cannot stop yet: " if not parts else "Also, ") +
-                     "the worktree holds changes outside your zones (sed -i, cp, mv and scripts are checked at Stop). "
+                     f"the worktree holds changes outside your zones{total} (sed -i, cp, mv and scripts are checked at Stop). "
                      f"Revert them or hand them to the zone owner:\n{lines}")
     common.emit({"decision": "block", "reason": "\n\n".join(parts)})
 
