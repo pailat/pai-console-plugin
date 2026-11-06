@@ -10,6 +10,14 @@ linear_team = "ACME"        # issues look like ACME-123
 unit = "make test"
 lint = ["make lint", "make typecheck"]
 
+# Red-release hotfix lane: active only while active_when FAILS on the release tip.
+[gates.hotfix]
+active_when = "make typecheck-all"                  # fails when the release tip is red
+applies_to = "(?i)release-red|^hotfix:"             # searched in the PR title and in each label
+pre_merge = ["make typecheck-all", "make test-touched", "make scan-repo", "make scan-secrets"]
+post_merge = "make gate-full"                       # the full gate on the tip after the merge
+revert_on_failure = true
+
 [zones.frontend]
 globs = ["apps/acme-app/**"]
 owners = ["acme-app-owner"]
