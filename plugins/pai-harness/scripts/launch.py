@@ -10,7 +10,7 @@ State comes only from the stream-json `result` frame and the exit code (see harn
 status is never read. A run that needs a permission is not given one: it ends `blocked` (exit 3).
 
 Usage: launch.sh ISSUE (--prompt TEXT | --prompt-file FILE) [--pane PANE] [--model M] [--role R] [--cwd DIR]
-                 [--queue Q] [--allowed-tools T ...] [--config FILE] [--dry-run]
+                 [--queue Q] [--stream S] [--allowed-tools T ...] [--config FILE] [--dry-run]
        launch.sh --resume ISSUE   continue a parked or blocked run by its recorded session id
        launch.sh --park ISSUE     mark a run parked (no process is touched)
        launch.sh --status ISSUE   print the recorded state
@@ -30,11 +30,40 @@ import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import harness_config  # noqa: E402
 import harness_lib as lib  # noqa: E402
 import render_stream  # noqa: E402
 
 
-HOOK_KEYS = ("PAI_HARNESS_ROLE", "PAI_HARNESS_AGENT", "PAI_HARNESS_ZONES", "PAI_HARNESS_BRIEF", "PAI_HARNESS_PUSH_WRAPPER", "PAI_HARNESS_BASE")
+HOOK_KEYS = ("PAI_HARNESS_ROLE", "PAI_HARNESS_AGENT", "PAI_HARNESS_ZONES", "PAI_HARNESS_BRIEF", "PAI_HARNESS_PUSH_WRAPPER", "PAI_HARNESS_BASE",
+             "PAI_HARNESS_STREAM", "PAI_HARNESS_KNOWLEDGE_ORG", "PAI_HARNESS_KNOWLEDGE_PROJECT", "PAI_HARNESS_KNOWLEDGE_PRODUCT")
+KNOWLEDGE_ENV = ("PAI_HARNESS_STREAM", "PAI_HARNESS_KNOWLEDGE_ORG", "PAI_HARNESS_KNOWLEDGE_PROJECT", "PAI_HARNESS_KNOWLEDGE_PRODUCT")
+
+
+def stream_of(args: argparse.Namespace, state: Path | None = None) -> str | None:
+    """The stream that picks the Knowledge target: --stream, else the queue name (a queue without an override uses the default)."""
+    if args.stream:
+        return args.stream
+    queue = args.queue
+    if not queue and state is not None:
+        queue = (lib.read_json(run_paths(state, args.issue)[1]) or {}).get("queue")
+    return queue
+
+
+def knowledge_target(args: argparse.Namespace, config: dict, state: Path | None = None) -> dict | None:
+    return harness_config.resolve_knowledge(config, stream_of(args, state))
+
+
+def knowledge_header(args: argparse.Namespace, config: dict, state: Path | None = None) -> str:
+    """The one-line brief header naming the Knowledge target; for the distiller with no target it says so (it then fails closed)."""
+    target = knowledge_target(args, config, state)
+    if target:
+        scope = f"project={target['project']}" if "project" in target else f"product={target['product']}"
+        label = f" stream={target['stream']}" if target["stream"] else ""
+        return f"Knowledge target: organization={target['organization']} {scope}{label}\n\n"
+    if (args.role or "implementer") == "distiller":
+        return f"Knowledge target: none resolved for distiller/{stream_of(args, state) or 'default'}\n\n"
+    return ""
 
 
 def run_paths(state: Path, issue: str) -> tuple[Path, Path, Path]:
@@ -114,6 +143,15 @@ def hook_env(args: argparse.Namespace, config: dict, state: Path, config_path: P
             brief.parent.mkdir(parents=True, exist_ok=True)
             brief.write_text(args.prompt, encoding="utf-8")
         env["PAI_HARNESS_BRIEF"] = str(brief)
+    for key in KNOWLEDGE_ENV:
+        env.pop(key, None)  # a stale target must not leak in; only the resolved one is exported
+    target = knowledge_target(args, config, state)
+    if target:
+        env["PAI_HARNESS_KNOWLEDGE_ORG"] = target["organization"]
+        env["PAI_HARNESS_KNOWLEDGE_PROJECT" if "project" in target else "PAI_HARNESS_KNOWLEDGE_PRODUCT"] = target.get("project") or target["product"]
+    stream = stream_of(args, state)
+    if stream:
+        env["PAI_HARNESS_STREAM"] = stream
     # PAI_HARNESS_KNOWLEDGE_CMD has no config key (it is site tooling); an operator's value passes through the inherited environment.
     return env
 
@@ -172,6 +210,8 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
         return lib.EXIT_USAGE
     prompt = Path(args.prompt_file).read_text(encoding="utf-8") if args.prompt_file else (args.prompt or "")
     queue = args.queue or previous.get("queue")
+    if not resume:
+        prompt = knowledge_header(args, config, state) + prompt
     machine = config["queues"].get(queue or "", {}).get("machine")
     started = lib.stamp()
     stream.parent.mkdir(parents=True, exist_ok=True)
@@ -315,6 +355,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--role")
     parser.add_argument("--cwd")
     parser.add_argument("--queue")
+    parser.add_argument("--stream", help="Knowledge stream (default: the queue name, else the default [knowledge] target)")
     parser.add_argument("--allowed-tools", nargs="+")
     parser.add_argument("--config")
     parser.add_argument("--wait-ms", type=int, default=5400000)
@@ -351,6 +392,9 @@ def main(argv: list[str]) -> int:
         print("need --prompt or --prompt-file (or --resume)", file=sys.stderr)
         return lib.EXIT_USAGE
     role = args.role or "implementer"
+    if args.stream and args.stream not in config["knowledge"].get("streams", {}):
+        print(f"{args.issue}: --stream {args.stream!r} has no [knowledge.streams.{args.stream}] entry in the config", file=sys.stderr)
+        return lib.EXIT_USAGE
     if role in lib.WRITING_ROLES and not lib.in_git_worktree(args.cwd):
         # Fail closed: Stop reads the changed paths from git, so a writing role outside a worktree would go unchecked.
         blocker = f"BLOCKER {args.issue}: writing role {role} must run inside a git worktree; {args.cwd or os.getcwd()} is not one"

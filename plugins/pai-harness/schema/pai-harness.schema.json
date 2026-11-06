@@ -370,6 +370,104 @@
         "uniqueItems": true
       }
     },
+    "knowledge": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Where the distiller writes Pai Knowledge. Absent means no target, and the distiller fails closed.",
+      "required": [
+        "organization"
+      ],
+      "properties": {
+        "organization": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Pai organization slug or id."
+        },
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Pai project slug or id. Give this or product, not both."
+        },
+        "product": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Pai product slug or id. Give this or project, not both."
+        },
+        "streams": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9_-]*$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Override for one stream or queue: its own project or product; the organization defaults to the top-level one.",
+            "properties": {
+              "organization": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Pai organization slug or id."
+              },
+              "project": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Pai project slug or id. Give this or product, not both."
+              },
+              "product": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Pai product slug or id. Give this or project, not both."
+              }
+            },
+            "oneOf": [
+              {
+                "required": [
+                  "project"
+                ],
+                "not": {
+                  "required": [
+                    "product"
+                  ]
+                }
+              },
+              {
+                "required": [
+                  "product"
+                ],
+                "not": {
+                  "required": [
+                    "project"
+                  ]
+                }
+              }
+            ]
+          },
+          "description": "Per-stream overrides, chosen by the launcher's --stream option or the queue name."
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "project"
+          ],
+          "not": {
+            "required": [
+              "product"
+            ]
+          }
+        },
+        {
+          "required": [
+            "product"
+          ],
+          "not": {
+            "required": [
+              "project"
+            ]
+          }
+        }
+      ]
+    },
     "pai": {
       "type": "object",
       "additionalProperties": false,

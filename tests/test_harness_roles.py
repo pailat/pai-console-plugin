@@ -34,6 +34,10 @@ def frontmatter(path: Path) -> dict[str, str]:
     return fields
 
 
+DISTILLER_MCP = {f"mcp__plugin_pai-console_pai__{n}" for n in (
+    "knowledge_search", "knowledge_get", "knowledge_create", "knowledge_update", "knowledge_link", "knowledge_batch", "knowledge_audit", "page_search")}
+
+
 def tools(path: Path) -> list[str]:
     return [t.strip() for t in frontmatter(path)["tools"].split(",") if t.strip()]
 
@@ -68,7 +72,8 @@ class RolesTest(unittest.TestCase):
         listed = set(tools(HARNESS / "agents/distiller.md"))
         self.assertEqual(listed & (WRITE_TOOLS - {"Write"}), set())
         self.assertIn("Write", listed)
-        self.assertEqual({t for t in listed if t.startswith("mcp__")}, {f"mcp__plugin_pai-console_pai__knowledge_{n}" for n in ("search", "get", "batch")})
+        self.assertEqual(listed - {t for t in listed if t.startswith("mcp__")}, {"Read", "Grep", "Glob", "Write"})
+        self.assertEqual({t for t in listed if t.startswith("mcp__")}, DISTILLER_MCP)
 
     def test_only_roles_that_write_may_edit(self) -> None:
         for role in ROLES:
