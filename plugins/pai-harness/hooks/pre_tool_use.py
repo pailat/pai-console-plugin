@@ -117,8 +117,10 @@ def sibling_root(target: Path, config_root: Path) -> tuple[Path | None, str]:
     or outside any repository (not policed); (None, reason) when the lookup failed and the target may be in the config's repository."""
     start = common.nearest_existing_dir(target)
     top, mine = common.toplevel(start), common.toplevel(config_root)
+    if top is None and not common.in_repository(start):
+        return None, ""  # proven outside every repository, whatever happened to the config's lookup
     if top is None or mine is None:
-        if (top is None and common.in_repository(start)) or (mine is None and common.in_repository(config_root)):
+        if top is None or common.in_repository(config_root):
             return None, "its git checkout could not be determined"
         return None, ""
     other, own = common.common_dir(start), common.common_dir(config_root)
@@ -391,9 +393,8 @@ def main() -> None:
                 common.deny(f"Write zone: {target} could belong to a zone, but {roots_problem(config_root, cwd)}; the write is refused. "
                             "Start the agent inside the project checkout or set PAI_HARNESS_CONFIG to its own copy.")
                 return
-            continue
-        root = zone_root_for(target, roots)
-        if root is None:  # in none of the known roots: it may be another worktree of the same repository
+        root = zone_root_for(target, roots) if roots else None
+        if root is None:  # in none of the known roots (or no root at all): it may be another worktree of the same repository
             root, problem = sibling_root(target, Path(os.path.realpath(config_path.parent)))
             if problem and common.role() in WRITING_ROLES:
                 common.deny(f"Write zone: {target} cannot be checked against the zones: {problem}; the write is refused.")

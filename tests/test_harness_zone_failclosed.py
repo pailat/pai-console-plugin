@@ -163,6 +163,30 @@ class ConfigSubdirectoryTest(FailClosedCase):
         self.assertIn("could not locate the harness config's directory", out["hookSpecificOutput"]["permissionDecisionReason"])
 
 
+class EmptyRootsSiblingTest(ConfigSubdirectoryTest):
+    """git fails for the config dir and every ancestor (no zone root at all): a sibling worktree is still not waved through."""
+
+    def failbin(self) -> str:
+        real = shutil.which("git")
+        bin_dir = Path(self._tmp.name) / "failbin2"
+        bin_dir.mkdir()
+        (bin_dir / "git").write_text(f'#!/bin/sh\ncase "$2" in {self.project}*) exit 1;; esac\nexec {real} "$@"\n')
+        (bin_dir / "git").chmod(0o755)
+        return f"{bin_dir}:{os.environ['PATH']}"
+
+    def test_a_write_into_a_sibling_worktree_is_denied(self) -> None:
+        other = self.second_worktree()
+        out = self.pre(self.worktree, other / "packages/contracts/x.txt", PAI_HARNESS_CONFIG=str(self.sub / ".pai-harness.toml"), PATH=self.failbin())
+        self.assertEqual(self.decision(out), "deny")
+        self.assertIn("cannot be checked against the zones", out["hookSpecificOutput"]["permissionDecisionReason"])
+
+    def test_a_target_proven_outside_the_repository_is_still_allowed(self) -> None:
+        scratch = Path(self._tmp.name).resolve() / "scratch"
+        scratch.mkdir()
+        out = self.pre(self.worktree, scratch / "x.txt", PAI_HARNESS_CONFIG=str(self.sub / ".pai-harness.toml"), PATH=self.failbin())
+        self.assertEqual(self.decision(out), "allow")
+
+
 class SymlinkTest(FailClosedCase):
     def test_a_legitimate_in_zone_link_pointing_outside_the_root_passes_stop(self) -> None:
         outside = Path(self._tmp.name).resolve() / "shared"
