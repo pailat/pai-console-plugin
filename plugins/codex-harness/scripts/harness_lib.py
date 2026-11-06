@@ -22,6 +22,10 @@ STALE_MINUTES = 15
 SHA = re.compile(r"[0-9a-f]{40}")
 # Exit codes shared by the launcher and task-done: 0 done, 1 failed, 3 blocked on a permission.
 EXIT_DONE, EXIT_FAILED, EXIT_USAGE, EXIT_BLOCKED = 0, 1, 2, 3
+# Roles that write files. They must have a write zone (Stop blocks otherwise) and run inside a git worktree (the launcher
+# refuses otherwise). Every other role (relay, orchestrator, lead, root-reviewer, watcher, and the read-only gate-triager
+# and distiller) may run zoneless.
+WRITING_ROLES = ("implementer", "mechanical", "integrator")
 
 
 def now() -> datetime:
@@ -206,6 +210,15 @@ def issue_id(text: str, config: dict) -> str:
         print(f"issue id {text!r} does not look like {prefix}-<number>", file=sys.stderr)
         raise SystemExit(EXIT_USAGE)
     return text
+
+
+def in_git_worktree(cwd: str | os.PathLike | None) -> bool:
+    """True when `git rev-parse --is-inside-work-tree` says so for cwd (default: the current directory)."""
+    try:
+        done = run_process(["git", "-C", str(cwd or os.getcwd()), "rev-parse", "--is-inside-work-tree"], capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return done.returncode == 0 and done.stdout.strip() == "true"
 
 
 def show(data: object) -> None:
