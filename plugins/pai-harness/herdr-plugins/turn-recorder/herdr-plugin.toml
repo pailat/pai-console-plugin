@@ -1,0 +1,14 @@
+id = "pai.turn-recorder"
+name = "Pai turn recorder"
+version = "0.1.0"
+min_herdr_version = "0.9.0"
+description = "Append pane events and stream-json frames to one JSONL journal file per turn"
+platforms = ["linux", "macos"]
+
+[[events]]
+on = "pane.agent_status_changed"
+command = ["python3", "hooks/record.py"]
+
+[[events]]
+on = "pane.exited"
+command = ["python3", "hooks/record.py"]

@@ -1,0 +1,7 @@
+[
+  {"event": "pane_agent_status_changed", "data": {"type": "pane.agent_status_changed", "pane_id": "w1:p2", "agent_status": "working", "agent": "claude"}},
+  {"event": "pane_agent_status_changed", "data": {"type": "pane.agent_status_changed", "pane_id": "w1:p2", "agent_status": "blocked", "agent": "claude"}},
+  {"event": "pane_agent_status_changed", "data": {"type": "pane.agent_status_changed", "pane_id": "w1:p2", "agent_status": "working", "agent": "claude"}},
+  {"event": "pane_agent_status_changed", "data": {"type": "pane.agent_status_changed", "pane_id": "w1:p2", "agent_status": "done", "agent": "claude"}},
+  {"event": "pane_exited", "data": {"type": "pane.exited", "pane_id": "w1:p2"}}
+]
