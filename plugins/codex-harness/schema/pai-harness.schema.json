@@ -58,6 +58,51 @@
             "minItems": 1
           }
         ]
+      },
+      "properties": {
+        "hotfix": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Red-release hotfix profile. Active only when active_when FAILS on the release tip and the PR title or a label matches applies_to.",
+          "required": [
+            "active_when",
+            "applies_to",
+            "pre_merge",
+            "post_merge"
+          ],
+          "properties": {
+            "active_when": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Command run on the release tip; the profile is active only when it fails."
+            },
+            "applies_to": {
+              "type": "string",
+              "minLength": 1,
+              "format": "regex",
+              "description": "Regular expression searched in the PR title and in each label."
+            },
+            "pre_merge": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "description": "Commands that must pass before the merge."
+            },
+            "post_merge": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Command run on the release tip after the merge: the full gate."
+            },
+            "revert_on_failure": {
+              "type": "boolean",
+              "default": true,
+              "description": "Emit a revert instruction when post_merge fails."
+            }
+          }
+        }
       }
     },
     "zones": {
