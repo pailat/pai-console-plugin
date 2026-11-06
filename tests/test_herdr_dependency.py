@@ -73,7 +73,7 @@ class SinglePluginTest(unittest.TestCase):
     def test_pai_console_has_no_dependencies_and_pai_harness_is_a_separate_entry(self) -> None:
         console = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
         self.assertNotIn("dependencies", console)
-        self.assertEqual(console["version"], "0.0.12")
+        self.assertEqual(console["version"], "0.0.13")
         marketplace = json.loads((ROOT / ".claude-plugin/marketplace.json").read_text())
         self.assertEqual([p["name"] for p in marketplace["plugins"]], ["pai-console", "pai-harness"])
         self.assertEqual(marketplace["plugins"][0]["source"], "./")
