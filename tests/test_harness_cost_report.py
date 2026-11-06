@@ -31,5 +31,20 @@ class CostReportTest(HarnessCase):
         self.assertEqual(report["cost_per_merged_pr_usd"], 1.0)
 
 
+    def test_the_total_line_shows_unpriced_runs_and_flags_the_per_pr_cost_as_a_lower_bound(self) -> None:
+        self.write("ACME-1", finished="2026-11-06T10:00:00Z", role="implementer", model="sonnet", cost_usd=1.0)
+        self.write("ACME-2", finished="2026-11-06T11:00:00Z", role="implementer", model="sonnet", cost_usd=None, state="failed")
+        done = self.run_script("cost_report.sh", "--day", "2026-11-06", "--merged", "1")
+        self.assertIn("total usd=1.00 runs=2 unpriced=1 per_merged_pr=>=1.0", done.stdout)
+        report = json.loads(self.run_script("cost_report.sh", "--day", "2026-11-06", "--merged", "1", "--json").stdout)
+        self.assertTrue(report["cost_per_merged_pr_lower_bound"])
+
+    def test_a_bad_day_or_a_non_positive_merged_count_is_refused(self) -> None:
+        for argv in (("--day", "2026-11-6"), ("--day", "yesterday"), ("--merged", "-3"), ("--merged", "0"), ("--merged", "x")):
+            done = self.run_script("cost_report.sh", *argv)
+            self.assertEqual(done.returncode, 2, argv)
+            self.assertTrue(done.stderr.strip(), argv)
+
+
 if __name__ == "__main__":
     unittest.main()

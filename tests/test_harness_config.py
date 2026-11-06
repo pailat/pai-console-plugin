@@ -153,6 +153,23 @@ class ConfigTest(unittest.TestCase):
         defaults = hc.validate(__import__("tomllib").loads(VALID))
         self.assertEqual((defaults["role_zones"], defaults["rules"]["push_wrapper"]), ({}, ""))
 
+    def test_role_limits_default_override_and_validate(self) -> None:
+        config = hc.validate(__import__("tomllib").loads(VALID))
+        self.assertEqual(hc.role_limits(config, "implementer"), {"max_turns": 80, "max_budget_usd": 3})
+        self.assertEqual(hc.role_limits(config, "orchestrator"), {"max_turns": 400, "max_budget_usd": 15})
+        over = hc.validate(__import__("tomllib").loads(VALID + '[role_limits.implementer]\nmax_turns = 10\n[role_limits.lead]\nmax_budget_usd = 20\n'))
+        self.assertEqual(hc.role_limits(over, "implementer"), {"max_turns": 10, "max_budget_usd": 3})
+        self.assertEqual(hc.role_limits(over, "lead"), {"max_turns": 300, "max_budget_usd": 20})
+
+    def test_budgets_must_be_finite_and_at_least_a_cent(self) -> None:
+        for bad in ("inf", "nan", "1e-7", "0.001", "0"):
+            for head in ("[limits]\nmax_budget_usd", "[role_limits.lead]\nmax_budget_usd"):
+                with self.assertRaises(hc.ConfigError, msg=f"{head}={bad}"):
+                    hc.validate(__import__("tomllib").loads(VALID + f"{head} = {bad}\n"))
+        self.assertEqual(hc.validate(__import__("tomllib").loads(VALID + "[limits]\nmax_budget_usd = 0.01\n"))["limits"]["max_budget_usd"], 0.01)
+        with self.assertRaises(hc.ConfigError):
+            hc.validate(__import__("tomllib").loads(VALID + "[role_limits.nobody]\nmax_turns = 1\n"))
+
     def test_json_schema_agrees_with_the_validator(self) -> None:
         schema = json.loads((PLUGIN / "schema/pai-harness.schema.json").read_text())
         self.assertEqual(sorted(schema["properties"]), sorted(["schema_version", *hc.DEFAULTS.keys() - {"schema_version"}]))
@@ -161,6 +178,8 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(schema["properties"]["models"]["default"], hc.DEFAULT_MODELS)
         self.assertEqual(sorted(schema["properties"]["limits"]["properties"]), sorted(hc.DEFAULTS["limits"]))
         self.assertEqual(sorted(schema["properties"]["rules"]["properties"]), sorted(hc.DEFAULTS["rules"]))
+        self.assertEqual(schema["properties"]["role_limits"]["default"], hc.DEFAULT_ROLE_LIMITS)
+        self.assertEqual(sorted(schema["properties"]["role_limits"]["propertyNames"]["enum"]), sorted(hc.ROLES))
         hotfix = schema["properties"]["gates"]["properties"]["hotfix"]
         self.assertEqual(sorted(hotfix["properties"]), ["active_when", "applies_to", "post_merge", "pre_merge", "revert_on_failure"])
         self.assertEqual(hotfix["required"], ["active_when", "applies_to", "pre_merge", "post_merge"])
