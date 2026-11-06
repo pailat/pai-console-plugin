@@ -2,7 +2,7 @@
 
 Every release has an entry. Merged work never stays unversioned for more than one pull request.
 
-## 0.1.5
+## 0.1.6
 
 Permission policy (pull request #51):
 
@@ -11,6 +11,15 @@ Permission policy (pull request #51):
 - `examples/settings.deny.json` now denies the Pai write tools that change access, deploy, delete or export data and Linear deletes, and its Bash patterns cover `git -C`, `git -c`, `rm -r -f`, `"$HOME"`, `./.git` and `.env` reads. Merge and protected-branch denials moved to `examples/settings.deny.non-merge.json` for the roles that do not merge.
 - A permission denial now reads `denied by policy or not pre-approved: <tools>; report BLOCKER, do not work around it`.
 - The generated Codex package no longer ships the Claude `settings.deny.json` files; its examples README says the bypass policy is Claude Code only.
+
+## 0.1.5
+
+Pull request #48 (zone hooks no longer fail open):
+
+- The zone root comes from the git top level of the working directory, not from the directory of `PAI_HARNESS_CONFIG`, so a config in another checkout than the agent's worktree no longer turns every worktree path into "outside the project".
+- PreToolUse: a write whose target lies under no known root is resolved by its own git top level and common directory; in the config's repository it is judged under that top level (a sibling worktree included), and a failed lookup denies for a writing role. Paths proven outside the repository keep their behavior.
+- Stop zone diff: every root is diffed; any git failure, timeout or missing base ends in a named "cannot be checked" verdict, never in "nothing changed", and there is no `HEAD` fallback for the base. Those blocks are not lifted by the three-block bound.
+- Accepted as fail-closed: a config in a subdirectory missing from the agent's worktree blocks Stop, and non-writing roles that have zones get the same unbounded Stop block.
 
 ## 0.1.4
 
