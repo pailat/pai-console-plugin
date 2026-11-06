@@ -2,6 +2,14 @@
 
 Every release has an entry. Merged work never stays unversioned for more than one pull request.
 
+## 0.1.2
+
+Pull requests #35 and #37, and one skill rule:
+
+- #35 Launcher self-check: every `claude -p` run must show the pai-harness skills and hooks in its init event, or the launcher fails closed with a blocker line.
+- #37 A writing role (implementer, mechanical, integrator) with no zones blocks at Stop within the three-block bound, and the launcher refuses a writing role outside a git worktree.
+- Implementer skill: tests use literal imports only, because a repository scan may refuse a dynamic import or require with a computed path.
+
 ## 0.1.1
 
 Pull requests #25 to #34 of this repository:
