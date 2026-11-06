@@ -1,0 +1,43 @@
+# Fictional example for a project called Acme. Every value is made up.
+schema_version = 1
+
+[project]
+pai_org = "acme"
+pai_project = "acme-app"
+linear_team = "ACME"        # issues look like ACME-123
+
+[gates]
+unit = "make test"
+lint = ["make lint", "make typecheck"]
+
+[zones.frontend]
+globs = ["apps/acme-app/**"]
+owners = ["acme-app-owner"]
+
+[zones.contracts]
+globs = ["packages/contracts/**", "AGENTS.md"]
+owners = ["acme-lead"]
+root = true
+
+[machines.acme-desktop]
+host = "acme-desktop.example.com"
+os = "linux"
+max_agents = 4
+
+[queues.main]
+machine = "acme-desktop"
+model = "sonnet"
+limit = 3
+
+[limits]
+max_agents = 6
+
+[rules]
+agents_file = "AGENTS.md"
+root_paths = ["packages/contracts/**"]
+must = ["Write English in code, comments and docs."]
+never = ["Push to main directly.", "Contact owner@example.com about builds."]
+
+[models]
+implementer = "sonnet"
+mechanical = "haiku"
