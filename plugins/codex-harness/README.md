@@ -1,6 +1,6 @@
 # pai-harness
 
-Generated portable Codex package of the pai-harness plugin, version 0.1.2.
+Generated portable Codex package of the pai-harness plugin, version 0.1.3.
 
 It carries the harness skills, the .pai-harness.toml schema, the stdlib-only validator and loader, and the fictional example. Per-project facts live in each repository's .pai-harness.toml, never in this package.
 

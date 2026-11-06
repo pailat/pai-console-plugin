@@ -2,6 +2,16 @@
 
 Every release has an entry. Merged work never stays unversioned for more than one pull request.
 
+## 0.1.3
+
+Pull requests #40 to #44:
+
+- #40 Every `claude -p` run is visible in Herdr: a readable live render of the stream, workspace metadata with a TTL so a dead run goes stale, and a tab label with the task and state.
+- #41 Knowledge target in the config (`[knowledge]`, optional per-stream overrides): the launcher exports it, the distiller has the Knowledge tools and fails closed with a named blocker when no target resolves.
+- #42 The Stop zone diff uses the launch base (`PAI_HARNESS_BASE`, `[project] base_branch` fallback), its block text is capped at ten paths, and the push guard accepts a wrapper push behind a shell keyword while every bypass form stays refused.
+- #43 Machine token for headless Pai MCP: a header helper that reads a 0600 token file, a strict machine MCP config, and a launcher check that fails closed unless the Pai MCP is connected.
+- #44 Distiller read-only mode: with a read-only token a Knowledge write ends in the named blocker `knowledge write needs a project-scope write token`, and a saved report is never a valid delta.
+
 ## 0.1.2
 
 Pull requests #35 and #37, and one skill rule:
