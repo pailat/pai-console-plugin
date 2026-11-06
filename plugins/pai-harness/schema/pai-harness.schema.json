@@ -257,7 +257,12 @@
         "bypass_permissions": {
           "type": "boolean",
           "default": true,
-          "description": "Pass --permission-mode bypassPermissions to every claude run (owner policy). Set false to opt this project out; safety then relies on prompts. Deny rules and hooks apply either way."
+          "description": "Pass --permission-mode bypassPermissions to every claude run (owner policy). Set false to opt this project out: claude -p has no prompts, so a tool that is not pre-approved is denied and the run ends blocked. --allowed-tools limits nothing while bypass is on. Deny rules and hooks apply either way."
+        },
+        "require_deny_baseline": {
+          "type": "boolean",
+          "default": true,
+          "description": "With bypass on, refuse to start a run (blocked, a named BLOCKER) unless the effective Claude Code settings carry the deny baseline (examples/settings.deny.json). Set false only where another control already denies those actions."
         }
       }
     },

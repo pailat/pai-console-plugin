@@ -2,6 +2,16 @@
 
 Every release has an entry. Merged work never stays unversioned for more than one pull request.
 
+## 0.1.5
+
+Permission policy (pull request #51):
+
+- Every run passes `--permission-mode bypassPermissions` (fresh, `--resume` and dispatch share one command builder); `[run] bypass_permissions = false` opts a project out. With the opt-out `claude -p` has no prompts, so a tool that is not pre-approved is denied and the run ends `blocked`. `--allowed-tools` limits nothing while bypass is on.
+- Fail-closed preflight: with bypass on, `launch.sh` reads the effective Claude Code settings (managed, user, project, local) and ends the run `blocked` (exit 3, a named BLOCKER, no process) unless the deny baseline is present (`scripts/deny_baseline.py`). `[run] require_deny_baseline = false` waives it.
+- `examples/settings.deny.json` now denies the Pai write tools that change access, deploy, delete or export data and Linear deletes, and its Bash patterns cover `git -C`, `git -c`, `rm -r -f`, `"$HOME"`, `./.git` and `.env` reads. Merge and protected-branch denials moved to `examples/settings.deny.non-merge.json` for the roles that do not merge.
+- A permission denial now reads `denied by policy or not pre-approved: <tools>; report BLOCKER, do not work around it`.
+- The generated Codex package no longer ships the Claude `settings.deny.json` files; its examples README says the bypass policy is Claude Code only.
+
 ## 0.1.4
 
 Pull request #46 (cost levers):

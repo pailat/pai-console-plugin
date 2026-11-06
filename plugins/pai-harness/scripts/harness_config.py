@@ -49,7 +49,7 @@ DEFAULTS = {
     "rules": {"agents_file": "AGENTS.md", "root_paths": [], "must": [], "never": [], "push_wrapper": ""},
     "models": dict(DEFAULT_MODELS),
     "pai": {"token_file": DEFAULT_TOKEN_FILE, "mcp_url": "", "token_scope": "write"},
-    "run": {"bypass_permissions": True},  # owner policy: every run uses --permission-mode bypassPermissions; safety is deny rules + hooks
+    "run": {"bypass_permissions": True, "require_deny_baseline": True},  # owner policy: every run uses --permission-mode bypassPermissions; safety is deny rules + hooks
     "knowledge": {},  # empty = no Pai Knowledge target named; the distiller then fails closed
 }
 NAME = re.compile(r"^[a-z][a-z0-9_-]*$")
@@ -224,6 +224,9 @@ def validate(data: object) -> dict:
     if "bypass_permissions" in run:
         _expect("run.bypass_permissions", run["bypass_permissions"], bool)
         out["run"]["bypass_permissions"] = run["bypass_permissions"]
+    if "require_deny_baseline" in run:
+        _expect("run.require_deny_baseline", run["require_deny_baseline"], bool)
+        out["run"]["require_deny_baseline"] = run["require_deny_baseline"]
     if "knowledge" in data:
         out["knowledge"] = _knowledge(data["knowledge"])
     return out

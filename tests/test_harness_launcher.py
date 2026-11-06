@@ -43,7 +43,7 @@ class RunStateTest(HarnessCase):
 
     def test_permission_denials_block_even_on_a_success_frame(self) -> None:
         verdict = lib.run_state(summary_of("permission"), 0)
-        self.assertEqual((verdict["state"], verdict["reason"]), ("blocked", "permission needed: Bash"))
+        self.assertEqual((verdict["state"], verdict["reason"]), ("blocked", "denied by policy or not pre-approved: Bash; report BLOCKER, do not work around it"))
 
     def test_no_result_frame_fails_whatever_the_exit_code(self) -> None:
         for code in (0, 137):
@@ -224,7 +224,7 @@ class LaunchTest(HarnessCase):
         done = self.launch("ACME-8", "permission", 0)
         self.assertEqual(done.returncode, 3)
         record = self.record("ACME-8")
-        self.assertEqual((record["state"], record["reason"]), ("blocked", "permission needed: Bash"))
+        self.assertEqual((record["state"], record["reason"]), ("blocked", "denied by policy or not pre-approved: Bash; report BLOCKER, do not work around it"))
         self.assertEqual(lib.read_json(self.state / "registry/ACME-8.json")["state"], "blocked")
 
     def test_a_failed_run_exits_1(self) -> None:
@@ -469,7 +469,7 @@ class TaskLifecycleTest(HarnessCase):
         self.launch("ACME-8", "permission", 0)
         done = self.run_script("task-done.sh", "ACME-8")
         self.assertEqual(done.returncode, 3)
-        self.assertIn("Blocked: permission needed: Bash", done.stdout)
+        self.assertIn("Blocked: denied by policy or not pre-approved: Bash; report BLOCKER, do not work around it", done.stdout)
 
     def test_a_success_frame_with_a_failing_exit_cannot_be_closed(self) -> None:
         self.launch("ACME-7", "success", 2)

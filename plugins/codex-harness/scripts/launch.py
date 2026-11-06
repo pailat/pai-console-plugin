@@ -7,8 +7,11 @@ and to render_stream.py, which prints one readable line per event, and (in Herdr
 metadata (state, task, run, step, turns, 2-minute TTL) and the tab label. That display never decides anything.
 
 State comes only from the stream-json `result` frame and the exit code (see harness_lib.run_state); the Herdr agent
-status is never read. Runs use --permission-mode bypassPermissions by default ([run] bypass_permissions = false opts a project out; then a run that
-needs a permission is not given one and ends `blocked`, exit 3). Safety is the deny rules plus the plugin hooks, never prompts.
+status is never read. Runs use --permission-mode bypassPermissions by default. Bypass auto-approves every tool a deny rule does not stop, so the launcher
+first reads the effective Claude Code settings and ends the run `blocked` (exit 3, a named BLOCKER) unless the deny baseline is present
+(deny_baseline.py; examples/settings.deny.json). [run] require_deny_baseline = false skips that check and [run] bypass_permissions = false
+drops bypass: `claude -p` has no prompts, so a tool that is not pre-approved is then denied and the run ends `blocked`. --allowed-tools
+limits nothing while bypass is on. Safety is the deny rules plus the plugin hooks, never prompts.
 
 Usage: launch.sh ISSUE (--prompt TEXT | --prompt-file FILE) [--pane PANE] [--model M] [--role R] [--cwd DIR]
                  [--queue Q] [--stream S] [--allowed-tools T ...] [--config FILE] [--dry-run]
@@ -31,6 +34,7 @@ import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import deny_baseline  # noqa: E402
 import harness_config  # noqa: E402
 import harness_lib as lib  # noqa: E402
 import render_stream  # noqa: E402
@@ -125,11 +129,25 @@ def claude_command(args: argparse.Namespace, config: dict, resume: str | None, m
     command += ["--max-turns", str(max(turns, 1)), "--max-budget-usd", format(budget, ".4f").rstrip("0").rstrip(".")]
     if resume:
         command += ["--resume", resume]
-    if config.get("run", {}).get("bypass_permissions", True):  # opt out per project with [run] bypass_permissions = false
+    if config["run"]["bypass_permissions"]:  # opt out per project with [run] bypass_permissions = false
         command += ["--permission-mode", "bypassPermissions"]
     if args.allowed_tools:
         command += ["--allowed-tools", *args.allowed_tools]
     return command
+
+
+def deny_missing(args: argparse.Namespace, config: dict) -> list[str]:
+    """Deny-baseline rules absent from the effective settings; empty when the run does not bypass or the project waives the check."""
+    run = config["run"]
+    if not (run["bypass_permissions"] and run["require_deny_baseline"]):
+        return []
+    cwd = args.cwd or os.getcwd()
+    try:
+        done = run_process(["git", "-C", str(cwd), "rev-parse", "--show-toplevel"], capture_output=True, text=True, timeout=10)
+        root = done.stdout.strip() if done.returncode == 0 else None
+    except (OSError, subprocess.SubprocessError):
+        root = None
+    return deny_baseline.missing_baseline(cwd, root)
 
 
 def launch_base(args: argparse.Namespace, previous: dict) -> str | None:
@@ -499,12 +517,19 @@ def main(argv: list[str]) -> int:
         if not args.dry_run:
             lib.emit(state, "run.blocked", {"issue": args.issue, "role": role, "blocker": blocker})
         return lib.EXIT_FAILED
+    missing = deny_missing(args, config)
+    if missing and not args.dry_run:
+        reason = deny_baseline.preflight_reason(missing)
+        blocker = lib.blocker(state, args.issue, reason)
+        lib.emit(state, "run.blocked", {"issue": args.issue, "role": role, "blocker": blocker})
+        lib.register(state, args.issue, state="blocked", reason=reason)
+        return lib.EXIT_BLOCKED
     if args.dry_run:
         previous = lib.read_json(state_file) or {}
         resume = previous.get("session_id") if args.resume_run else None
         lib.show({"dry_run": True, "issue": args.issue, "command": claude_command(args, config, resume, mcp_config_path(state, args.issue) if config["pai"]["mcp_url"] else None, previous), "pane": args.pane,
                   "hook_env": {k: v for k, v in hook_env(args, config, state, config_path, write=False, base=launch_base(args, previous)).items() if k in HOOK_KEYS},
-                  "stream": str(run_paths(state, args.issue)[0]), "state_file": str(state_file), "state_dir": str(state)})
+                  "deny_baseline_missing": len(missing), "stream": str(run_paths(state, args.issue)[0]), "state_file": str(state_file), "state_dir": str(state)})
         return 0
     if not args.inner:
         tab = workspace = None

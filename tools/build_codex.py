@@ -173,6 +173,20 @@ def herdr_vendor(root: Path = ROOT) -> dict[str, str]:
     return record["files"]
 
 
+CLAUDE_ONLY_EXAMPLES = ("examples/README.md", "examples/settings.deny.json", "examples/settings.deny.non-merge.json")
+CODEX_EXAMPLES_README = """# Examples
+
+`acme/.pai-harness.toml` is a complete project config for the fictional Acme project.
+
+## Permission policy
+
+The permission policy of the pai-harness plugin (`--permission-mode bypassPermissions`, `permissions.deny` rules, the deny-baseline
+check) is Claude Code only. `scripts/launch.py` and its `[run]` keys drive `claude -p`; they do nothing for Codex, and this package
+ships no Claude `settings.deny.json`. Codex has no deny-rule layer: configure native MCP approval policies in the Codex client, treat
+unknown tools and environments conservatively, and do not claim that approvals or hooks work before testing the installed client.
+"""
+
+
 def harness_files(root: Path = ROOT) -> dict[Path, bytes]:
     """The generated Codex package of pai-harness: its skills, schema, scripts and examples, from the plugin sources."""
     source = root / HARNESS
@@ -183,7 +197,10 @@ def harness_files(root: Path = ROOT) -> dict[Path, bytes]:
         for path in sorted(p for p in (source / kind).rglob("*") if p.is_file() and "__pycache__" not in p.parts):
             if path.is_symlink():
                 raise ValueError(f"Symlinks are not portable: {path}")
+            if path.relative_to(source).as_posix() in CLAUDE_ONLY_EXAMPLES:
+                continue  # Claude Code settings; Codex has no deny-rule layer and gets its approvals from native MCP policies
             files[HARNESS_CODEX / path.relative_to(source)] = path.read_bytes()
+    files[HARNESS_CODEX / "examples/README.md"] = CODEX_EXAMPLES_README.encode()
     files[HARNESS_CODEX / "plugin.json"] = json_bytes({
         "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
         "name": name, "version": version, "description": manifest["description"],
