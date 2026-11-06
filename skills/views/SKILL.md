@@ -71,6 +71,12 @@ Put controls belonging inside a component (chat scope selector, card-header badg
 - `Stack.surface`: `none | muted | card | outline`. Uses organization colors and radius, with no automatic padding. These surfaces may nest inside a Card or another surface. Grid has no surface prop. Use a Card for a content section, a Stack surface for a dense zone within one.
 - `SplitView.listWidth` remains `narrow | medium | wide`.
 
+**Dense Item rows**:
+- Put subject and context in `Item.title` and `Item.description`; `selected` adds the current-row cue and `unread` adds an emphasized title plus an announced unread dot. `lines: 1 | 2` clamps both fields with their full text in `title`; omission keeps the existing title/description wrapping defaults.
+- `slots.leading` accepts `Avatar`, `IconTile` or `Checkbox`, replacing the icon fallback. `slots.trailing` accepts `Badge`, `StatusBadge`, `Button`, `Switch`, `Text` (caption timestamp), `Kbd` and `ButtonGroup`.
+- A row keeps its safe `href` with passive slots. Controls in either slot (including Checkbox and ButtonGroup) make it a non-link row, avoiding nested controls inside an anchor. Mockup rows stay inert; external https row links keep their browser protections.
+- Compose an inbox row as one Item plus slot children; avoid rebuilding subject/context with extra Stack/Text elements.
+
 **Sizing/placement** (Stack/Grid only; closed values, omission preserves prior behavior):
 - `width: "fit" | "full"`; full fills parent even inside `align: "center"`, where it otherwise shrinks.
 - `maxWidth: "sm" | "md" | "lg" | "xl" | "full"`: readable width.
