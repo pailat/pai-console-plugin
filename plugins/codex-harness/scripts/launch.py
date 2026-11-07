@@ -215,7 +215,20 @@ def lane_permissions(args: argparse.Namespace, config: dict) -> tuple[list[str],
     deny += [abs_rule("Edit", p, "") for p in (*git_dirs, os.path.join(root, ".mcp.json"), os.path.join(cwd, ".mcp.json"))]
     deny += [abs_rule("Edit", f"{cwd}/**/{d}") for d in sorted(scope.BULK_DIRS)] + [abs_rule("Edit", f"{cwd}/**/.claude")]
     deny += [abs_rule("Read", p) for p in (*guarded, *git_dirs)]
+    deny += [abs_rule("Read", f"{cwd}/**/{name}", "") for name in scope.READ_DENIED_NAMES]  # secrets inside the worktree itself (not .env.example / .env.sample)
     return allow, list(dict.fromkeys(deny))
+
+
+def restricted_problem() -> str | None:
+    """The mechanical lane needs a claude that has --restricted (the file tools are confined and the user/project settings ignored by it). Returns the named error, else None."""
+    claude = os.environ.get("PAI_HARNESS_CLAUDE", "claude")
+    try:
+        done = run_process([claude, "--help"], capture_output=True, text=True, timeout=30, stdin=subprocess.DEVNULL)
+    except (OSError, subprocess.SubprocessError) as error:
+        return f"claude-restricted-unverified: could not run `{claude} --help` to check for --restricted ({error})"
+    if "--restricted" not in done.stdout + done.stderr:
+        return "claude-restricted-unsupported: this claude has no --restricted flag; update Claude Code (`claude update`) before using --profile mechanical"
+    return None
 
 
 def claude_command(args: argparse.Namespace, config: dict, resume: str | None, mcp_config: Path | None = None, previous: dict | None = None,
@@ -804,6 +817,13 @@ def main(argv: list[str]) -> int:
         if not args.dry_run:
             lib.emit(state, "run.blocked", {"issue": args.issue, "role": role, "blocker": blocker})
         return lib.EXIT_FAILED
+    if args.profile and not args.dry_run:
+        problem = restricted_problem()
+        if problem:  # fail closed: without --restricted the lane's confinement is not what the verifier assumes
+            blocker = f"BLOCKER {args.issue}: {problem}"
+            print(blocker, file=sys.stderr)
+            lib.emit(state, "run.blocked", {"issue": args.issue, "role": role, "blocker": blocker})
+            return lib.EXIT_FAILED
     missing = deny_missing(args, config)
     if not args.inner and not args.dry_run:  # the outer launcher fails closed here; inner() checks again in whichever process starts claude
         blocked = preflight_block(args, config, state, state_file, role)
