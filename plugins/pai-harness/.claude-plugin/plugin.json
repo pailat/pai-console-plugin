@@ -1,7 +1,7 @@
 {
   "name": "pai-harness",
   "displayName": "Pai Harness",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Horizontal multi-agent harness for Claude Code: orchestration roles, gates, write zones and Herdr plugins, configured per project through a .pai-harness.toml file.",
   "author": {
     "name": "Pai",
