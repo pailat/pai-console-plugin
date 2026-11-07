@@ -21,4 +21,7 @@ Then `${CLAUDE_PLUGIN_ROOT}/scripts/verify-mechanical.sh <ISSUE-ID> --check "<pr
 
 Use a script for fully deterministic changes and an interactive session for issues, reviews and decisions.
 
-Add `--dry-run` to any script to see its plan without side effects. Never pass a permission-bypass flag: a run that needs a permission must end blocked.
+
+Add `--dry-run` to any script to see its plan without side effects. Runs pass `--permission-mode bypassPermissions` by default (`[run] bypass_permissions = false` in `.pai-harness.toml` opts a project out: `claude -p` has no prompts, so a tool that is not pre-approved is denied and the run ends blocked). The launcher refuses to start a bypass run, with a BLOCKER, unless the deny baseline is in the effective settings (`examples/README.md`). Safety is `permissions.deny` rules plus the plugin hooks, and a denied action is never worked around: report a BLOCKER. Bypass removes prompts, not process: merges need the orchestrator's line and ROOT zones need ROOT GO.
+
+The mechanical lane is the exception to the bypass default: it always runs `dontAsk` with Read, Edit, Grep and Glob, whatever `[run] bypass_permissions` says, and is not subject to the deny-baseline preflight because nothing is bypassed.

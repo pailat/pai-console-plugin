@@ -155,8 +155,8 @@ def parse_stream(lines: object) -> dict:
 def run_state(summary: dict, exit_code: int | None, timed_out: bool = False) -> dict:
     """Decide the state of a run from its stream summary and exit code alone.
 
-    done: a successful result frame and exit code 0. blocked: the result lists permission denials, so the run needed
-    a permission it was not given. failed: anything else (no result frame, an error result, a non-zero exit, a timeout).
+    done: a successful result frame and exit code 0. blocked: the result lists permission denials: a deny rule or a hook refused a tool
+    (or, with bypass off, a tool was not pre-approved), and a denial is never worked around. failed: anything else (no result frame, an error result, a non-zero exit, a timeout).
     """
     result = summary.get("result")
     base = {"exit_code": exit_code, "session_id": summary.get("session_id"), "cost_usd": None, "turns": None}
@@ -171,7 +171,7 @@ def run_state(summary: dict, exit_code: int | None, timed_out: bool = False) -> 
     denials = result.get("permission_denials") or []
     if denials:
         names = sorted({d.get("tool_name", "?") for d in denials if isinstance(d, dict)}) or ["?"]
-        return {**base, "state": "blocked", "reason": "permission needed: " + ", ".join(names)}
+        return {**base, "state": "blocked", "reason": "denied by policy or not pre-approved: " + ", ".join(names) + "; report BLOCKER, do not work around it"}
     if result.get("is_error") or result.get("subtype") != "success":
         return {**base, "state": "failed", "reason": f"result {result.get('subtype') or 'error'}"}
     if exit_code != 0:
