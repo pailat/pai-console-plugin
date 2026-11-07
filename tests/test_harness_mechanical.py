@@ -670,6 +670,57 @@ class DeltaThreeTest(MechanicalCase):
         self.assertEqual(self.run_script("task-done.sh", "ACME-7").returncode, 1)
 
 
+class LinkedWorktreeTest(MechanicalCase):
+    """The lane runs in a linked worktree whose common .git is shared with the main checkout and other worktrees."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.main = self.repo
+        self.repo = self.tmp / "lane-wt"
+        git(self.main, "worktree", "add", "-q", "-b", "lane", str(self.repo))
+        self.other = self.tmp / "other-wt"
+        git(self.main, "worktree", "add", "-q", "-b", "other", str(self.other))
+
+    def started(self) -> None:
+        done = self.lane()
+        self.assertEqual(done.returncode, 0, done.stderr)
+        (self.repo / "src/cart.py").write_text("changed\n")
+
+    def test_unrelated_git_activity_elsewhere_does_not_discard_valid_work_or_block_the_close(self) -> None:
+        self.started()
+        remote = self.tmp / "remote.git"
+        git(self.tmp, "init", "-q", "--bare", str(remote))
+        git(self.other, "remote", "add", "origin", str(remote))
+        git(self.other, "push", "-q", "-u", "origin", "other")
+        git(self.other, "fetch", "-q", "origin")
+        git(self.other, "config", "branch.other.gh-merge-base", "main")
+        git(self.other, "config", "user.email", "someone@else.example.com")
+        (self.main / ".git/info").mkdir(exist_ok=True)
+        (self.main / ".git/info/exclude").write_text("*.tmp\n")
+        (self.main / ".git/hooks/pre-commit.sample").write_text("#!/bin/sh\n")
+        done = self.verify()
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        self.assertEqual(json.loads(done.stdout)["verdict"], "pass")
+        git(self.repo, "config", "branch.lane.remote", "origin")  # `git push -u` from the lane's own worktree after the pass
+        git(self.repo, "commit", "-q", "-am", "the work")
+        self.assertEqual(self.run_script("task-done.sh", "ACME-7").returncode, 0)
+
+    def test_a_hook_or_a_code_running_config_key_added_elsewhere_discards(self) -> None:
+        for change in (lambda: (self.main / ".git/hooks/pre-commit").write_text("#!/bin/sh\ntouch pwned\n"),
+                       lambda: git(self.other, "config", "core.hooksPath", "/tmp/evil"),
+                       lambda: git(self.other, "config", "alias.ci", "!touch pwned"),
+                       lambda: git(self.other, "config", "filter.x.clean", "touch pwned")):
+            git(self.repo, "checkout", "-q", "--", ".")
+            self.started()
+            change()
+            done = self.verify()
+            self.assertEqual(done.returncode, 1)
+            self.assertIn("under .git", " ".join(json.loads(done.stdout)["reasons"]))
+            for key in ("core.hooksPath", "alias.ci", "filter.x.clean"):
+                subprocess.run(["git", "-C", str(self.main), "config", "--unset-all", key], capture_output=True)
+            (self.main / ".git/hooks/pre-commit").unlink(missing_ok=True)
+
+
 class SamplerTest(MechanicalCase):
     def passing_run(self, issue: str) -> dict:
         git(self.repo, "checkout", "-q", "--", ".")

@@ -217,20 +217,53 @@ def snapshot(root: str, base: str, baseline: dict, tolerant: bool = False, liste
     return {"head": head, "changed": changed, "digest": digest(root, changed), "ignored": now}
 
 
+# Config keys that make git run a program or change where it reads more config. Everything else (branch.*, remote.*, gh-*, gc.*, user.* ...) is
+# rewritten by ordinary git activity in the shared common dir (push -u, gh pr create, another worktree's fetch) and is not watched.
+CODE_KEY_PREFIXES = ("core.", "alias.", "filter.", "diff.", "merge.", "include.", "includeif.", "credential.", "url.", "protocol.", "gpg.", "sequence.",
+                     "receive.", "uploadpack.", "http.", "ssh.", "difftool.", "mergetool.", "web.", "browser.", "man.", "pager.", "safe.")
+HARMLESS_CORE = frozenset({"core.repositoryformatversion", "core.filemode", "core.bare", "core.logallrefupdates", "core.ignorecase", "core.symlinks",
+                           "core.precomposeunicode", "core.worktree", "core.commitgraph", "core.multipackindex", "core.untrackedcache"})
+
+
+def _config_keys(path: str) -> list[str]:
+    """The code-running keys of one config file as sorted key=value lines (the file is read by git itself, includes are not followed)."""
+    if not os.path.isfile(path):
+        return []
+    done = run_process(["git", "config", "--file", path, "--list", "-z"], capture_output=True, text=True, timeout=60)
+    if done.returncode != 0:
+        raise ScopeError(f"git config could not read {path}: {done.stderr.strip()}")
+    keys = []
+    for entry in done.stdout.split("\0"):
+        key, _, value = entry.partition("\n")
+        key = key.lower()
+        if key.startswith(CODE_KEY_PREFIXES) and key not in HARMLESS_CORE:
+            keys.append(f"{key}={value}")
+    return sorted(keys)
+
+
 def git_integrity(root: str) -> str:
-    """A hash of everything in .git that makes git run code: config (repo, common and per-worktree), hooks, info/attributes. A change is a lane write."""
+    """A hash of what in .git makes git run code: the code-running config keys (repo, common and per-worktree), hook files, info/attributes.
+
+    The common git dir of a linked worktree is the main checkout's, shared with every other worktree, so ordinary git activity elsewhere
+    (push -u, fetch, gh pr create, a new branch) must not change the hash: only CODE_KEY_PREFIXES keys count, sample hooks are skipped,
+    and info/exclude is not read. A new hook, a changed hooksPath, fsmonitor, alias, filter or include does change it.
+    """
     h = hashlib.sha256()
     git_dir = git_ok(root, "rev-parse", "--path-format=absolute", "--git-dir").strip()
     common = common_git_dir(root)
-    names = [os.path.join(d, n) for d in dict.fromkeys((git_dir, common)) for n in ("config", "config.worktree", "info/attributes", "info/exclude", "modules")]
+    for d in dict.fromkeys((git_dir, common)):
+        for name in ("config", "config.worktree"):
+            h.update(f"{d}/{name}\0".encode() + "\n".join(_config_keys(os.path.join(d, name))).encode() + b"\0")
+        attributes = os.path.join(d, "info/attributes")
+        h.update(f"{attributes}\0".encode() + (Path(attributes).read_bytes() if os.path.isfile(attributes) else b"-") + b"\0")
     for hooks in dict.fromkeys((os.path.join(git_dir, "hooks"), os.path.join(common, "hooks"))):
         if os.path.isdir(hooks):
-            names += [os.path.join(hooks, n) for n in sorted(os.listdir(hooks))]
-    for name in names:
-        h.update(name.encode() + b"\0")
-        try:
-            h.update(f"{os.lstat(name).st_mode:o}".encode() + hashlib.sha256(Path(name).read_bytes()).digest() if os.path.isfile(name) else b"-")
-        except OSError:
-            h.update(b"-")
-        h.update(b"\0")
+            for name in sorted(os.listdir(hooks)):
+                if name.endswith(".sample"):
+                    continue
+                full = os.path.join(hooks, name)
+                try:
+                    h.update(f"{full}\0{os.lstat(full).st_mode:o}\0".encode() + (hashlib.sha256(Path(full).read_bytes()).digest() if os.path.isfile(full) else b"-") + b"\0")
+                except OSError:
+                    h.update(f"{full}\0unreadable\0".encode())
     return h.hexdigest()
