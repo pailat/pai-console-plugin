@@ -1,18 +1,20 @@
 #!/usr/bin/env bash
 # agent-start.sh <name> --role R --parent P --pane X [--issue I] [--kind K] -- <agent args>
 # Starts an interactive agent with `herdr agent start` and tags its pane with the pai wake tokens (name, role, parent, issue,
-# wake_on_done=1) in one step. Fails closed: the tags are set in strict mode and VERIFIED afterwards (agent list, by pane id: name, role,
-# parent and wake_on_done must all be present); a start that cannot be verified exits non-zero. Agent args pass through unchanged;
+# wake_on_done=1 for one-shot roles only) in one step. Fails closed: the tags are set in strict mode and VERIFIED afterwards (agent list, by pane id: name, role,
+# parent, and wake_on_done for a one-shot role, must be present); a start that cannot be verified exits non-zero. Agent args pass through unchanged;
 # permission policy is not decided here.
+# wake_on_done=1 is set only for one-shot roles (implementer, reviewer, answerer, gate, verifier, mechanical): a lead, orchestrator or relay
+# lives across turns and would wake its parent on every turn end. --wake / --no-wake override the role default.
 # Exit: 0 started, tagged and ready; 1 failed (nothing runs untagged); 2 usage; 3 the agent RUNS and is tagged but herdr reported it
 # not ready (agent_not_ready, e.g. blocked at a dialog): do not start it again, read it and wait for idle.
 # Env: HERDR_BIN_PATH (herdr binary, default herdr), PAI_HARNESS_PANE_META (pai-pane-meta path override).
 set -u
-usage() { echo "usage: agent-start.sh <name> --role R --parent P --pane X [--issue I] [--kind K] -- <agent args>" >&2; exit 2; }
+usage() { echo "usage: agent-start.sh <name> --role R --parent P --pane X [--issue I] [--kind K] [--wake|--no-wake] -- <agent args>" >&2; exit 2; }
 fail() { echo "agent-start.sh: FAILED ${name:-?}: $1" >&2; exit 1; }
 [ $# -ge 1 ] || usage
 name=$1; shift
-role=; parent=; pane=; issue=; kind=
+role=; parent=; pane=; issue=; kind=; wake=
 while [ $# -gt 0 ]; do
   case $1 in
     --role) role=${2:-}; shift 2 || usage ;;
@@ -20,6 +22,8 @@ while [ $# -gt 0 ]; do
     --pane) pane=${2:-}; shift 2 || usage ;;
     --issue) issue=${2:-}; shift 2 || usage ;;
     --kind) kind=${2:-}; shift 2 || usage ;;
+    --wake) wake=1; shift ;;
+    --no-wake) wake=0; shift ;;
     --) shift; break ;;
     *) echo "agent-start.sh: unknown option $1" >&2; usage ;;
   esac
@@ -40,19 +44,23 @@ meta=${PAI_HARNESS_PANE_META:-$here/../herdr-plugins/orchestration-wake/bin/pai-
 [ -x "$meta" ] || fail "pai-pane-meta not found at $meta"
 start=("$H" agent start "$name" --pane "$pane")
 [ -z "$kind" ] || start+=(--kind "$kind")
-tags=(name="$name" role="$role" parent="$parent" wake_on_done=1)
+if [ -z "$wake" ]; then
+  case $role in implementer|reviewer|answerer|gate|verifier|mechanical) wake=1 ;; *) wake=0 ;; esac
+fi
+tags=(name="$name" role="$role" parent="$parent")
+[ "$wake" = 0 ] || tags+=(wake_on_done=1)
 [ -z "$issue" ] || tags+=(issue="$issue")
 # pai-pane-meta is best-effort by default; strict mode makes a failed tag exit non-zero.
 tag() { PAI_PANE_META_STRICT=1 HERDR_BIN_PATH=$H "$meta" "$pane" "${tags[@]}"; }
 # The tags really on the pane (by pane id, not name): prints the missing ones, empty output = all of name/role/parent/wake_on_done present.
 missing() {
-  "$H" agent list 2>/dev/null | jq -r --arg p "$pane" --arg n "$name" --arg r "$role" --arg a "$parent" '
+  "$H" agent list 2>/dev/null | jq -r --arg p "$pane" --arg n "$name" --arg r "$role" --arg a "$parent" --arg w "$wake" '
     [.result.agents[]? | select(.pane_id==$p)] as $m
     | if ($m|length)==0 then "agent not listed on pane"
       elif ($m|length)>1 then "several agents on the pane"
       else ($m[0].tokens // {}) as $t
         | [if $t.name!=$n then "name" else empty end, if $t.role!=$r then "role" else empty end,
-           if $t.parent!=$a then "parent" else empty end, if $t.wake_on_done!="1" then "wake_on_done" else empty end] | join(",") end' 2>/dev/null || echo "agent list unreadable"
+           if $t.parent!=$a then "parent" else empty end, if ($w=="1" and $t.wake_on_done!="1") then "wake_on_done" else empty end] | join(",") end' 2>/dev/null || echo "agent list unreadable"
 }
 listed() { "$H" agent list 2>/dev/null | jq -e --arg p "$pane" --arg n "$name" '.result.agents[]? | select(.pane_id==$p and .name==$n)' >/dev/null 2>&1; }
 # Tag first so the pane already carries its tokens when the agent comes up; tag again after the start in case herdr reset them.

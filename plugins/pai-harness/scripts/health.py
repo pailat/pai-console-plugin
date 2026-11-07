@@ -2,7 +2,7 @@
 """Heartbeat and registry check.
 
 Usage: health.sh beat NAME [--state S] | health.sh check [--stale-minutes N] [--now ISO] [--config FILE]
-Check also warns (stderr, exit code unchanged) about harness agent panes (carrying a pai token, or registered) missing name/role/parent/wake_on_done.
+Check also warns (stderr, exit code unchanged) about harness agent panes (carrying a pai token, or registered) missing name/role/parent (and wake_on_done for one-shot roles).
 Exit codes of check: 0 every entry fresh, 1 at least one stale running entry, 2 empty registry or bad usage.
 """
 from __future__ import annotations
@@ -20,7 +20,8 @@ import harness_lib as lib  # noqa: E402
 
 
 TOKEN_KEYS = ("role", "parent", "name", "issue", "wake_on_done")
-REQUIRED_KEYS = ("name", "role", "parent", "wake_on_done")  # a pane is tagged only when ALL of these are present
+REQUIRED_KEYS = ("name", "role", "parent")  # a pane is tagged only when ALL of these are present ...
+ONE_SHOT_ROLES = ("implementer", "reviewer", "answerer", "gate", "verifier", "mechanical")  # ... plus wake_on_done for these roles only (leads live across turns)
 
 
 def untagged_agents(known: set[str]) -> list[dict]:
@@ -43,6 +44,8 @@ def untagged_agents(known: set[str]) -> list[dict]:
         tokens = a.get("tokens") or {}
         harness = any(tokens.get(k) for k in TOKEN_KEYS) or str(a.get("name") or tokens.get("name") or "").lower() in known
         gaps = [k for k in REQUIRED_KEYS if not tokens.get(k)]
+        if tokens.get("role") in ONE_SHOT_ROLES and not tokens.get("wake_on_done"):
+            gaps.append("wake_on_done")
         if harness and gaps:
             found.append({"name": a.get("name"), "pane_id": a.get("pane_id"), "missing": gaps})
     return found
@@ -80,7 +83,7 @@ def main(argv: list[str]) -> int:
     untagged = untagged_agents({str(e["name"]).lower() for e in found})
     for a in untagged:
         print(f"WARNING untagged-agent-pane: {a['name'] or a['pane_id']} ({a['pane_id']}) is missing pai tokens {','.join(a['missing'])}; its parent is not woken. "
-              f"Start agents with scripts/agent-start.sh or run bin/pai-pane-meta {a['pane_id']} name=... role=... parent=... wake_on_done=1", file=sys.stderr)
+              f"Start agents with scripts/agent-start.sh or run bin/pai-pane-meta {a['pane_id']} name=... role=... parent=... [wake_on_done=1 for a one-shot role]", file=sys.stderr)
     lib.show({"checked_at": lib.stamp(at), "stale_after_minutes": args.stale_minutes, "entries": report, "untagged_agent_panes": untagged})
     return 1 if any(r["stale"] for r in report) else 0
 

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -14,6 +15,11 @@ from test_harness_mechanical import MechanicalCase  # noqa: E402
 class PaneCase(_HarnessCase):
     def setUp(self) -> None:
         super().setUp()
+        stub = self.tmp / "stubbin"  # a plain `herdr` on PATH is this stub, never the developer's real one (and its live fleet)
+        stub.mkdir()
+        (stub / "herdr").write_text('#!/bin/sh\necho \'{"result":{"agents":[]}}\'\n')
+        (stub / "herdr").chmod(0o755)
+        self.env["PATH"] = f"{stub}{os.pathsep}{self.env['PATH']}"
         self.herdr_state = self.tmp / "herdr-state.json"
         self.config_dir = self.tmp / "wake-config"
         self.env.update(PAI_HARNESS_HERDR=str(FIXTURES / "fake_herdr_agents.py"), HERDR_BIN_PATH=str(FIXTURES / "fake_herdr_agents.py"),
@@ -103,6 +109,24 @@ class AgentStartTest(PaneCase):
         start = next(c for c in self.calls() if c[:2] == ["agent", "start"])
         self.assertEqual(start, ["agent", "start", "acme-impl", "--pane", "wAC:p2", "--kind", "claude", "--", "--permission-mode", "plan"])
 
+    def test_a_lead_carries_no_wake_on_done_and_verifies_without_it(self) -> None:
+        done = self.run_script("agent-start.sh", "acme-lead", "--role", "lead", "--parent", "acme-orch", "--pane", "wAC:p2")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(self.tokens("wAC:p2"), {"name": "acme-lead", "role": "lead", "parent": "acme-orch"})
+
+    def test_one_shot_roles_get_wake_on_done(self) -> None:
+        for i, role in enumerate(("implementer", "reviewer", "answerer", "gate", "verifier", "mechanical")):
+            done = self.run_script("agent-start.sh", f"acme-{role}", "--role", role, "--parent", "acme-lead", "--pane", f"wAC:p{i + 10}")
+            self.assertEqual(done.returncode, 0, done.stderr)
+            self.assertEqual(self.tokens(f"wAC:p{i + 10}")["wake_on_done"], "1", role)
+
+    def test_wake_and_no_wake_override_the_role_default(self) -> None:
+        self.assertEqual(self.start("--no-wake").returncode, 0)
+        self.assertNotIn("wake_on_done", self.tokens("wAC:p2"))
+        done = self.run_script("agent-start.sh", "acme-lead", "--role", "lead", "--parent", "acme-orch", "--pane", "wAC:p3", "--wake")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(self.tokens("wAC:p3")["wake_on_done"], "1")
+
     def test_a_start_that_fails_with_no_agent_is_reported_failed(self) -> None:
         done = self.start("--", "x", FAKE_HERDR_START_FAIL="1")
         self.assertEqual(done.returncode, 1)
@@ -164,12 +188,12 @@ class HealthWarningTest(PaneCase):
         done = self.check(agents)
         self.assertIn("WARNING untagged-agent-pane: acme-ghost (wAC:p5)", done.stderr)
         self.assertNotIn("acme-lead (wAC:p1)", done.stderr)
-        self.assertEqual(json.loads(done.stdout)["untagged_agent_panes"], [{"name": "acme-ghost", "pane_id": "wAC:p5", "missing": ["name", "role", "parent", "wake_on_done"]}])
+        self.assertEqual(json.loads(done.stdout)["untagged_agent_panes"], [{"name": "acme-ghost", "pane_id": "wAC:p5", "missing": ["name", "role", "parent"]}])
 
     def test_a_half_tagged_pane_is_flagged(self) -> None:
         agents = [{"name": "acme-impl", "pane_id": "wAC:p3", "tokens": {"name": "acme-impl"}}]
         done = self.check(agents, registered=("acme-other",))
-        self.assertIn("acme-impl (wAC:p3) is missing pai tokens role,parent,wake_on_done", done.stderr)
+        self.assertIn("acme-impl (wAC:p3) is missing pai tokens role,parent", done.stderr)
 
     def test_an_agent_the_harness_did_not_start_is_not_flagged(self) -> None:
         done = self.check([{"name": "my-own-agent", "pane_id": "wAC:p8"}])
@@ -181,8 +205,16 @@ class HealthWarningTest(PaneCase):
         self.env.pop("PAI_HARNESS_HERDR")
         self.assertIn("WARNING", self.check(agents).stderr)  # HERDR_BIN_PATH only
         self.env.pop("HERDR_BIN_PATH")
-        self.assertNotIn("WARNING", self.check(agents).stderr)  # neither: plain `herdr`, absent in the test environment
+        self.assertNotIn("WARNING", self.check(agents).stderr)  # neither: plain `herdr` on PATH, which is the empty stub
         self.assertIn("WARNING", self.check(agents, PAI_HARNESS_HERDR=str(FIXTURES / "fake_herdr_agents.py")).stderr)
+
+    def test_wake_on_done_is_required_for_one_shot_roles_only(self) -> None:
+        base = {"name": "x", "role": "lead", "parent": "root"}
+        agents = [{"name": "acme-lead", "pane_id": "wAC:p1", "tokens": {**base, "name": "acme-lead"}},
+                  {"name": "acme-impl", "pane_id": "wAC:p2", "tokens": {**base, "name": "acme-impl", "role": "implementer"}}]
+        done = self.check(agents, registered=("acme-lead",))
+        self.assertNotIn("acme-lead (wAC:p1)", done.stderr)
+        self.assertIn("acme-impl (wAC:p2) is missing pai tokens wake_on_done", done.stderr)
 
     def test_without_herdr_there_is_no_warning(self) -> None:
         done = self.check([], HERDR_BIN_PATH="/nonexistent/herdr", PAI_HARNESS_HERDR="/nonexistent/herdr")
