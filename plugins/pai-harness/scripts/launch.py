@@ -439,6 +439,20 @@ def in_pane(args: argparse.Namespace, state: Path, argv: list[str], tab: str | N
     return lib.exit_for(record["state"])
 
 
+def tag_pane(args: argparse.Namespace, role: str) -> None:
+    """Give the run's pane its pai wake tokens before the run starts, so the parent is woken on done or blocked (best effort)."""
+    tool = Path(os.environ.get("PAI_HARNESS_PANE_META") or Path(__file__).resolve().parent.parent / "herdr-plugins/orchestration-wake/bin/pai-pane-meta")
+    tokens = {"name": args.issue, "role": role, "parent": args.parent or os.environ.get("PAI_HARNESS_PARENT"), "issue": args.issue, "wake_on_done": "1"}
+    pairs = [f"{k}={v}" for k, v in tokens.items() if v]
+    env = {**os.environ, "HERDR_BIN_PATH": os.environ.get("PAI_HARNESS_HERDR", "herdr")}
+    if not args.parent and not os.environ.get("PAI_HARNESS_PARENT"):
+        print(f"{args.issue}: no --parent (or PAI_HARNESS_PARENT): the pane is tagged without a parent, so nobody is woken", file=sys.stderr)
+    try:
+        run_process([str(tool), args.pane, *pairs], capture_output=True, timeout=20, env=env)
+    except (OSError, subprocess.SubprocessError):
+        print(f"{args.issue}: could not tag pane {args.pane} with pai tokens ({tool})", file=sys.stderr)
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="launch.sh", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("issue")
@@ -447,6 +461,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--pane", help="run in this Herdr pane (default inside Herdr: the launcher opens its own tab; outside Herdr: this terminal)")
     parser.add_argument("--model")
     parser.add_argument("--role")
+    parser.add_argument("--parent", help="agent that is woken when this run ends (pane token parent; default: PAI_HARNESS_PARENT)")
     parser.add_argument("--cwd")
     parser.add_argument("--queue")
     parser.add_argument("--stream", help="Knowledge stream (default: the queue name, else the default [knowledge] target)")
@@ -513,6 +528,7 @@ def main(argv: list[str]) -> int:
             if not args.pane:
                 print(f"{args.issue}: could not open a Herdr tab; running in this terminal", file=sys.stderr)
         if args.pane:
+            tag_pane(args, role)
             passed, skip = [], False
             for item in argv:
                 if skip:

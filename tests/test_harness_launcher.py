@@ -283,6 +283,7 @@ class PaneLaunchTest(HarnessCase):
             FAKE_CLAUDE_FIXTURE=str(self.fixture("success")))
         self.assertEqual(done.returncode, 0, done.stderr)
         calls = [json.loads(line) for line in log.read_text().splitlines()]
+        calls = [c for c in calls if c[:2] not in (["pane", "report-metadata"], ["plugin", "config-dir"])]  # the pane's pai tags are covered by test_harness_pane_tags
         self.assertEqual([c[:2] for c in calls], [["pane", "get"], ["pane", "run"], ["pane", "wait-output"]])
         self.assertEqual(self.record("ACME-7")["state"], "done")
         self.assertNotIn("agent", [c[0] for c in calls])
@@ -307,7 +308,7 @@ class DisplayTest(HarnessCase):
 
     def calls(self) -> list[list[str]]:
         log = self.tmp / "herdr.log"
-        return [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
+        return [c for c in ([json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []) if c[:2] not in (["pane", "report-metadata"], ["plugin", "config-dir"])]
 
     def run_fixture(self, issue: str, fixture: Path, *extra: str, exit_code: int = 0, **env: str):
         return self.run_script("launch.sh", issue, "--prompt-file", str(self.prompt), *extra, FAKE_CLAUDE_FIXTURE=str(self.render_fixture(fixture.stem)),

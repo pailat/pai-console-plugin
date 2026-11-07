@@ -43,7 +43,8 @@ class HarnessCase(unittest.TestCase):
         self.tmp = Path(self._tmp.name)
         self.state = self.tmp / "state"
         self.env = {**os.environ, "PAI_HARNESS_CONFIG": str(FIXTURES / "acme.pai-harness.toml"), "PAI_HARNESS_STATE_DIR": str(self.state),
-                    "PAI_HARNESS_CLAUDE": str(FIXTURES / "fake_claude.py"), "PAI_HARNESS_INSTALLED_PLUGINS": str(self._tmp.name + "/none.json"), "FAKE_CLAUDE_LOG": str(self.tmp / "claude.json")}
+                    "PAI_HARNESS_CLAUDE": str(FIXTURES / "fake_claude.py"), "PAI_HARNESS_INSTALLED_PLUGINS": str(self._tmp.name + "/none.json"), "FAKE_CLAUDE_LOG": str(self.tmp / "claude.json"),
+                    "PAI_HARNESS_PARENT": "acme-lead"}
         for name in ("PAI_HARNESS_MCP_CMD", "LINEAR_API_KEY", "LINEAR_API_URL", "PAI_HARNESS_HERDR"):
             self.env.pop(name, None)
         for name in [k for k in self.env if k.startswith("HERDR_")]:

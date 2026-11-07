@@ -33,5 +33,6 @@ One line per event, nothing else. Report to your parent, never only on your own 
 ## Scripts and commands
 
 - `${CLAUDE_PLUGIN_ROOT}/scripts/launch.sh` through `/task-start` to start leads, and `/park` and `/resume` to hold and continue them.
+- Start every interactive agent only through `${CLAUDE_PLUGIN_ROOT}/scripts/agent-start.sh <name> --role <role> --parent <parent> --pane <pane> [--issue <ID>] -- <agent args>` (for example `acme-lead --role lead --parent acme-orchestrator`), never through a bare `herdr agent start`: the wrapper tags the pane with its pai wake tokens and fails closed, so a start that cannot be tagged is reported failed instead of running invisible to its parent.
 - `/root-review` to route a change that touches a ROOT zone to the root-reviewer.
-- `${CLAUDE_PLUGIN_ROOT}/scripts/health.sh check` to find silent agents.
+- `${CLAUDE_PLUGIN_ROOT}/scripts/health.sh check` to find silent agents; it also warns about each agent pane that has no pai tokens (`untagged-agent-pane`), which no wake can reach.

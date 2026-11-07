@@ -32,6 +32,7 @@ One line per event, nothing else. Report to your parent, never only on your own 
 
 ## Scripts and commands
 
+- Start every interactive agent only through `${CLAUDE_PLUGIN_ROOT}/scripts/agent-start.sh <name> --role <role> --parent <parent> --pane <pane> [--issue <ID>] -- <agent args>` (for example `acme-impl-7 --role implementer --parent acme-lead`), never through a bare `herdr agent start`: the wrapper tags the pane with its pai wake tokens and fails closed, so a start that cannot be tagged is reported failed instead of running invisible to its parent.
 - `/task-start`, `/park` and `/resume` for implementer runs.
 - `/gate` for the exact pushed sha and `/root-review` for ROOT zones.
 - `${CLAUDE_PLUGIN_ROOT}/scripts/dispatcher.sh --queue <queue>` to start ready issues within the limits.
