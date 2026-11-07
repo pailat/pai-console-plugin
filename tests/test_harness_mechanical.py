@@ -37,7 +37,9 @@ class MechanicalCase(HarnessCase):
         (self.repo / "src").mkdir(parents=True)
         for name in (*FILES, "src/other.py", "README.md"):
             (self.repo / name).write_text(f"# {name}\ndef calc_total():\n    return 1\n")
-        (self.repo / ".gitignore").write_text("*.env\nbuild/\n")
+        (self.repo / ".gitignore").write_text("*.env\nbuild/\nnode_modules/\n__pycache__/\n.pytest_cache/\n")
+        (self.repo / "node_modules/pkg").mkdir(parents=True)
+        (self.repo / "node_modules/pkg/index.js").write_text("module.exports = 1\n")
         (self.repo / "prod.env").write_text("SECRET=1\n")  # ignored and already there when the lane starts: not the run's change
         git(self.repo, "init", "-q")
         git(self.repo, "add", "-A")
@@ -64,8 +66,14 @@ class ProfileTest(MechanicalCase):
         self.assertIn("--strict-mcp-config", argv)
         self.assertEqual(json.loads(Path(argv[argv.index("--mcp-config") + 1]).read_text()), {"mcpServers": {}})
         self.assertEqual(argv[argv.index("--tools") + 1], "Read,Edit,Grep,Glob")
+        root = str(self.repo.resolve())
         allowed = argv[argv.index("--allowed-tools") + 1:argv.index("--allowed-tools") + 5]
-        self.assertEqual(allowed, ["Read", "Edit", "Grep", "Glob"])
+        self.assertEqual(allowed, [f"Read(/{root}/**)", f"Edit(/{root}/**)", "Grep", "Glob"])  # scoped to the run directory, not bare tool names
+        denied = argv[argv.index("--disallowed-tools") + 1:]
+        for rule in (f"Edit(/{root}/.git/**)", f"Edit(/{root}/.git)", f"Edit(/{self.state.resolve()}/**)", f"Read(/{self.state.resolve()}/**)",
+                     f"Read(/{Path('~/.ssh').expanduser()}/**)", f"Read(/{Path('~/.config/pai-harness').expanduser()}/**)"):
+            self.assertIn(rule, denied)
+        self.assertFalse([r for r in denied if not r.startswith(("Edit(", "Read("))])
         self.assertEqual((argv[argv.index("--max-turns") + 1], argv[argv.index("--max-budget-usd") + 1]), ("12", "0.25"))
         self.assertFalse([a for a in argv if "skip-permissions" in a or a == "bypassPermissions" or a == "Bash"])
 
@@ -435,6 +443,126 @@ class LaneEnvironmentTest(MechanicalCase):
             self.assertEqual(argv.count("--strict-mcp-config"), 1)
             self.assertEqual(json.loads(Path(argv[argv.index("--mcp-config") + 1]).read_text()), {"mcpServers": {}})
             git(self.repo, "checkout", "-q", "--", ".")
+
+
+class DeltaTwoTest(MechanicalCase):
+    """Review round two."""
+
+    def started(self, **kwargs: object) -> None:
+        done = self.lane(**kwargs)  # type: ignore[arg-type]
+        self.assertEqual(done.returncode, 0, done.stderr)
+
+    def edit(self, name: str = "src/cart.py", text: str = "changed\n") -> None:
+        (self.repo / name).write_text(text)
+
+    def test_checks_may_write_caches_but_not_a_sensitive_ignored_name(self) -> None:
+        self.started()
+        self.edit()
+        done = self.run_script("verify-mechanical.sh", "ACME-7", "--check",
+                               "mkdir -p __pycache__ .pytest_cache build && echo x > __pycache__/a.pyc && echo y > build/out.js && echo z > node_modules/pkg/cache.json")
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        self.assertEqual(json.loads(done.stdout)["verdict"], "pass")
+        self.assertEqual(self.run_script("task-done.sh", "ACME-7").returncode, 0)  # the same tolerant view at close
+        git(self.repo, "checkout", "-q", "--", ".")
+        self.started(issue="ACME-8")
+        self.edit()
+        bad = self.run_script("verify-mechanical.sh", "ACME-8", "--check", "echo K=1 > leaked.env")
+        self.assertEqual(bad.returncode, 1)
+        self.assertEqual(json.loads(bad.stdout)["outside"], ["leaked.env"])
+        self.assertFalse((self.repo / "leaked.env").exists())
+
+    def test_before_the_checks_a_dependency_directory_change_is_still_seen(self) -> None:
+        self.started()
+        self.edit()
+        self.assertEqual(json.loads(self.verify().stdout)["verdict"], "pass")  # the pre-existing node_modules is untouched
+        (self.repo / "node_modules/pkg/evil.js").write_text("x\n")
+        result = json.loads(self.verify().stdout)
+        self.assertEqual(result["outside"], ["node_modules/pkg/"])
+        self.assertIn("cannot be restored", " ".join(result["reasons"]))
+
+    def test_committing_the_verified_work_still_closes_but_other_commits_do_not(self) -> None:
+        self.started()
+        self.edit()
+        self.assertEqual(self.verify().returncode, 0)
+        git(self.repo, "commit", "-q", "-am", "the work")
+        self.assertEqual(self.run_script("task-done.sh", "ACME-7").returncode, 0)
+        self.edit("src/other.py")
+        git(self.repo, "commit", "-q", "-am", "more")
+        done = self.run_script("task-done.sh", "ACME-7")
+        self.assertEqual(done.returncode, 1)
+        self.assertIn("changed after the verdict", done.stderr)
+
+    def test_the_sample_decision_does_not_depend_on_the_cli_and_a_new_run_gets_a_new_slot(self) -> None:
+        for n in range(1, 6):
+            git(self.repo, "checkout", "-q", "--", ".")
+            self.started(issue=f"ACME-{n}")
+            self.edit()
+            result = json.loads(self.verify(issue=f"ACME-{n}").stdout)
+        self.assertTrue(result["sample_review"])
+        for value in ("2", "3", "4", "1"):
+            self.assertTrue(json.loads(self.verify("--sample-every", value, issue="ACME-5").stdout)["sample_review"], value)  # slot 5 stays sampled
+        git(self.repo, "checkout", "-q", "--", ".")  # the same issue relaunched is a new run with a new slot
+        self.started(issue="ACME-5")
+        self.edit()
+        again = json.loads(self.verify(issue="ACME-5").stdout)
+        self.assertEqual(again["sample_slot"], 6)
+        self.assertFalse(again["sample_review"])
+
+    def test_a_failed_post_check_measure_discards_from_a_fresh_listing(self) -> None:
+        self.started()
+        self.edit()
+        calls = {"n": 0}
+        real = scope.ignored_state
+
+        def second_fails(root: str) -> dict:
+            calls["n"] += 1
+            if calls["n"] == 2:
+                (self.repo / "stray.txt").write_text("written by the check\n")
+                raise scope.ScopeError("timeout")
+            return real(root)
+        env = {k: self.env[k] for k in ("PAI_HARNESS_CONFIG", "PAI_HARNESS_STATE_DIR")}
+        with mock.patch.dict(os.environ, env), mock.patch.object(scope, "ignored_state", second_fails), mock.patch("builtins.print"):
+            code = vm.main(["ACME-7", "--check", "true"])
+        self.assertEqual(code, 1)
+        verify = self.record("ACME-7")["verify"]
+        self.assertEqual(verify["verdict"], "discard")
+        self.assertIn("scope after the checks", verify["reasons"][0])
+        self.assertFalse((self.repo / "stray.txt").exists())  # removed although the second snapshot never completed
+        self.assertEqual(git(self.repo, "status", "--porcelain"), "")
+
+    def test_the_verifier_ignores_the_repo_config_that_would_run_code(self) -> None:
+        self.started()
+        self.edit()
+        marker = self.tmp / "ran"
+        git(self.repo, "config", "core.fsmonitor", f"touch {marker}; echo")
+        git(self.repo, "config", "core.pager", f"touch {marker}")
+        self.assertEqual(self.verify().returncode, 0)
+        self.assertEqual(self.run_script("task-done.sh", "ACME-7").returncode, 0)
+        self.assertFalse(marker.exists())
+
+    def test_the_default_environment_reaches_the_api_and_credentials_are_not_opted_in_silently(self) -> None:
+        env = {"HTTPS_PROXY": "http://p:3128", "NODE_EXTRA_CA_CERTS": "/ca.pem", "CLAUDE_CODE_USE_BEDROCK": "1", "AWS_REGION": "us-east-1",
+               "AWS_ACCESS_KEY_ID": "id", "GOOGLE_APPLICATION_CREDENTIALS": "/g.json", "MY_TOKEN": "t", "PAI_HARNESS_TOKEN_FILE": "/t", "GITHUB_TOKEN": "g"}
+        with mock.patch.dict(os.environ, {**env, "PAI_HARNESS_LANE_ENV": "MY_TOKEN,PAI_HARNESS_TOKEN_FILE,HARMLESS", "HARMLESS": "1"}), mock.patch("builtins.print") as printed:
+            lane = launcher.lane_env()
+        self.assertTrue({"HTTPS_PROXY", "NODE_EXTRA_CA_CERTS", "CLAUDE_CODE_USE_BEDROCK", "AWS_REGION", "AWS_ACCESS_KEY_ID", "HARMLESS"} <= set(lane))
+        self.assertFalse({"GOOGLE_APPLICATION_CREDENTIALS", "MY_TOKEN", "PAI_HARNESS_TOKEN_FILE", "GITHUB_TOKEN"} & set(lane))  # Vertex not selected; secrets refused
+        self.assertEqual(len(printed.call_args_list), 2)
+        with mock.patch.dict(os.environ, {"PAI_HARNESS_LANE_ENV": "MY_TOKEN", "MY_TOKEN": "t", "PAI_HARNESS_LANE_ENV_ALLOW_SECRETS": "1"}):
+            self.assertIn("MY_TOKEN", launcher.lane_env())
+
+    @unittest.skipUnless(os.environ.get("PAI_HARNESS_LIVE_CLAUDE") == "1", "set PAI_HARNESS_LIVE_CLAUDE=1 to run the installed claude (a real, tiny Haiku call)")
+    def test_live_an_absolute_edit_outside_the_run_directory_is_denied(self) -> None:
+        outside = self.tmp / "outside.txt"
+        outside.write_text("secret\n")
+        args = launcher.argparse.Namespace(cwd=str(self.repo), role="mechanical", profile="mechanical", model="haiku", resume_run=False, allowed_tools=None)
+        config, _ = launcher.lib.load_config(self.env["PAI_HARNESS_CONFIG"])
+        allow, deny = launcher.lane_permissions(args, config)
+        done = subprocess.run(["claude", "-p", "--model", "haiku", "--max-turns", "6", "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}', "--tools", "Read,Edit,Grep,Glob",
+                               "--allowed-tools", *allow, "--disallowed-tools", *deny], input=f"Edit {outside} replacing secret with leaked, then Edit {self.repo}/.git/config appending a line.",
+                              text=True, capture_output=True, timeout=170, cwd=self.repo)
+        self.assertEqual(outside.read_text(), "secret\n", done.stdout)
+        self.assertNotIn("leaked", (self.repo / ".git/config").read_text())
 
 
 class SamplerTest(MechanicalCase):

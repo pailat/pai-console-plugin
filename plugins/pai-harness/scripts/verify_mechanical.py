@@ -10,8 +10,8 @@ worktree. Anything else is a `discard`: the paths the run changed are restored t
 Fail closed: any git failure, timeout or discard error writes a `discard` verdict (replacing any earlier one), prints a BLOCKER and exits 1.
 The verdict carries the HEAD and a digest of the changed content; `task-done.sh` re-checks both before it closes the issue.
 
-Sampling: every 5th passing run (a persistent counter in the state dir, not a hash) is marked for a Sonnet review. `--sample-every` can only
-make that stricter (1 to 5). `task-done.sh` then needs a review file naming this run's digest (`--sample-reviewed FILE`).
+Sampling: every 5th passing run (a persistent counter in the state dir keyed by issue and run id, not a hash) is marked for a Sonnet review.
+`--sample-every N` (1 to 5) can only add runs to that, never remove one. `task-done.sh` then needs a review file naming this run's digest (`--sample-reviewed FILE`).
 
 Usage: verify-mechanical.sh ISSUE (--check CMD ... | --gate NAME ...) [--sample-every N] [--keep] [--config FILE] [--dry-run]
 Exit: 0 pass, 1 discard (or, with --dry-run, anything that is not a verified pass), 2 usage.
@@ -36,8 +36,8 @@ CHECK_TIMEOUT_SECONDS = 900
 OUTPUT_TAIL_LINES = 15
 
 
-def sample_slot(state: Path, issue: str) -> int:
-    """This issue's place in the count of passing mechanical runs. Persistent and locked; an issue keeps its slot when it is verified again."""
+def sample_slot(state: Path, key: str) -> int:
+    """This run's place in the count of passing mechanical runs (key: issue and run id). Persistent and locked; a run keeps its slot when verified again."""
     path = state / "mechanical_samples.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     with (state / "mechanical_samples.lock").open("w") as lock:
@@ -47,10 +47,10 @@ def sample_slot(state: Path, issue: str) -> int:
             issues = data["issues"] if isinstance(data.get("issues"), dict) else {}
         except (OSError, ValueError, AttributeError):
             issues = {}
-        if issue not in issues:
-            issues[issue] = max([n for n in issues.values() if isinstance(n, int)] + [0]) + 1
-            lib.write_json(path, {"passes": issues[issue], "issues": issues})
-        return issues[issue]
+        if key not in issues:
+            issues[key] = max([n for n in issues.values() if isinstance(n, int)] + [0]) + 1
+            lib.write_json(path, {"passes": issues[key], "issues": issues})
+        return issues[key]
 
 
 def run_checks(cwd: str, commands: list[str]) -> list[dict]:
@@ -78,6 +78,9 @@ def discard(root: str, base: str, paths: list[str], baseline: dict) -> tuple[lis
     problems: list[str] = []
     for path in paths:
         try:
+            if path.endswith("/"):
+                problems.append(f"{path}: a dependency/cache directory changed; it is not in git and cannot be restored")
+                continue
             target = (base_root / path).resolve()
             if base_root not in target.parents:
                 problems.append(f"{path}: resolves outside the worktree, left alone")
@@ -87,7 +90,7 @@ def discard(root: str, base: str, paths: list[str], baseline: dict) -> tuple[lis
                 if restored.returncode != 0:
                     problems.append(f"{path}: git restore failed: {restored.stderr.strip()}")
                     continue
-            elif path in baseline:
+            elif path in baseline.get("files", {}):
                 problems.append(f"{path}: an ignored file that existed before the run was changed; it cannot be restored from git")
                 continue
             else:
@@ -105,7 +108,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("issue")
     parser.add_argument("--check", action="append", default=[], help="a project check command, run in the worktree (repeatable)")
     parser.add_argument("--gate", action="append", default=[], help="a [gates] entry of the config to run as a check (repeatable)")
-    parser.add_argument("--sample-every", type=int, default=SAMPLE_EVERY, help="mark one passing run in N for a Sonnet review; N is 1 to 5 (default 5): it can only be made stricter")
+    parser.add_argument("--sample-every", type=int, default=SAMPLE_EVERY, help="also mark every N-th passing run (N 1 to 5) for a Sonnet review; every 5th is always marked, this only adds")
     parser.add_argument("--keep", action="store_true", help="report a discard but leave the changes in the worktree")
     parser.add_argument("--config")
     parser.add_argument("--dry-run", action="store_true", help="decide and print the scope check, but run no check, discard nothing and write no record; the verdict is never `pass`")
@@ -143,21 +146,22 @@ def main(argv: list[str]) -> int:
     checks: list[dict] = []
     discarded: list[str] = []
     problems: list[str] = []
-    head, digest = "", ""
+    head, digest, verify_baseline = "", "", ""
     baseline: dict = {}
 
-    def measure() -> None:
+    def measure(against: dict, tolerant: bool = False) -> dict:
         nonlocal changed, outside, head, digest
-        now = scope.snapshot(root, base, record.get("ignored_baseline"))
+        now = scope.snapshot(root, base, against, tolerant, listed)
         changed, head, digest = now["changed"], now["head"], now["digest"]
         outside = [p for p in changed if p not in listed]
+        return now["ignored"]
 
     try:
         top, _ = scope.toplevel(root)
         if top != str(Path(root).resolve()):
             raise scope.ScopeError(f"the recorded worktree root {root} is not the repository root {top}")
         baseline = scope.read_baseline(record.get("ignored_baseline"))
-        measure()
+        ignored_before = measure(baseline)
         if record.get("state") != "done":
             reasons.append(f"the run is {record.get('state')}: {record.get('reason')}")
         if outside:
@@ -167,15 +171,25 @@ def main(argv: list[str]) -> int:
         if not outside and not [p for p in changed if p in listed]:
             reasons.append("no listed file changed")
         if not reasons and not args.dry_run:
+            # The lane's own writes are vetted. What the checks write (caches, build output) is judged against the state right before them.
+            before_checks = scope.write_state(state / "runs" / f"{issue}.ignored.verify.json", ignored_before)
             checks = run_checks(record["cwd"], commands)
             failed = [c for c in checks if c["exit_code"] != 0]
             if failed:
                 reasons.append(f"check failed (exit {failed[0]['exit_code']}): {failed[0]['command']}")
-            measure()  # the checks ran code in the worktree: what they wrote counts too
-            if outside:
-                reasons.append("changed outside the listed files after the checks: " + ", ".join(outside))
-            if head != base:
-                reasons.append(f"HEAD moved during the checks from {base[:12]} to {head[:12]}")
+            try:
+                measure(ignored_before, tolerant=True)
+                verify_baseline = str(before_checks)
+                if outside:
+                    reasons.append("changed outside the listed files after the checks: " + ", ".join(outside))
+                if head != base:
+                    reasons.append(f"HEAD moved during the checks from {base[:12]} to {head[:12]}")
+            except (scope.ScopeError, OSError, subprocess.SubprocessError) as error:
+                reasons.append(f"could not measure the scope after the checks (fail closed), so it is unknown: {error}")
+                try:  # best effort for the discard: a fresh listing, not the stale pre-check one
+                    changed = sorted(set(changed) | scope.tracked_and_untracked(root, base))
+                except (scope.ScopeError, OSError, subprocess.SubprocessError):
+                    problems.append("paths written by the checks could not be listed")
     except (scope.ScopeError, OSError, subprocess.SubprocessError, KeyError) as error:
         reasons.append(f"could not establish the diff scope (fail closed): {error}")
     verdict = "discard" if reasons else ("unverified" if args.dry_run else "pass")
@@ -188,12 +202,16 @@ def main(argv: list[str]) -> int:
         if problems:
             reasons.append("could not undo everything: " + "; ".join(problems))
     sample_review, slot = False, None
+    sample_key = f"{issue}:{record.get('run_id') or record.get('started')}"
     if verdict == "pass":
-        slot = sample_slot(state, issue)
-        sample_review = slot % args.sample_every == 0
+        slot = sample_slot(state, sample_key)
+        earlier = record.get("verify") or {}
+        # The constant rule decides; --sample-every and an earlier sampled verdict of this same run can only add to it.
+        sample_review = (slot % SAMPLE_EVERY == 0 or slot % args.sample_every == 0
+                         or bool(earlier.get("verdict") == "pass" and earlier.get("sample_key") == sample_key and earlier.get("sample_review")))
     result = {"issue": issue, "verdict": verdict, "reasons": reasons, "files": listed, "changed": changed, "outside": outside, "checks": checks,
-              "discarded": discarded, "sample_review": sample_review, "sample_every": args.sample_every, "sample_slot": slot,
-              "base": base, "head": head, "digest": digest,
+              "discarded": discarded, "sample_review": sample_review, "sample_every": args.sample_every, "sample_slot": slot, "sample_key": sample_key,
+              "base": base, "head": head, "digest": digest, "ignored_baseline": verify_baseline,
               "model": record.get("model"), "cost_usd": record.get("cost_usd"), "turns": record.get("turns"), "verified": lib.stamp()}
     if args.dry_run:
         lib.show({**result, "dry_run": True})

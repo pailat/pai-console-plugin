@@ -24,13 +24,20 @@ import mechanical_scope as scope  # noqa: E402
 
 
 def stale_verdict(record: dict, verify: dict) -> str:
-    """Why a passing verdict no longer holds for the tree as it is now (HEAD or any changed content differs), else ''. Fails closed on a git error."""
+    """Why a passing verdict no longer holds for the tree as it is now, else ''. Fails closed on a git error.
+
+    The digest covers the content of every path that differs from the start commit, so the work may have been committed since
+    (HEAD a descendant of the start commit with the same net change) but nothing else may differ.
+    """
+    root = record.get("root") or record["cwd"]
     try:
-        now = scope.snapshot(record.get("root") or record["cwd"], record["base"], record.get("ignored_baseline"))
+        before = scope.read_baseline(verify.get("ignored_baseline"))
+        now = scope.snapshot(root, record["base"], before, tolerant=True, listed=record.get("files"))
+        descends = now["head"] == record["base"] or scope.is_ancestor(root, record["base"], now["head"])
     except (scope.ScopeError, KeyError) as error:
         return f"the tree cannot be checked against the verdict ({error})"
-    if not verify.get("digest") or now["digest"] != verify["digest"] or now["head"] != verify.get("head"):
-        return "the worktree changed after the verdict (HEAD or the changed content differs)"
+    if not verify.get("digest") or now["digest"] != verify["digest"] or not descends:
+        return "the worktree changed after the verdict (the changed content differs, or HEAD is no longer a descendant of the start commit)"
     return ""
 
 

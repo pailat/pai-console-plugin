@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shlex
 import subprocess
 from subprocess import run as run_process  # bare name: the denylist reads a dotted call ending in the run top-level domain as a hostname
@@ -44,8 +45,15 @@ MECHANICAL_MODELS = ("haiku", "sonnet")  # Haiku by default; `--model sonnet` is
 GLOB_CHARS = set("*?")  # [ ] { } are valid filename characters (app/[slug]/page.tsx); paths are compared and passed to git as literals
 LANE_ENV_KEYS = ("PATH", "HOME", "USER", "LOGNAME", "SHELL", "LANG", "LANGUAGE", "TERM", "TMPDIR", "TZ", "XDG_CONFIG_HOME", "XDG_DATA_HOME",
                  "XDG_CACHE_HOME", "XDG_STATE_HOME", "XDG_RUNTIME_DIR", "CLAUDE_CONFIG_DIR", "CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_API_KEY",
-                 "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL")  # what `claude` needs to run and sign in; nothing of Pai, SSH or cloud credentials
+                 "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "ALL_PROXY", "http_proxy", "https_proxy",
+                 "no_proxy", "all_proxy", "SSL_CERT_FILE", "SSL_CERT_DIR", "NODE_EXTRA_CA_CERTS", "REQUESTS_CA_BUNDLE", "CLAUDE_CODE_USE_BEDROCK",
+                 "CLAUDE_CODE_USE_VERTEX")  # what `claude` needs to run, sign in and reach the API; nothing of Pai, SSH or other credentials
+BEDROCK_ENV = ("AWS_REGION", "AWS_DEFAULT_REGION", "AWS_PROFILE", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN",
+               "AWS_BEARER_TOKEN_BEDROCK", "ANTHROPIC_BEDROCK_BASE_URL")  # passed only when CLAUDE_CODE_USE_BEDROCK is set
+VERTEX_ENV = ("GOOGLE_APPLICATION_CREDENTIALS", "ANTHROPIC_VERTEX_PROJECT_ID", "CLOUD_ML_REGION", "ANTHROPIC_VERTEX_BASE_URL")  # only with CLAUDE_CODE_USE_VERTEX
 LANE_ENV_EXTRA = "PAI_HARNESS_LANE_ENV"  # the operator may name more variables (comma separated) to pass to the lane
+LANE_ENV_SECRETS = "PAI_HARNESS_LANE_ENV_ALLOW_SECRETS"  # =1 lets LANE_ENV_EXTRA name credential-looking variables (printed when used)
+SECRET_NAME = re.compile(r"TOKEN|SECRET|KEY|PASSWORD|CREDENTIAL|^PAI_HARNESS_", re.IGNORECASE)
 HOOK_KEYS = ("PAI_HARNESS_ROLE", "PAI_HARNESS_AGENT", "PAI_HARNESS_ZONES", "PAI_HARNESS_BRIEF", "PAI_HARNESS_PUSH_WRAPPER", "PAI_HARNESS_BASE",
              "PAI_HARNESS_STREAM", "PAI_HARNESS_KNOWLEDGE_ORG", "PAI_HARNESS_KNOWLEDGE_PROJECT", "PAI_HARNESS_KNOWLEDGE_PRODUCT")
 KNOWLEDGE_ENV = ("PAI_HARNESS_STREAM", "PAI_HARNESS_KNOWLEDGE_ORG", "PAI_HARNESS_KNOWLEDGE_PROJECT", "PAI_HARNESS_KNOWLEDGE_PRODUCT")
@@ -164,6 +172,30 @@ def remaining_caps(args: argparse.Namespace, config: dict, previous: dict | None
     return turns, budget, None
 
 
+def abs_rule(tool: str, path: str, tail: str = "/**") -> str:
+    return f"{tool}(/{path}{tail})"  # a leading // is an absolute path in a Claude Code permission rule
+
+
+def lane_permissions(args: argparse.Namespace, config: dict) -> tuple[list[str], list[str]]:
+    """Scoped permission rules for the lane: Edit only under the run directory, never .git (the repo's and the common one), the harness state
+    dir or a dependency directory; Read denied for credential and state locations (deny rules win over allows, so Read elsewhere is not
+    confined: a deny of everything would also deny the worktree). Checked against the installed claude: an absolute Edit outside is denied."""
+    cwd = str(Path(args.cwd or os.getcwd()).resolve())
+    state = str(lib.state_dir(config).resolve())
+    guarded = [state, str(Path("~/.config/pai-harness").expanduser()), *[str(Path(f"~/{d}").expanduser()) for d in (".ssh", ".aws", ".gnupg", ".config/gcloud", ".claude")]]
+    git_dirs = []
+    try:
+        root, _ = scope.toplevel(cwd)
+        git_dirs = [os.path.join(root, ".git"), scope.common_git_dir(root)]
+    except scope.ScopeError:
+        git_dirs = [os.path.join(cwd, ".git")]
+    bulk = [os.path.join(cwd, d) for d in sorted(scope.BULK_DIRS) if os.path.isdir(os.path.join(cwd, d))]
+    allow = [abs_rule("Read", cwd), abs_rule("Edit", cwd), "Grep", "Glob"]
+    deny = [abs_rule("Edit", p) for p in (*guarded, *git_dirs, *bulk)] + [abs_rule("Edit", p, "") for p in git_dirs]
+    deny += [abs_rule("Read", p) for p in (*guarded, *git_dirs)]
+    return allow, list(dict.fromkeys(deny))
+
+
 def claude_command(args: argparse.Namespace, config: dict, resume: str | None, mcp_config: Path | None = None, previous: dict | None = None) -> list[str]:
     model = args.model or config["models"].get(args.role or "implementer", "sonnet")
     output = ["--output-format", "json"] if args.profile else ["--output-format", "stream-json", "--verbose"]
@@ -177,8 +209,9 @@ def claude_command(args: argparse.Namespace, config: dict, resume: str | None, m
     command += ["--max-turns", str(max(turns, 1)), "--max-budget-usd", format(budget, ".4f").rstrip("0").rstrip(".")]
     if resume:
         command += ["--resume", resume]
-    if args.profile:  # the tool set is fixed: --tools removes every other built-in tool, --allowed-tools approves these without a prompt
-        command += ["--tools", ",".join(MECHANICAL_TOOLS), "--allowed-tools", *MECHANICAL_TOOLS]
+    if args.profile:  # the tool set is fixed: --tools removes every other built-in tool; the allow rules are scoped, and -p denies what no rule allows
+        allow, deny = lane_permissions(args, config)
+        command += ["--tools", ",".join(MECHANICAL_TOOLS), "--allowed-tools", *allow, "--disallowed-tools", *deny]
     elif args.allowed_tools:
         command += ["--allowed-tools", *args.allowed_tools]
     return command
@@ -240,12 +273,22 @@ def hook_env(args: argparse.Namespace, config: dict, state: Path, config_path: P
 def lane_env() -> dict[str, str]:
     """The environment of the mechanical lane: an allowlist, not os.environ, and no PAI_HARNESS_ROLE.
 
-    No Pai/machine token variable, SSH or cloud credential reaches the child. Without PAI_HARNESS_ROLE the plugin hooks (Stop delta
-    marker, zone checks) do nothing: the lane has no Write or MCP to satisfy them and its guard is verify-mechanical.sh, which checks the
-    diff against --files and discards the run otherwise.
+    No Pai/machine token variable, SSH or unrelated cloud credential reaches the child; the Bedrock or Vertex variables are passed only when that
+    provider is selected. PAI_HARNESS_LANE_ENV adds names, but a credential-looking one (TOKEN, SECRET, KEY, PASSWORD, CREDENTIAL, PAI_HARNESS_*) is
+    refused unless PAI_HARNESS_LANE_ENV_ALLOW_SECRETS=1, and the refusal is printed. Without PAI_HARNESS_ROLE the plugin hooks (Stop delta marker,
+    zone checks) do nothing: the lane has no Write or MCP to satisfy them and its guard is the permission rules plus verify-mechanical.sh.
     """
-    extra = [n.strip() for n in os.environ.get(LANE_ENV_EXTRA, "").split(",") if n.strip()]
-    return {k: v for k, v in os.environ.items() if k in LANE_ENV_KEYS or k.startswith("LC_") or k in extra}
+    allowed = set(LANE_ENV_KEYS)
+    if os.environ.get("CLAUDE_CODE_USE_BEDROCK"):
+        allowed.update(BEDROCK_ENV)
+    if os.environ.get("CLAUDE_CODE_USE_VERTEX"):
+        allowed.update(VERTEX_ENV)
+    for name in (n.strip() for n in os.environ.get(LANE_ENV_EXTRA, "").split(",") if n.strip()):
+        if SECRET_NAME.search(name) and os.environ.get(LANE_ENV_SECRETS) != "1":
+            print(f"mechanical lane: {LANE_ENV_EXTRA} name {name!r} looks like a credential and is NOT passed (set {LANE_ENV_SECRETS}=1 to allow it)", file=sys.stderr)
+            continue
+        allowed.add(name)
+    return {k: v for k, v in os.environ.items() if k in allowed or k.startswith("LC_")}
 
 
 class InitCheck:

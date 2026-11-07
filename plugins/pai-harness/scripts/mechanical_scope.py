@@ -4,8 +4,13 @@ Shared by launch.py (baseline before the run), verify_mechanical.py (verdict) an
 is a ScopeError: callers fail closed on it, they never treat it as "nothing changed".
 
 Three sources make the changed set: tracked paths that differ from the start commit (staged or not), untracked paths, and
-gitignored paths that are new or different from the baseline taken at launch (an ignored file like `.env` is invisible to
-`git diff` and `git status`, and the lane has Edit).
+gitignored paths that are new or different from a baseline (an ignored file like `.env` is invisible to `git diff` and
+`git status`, and the lane has Edit).
+
+Ignored paths are fingerprinted cheaply: a dependency/cache directory (BULK_DIRS: node_modules, .venv, target...) is fingerprinted by the
+mtimes of its directories only, every other ignored file by size and mtime. Two modes: strict (launch baseline vs the lane's own edits)
+and, after the project checks, tolerant: the checks may write caches and build output, so only sensitive ignored names (SENSITIVE) and
+the listed files still count. Every git call runs with the repo's own config neutralised (see git()).
 """
 from __future__ import annotations
 
@@ -17,7 +22,15 @@ import subprocess
 from pathlib import Path
 from subprocess import run as run_process  # bare name: the denylist reads a dotted call ending in the run top-level domain as a hostname
 
+import fnmatch
+
 GIT_TIMEOUT_SECONDS = 300
+BULK_DIRS = frozenset({"node_modules", ".venv", "venv", "env", "target", "dist", ".tox", ".nox", ".mypy_cache", ".pytest_cache", ".ruff_cache",
+                       ".next", ".nuxt", ".gradle", ".cache", "__pycache__", "vendor", "coverage", ".terraform"})
+SENSITIVE = (".env", "*.env", ".env.*", "*.pem", "*.key", ".npmrc", ".netrc", ".pypirc", "*settings?local?json", "*credentials*", "id_rsa*", "*.p12")
+# Command-line -c overrides the repository's own config, so a hook, fsmonitor or pager written into .git cannot run inside the verifier.
+GIT_HARDENING = ("-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null", "-c", "core.pager=cat", "-c", "core.untrackedCache=false",
+                 "-c", "diff.external=", "-c", "protocol.ext.allow=never")
 
 
 class ScopeError(Exception):
@@ -26,9 +39,9 @@ class ScopeError(Exception):
 
 def git(root: str, *argv: str) -> subprocess.CompletedProcess:
     # GIT_LITERAL_PATHSPECS: a path like app/[slug]/page.tsx is a literal name, not a glob.
-    env = {**os.environ, "GIT_LITERAL_PATHSPECS": "1"}
+    env = {**os.environ, "GIT_LITERAL_PATHSPECS": "1", "GIT_OPTIONAL_LOCKS": "0"}
     try:
-        return run_process(["git", "-C", root, *argv], capture_output=True, text=True, timeout=GIT_TIMEOUT_SECONDS, env=env)
+        return run_process(["git", *GIT_HARDENING, "-C", root, *argv], capture_output=True, text=True, timeout=GIT_TIMEOUT_SECONDS, env=env)
     except (OSError, subprocess.SubprocessError) as error:
         raise ScopeError(f"git {argv[0]} failed: {error}") from error
 
@@ -49,6 +62,12 @@ def toplevel(cwd: str) -> tuple[str, str]:
     return str(Path(root).resolve()), prefix
 
 
+def common_git_dir(root: str) -> str:
+    """The absolute common git directory (the main checkout's .git for a linked worktree): where config and hooks live."""
+    out = git_ok(root, "rev-parse", "--path-format=absolute", "--git-common-dir").strip()
+    return str(Path(out).resolve()) if out else os.path.join(root, ".git")
+
+
 def root_relative(prefix: str, files: list[str]) -> list[str]:
     return [posixpath.normpath(prefix + f) for f in files]
 
@@ -57,57 +76,129 @@ def _listing(root: str, *argv: str) -> list[str]:
     return [p for p in git_ok(root, *argv).split("\0") if p]
 
 
-def ignored_files(root: str) -> dict[str, list[int]]:
-    """Every gitignored untracked file with its size and mtime, so a later change to one is visible."""
-    out: dict[str, list[int]] = {}
-    for path in _listing(root, "ls-files", "--others", "--ignored", "--exclude-standard", "-z"):
+def _lstat(root: str, path: str) -> list[int] | None:
+    try:
+        info = os.lstat(os.path.join(root, path))
+    except OSError:
+        return None
+    return [info.st_size, info.st_mtime_ns]
+
+
+def _dir_fingerprint(root: str, rel: str) -> dict[str, int]:
+    """mtime of a directory and of every directory below it: a created or removed entry changes its parent's mtime. Files are not stat'ed."""
+    out: dict[str, int] = {}
+    for current, dirnames, _ in os.walk(os.path.join(root, rel)):
         try:
-            info = os.lstat(os.path.join(root, path))
+            out[os.path.relpath(current, root)] = os.lstat(current).st_mtime_ns
         except OSError:
             continue
-        out[path] = [info.st_size, info.st_mtime_ns]
+        dirnames[:] = [d for d in dirnames if not os.path.islink(os.path.join(current, d))]
     return out
 
 
-def write_baseline(root: str, path: Path) -> Path:
+def ignored_state(root: str) -> dict:
+    """The gitignored untracked files (size, mtime) and, for the BULK_DIRS, a directory-level fingerprint."""
+    files: dict[str, list[int]] = {}
+    dirs: dict[str, dict[str, int]] = {}
+    for entry in _listing(root, "ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "-z"):
+        if not entry.endswith("/"):
+            stat = _lstat(root, entry)
+            if stat:
+                files[entry] = stat
+            continue
+        rel = entry.rstrip("/")
+        if posixpath.basename(rel) in BULK_DIRS:
+            dirs[rel] = _dir_fingerprint(root, rel)
+            continue
+        for current, dirnames, filenames in os.walk(os.path.join(root, rel)):
+            for name in (*filenames, *[d for d in dirnames if os.path.islink(os.path.join(current, d))]):
+                path = os.path.relpath(os.path.join(current, name), root)
+                stat = _lstat(root, path)
+                if stat:
+                    files[path] = stat
+            dirnames[:] = [d for d in dirnames if not os.path.islink(os.path.join(current, d))]
+    return {"files": files, "dirs": dirs}
+
+
+def write_state(path: Path, state: dict) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(ignored_files(root)), encoding="utf-8")
+    path.write_text(json.dumps(state), encoding="utf-8")
     return path
 
 
-def read_baseline(path: str | None) -> dict[str, list[int]]:
+def write_baseline(root: str, path: Path) -> Path:
+    return write_state(path, ignored_state(root))
+
+
+def read_baseline(path: str | None) -> dict:
     try:
         data = json.loads(Path(path or "").read_text(encoding="utf-8"))
     except (OSError, ValueError) as error:
-        raise ScopeError(f"the ignored-files baseline taken at launch is missing or unreadable: {error}") from error
-    if not isinstance(data, dict):
-        raise ScopeError("the ignored-files baseline is not a mapping")
+        raise ScopeError(f"the ignored-files baseline is missing or unreadable: {error}") from error
+    if not isinstance(data, dict) or not isinstance(data.get("files"), dict) or not isinstance(data.get("dirs"), dict):
+        raise ScopeError("the ignored-files baseline is not in the expected shape")
     return data
 
 
-def changed_paths(root: str, base: str, baseline: dict[str, list[int]]) -> list[str]:
-    """Every path that differs from the start commit: tracked, untracked, and ignored ones new or modified since the baseline."""
-    found = set(_listing(root, "diff", "--name-only", "--no-renames", "-z", base))
+def sensitive(path: str) -> bool:
+    name = posixpath.basename(path.rstrip("/"))
+    return any(fnmatch.fnmatch(name, pattern) for pattern in SENSITIVE)
+
+
+def ignored_diff(baseline: dict, now: dict) -> set[str]:
+    out = {p for p, stat in now["files"].items() if baseline["files"].get(p) != stat}
+    out.update(p for p in baseline["files"] if p not in now["files"])
+    for d, fingerprint in now["dirs"].items():
+        old = baseline["dirs"].get(d)
+        if old is None:
+            out.add(d + "/")
+            continue
+        out.update(sub + "/" for sub in {*fingerprint, *old} if fingerprint.get(sub) != old.get(sub))
+    out.update(d + "/" for d in baseline["dirs"] if d not in now["dirs"])
+    return out
+
+
+def tracked_and_untracked(root: str, base: str) -> set[str]:
+    found = set(_listing(root, "diff", "--name-only", "--no-renames", "--no-ext-diff", "--no-textconv", "-z", base))
     found.update(_listing(root, "ls-files", "--others", "--exclude-standard", "-z"))
-    now = ignored_files(root)
-    found.update(p for p, stat in now.items() if baseline.get(p) != stat)
-    found.update(p for p in baseline if p not in now and not os.path.lexists(os.path.join(root, p)))  # an ignored file the run deleted
-    return sorted(found)
+    return found
+
+
+def changed_paths(root: str, base: str, baseline: dict, now: dict | None = None, tolerant: bool = False, listed: list[str] | None = None) -> list[str]:
+    """Every path that differs from the start commit. Strict: ignored paths new or changed since the baseline all count.
+
+    Tolerant (after the checks, which may legitimately write caches and build output): of the ignored paths only the sensitive names
+    and the listed files count; tracked and untracked paths always count.
+    """
+    found = tracked_and_untracked(root, base)
+    ignored = ignored_diff(baseline, now if now is not None else ignored_state(root))
+    if tolerant:
+        ignored = {p for p in ignored if sensitive(p) or p in (listed or [])}
+    return sorted(found | ignored)
 
 
 def head_of(root: str) -> str:
     return git_ok(root, "rev-parse", "HEAD").strip()
 
 
-def digest(root: str, head: str, paths: list[str]) -> str:
-    """A hash of HEAD and the content of every changed path: the identity of exactly the work a verdict covers."""
-    h = hashlib.sha256(head.encode() + b"\0")
+def is_ancestor(root: str, base: str, head: str) -> bool:
+    return git(root, "merge-base", "--is-ancestor", base, head).returncode == 0
+
+
+def digest(root: str, paths: list[str]) -> str:
+    """A hash of the content of every changed path (against the start commit): the identity of exactly the work a verdict covers.
+
+    HEAD is not part of it: committing the verified work (a descendant of the start commit with the same net change) keeps the digest.
+    """
+    h = hashlib.sha256()
     for path in sorted(paths):
         full = os.path.join(root, path)
         h.update(path.encode() + b"\0")
         try:
             if os.path.islink(full):
                 h.update(b"link:" + os.readlink(full).encode())
+            elif os.path.isdir(full):
+                h.update(b"dir")
             else:
                 h.update(hashlib.sha256(Path(full).read_bytes()).digest())
         except OSError:
@@ -116,8 +207,9 @@ def digest(root: str, head: str, paths: list[str]) -> str:
     return h.hexdigest()
 
 
-def snapshot(root: str, base: str, baseline_path: str | None) -> dict:
-    """The current scope of a run: head, changed paths and the digest binding them."""
+def snapshot(root: str, base: str, baseline: dict, tolerant: bool = False, listed: list[str] | None = None) -> dict:
+    """The current scope of a run: head, changed paths, the digest binding them and the ignored state that was scanned (reusable as a baseline)."""
     head = head_of(root)
-    changed = changed_paths(root, base, read_baseline(baseline_path))
-    return {"head": head, "changed": changed, "digest": digest(root, head, changed)}
+    now = ignored_state(root)
+    changed = changed_paths(root, base, baseline, now, tolerant, listed)
+    return {"head": head, "changed": changed, "digest": digest(root, changed), "ignored": now}
