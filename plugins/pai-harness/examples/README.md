@@ -6,6 +6,8 @@
 
 ## Permission policy
 
+**Step 0 on every machine that runs bypass agents (desktop, laptop, MacBook): run `python3 <plugin>/scripts/deny_baseline.py --check` (or `health.sh check`) before starting any agent.** `launch.sh` runs the same check, but an interactive agent start (for example `herdr agent start`) never goes through `launch.sh`, so the deny rules can be absent without anything noticing. The check exits non-zero with a `FAIL deny-baseline` message that lists the missing rules and the settings files it read; the agent-start wrapper is meant to call it too. Pass `--role integrator` or `--role orchestrator` for the roles that merge, and `--strict` when strict MCP is in force.
+
 Every pai-harness role runs with `--permission-mode bypassPermissions`. `launch.sh` and `/task-start` pass it by default; a project opts out with `[run] bypass_permissions = false` in `.pai-harness.toml`. Bypass removes permission prompts, which stalled the fleet; it does not remove process.
 
 Bypass auto-approves every tool that a deny rule does not stop, including every MCP tool, so the safety is two layers, and the first is checked:

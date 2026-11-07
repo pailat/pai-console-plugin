@@ -323,6 +323,61 @@ class PreflightTest(HarnessCase):
         self.blocked(self.launch("ACME-7", "success", 0))
 
 
+class StandaloneCheckTest(HarnessCase):
+    """deny_baseline.py --check and health.sh check: the machine-wide guard for agents that never go through launch.sh."""
+
+    def check(self, *args: str) -> subprocess.CompletedProcess:
+        return subprocess.run([sys.executable, str(SCRIPTS / "deny_baseline.py"), "--check", *args], text=True, capture_output=True, env=self.env,
+                              cwd=self.tmp, timeout=60)
+
+    def test_present_exits_zero(self) -> None:
+        done = self.check()
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn("OK deny-baseline", done.stdout)
+
+    def test_missing_rules_exit_non_zero_with_a_loud_named_message(self) -> None:
+        write_deny_settings(self.claude_home / "settings.json", [r for r in deny_baseline.baseline(False, "implementer") if r != "Bash(sudo *)"])
+        done = self.check()
+        self.assertEqual(done.returncode, 1)
+        self.assertIn("FAIL deny-baseline: 1 deny rules are missing", done.stderr)
+        self.assertIn("missing Bash(sudo *)", done.stderr)
+        self.assertIn(str(self.claude_home / "settings.json"), done.stderr)
+        self.assertIn("Fix:", done.stderr)
+
+    def test_a_machine_without_any_settings_file_fails_and_lists_the_files_it_looked_for(self) -> None:
+        (self.claude_home / "settings.json").unlink()
+        done = self.check()
+        self.assertEqual(done.returncode, 1)
+        self.assertIn("settings absent:", done.stderr)
+        self.assertIn(str(self.claude_home / "settings.json"), done.stderr)
+        self.assertIn(f"{len(deny_baseline.baseline(False, 'implementer'))} deny rules are missing", done.stderr)
+
+    def test_role_and_strict_flags_change_what_is_required(self) -> None:
+        write_deny_settings(self.claude_home / "settings.json", deny_baseline.baseline(True, "integrator"))
+        self.assertEqual(self.check("--strict", "--role", "integrator").returncode, 0)
+        self.assertEqual(self.check("--strict").returncode, 1)  # an implementer also needs the merge denials
+        self.assertEqual(self.check("--role", "integrator").returncode, 1)  # open MCP needs every known server
+
+    def test_health_check_fails_by_name_when_bypass_may_run_and_the_baseline_is_missing(self) -> None:
+        self.run_script("health.sh", "beat", "ACME-7", "--state", "done")
+        self.assertEqual(self.run_script("health.sh", "check").returncode, 0)
+        (self.claude_home / "settings.json").unlink()
+        done = self.run_script("health.sh", "check")
+        self.assertEqual(done.returncode, 4, done.stdout + done.stderr)
+        self.assertIn("FAIL deny-baseline", done.stderr)
+        self.assertEqual(json.loads(done.stdout)["deny_baseline"], "FAIL")
+
+    def test_health_check_skips_the_baseline_when_bypass_is_off_or_waived(self) -> None:
+        (self.claude_home / "settings.json").unlink()
+        self.run_script("health.sh", "beat", "ACME-7", "--state", "done")
+        for body in ("[run]\nbypass_permissions = false\n", "[run]\nrequire_deny_baseline = false\n"):
+            config = self.tmp / "skip.toml"
+            config.write_text(MINIMAL + "\n" + body)
+            done = self.run_script("health.sh", "check", "--config", str(config))
+            self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+            self.assertEqual(json.loads(done.stdout)["deny_baseline"], "skipped")
+
+
 class WordingTest(unittest.TestCase):
     def test_no_text_claims_prompts_exist_in_headless_runs(self) -> None:
         for path in [PLUGIN_ROOT / "schema/pai-harness.schema.json", SCRIPTS / "launch.py", PLUGIN_ROOT / "examples/README.md"]:

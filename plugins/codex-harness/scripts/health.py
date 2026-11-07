@@ -2,16 +2,23 @@
 """Heartbeat and registry check.
 
 Usage: health.sh beat NAME [--state S] | health.sh check [--stale-minutes N] [--now ISO] [--config FILE]
-Exit codes of check: 0 every entry fresh, 1 at least one stale running entry, 2 empty registry or bad usage.
+Exit codes of check: 0 every entry fresh, 1 at least one stale running entry, 2 empty registry or bad usage, 4 the deny baseline is missing
+on this machine (a named FAIL on stderr): bypass agents may run here and the effective Claude Code settings lack the deny rules. The
+check is skipped when the config sets [run] bypass_permissions = false or require_deny_baseline = false. Take the same check before
+starting any agent with `deny_baseline.py --check`.
 """
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import deny_baseline  # noqa: E402
 import harness_lib as lib  # noqa: E402
+
+EXIT_DENY_BASELINE = 4
 
 
 def main(argv: list[str]) -> int:
@@ -36,11 +43,19 @@ def main(argv: list[str]) -> int:
         fields = {"state": args.state} if args.state else {}
         lib.show(lib.register(state, args.name, **fields))
         return 0
+    run = config["run"]
+    baseline_result = None
+    if run["bypass_permissions"] and run["require_deny_baseline"]:
+        baseline_result = deny_baseline.report(os.getcwd(), bool(config["pai"]["mcp_url"]), "implementer")
     at = lib.parse_stamp(args.now) if args.now else lib.now()
     found = lib.entries(state)
     report = [{"name": e["name"], "state": e.get("state"), "heartbeat": e.get("heartbeat"),
                "stale": e.get("state") == "running" and lib.is_stale(e, at, args.stale_minutes)} for e in found]
-    lib.show({"checked_at": lib.stamp(at), "stale_after_minutes": args.stale_minutes, "entries": report})
+    lib.show({"checked_at": lib.stamp(at), "stale_after_minutes": args.stale_minutes, "entries": report,
+              "deny_baseline": ("skipped" if baseline_result is None else "ok" if baseline_result["ok"] else "FAIL")})
+    if baseline_result and not baseline_result["ok"]:
+        print(deny_baseline.loud_message(baseline_result), file=sys.stderr)
+        return EXIT_DENY_BASELINE
     if not report:
         return lib.EXIT_USAGE
     return 1 if any(r["stale"] for r in report) else 0

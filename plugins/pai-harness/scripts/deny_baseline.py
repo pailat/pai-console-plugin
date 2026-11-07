@@ -4,13 +4,16 @@ Bypass auto-approves everything a deny rule does not stop, including every MCP t
 effective Claude Code settings carry these rules. The check reads the user, project, local and managed settings files;
 it is presence only (the exact rule strings), never a proof that every spelling of a command is caught: the plugin hooks
 are the second layer for git and zone rules, and nothing here covers a command that reads a secret through an interpreter.
-Stdlib only.
+Stdlib only. Run it standalone on every machine that runs bypass agents, before starting them (an interactive agent start never goes
+through launch.py): `deny_baseline.py --check [--cwd DIR] [--role ROLE] [--strict]` exits 0 when the baseline is present and 1 when it is not.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import re
+import sys
 from pathlib import Path
 
 PAI_PREFIXES = ("mcp__pai__", "mcp__plugin_pai-console_pai__")  # the harness machine server, and the interactive plugin server
@@ -149,3 +152,45 @@ def preflight_reason(missing: list[str]) -> str | None:
     return (f"bypassPermissions needs the deny baseline and {len(missing)} rules are missing from the effective Claude Code settings ({shown}); "
             "copy examples/settings.deny.json (and settings.deny.non-merge.json for a role that does not merge) into .claude/settings.json, "
             "or set [run] bypass_permissions = false")
+
+
+def report(cwd: str | os.PathLike | None, strict: bool, role: str) -> dict:
+    """The check result: whether the baseline is present, the rules missing, and every settings file looked at (and whether it exists)."""
+    files = settings_files(cwd)
+    have = effective_deny(files)
+    missing = [rule for rule in baseline(strict, role) if not any(covers(rule_, rule) for rule_ in have)]
+    return {"ok": not missing, "role": role, "strict_mcp": strict, "cwd": str(Path(cwd or os.getcwd())), "missing": missing,
+            "settings_files": [{"path": str(f), "exists": f.is_file()} for f in files]}
+
+
+def loud_message(result: dict, limit: int = 15) -> str:
+    """A named, multi-line FAIL text: the count, the settings files read, the first missing rules and the fix."""
+    missing = result["missing"]
+    lines = [f"FAIL deny-baseline: {len(missing)} deny rules are missing for role {result['role']} in {result['cwd']}; "
+             "bypass agents must not start on this machine until they are installed."]
+    lines += [f"  settings {'found' if f['exists'] else 'absent'}: {f['path']}" for f in result["settings_files"]]
+    lines += [f"  missing {rule}" for rule in missing[:limit]]
+    if len(missing) > limit:
+        lines.append(f"  ... and {len(missing) - limit} more")
+    lines.append("Fix: copy examples/settings.deny.json (and settings.deny.non-merge.json for a role that does not merge) into ~/.claude/settings.json "
+                 "or the project's .claude/settings.json, then run this check again.")
+    return "\n".join(lines)
+
+
+def main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="deny_baseline.py", description="Check that the effective Claude Code settings carry the deny baseline.")
+    parser.add_argument("--check", action="store_true", required=True)
+    parser.add_argument("--cwd", help="the directory the agent will start in (default: the current directory)")
+    parser.add_argument("--role", default="implementer", help="the agent's role (default implementer; integrator and orchestrator may merge)")
+    parser.add_argument("--strict", action="store_true", help="strict MCP is in force (only the machine Pai server is loaded)")
+    args = parser.parse_args(argv)
+    result = report(args.cwd, args.strict, args.role)
+    if result["ok"]:
+        print(f"OK deny-baseline: present for role {args.role} in {result['cwd']}")
+        return 0
+    print(loud_message(result), file=sys.stderr)
+    return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))
