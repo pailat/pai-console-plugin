@@ -206,6 +206,17 @@ class DenyExampleTest(unittest.TestCase):
         self.assertFalse(deny_baseline.covers("mcp__pai__iam_*", "mcp__pai__*delete*"))
         self.assertFalse(deny_baseline.covers("Read(./.env)", "Bash(sudo *)"))
 
+    def test_no_rule_mixes_a_mid_pattern_star_with_the_colon_star_suffix(self) -> None:
+        """A rule ending in `:*)` is the prefix form: a star earlier in it is not a glob there, so the rule would never match."""
+        rules = set(self.deny) | set(self.non_merge) | set(deny_baseline.NON_MERGE_RULES)
+        for strict in (True, False):
+            for role in ("implementer", "integrator", "orchestrator"):
+                rules |= set(deny_baseline.baseline(strict, role))
+        offenders = sorted(r for r in rules if r.startswith("Bash(") and r.endswith(":*)") and "*" in r[len("Bash("):-3])
+        self.assertEqual(offenders, [])
+        self.assertTrue(denied(self.deny, "git push origin :feature"))  # the delete refspec the rewritten rule still catches
+        self.assertFalse(denied(self.deny, "git push origin HEAD:feature"))
+
     def test_is_generic(self) -> None:
         for name in ("settings.deny.json", "settings.deny.non-merge.json"):
             self.assertNotRegex((PLUGIN_ROOT / "examples" / name).read_text(), r"/home/|/Users/|pailat")

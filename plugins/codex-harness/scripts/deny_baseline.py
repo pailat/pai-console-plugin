@@ -32,7 +32,7 @@ RAILWAY_PATTERNS = ("delete-*", "*deploy*", "redeploy", "restart-service", "purg
 # Rules every role needs. `*` matches any characters (spaces included), so `git *push` also covers `git -C repo push`.
 BASE_RULES = (
     "Bash(git *push *--force*)", "Bash(git *push -f*)", "Bash(git *push * -f*)", "Bash(git *push *--delete*)", "Bash(git *push -d *)",
-    "Bash(git *push * -d *)", "Bash(git *push *--mirror*)", "Bash(git *push * +*)", "Bash(git *push * :*)", "Bash(git *push *--no-verify*)",
+    "Bash(git *push * -d *)", "Bash(git *push *--mirror*)", "Bash(git *push * +*)", "Bash(git *push * :**)", "Bash(git *push *--no-verify*)",
     "Bash(git *commit *--no-verify*)", "Bash(git *commit -n*)", "Bash(git *commit * -n)",
     "Bash(git *reset --hard*)", "Bash(git *clean *-*f*)", "Bash(git *branch -D *)", "Bash(git *branch *--delete *--force*)",
     "Bash(git *checkout .)", "Bash(git *checkout -- .)", "Bash(git *restore .)", "Bash(git *restore --staged --worktree .)",
