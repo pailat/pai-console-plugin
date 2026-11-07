@@ -73,6 +73,27 @@ class WakeMachineDeliveryTest(unittest.TestCase):
         self.assertIn("invalid machine label", self.wake_log())
         self.assertNoSsh()
 
+    def test_a_leading_dash_in_the_label_or_the_target_is_never_passed_to_herdr(self) -> None:
+        for plugin in PLUGINS:
+            with self.subTest(plugin=str(plugin.relative_to(ROOT))):
+                (self.dir / "state/wake.log").unlink(missing_ok=True)
+                self.deliver(plugin, "far:boss", PAI_WAKE_MACHINES="far=--help")
+                self.deliver(plugin, "far:-x", PAI_WAKE_MACHINES="far=acme-laptop")
+                self.deliver(plugin, "-x", PAI_WAKE_MACHINES="far=acme-laptop")
+                self.assertEqual(self.herdr_calls(), [])
+                self.assertIn("invalid machine label", self.wake_log())
+                self.assertIn("leading dash", self.wake_log())
+
+    def test_an_unknown_alias_is_logged_and_never_delivered_locally(self) -> None:
+        for plugin in PLUGINS:
+            with self.subTest(plugin=str(plugin.relative_to(ROOT))):
+                (self.dir / "state/wake.log").unlink(missing_ok=True)
+                result = self.deliver(plugin, "frar:boss", PAI_WAKE_MACHINES="far=acme-laptop")
+                self.assertEqual(self.herdr_calls(), [])
+                self.assertIn("unknown machine alias", self.wake_log())
+                self.assertIn("unknown machine alias", result.stderr)
+                self.assertNoSsh()
+
     def test_the_old_ssh_settings_print_a_deprecation_and_do_not_ssh(self) -> None:
         old = {"PAI_WAKE_HOSTS": "far=acme-host", "PAI_WAKE_SSH_OPTS": "-o BatchMode=yes", "PAI_WAKE_REMOTE_PATH": "~/bin"}
         for plugin in PLUGINS:
@@ -126,15 +147,34 @@ class NoSshInstructionsTest(unittest.TestCase):
     # Policy code that names ssh in order to refuse or detect it.
     POLICY = {"hooks/pre_tool_use.py", "scripts/deny_baseline.py", "scripts/launch.py", "examples/settings.deny.json"}
 
-    def test_nothing_under_pai_harness_tells_an_agent_to_ssh(self) -> None:
-        base = ROOT / "plugins/pai-harness"
+    def scan(self, base: Path, policy: set[str]) -> list[str]:
         offenders = []
         for path in sorted(base.rglob("*")):
-            if path.suffix not in {".md", ".sh", ".py"} or not path.is_file() or path.relative_to(base).as_posix() in self.POLICY:
+            if path.suffix not in {".md", ".sh", ".py"} or not path.is_file() or path.relative_to(base).as_posix() in policy:
                 continue
             for number, line in enumerate(path.read_text(errors="replace").splitlines(), 1):
                 if re.search(r"\bssh\b", line) and not self.NEGATION.search(line):
                     offenders.append(f"{path.relative_to(ROOT)}:{number}: {line.strip()[:120]}")
+        return offenders
+
+    def test_nothing_under_pai_harness_tells_an_agent_to_ssh(self) -> None:
+        self.assertEqual(self.scan(ROOT / "plugins/pai-harness", self.POLICY), [])
+
+    def test_the_root_wake_plugin_skills_and_codex_copies_do_not_tell_an_agent_to_ssh(self) -> None:
+        bases = [ROOT / "herdr-plugins", ROOT / "skills", *sorted((ROOT / "plugins").glob("codex*"))]
+        offenders = [o for base in bases if base.exists() for o in self.scan(base, self.POLICY)]
+        self.assertEqual(offenders, [])
+
+    def test_no_wake_script_runs_ssh_as_a_command(self) -> None:
+        # Static scan: catches an absolute /usr/bin/ssh that the fake-ssh PATH trick cannot.
+        command = re.compile(r"(^|[;&|(`]|\$\()\s*(/\S*/)?ssh(\s|$)|\b(exec|command|env|nohup|timeout\s+\d+)\s+(/\S*/)?ssh\b")
+        offenders = []
+        for plugin in PLUGINS:
+            for path in sorted(plugin.rglob("*")):
+                if path.is_file():
+                    for number, line in enumerate(path.read_text(errors="replace").splitlines(), 1):
+                        if not line.lstrip().startswith("#") and command.search(line):
+                            offenders.append(f"{path.relative_to(ROOT)}:{number}: {line.strip()[:120]}")
         self.assertEqual(offenders, [])
 
 

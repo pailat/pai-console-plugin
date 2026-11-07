@@ -26,12 +26,15 @@ for t in "$@"; do
   if [ "$pre" != "$t" ]; then
     for kv in ${PAI_WAKE_MACHINES:-}; do [ "${kv%%=*}" = "$pre" ] && { alias=$pre; label=${kv#*=}; who=${t#*:}; }; done
     if [ -z "$alias" ]; then for kv in ${PAI_WAKE_HOSTS:-}; do [ "${kv%%=*}" = "$pre" ] && { log "target $t uses a PAI_WAKE_HOSTS alias: not delivered (no ssh); define $pre in PAI_WAKE_MACHINES"; continue 2; }; done; fi
+    # A prefix that is neither an alias nor part of a local pane id (w1:p2) is a typo: never fall back to a local delivery.
+    if [ -z "$alias" ]; then case "$t" in [a-z]*[0-9]:[a-z]*[0-9]) ;; *) log "unknown machine alias '$pre' in target $t: not delivered (define it in PAI_WAKE_MACHINES)"; printf 'pai.orchestration-wake: unknown machine alias %s in target %s: not delivered\n' "$pre" "$t" >&2; continue ;; esac; fi
   fi
   case "$who" in *[!A-Za-z0-9_:-]*|"") log "bad target $t"; continue ;; esac
+  case "$who" in -*) log "bad target $t (leading dash)"; continue ;; esac
   if [ -z "$alias" ]; then
     to 20 "$H" agent prompt "$who" "$msg" >/dev/null 2>&1 </dev/null || log "failed $t"
   else
-    case "$label" in *[!A-Za-z0-9_.-]*|"") log "invalid machine label for alias $alias, $t not delivered"; continue ;; esac
+    case "$label" in *[!A-Za-z0-9_.-]*|""|-*) log "invalid machine label for alias $alias, $t not delivered"; continue ;; esac
     to 30 "$H" --machine "$label" agent prompt "$who" "$msg" >/dev/null 2>&1 </dev/null || log "failed $t (machine $label)"
   fi
 done
