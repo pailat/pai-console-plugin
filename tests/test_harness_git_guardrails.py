@@ -377,11 +377,20 @@ class FailClosedTest(GuardrailTest):
             git_guardrails.PARSE_BUDGET = original
 
     def test_large_input_is_answered_well_inside_the_hook_timeout(self) -> None:
+        """Measured in CPU seconds of the hook process (a loaded machine stretches wall-clock time, not CPU time), with a wide wall-clock margin."""
+        import resource
         import time
-        for command in ("git " + "a " * 30000, "; ".join(["git status"] * 1900), "x" * 60000 + " git status"):
-            started = time.monotonic()
-            self.hook(command, "bypassPermissions")
-            self.assertLess(time.monotonic() - started, 8, command[:30])
+        for command in ("git " + "a " * 30000, "; ".join(["git status"] * 1900), "x" * 60000 + " git status", "; ".join(["git status"] * 2500)):
+            before, started = resource.getrusage(resource.RUSAGE_CHILDREN), time.monotonic()
+            out = self.hook(command, "bypassPermissions")  # hook() asserts a zero exit status and a 60 s subprocess timeout
+            after = resource.getrusage(resource.RUSAGE_CHILDREN)
+            cpu = (after.ru_utime + after.ru_stime) - (before.ru_utime + before.ru_stime)
+            self.assertLess(cpu, 8, f"{command[:30]}: {cpu:.1f} s of CPU")
+            self.assertLess(time.monotonic() - started, 50, command[:30])
+            if len(command) > 65536 or command.count(";") > 2000:  # over the caps: refused before tokenizing, with the cap named
+                self.assertIn("too large to check", out["hookSpecificOutput"]["permissionDecisionReason"])
+            elif out is not None:  # otherwise a deny must name what it could not read (here: the deadline)
+                self.assertRegex(out["hookSpecificOutput"]["permissionDecisionReason"], "deadline exceeded|cannot be read|too large|in time|could not")
 
     def test_a_crash_in_analyze_denies_through_the_real_hook(self) -> None:
         boom = self.project / "boom2.py"
