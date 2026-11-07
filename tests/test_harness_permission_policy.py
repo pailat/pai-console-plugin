@@ -60,6 +60,52 @@ class LauncherPolicyTest(HarnessCase):
         self.assertIn("--resume", argv)
         self.assertEqual(argv[argv.index("--permission-mode") + 1], "bypassPermissions")
 
+    def protected(self, argv: list[str]) -> list[str]:
+        return argv[argv.index("--disallowed-tools") + 1:] if "--disallowed-tools" in argv else []
+
+    def test_the_pinned_config_and_the_plugin_hooks_are_denied_by_absolute_path_when_the_run_cwd_differs(self) -> None:
+        """The hooks re-read PAI_HARNESS_CONFIG on every call, and its directory is not the worktree: a relative ./.pai-harness.toml rule misses it."""
+        work = self.tmp / "wt"
+        work.mkdir()
+        config = (FIXTURES / "acme.pai-harness.toml").resolve()
+        self.assertNotEqual(config.parent, work)
+        expected = [f"{tool}(/{config})" for tool in ("Edit", "Write", "NotebookEdit")]
+        hooks = [f"{tool}(/{PLUGIN_ROOT.resolve()}/hooks/**)" for tool in ("Edit", "Write", "NotebookEdit")]
+        # fresh
+        self.assertEqual(self.launch("ACME-7", "success", 0, "--role", "lead", "--cwd", str(work)).returncode, 0)
+        fresh = self.protected(self.argv())
+        for rule in expected + hooks:
+            self.assertIn(rule, fresh)
+        self.assertIn("//", expected[0])  # the double-slash absolute form
+        self.assertEqual(self.argv()[self.argv().index("--permission-mode") + 1], "bypassPermissions")
+        # resume
+        (self.tmp / "claude.json").unlink()
+        self.run_script("launch.sh", "ACME-7", "--resume", "--role", "lead", "--cwd", str(work), FAKE_CLAUDE_FIXTURE=str(self.fixture("success")))
+        self.assertIn("--resume", self.argv())
+        for rule in expected + hooks:
+            self.assertIn(rule, self.protected(self.argv()))
+        # dry-run builds the same command
+        dry = self.run_script("launch.sh", "ACME-8", "--prompt", "x", "--role", "lead", "--cwd", str(work), "--dry-run")
+        for rule in expected + hooks:
+            self.assertIn(rule, json.loads(dry.stdout)["command"])
+
+    def test_the_dispatcher_launch_carries_the_same_protection(self) -> None:
+        work = self.tmp / "wt2"
+        work.mkdir()
+        (self.tmp / "claude.json").unlink(missing_ok=True)
+        done = self.run_script("dispatcher.sh", "--queue", "main", "--wait", stdin=f"# ready\nACME-3 prompt-file={self.prompt} role=lead cwd={work}\n",
+                               FAKE_CLAUDE_FIXTURE=str(self.fixture("success")))
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        config = (FIXTURES / "acme.pai-harness.toml").resolve()
+        self.assertIn(f"Edit(/{config})", self.protected(self.argv()))
+
+    def test_the_opt_out_and_the_mechanical_lane_carry_no_bypass_denies(self) -> None:
+        config = self.tmp / "optout.toml"
+        config.write_text(MINIMAL + "\n[run]\nbypass_permissions = false\n")
+        self.env["PAI_HARNESS_CONFIG"] = str(config)
+        self.launch("ACME-7", "success", 0)
+        self.assertEqual(self.protected(self.argv()), [])
+
     def test_project_opt_out_drops_the_flag(self) -> None:
         config = self.tmp / "optout.toml"
         config.write_text(MINIMAL + "\n[run]\nbypass_permissions = false\n")

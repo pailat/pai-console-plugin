@@ -181,6 +181,19 @@ def abs_rule(tool: str, path: str, tail: str = "/**") -> str:
     return f"{tool}(/{path}{tail})"  # a leading // is an absolute path in a Claude Code permission rule
 
 
+def protected_flags(config_path: Path | None) -> list[str]:
+    """Deny the controls the hooks read on every call, by absolute path: the pinned config (PAI_HARNESS_CONFIG; its directory is usually not the run
+    directory, so the baseline's ./.pai-harness.toml rule does not reach it) and, when the run loads the plugin from a checkout (--plugin-dir),
+    that checkout's hooks. A run that edited either would weaken the push and zone guards for itself and for every later launch."""
+    paths = []
+    if config_path:
+        paths.append(abs_rule("{tool}", str(Path(config_path).resolve()), ""))
+    if not lib.installed_plugin():
+        paths.append(abs_rule("{tool}", str(lib.plugin_root() / "hooks"), "/**"))
+    rules = [rule.replace("{tool}", tool) for rule in paths for tool in ("Edit", "Write", "NotebookEdit")]
+    return ["--disallowed-tools", *rules] if rules else []
+
+
 def lane_permissions(args: argparse.Namespace, config: dict) -> tuple[list[str], list[str]]:
     """Scoped permission rules for the lane. The command also passes --restricted (ignores user, project and local settings, confines the file
     tools to the working directory, leaves bypassPermissions unavailable) and --permission-mode dontAsk (what no allow rule covers is denied).
@@ -205,7 +218,8 @@ def lane_permissions(args: argparse.Namespace, config: dict) -> tuple[list[str],
     return allow, list(dict.fromkeys(deny))
 
 
-def claude_command(args: argparse.Namespace, config: dict, resume: str | None, mcp_config: Path | None = None, previous: dict | None = None) -> list[str]:
+def claude_command(args: argparse.Namespace, config: dict, resume: str | None, mcp_config: Path | None = None, previous: dict | None = None,
+                   config_path: Path | None = None) -> list[str]:
     model = args.model or config["models"].get(args.role or "implementer", "sonnet")
     output = ["--output-format", "json"] if args.profile else ["--output-format", "stream-json", "--verbose"]
     command = [os.environ.get("PAI_HARNESS_CLAUDE", "claude"), "-p", *output, "--model", model]
@@ -223,7 +237,7 @@ def claude_command(args: argparse.Namespace, config: dict, resume: str | None, m
         command += ["--restricted", "--permission-mode", "dontAsk", "--tools", ",".join(MECHANICAL_TOOLS), "--allowed-tools", *allow, "--disallowed-tools", *deny]
         return command
     if config["run"]["bypass_permissions"] and deny_baseline.applicable() and deny_baseline.user_policy()["bypass_permissions"]:  # opt out per project with [run] bypass_permissions = false (or machine-wide in the user policy); never in the Codex package
-        command += ["--permission-mode", "bypassPermissions"]
+        command += ["--permission-mode", "bypassPermissions", *protected_flags(config_path)]
     if args.allowed_tools:
         command += ["--allowed-tools", *args.allowed_tools]
     return command
@@ -499,7 +513,7 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
     renderer.say(f"▶ {args.issue} run {run_id} → {stream}")
     with stream.open("w", encoding="utf-8") as out, stderr_log.open("w", encoding="utf-8") as err:
         try:
-            proc = subprocess.Popen(claude_command(args, config, resume, mcp_config, previous), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            proc = subprocess.Popen(claude_command(args, config, resume, mcp_config, previous, config_path), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                     stderr=err, text=True, cwd=args.cwd or None, env=hook_env(args, config, state, config_path, base=base))
         except OSError as error:
             err.write(f"cannot start claude: {error}\n")
@@ -798,7 +812,7 @@ def main(argv: list[str]) -> int:
     if args.dry_run:
         previous = lib.read_json(state_file) or {}
         resume = previous.get("session_id") if args.resume_run else None
-        lib.show({"dry_run": True, "issue": args.issue, "command": claude_command(args, config, resume, mcp_config_path(state, args.issue) if (config["pai"]["mcp_url"] or args.profile) else None, previous), "pane": args.pane,
+        lib.show({"dry_run": True, "issue": args.issue, "command": claude_command(args, config, resume, mcp_config_path(state, args.issue) if (config["pai"]["mcp_url"] or args.profile) else None, previous, config_path), "pane": args.pane,
                   "hook_env": {k: v for k, v in hook_env(args, config, state, config_path, write=False, base=launch_base(args, previous)).items() if k in HOOK_KEYS},
                   "deny_baseline_missing": len(missing), "stream": str(run_paths(state, args.issue)[0]), "state_file": str(state_file), "state_dir": str(state)})
         return 0
