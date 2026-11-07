@@ -531,7 +531,20 @@
       "X=rm; git remote $X origin",
       "X=-n; git commit $X",
       "X=--no-verify; git merge $X",
-      "echo --hard | xargs -i git reset {}"
+      "echo --hard | xargs -i git reset {}",
+      "{git,} push --force origin main",
+      "/usr/bin/gi? push -f origin main",
+      "{git,} reset --hard",
+      "{git,} push origin main",
+      "/usr/bin/g* push --force origin main",
+      "{rm,} -rf .git",
+      "sudo -u root /usr/bin/gi? push -f origin main",
+      "cd sub && git -c alias.x=\"!find . -delete\" x",
+      "cd sub && git rebase -x 'find . -delete' main",
+      "git submodule foreach 'find . -delete'",
+      "cd sub && git submodule foreach 'git clean -fdx'",
+      "scripts/queue-push.s? origin main",
+      "scripts/queue-push.* origin main"
     ],
     "allow": [
       "scripts/queue-push.sh git push origin feat/acme-7",
@@ -584,7 +597,12 @@
       "git show $(git rev-parse HEAD)",
       "git commit -am \"$MSG\"",
       "git diff $BASE",
-      "git add $f"
+      "git add $f",
+      "[ -f README.md ] && git status",
+      "git add src/*",
+      "ls *.py",
+      "git add *.py",
+      "echo {a,b}"
     ]
   }
 }

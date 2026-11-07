@@ -32,7 +32,6 @@ from __future__ import annotations
 
 import copy
 import fnmatch
-import glob
 import os
 import time
 import re
@@ -149,7 +148,9 @@ def brace_words(token: str, budget: list[int]) -> list[str]:
 
 def expand_braces(tokens: list[str]) -> list[str]:
     budget = [200]
-    return [w for token in tokens for w in brace_words(token, budget)] if any(BRACE.search(t) for t in tokens) else tokens
+    if not any(BRACE.search(t) for t in tokens):
+        return tokens
+    return [w for token in tokens for w in brace_words(token, budget) if w or not BRACE.search(token)]  # `{git,}` is `git`: the shell drops the empty word
 
 
 def shell_base(token: str) -> str:
@@ -450,7 +451,8 @@ def git_check(tokens: list[str], ctx: Context, depth: int, inline: dict[str, str
     if embedded is not None:  # `rebase --exec CMD` and `submodule foreach CMD` run a shell command line
         if depth >= 3 or UNRES.search(embedded):
             return refuse(tokens, f"git {rest[0]} runs a command that is built at run time or nested too deep, so it cannot be read", "run the command directly")
-        reason = check_command(embedded, ctx, depth + 1)
+        run_at = ctx.moved(toplevel(effective) or effective)  # git runs it from the top level of the worktree (a submodule's for foreach: unknown)
+        reason = check_command(embedded, run_at.moved(None) if rest[0].lower() == "submodule" else run_at, depth + 1)
         if reason:
             return reason
     reason = subcommand_check(rest[0], rest[1:], tokens, ctx, effective, unknown)
@@ -465,7 +467,7 @@ def git_check(tokens: list[str], ctx: Context, depth: int, inline: dict[str, str
         seen.add(name)
         value = known[name].strip()
         if value.startswith("!"):
-            return check_command(value[1:] + " " + shlex.join(args), ctx, depth + 1)
+            return check_command(value[1:] + " " + shlex.join(args), ctx.moved(toplevel(effective) or effective), depth + 1)  # a shell alias runs at the top level
         try:
             parts = shlex.split(value)
         except ValueError:
@@ -760,21 +762,24 @@ def split_string(args: list[str]) -> str | None:
 
 
 def segment_check(tokens: list[str], ctx: Context, depth: int) -> str:
+    original = tokens
     try:
         tokens = expand_braces(tokens)  # `git reset --har{d,}` is `git reset --hard --har` once the shell has run
     except ValueError:
         return refuse(tokens[:6], "a brace expansion produces too many words to read", "write the words out")
+    if tokens is not original and any(os.path.basename(t) == "git" for t in tokens) and any(t.lower() == "push" for t in tokens):
+        return refuse(original[:8], "a git push whose words are built by a brace expansion cannot be read", "write the push out as literal words, through the push queue wrapper")
     lead = True  # still in the prefix zone: assignments, prefix commands, options, redirections
     command_word = next((os.path.basename(t) for t in tokens if not (shell_base(t) in PREFIXES or t.startswith("-") or ASSIGNMENT.fullmatch(t) or t in KEYWORDS)), "")
+    names = ["git", "rm", *([ctx.wrapper_name] if ctx.wrapper_name else [])]
     for i, token in enumerate(tokens):
         ctx.tick()  # one deadline for everything, checked for every word: a long segment cannot outrun it
         base = os.path.basename(token)
         shell = shell_base(token)
-        if lead and re.search(r"[*?\[]", token) and not ASSIGNMENT.fullmatch(token):  # a glob in the command name: the shell replaces it by the files it matches
-            for match in sorted(glob.glob(os.path.expanduser(token), root_dir=ctx.cwd))[:200]:
-                reason = segment_check([match, *tokens[i + 1:]], ctx, depth)
-                if reason:
-                    return reason
+        globbed = re.search(r"[*?\[]", token) and token not in {"[", "[["} and not ASSIGNMENT.fullmatch(token)
+        if globbed and (lead or token.startswith(("/", "./", "../", "~")) and any(fnmatch.fnmatchcase(n, base) and re.search(r"[^*?\[\]!]", base) for n in names)):
+            # the shell replaces a glob in a command name by the files it matches; the guard does not walk the file system (a deep glob outruns the hook timeout)
+            return refuse(tokens[i:i + 4], "a command name built by a glob (* ? [ ]) cannot be read", "call the command by its literal name")
         taken = matches_wrapper(tokens[i:i + len(ctx.wrapper_words)], ctx.wrapper, ctx.cwd) if ctx.wrapper_words else 0  # a short slice: no copy of the rest
         if taken:
             reason = push_check(tokens[i + taken:], tokens[i:], ctx)
