@@ -4,7 +4,8 @@
 # local Herdr calls only through HERDR_BIN_PATH, no machine paths. Works for any agent kind (Claude, Codex): it reads Herdr's
 # semantic agent_status, not the screen. NEVER fails: exit 0 always; every decision is logged to $HERDR_PLUGIN_STATE_DIR/wake.log.
 # Config: environment first, then config.env in the plugin config dir (see config.env.example): PAI_WAKE_FALLBACK, PAI_WAKE_OUTBOX,
-# PAI_WAKE_HOSTS, PAI_WAKE_SSH_OPTS (ssh options for remote targets), PAI_WAKE_REMOTE_PATH (PATH prefix for the remote herdr call),
+# PAI_WAKE_MACHINES (alias=label of a saved Herdr machine, delivered with `herdr --machine`; never ssh). The old PAI_WAKE_HOSTS,
+# PAI_WAKE_SSH_OPTS and PAI_WAKE_REMOTE_PATH are deprecated: still read so deliver.sh can print a loud message, never used.
 # PAI_WAKE_MIN_INTERVAL (seconds between finish wakes from one pane to one target, default 60),
 # PAI_WAKE_MAX_PER_HOUR (backstop on wakes of any kind per source pane and target, default 20). Pane tokens (role parent requester issue name verdict wake_on_done) come from the live pane, then from the cache
 # written by bin/pai-pane-meta in <plugin config dir>/agents/<name>.json (older caches: panes/<id>.json) (Herdr drops tokens on a server restart and before pane.exited).
@@ -19,7 +20,7 @@ for cf in "$S/config.env" "$C/config.env"; do
   while IFS= read -r line; do
     case "$line" in ''|'#'*) continue ;; esac
     k=${line%%=*}; v=${line#*=}; v=${v#\"}; v=${v%\"}
-    case "$k" in PAI_WAKE_FALLBACK|PAI_WAKE_OUTBOX|PAI_WAKE_HOSTS|PAI_WAKE_SSH_OPTS|PAI_WAKE_REMOTE_PATH|PAI_WAKE_MIN_INTERVAL|PAI_WAKE_MAX_PER_HOUR) [ -n "$(eval "printf %s \"\${$k:-}\"")" ] || export "$k=$v" ;; esac
+    case "$k" in PAI_WAKE_FALLBACK|PAI_WAKE_OUTBOX|PAI_WAKE_MACHINES|PAI_WAKE_HOSTS|PAI_WAKE_SSH_OPTS|PAI_WAKE_REMOTE_PATH|PAI_WAKE_MIN_INTERVAL|PAI_WAKE_MAX_PER_HOUR) [ -n "$(eval "printf %s \"\${$k:-}\"")" ] || export "$k=$v" ;; esac
   done <"$cf"
 done
 FALLBACK=${PAI_WAKE_FALLBACK:-}
@@ -59,7 +60,7 @@ parent_of() { # echo the parent token of a local target (agent name or pane id);
   local t=$1 id="" par kv
   case "$t" in *[!A-Za-z0-9_:-]*|"") return 0 ;; esac
   if [ "${t#*:}" != "$t" ]; then
-    for kv in ${PAI_WAKE_HOSTS:-}; do [ "${kv%%=*}" = "${t%%:*}" ] && return 0; done # alias:agent is a remote target
+    for kv in ${PAI_WAKE_MACHINES:-} ${PAI_WAKE_HOSTS:-}; do [ "${kv%%=*}" = "${t%%:*}" ] && return 0; done # alias:agent is a remote target
     id=$t
   else id=$("$H" agent get "$t" 2>/dev/null | jq -r '.result.agent.pane_id // empty' 2>/dev/null); fi
   [ -n "$id" ] || return 0
