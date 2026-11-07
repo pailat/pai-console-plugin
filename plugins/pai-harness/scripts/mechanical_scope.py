@@ -217,16 +217,26 @@ def snapshot(root: str, base: str, baseline: dict, tolerant: bool = False, liste
     return {"head": head, "changed": changed, "digest": digest(root, changed), "ignored": now}
 
 
-# Config keys that make git run a program or change where it reads more config. Everything else (branch.*, remote.*, gh-*, gc.*, user.* ...) is
-# rewritten by ordinary git activity in the shared common dir (push -u, gh pr create, another worktree's fetch) and is not watched.
-CODE_KEY_PREFIXES = ("core.", "alias.", "filter.", "diff.", "merge.", "include.", "includeif.", "credential.", "url.", "protocol.", "gpg.", "sequence.",
-                     "receive.", "uploadpack.", "http.", "ssh.", "difftool.", "mergetool.", "web.", "browser.", "man.", "pager.", "safe.")
+# Every config key is watched EXCEPT the few that ordinary git activity rewrites in the shared common dir (push -u, fetch, gh pr create, a new
+# branch, gc): an unknown key that runs a program must never pass unnoticed, so this is an ignore-list, not a watch-list.
+IGNORED_PREFIXES = ("branch.", "user.", "maintenance.")
+IGNORED_REMOTE_VARS = frozenset({"url", "fetch", "pushurl", "push", "tagopt", "prune", "gh-resolved"})
 HARMLESS_CORE = frozenset({"core.repositoryformatversion", "core.filemode", "core.bare", "core.logallrefupdates", "core.ignorecase", "core.symlinks",
                            "core.precomposeunicode", "core.worktree", "core.commitgraph", "core.multipackindex", "core.untrackedcache"})
 
 
+def ignored_key(key: str) -> bool:
+    """True for a config key that ordinary git activity rewrites and that cannot make git run a program."""
+    var = key.rsplit(".", 1)[-1]
+    if key.startswith(IGNORED_PREFIXES) or var.startswith("gh-") or key in HARMLESS_CORE:
+        return True
+    if key.startswith("gc."):
+        return not key.endswith(".command")
+    return key.startswith("remote.") and var in IGNORED_REMOTE_VARS
+
+
 def _config_keys(path: str) -> list[str]:
-    """The code-running keys of one config file as sorted key=value lines (the file is read by git itself, includes are not followed)."""
+    """Every watched key of one config file (all but ignored_key) as sorted key=value lines (the file is read by git itself, includes are not followed)."""
     if not os.path.isfile(path):
         return []
     done = run_process(["git", "config", "--file", path, "--list", "-z"], capture_output=True, text=True, timeout=60)
@@ -236,17 +246,17 @@ def _config_keys(path: str) -> list[str]:
     for entry in done.stdout.split("\0"):
         key, _, value = entry.partition("\n")
         key = key.lower()
-        if key.startswith(CODE_KEY_PREFIXES) and key not in HARMLESS_CORE:
+        if key and not ignored_key(key):
             keys.append(f"{key}={value}")
     return sorted(keys)
 
 
 def git_integrity(root: str) -> str:
-    """A hash of what in .git makes git run code: the code-running config keys (repo, common and per-worktree), hook files, info/attributes.
+    """A hash of what in .git makes git run code: every config key but the ignore-list (repo, common, per-worktree and modules/*/config), hook files, info/attributes.
 
     The common git dir of a linked worktree is the main checkout's, shared with every other worktree, so ordinary git activity elsewhere
-    (push -u, fetch, gh pr create, a new branch) must not change the hash: only CODE_KEY_PREFIXES keys count, sample hooks are skipped,
-    and info/exclude is not read. A new hook, a changed hooksPath, fsmonitor, alias, filter or include does change it.
+    (push -u, fetch, gh pr create, a new branch) must not change the hash: ignored_key keys, sample hooks and info/exclude are skipped.
+    Any other key, a new hook or a changed attributes file does change it.
     """
     h = hashlib.sha256()
     git_dir = git_ok(root, "rev-parse", "--path-format=absolute", "--git-dir").strip()
@@ -256,6 +266,12 @@ def git_integrity(root: str) -> str:
             h.update(f"{d}/{name}\0".encode() + "\n".join(_config_keys(os.path.join(d, name))).encode() + b"\0")
         attributes = os.path.join(d, "info/attributes")
         h.update(f"{attributes}\0".encode() + (Path(attributes).read_bytes() if os.path.isfile(attributes) else b"-") + b"\0")
+    for d in dict.fromkeys((git_dir, common)):
+        modules = os.path.join(d, "modules")
+        if os.path.isdir(modules):
+            for current, _, files in sorted(os.walk(modules)):
+                if "config" in files:
+                    h.update(f"{current}/config\0".encode() + "\n".join(_config_keys(os.path.join(current, "config"))).encode() + b"\0")
     for hooks in dict.fromkeys((os.path.join(git_dir, "hooks"), os.path.join(common, "hooks"))):
         if os.path.isdir(hooks):
             for name in sorted(os.listdir(hooks)):

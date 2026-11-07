@@ -694,6 +694,9 @@ class LinkedWorktreeTest(MechanicalCase):
         git(self.other, "push", "-q", "-u", "origin", "other")
         git(self.other, "fetch", "-q", "origin")
         git(self.other, "config", "branch.other.gh-merge-base", "main")
+        git(self.other, "config", "remote.origin.gh-resolved", "base")
+        git(self.other, "config", "gc.auto", "10")
+        git(self.other, "config", "maintenance.auto", "false")
         git(self.other, "config", "user.email", "someone@else.example.com")
         (self.main / ".git/info").mkdir(exist_ok=True)
         (self.main / ".git/info/exclude").write_text("*.tmp\n")
@@ -709,16 +712,25 @@ class LinkedWorktreeTest(MechanicalCase):
         for change in (lambda: (self.main / ".git/hooks/pre-commit").write_text("#!/bin/sh\ntouch pwned\n"),
                        lambda: git(self.other, "config", "core.hooksPath", "/tmp/evil"),
                        lambda: git(self.other, "config", "alias.ci", "!touch pwned"),
-                       lambda: git(self.other, "config", "filter.x.clean", "touch pwned")):
+                       lambda: git(self.other, "config", "filter.x.clean", "touch pwned"),
+                       lambda: git(self.other, "config", "interactive.diffFilter", "touch pwned"),
+                       lambda: git(self.other, "config", "trailer.x.command", "touch pwned"),
+                       lambda: git(self.other, "config", "remote.origin.receivepack", "touch pwned"),
+                       lambda: git(self.other, "config", "submodule.x.update", "!touch pwned"),
+                       lambda: git(self.other, "config", "sendemail.smtpServer", "/tmp/evil"),
+                       lambda: git(self.other, "config", "gc.pruneExpire.command", "touch pwned"),
+                       lambda: (self.main / ".git/modules/sub").mkdir(parents=True) or (self.main / ".git/modules/sub/config").write_text("[core]\n\tfsmonitor = touch pwned\n")):
             git(self.repo, "checkout", "-q", "--", ".")
             self.started()
             change()
             done = self.verify()
             self.assertEqual(done.returncode, 1)
             self.assertIn("under .git", " ".join(json.loads(done.stdout)["reasons"]))
-            for key in ("core.hooksPath", "alias.ci", "filter.x.clean"):
+            for key in ("core.hooksPath", "alias.ci", "filter.x.clean", "interactive.diffFilter", "trailer.x.command", "remote.origin.receivepack", "submodule.x.update",
+                        "sendemail.smtpServer", "gc.pruneExpire.command"):
                 subprocess.run(["git", "-C", str(self.main), "config", "--unset-all", key], capture_output=True)
             (self.main / ".git/hooks/pre-commit").unlink(missing_ok=True)
+            shutil.rmtree(self.main / ".git/modules", ignore_errors=True)
 
 
 class SamplerTest(MechanicalCase):
