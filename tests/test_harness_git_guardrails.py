@@ -239,7 +239,7 @@ class DeltaRoundTest(GuardrailTest):
         self.hook("scripts/q origin main", "default")
 
     def test_git_dir_and_work_tree_do_not_crash_the_guard(self) -> None:
-        for command in ("git --git-dir=.git status", "git --git-dir .git status", "git --work-tree=. status", "git --git-dir=.git config alias.x y"):
+        for command in ("git --git-dir=.git status", "git --git-dir .git status", "git --work-tree=. status", "git --git-dir=.git config user.name x"):
             with self.subTest(command=command):
                 self.assertEqual(git_guardrails.check(command, WRAPPER, self.project), "")
         for command in ("git --git-dir=.git reset --hard", "git --work-tree=. clean -fd",
@@ -345,6 +345,55 @@ class DeltaRoundTest(GuardrailTest):
         for command in ("git switch -c x", "git switch x", "git gc", "git tag v1", "git reflog", "git remote -v", "git fetch --prune", "git reset --merge"):
             with self.subTest(command=command):
                 self.assertEqual(self.verdict(command), "")
+
+
+class FailClosedTest(GuardrailTest):
+    """Anything the reader cannot resolve to literal words is refused, with a reason that names it."""
+
+    def reasons(self, command: str) -> str:
+        return git_guardrails.check(command, WRAPPER, self.project)
+
+    def test_the_reason_names_what_could_not_be_resolved(self) -> None:
+        for command, named in (("git reset $(echo --hard)", "substitution"), ("git reset $X", "variable"), ("git $'reset' --hard", "ANSI-C"),
+                               ("echo 'git reset --hard' | bash", "script fed by a pipe"), ("git reset --hard \"x", "unmatched quote"),
+                               ("git " + "a " * 40000, "too large"), ("; ".join(["true"] * 2500), "too large"), ("bash -c \"$cmd\"", "built by a variable"),
+                               ("echo x | xargs git reset", "xargs feeds"), ("GIT_CONFIG_COUNT=1 git status", "GIT_CONFIG_*")):
+            with self.subTest(command=command[:40]):
+                self.assertIn(named, self.reasons(command))
+
+    def test_the_overall_deadline_denies_with_the_segment_count(self) -> None:
+        original, git_guardrails.PARSE_BUDGET = git_guardrails.PARSE_BUDGET, -1
+        try:
+            reason = "; ".join(["git status"] * 50)
+            hook_reason = None
+            with self.assertRaises(TimeoutError):
+                git_guardrails.check(reason, WRAPPER, self.project)
+            class Common:
+                reasons: list = []
+                deny = staticmethod(lambda text: Common.reasons.append(text))
+            self.assertTrue(git_guardrails.deny_dangerous(Common, reason, WRAPPER, self.project))
+            self.assertIn("deadline exceeded after 1 segments", Common.reasons[0])
+        finally:
+            git_guardrails.PARSE_BUDGET = original
+
+    def test_large_input_is_answered_well_inside_the_hook_timeout(self) -> None:
+        import time
+        for command in ("git " + "a " * 30000, "; ".join(["git status"] * 1900), "x" * 60000 + " git status"):
+            started = time.monotonic()
+            self.hook(command, "bypassPermissions")
+            self.assertLess(time.monotonic() - started, 8, command[:30])
+
+    def test_a_crash_in_analyze_denies_through_the_real_hook(self) -> None:
+        boom = self.project / "boom2.py"
+        boom.write_text("import sys; sys.path.insert(0, %r)\nimport pre_tool_use as p\np.analyze = lambda *a, **k: 1 / 0\np.main()\n" % str(HOOKS))
+        event = {"session_id": "s", "cwd": str(self.project), "permission_mode": "bypassPermissions", "hook_event_name": "PreToolUse",
+                 "tool_name": "Bash", "tool_use_id": "t", "tool_input": {"command": "git status"}}
+        done = subprocess.run([sys.executable, str(boom)], input=json.dumps(event), text=True, capture_output=True, env=self.env, cwd=self.project, timeout=60)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn("could not check this call", json.loads(done.stdout)["hookSpecificOutput"]["permissionDecisionReason"])
+        self.env["PAI_HARNESS_ROLE"] = ""
+        done = subprocess.run([sys.executable, str(boom)], input=json.dumps(event), text=True, capture_output=True, env=self.env, cwd=self.project, timeout=60)
+        self.assertEqual(done.stdout.strip(), "")  # no role: the hook stays inert
 
 
 class ThrowawayTest(GuardrailTest):

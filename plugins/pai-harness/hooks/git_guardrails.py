@@ -42,8 +42,12 @@ from subprocess import run as run_process  # bare name: the denylist reads a dot
 
 SEPARATORS = {";", "&&", "||", "|", "&", "|&", "(", ")", "{", "}"}
 KEYWORDS = {"do", "then", "else", "elif", "while", "until", "if", "!", "time", "coproc"}
-SHELLS = {"sh", "bash", "zsh", "dash", "ksh", "ash", "fish", "csh", "tcsh", "pwsh", "powershell"}
-STRING_RUNNERS = {"ssh", "su", "runuser", "watch", "sg", "script"}  # commands that run a string argument as a command line
+SHELLS = {"sh", "bash", "zsh", "dash", "ksh", "ash", "fish", "csh", "tcsh", "pwsh", "powershell", "nu", "xonsh", "elvish", "rc", "mksh", "yash", "posh"}
+STDIN_RUNNERS = SHELLS | {"at", "batch"}  # commands that run text read from a pipe, here-string or heredoc
+MAX_COMMAND = 65536  # bytes; a longer command is refused before it is tokenized (tokenizing is slow on huge input and a hook timeout does not block)
+MAX_SEPARATORS = 2000  # ; & | and newlines
+PARSE_BUDGET = 2.0  # seconds for the whole static reading of one command
+STRING_RUNNERS = {"ssh", "su", "runuser", "watch", "sg", "script", "tmux", "screen", "parallel"}  # commands that run a string argument as a command line
 PREFIXES = {"env", "command", "exec", "nohup", "builtin", "setsid", "sudo", "doas", "nice", "timeout", "xargs", "stdbuf", "ionice", "time"}
 GIT_VALUE_OPTIONS = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path", "--super-prefix", "--config-env"}
 BROAD = {".", "./", ":/", ":(top)", "*", "./*", ":/*", "..", "../", ".*"}
@@ -54,15 +58,17 @@ CRUDE = re.compile(r"git\b.*\b(reset\b.*--ha|clean\b|push\b.*(-\w*[fd]\b|--(f|de
 def extract_substitutions(text: str) -> tuple[str, list[str]]:
     """Replace every $(...), backtick and ${...} expansion (not inside single quotes) with a marker word and return the inner command texts,
     so the outer command is read with the expansion unreadable and every inner command is checked on its own."""
-    out, inners, i, single = [], [], 0, False
+    out, inners, i, single, double = [], [], 0, False, False
     while i < len(text):
         c = text[i]
         if c == "\\" and not single and i + 1 < len(text):
             out.append(text[i:i + 2])
             i += 2
             continue
-        if c == "'":
+        if c == "'" and not double:  # an apostrophe inside double quotes is a plain character
             single = not single
+        elif c == '"' and not single:
+            double = not double
         if not single and (text.startswith("$(", i) or text.startswith("${", i) or c == "`"):
             opener, closer = ("`", "`") if c == "`" else (text[i:i + 2], ")" if text[i + 1] == "(" else "}")
             j, depth = i + len(opener), 1
@@ -88,6 +94,42 @@ def extract_substitutions(text: str) -> tuple[str, list[str]]:
     return "".join(out), inners
 
 
+HEREDOC = re.compile(r"(?<!<)<<(?!<)-?\s*(['\"]?)([A-Za-z_][\w.-]*)\1")
+
+
+def strip_heredocs(command: str) -> tuple[str, list[tuple[bool, str]]]:
+    """Cut the bodies of heredocs out of the command: (the command without them, [(quoted delimiter, body text)]). A heredoc with no
+    terminating line is not a heredoc (nothing after it is hidden)."""
+    lines, out, bodies, i = command.split("\n"), [], [], 0
+    while i < len(lines):
+        out.append(lines[i])
+        pos = i + 1
+        for found in HEREDOC.finditer(lines[i]):
+            dash = found.group(0).startswith("<<-")
+            end = next((k for k in range(pos, len(lines)) if (lines[k].lstrip("\t") if dash else lines[k]).rstrip("\r") == found.group(2)), None)
+            if end is None:
+                break
+            bodies.append((bool(found.group(1)), "\n".join(lines[pos:end])))
+            pos = end + 1
+        i = pos
+    return "\n".join(out), bodies
+
+
+def shell_base(token: str) -> str:
+    """The shell a command word names: `pwsh.exe`, `pwsh-preview` and `bash5` all read as their base name."""
+    name = re.sub(r"\.exe$", "", os.path.basename(token).lower())
+    return re.sub(r"[-_.]?(preview|\d[\d.]*)$", "", name) if re.match(r"[a-z]", name) else name
+
+
+def tokenize(text: str) -> list[str] | None:
+    lexer = shlex.shlex(text, posix=True, punctuation_chars=True)
+    lexer.whitespace_split = True
+    try:
+        return list(lexer)
+    except ValueError:
+        return None
+
+
 def shell_script(args: list[str], name: str) -> tuple[bool, str | None]:
     """For a shell's arguments: (a -c style flag was given, the script string). The script is the first non-option word after all options
     (skipping `--`, `-o NAME`, `+o NAME`, `-O NAME`); None when a -c flag was given but no script can be found."""
@@ -99,6 +141,11 @@ def shell_script(args: list[str], name: str) -> tuple[bool, str | None]:
             break
         if token.startswith("--command="):
             return True, token.partition("=")[2]
+        if token == "--command":
+            return True, args[j + 1] if j + 1 < len(args) else None
+        if token in {"+O", "+o"}:  # `bash +O extglob -c ...`: the option takes a name
+            j += 2
+            continue
         lowered = token.lower()
         letters = cluster(token) if name not in {"pwsh", "powershell"} else ("c" if lowered.startswith("-c") else "")
         if name in {"pwsh", "powershell"} and lowered.startswith("-e"):
@@ -120,11 +167,8 @@ def shell_script(args: list[str], name: str) -> tuple[bool, str | None]:
 
 def segments(command: str) -> list[list[str]]:
     text = command.replace("\\\n", "").replace("`", " ; ").replace("\n", " ; ")
-    lexer = shlex.shlex(text, posix=True, punctuation_chars=True)
-    lexer.whitespace_split = True
-    try:
-        tokens = list(lexer)
-    except ValueError:  # unbalanced quotes: read what we can
+    tokens = tokenize(text)
+    if tokens is None:  # unbalanced quotes: read what we can (check() refuses such a command when it names git, rm or the wrapper)
         tokens = text.replace("(", " ; ").replace(")", " ; ").split()
     out, current = [], []
     for token in tokens:
@@ -179,6 +223,16 @@ class Context:
         self.branches: dict[str, str | None] = {}
         self.aliases: dict[str, dict[str, str] | None] = {}
         self.deadline = time.monotonic() + LOOKUP_BUDGET
+        self.parse_deadline = time.monotonic() + PARSE_BUDGET
+        self.text, self.segments_read = "", 0
+        words = wrapper_words(wrapper)
+        self.wrapper_name = os.path.basename(words[-1]) if words else ""
+
+    def tick(self) -> None:
+        """Called for every segment read: one overall deadline, well under the 10 s hook timeout."""
+        self.segments_read += 1
+        if time.monotonic() > self.parse_deadline:
+            raise TimeoutError(f"deadline exceeded after {self.segments_read} segments")
 
     def moved(self, cwd: Path | None) -> "Context":
         other = copy.copy(self)  # shares the caches and the deadline
@@ -204,7 +258,7 @@ CAPABLE_SUBS = XARGS_GIT_SUBS - {"push"}  # a direct push is refused whole by th
 SUBST = "$SUBST"  # stands for a $(...), backtick or ${...} expansion once its inner command has been checked on its own
 SUBST_GIT = "$SUBSTGIT"  # the same, when the inner command text names git or rm
 LOOKUP_TIMEOUT = 3  # seconds for one git call; pre_tool_use.py has a 10 s hook timeout, and a hook timeout does not block
-LOOKUP_BUDGET = 5  # seconds for all git calls of one check()
+LOOKUP_BUDGET = 3  # seconds for all git calls of one check()
 
 
 def toplevel(directory: Path) -> Path | None:
@@ -295,7 +349,8 @@ def push_check(args: list[str], shown: list[str], ctx: Context) -> str:
             return ""
         args = args[j + 1:]
     _, plain = positionals(args, {"-o", "--push-option", "--repo", "--receive-pack", "--exec", "-c"})
-    refspecs = plain[1:] or ["HEAD"]
+    repo_given = any(t == "--repo" or t.startswith("--repo=") for t in args)  # the remote comes from the option: every positional is a refspec
+    refspecs = (plain if repo_given else plain[1:]) or ["HEAD"]
     patterns = protected_patterns()
     for spec in refspecs:
         destination = spec.rpartition(":")[2]
@@ -325,13 +380,18 @@ def push_check(args: list[str], shown: list[str], ctx: Context) -> str:
 
 def git_check(tokens: list[str], ctx: Context, depth: int, inline: dict[str, str] | None = None) -> str:
     """tokens start at `git`. Returns the refusal text or an empty string."""
-    directories, aliases, j = [], dict(inline or {}), 1
+    directories, aliases, j, hooks_path = [], dict(inline or {}), 1, False
     while j < len(tokens) and tokens[j].startswith("-"):
         token = tokens[j]
         if token in {"-C"} and j + 1 < len(tokens):
-            directories.append(tokens[j + 1])
+            directories.append("\0unknown" if "$" in tokens[j + 1] else tokens[j + 1])
+        if token.startswith("--config-env"):
+            return refuse(tokens, "a git option reads configuration from an environment variable, so it cannot be read", "use plain git options")
+        if "$" in token:
+            return refuse(tokens, "a git option is built by a variable or substitution, so it cannot be read", "spell the option out as a literal word")
         if token == "-c" and j + 1 < len(tokens):
             key, _, value = tokens[j + 1].partition("=")
+            hooks_path = hooks_path or key.lower() == "core.hookspath"
             if key.lower().startswith("alias."):
                 aliases[key[len("alias."):].lower()] = value
         if token.startswith("--git-dir") or token.startswith("--work-tree"):
@@ -340,6 +400,8 @@ def git_check(tokens: list[str], ctx: Context, depth: int, inline: dict[str, str
     rest = tokens[j:]
     if not rest:
         return ""
+    if hooks_path and rest[0].lower() != "push":  # a push with core.hooksPath is refused with the no-verify text by pre_tool_use.py
+        return refuse(tokens, "core.hooksPath overrides the git hooks", "fix what the hook reports instead of bypassing it")
     effective = effective_dir(directories, ctx)
     unknown = "\0unknown" in directories or ctx.unknown_cwd
     reason = subcommand_check(rest[0], rest[1:], tokens, ctx, effective, unknown)
@@ -388,13 +450,19 @@ def config_aliases(directory: Path, ctx: Context) -> dict[str, str] | None:
 
 
 def subcommand_check(sub: str, args: list[str], shown: list[str], ctx: Context, effective: Path, unknown_dir: bool) -> str:
-    if SUBST in sub:
-        return refuse(shown, "the git subcommand is built by a substitution, so it cannot be read", "spell the git subcommand out")
+    if "$" in sub:
+        return refuse(shown, "the git subcommand is built by a variable or substitution, so it cannot be read", "spell the git subcommand out")
     sub = sub.lower()
-    if sub in CAPABLE_SUBS and any(SUBST in t for t in args):
-        return refuse(shown, f"an argument of git {sub} is built by a substitution ($(...), backticks or ${{...}}), so it cannot be read",
+    if sub in CAPABLE_SUBS | {"switch", "tag", "remote", "reflog", "gc", "config"} and any(t.startswith("-") and "$" in t for t in args):
+        return refuse(shown, f"an option of git {sub} is built by a variable or substitution, so it cannot be read", "spell the option out as a literal word")
+    if sub in CAPABLE_SUBS and any("$" in t for t in args):
+        return refuse(shown, f"an argument of git {sub} is built by a variable or substitution ($VAR, $(...), backticks or ${{...}}), so it cannot be read",
                       "spell the arguments out as literal words")
-    letters = {c for token in args for c in cluster(token)}
+    letters = option_letters(args, VALUED_LETTERS.get(sub, ""))
+    if sub == "config" and any("alias." in t.lower() or "hookspath" in t.lower() for t in args):
+        return refuse(shown, "git config sets an alias or core.hooksPath, which changes what later git commands do", "use plain git commands; ask your lead for configuration changes")
+    if sub in {"commit", "merge", "am", "cherry-pick", "rebase"} and any(longopt(t, "no-verify", least=5) for t in args):
+        return refuse(shown, "--no-verify skips the git hooks", "fix what the hook reports instead of bypassing it")
     options, plain = positionals(args)
     if sub == "push":  # a direct push is refused whole by the push guard of pre_tool_use.py; the wrapper path is checked in segment_check
         return ""
@@ -408,7 +476,7 @@ def subcommand_check(sub: str, args: list[str], shown: list[str], ctx: Context, 
         if not unknown_dir and in_throwaway(targets, ctx, effective):
             return ""
         return refuse(shown, "git clean deletes untracked files for good", "git clean -n to preview, then delete the named files yourself; a throwaway path needs PAI_HARNESS_GIT_THROWAWAY")
-    if sub == "branch" and ("D" in letters or "f" in letters or any(longopt(t, "force") for t in args)):
+    if sub == "branch" and ({"D", "f", "M", "C"} & letters or any(longopt(t, "force") for t in args)):
         return refuse(shown, "branch -D / -f deletes or moves a branch without the merged check", "git branch -d (refuses an unmerged branch), or ask your lead")
     if sub == "switch" and ("f" in letters or "C" in letters or any(longopt(t, "force", "discard-changes", "force-create") for t in args)):
         return refuse(shown, "switch -f / --discard-changes / -C discards local changes or resets a branch", "commit or stash first, then git switch <branch> (or -c for a new branch)")
@@ -446,6 +514,20 @@ def subcommand_check(sub: str, args: list[str], shown: list[str], ctx: Context, 
     return ""
 
 
+VALUED_LETTERS = {"clean": "e", "rebase": "XxsSC"}  # short options whose value is the rest of the cluster (`-enode_modules`, `-Xpatience`)
+
+
+def option_letters(args: list[str], valued: str = "") -> set[str]:
+    """The short-option letters of args, each cluster read up to the first option that takes a value (the value is not letters)."""
+    found: set[str] = set()
+    for token in args:
+        for c in cluster(token):
+            if c in valued:
+                break
+            found.add(c)
+    return found
+
+
 def broad(spec: str) -> bool:
     spec = spec.rstrip("/") if spec not in {"/", "./", ":/", "../"} else spec
     return spec in BROAD or spec.endswith("/.") or spec.endswith("/..") or spec.startswith(":(") or spec.startswith(":/") or spec == ":"
@@ -471,14 +553,43 @@ def rm_check(tokens: list[str], ctx: Context) -> str:
     recursive = any(longopt(t, "recursive") or {"r", "R"} & set(cluster(t)) for t in options)
     if not recursive:
         return ""
-    top = toplevel(ctx.cwd)
+    tops = [t for t in (toplevel(ctx.cwd), toplevel(ctx.origin)) if t is not None]  # the repository the session started in counts after a `cd` too
     for target in plain:
+        if target.startswith("$") or ".git" in target and "$" in target:
+            return refuse(tokens, f"the rm -r target {target.replace(SUBST_GIT, '$(...)').replace(SUBST, '$(...)')} is built by a variable or substitution, so it cannot be checked against .git",
+                          "name the path to remove as a literal word")
         parts = [p for p in re.split(r"/+", target) if p]
         on_git = ".git" in parts or any(p[:1] in {".", "[", "\\"} and any(c in p for c in "*?[") and fnmatch.fnmatchcase(".git", p) for p in parts)
         resolved = Path(os.path.realpath(ctx.cwd / os.path.expandvars(os.path.expanduser(target))))
-        covers = top is not None and Path(os.path.realpath(top)).is_relative_to(resolved)
+        covers = any(Path(os.path.realpath(top)).is_relative_to(resolved) for top in tops)
         if on_git or covers:
             return refuse(tokens, "removing .git (or a directory that holds it) destroys the repository and its history", "remove only the named files with git rm, or ask your lead")
+    return ""
+
+
+FILTERS = {"-name", "-iname", "-path", "-ipath", "-regex", "-iregex", "-wholename", "-prune", "-newer"}
+
+
+def destroy_check(tokens: list[str], ctx: Context) -> str:
+    """find -delete / -exec over .git or over a directory that holds it, and mv/unlink/shred/truncate/dd on a .git path."""
+    name = os.path.basename(tokens[0])
+    if name == "find":
+        starts = []
+        for t in tokens[1:]:
+            if t.startswith("-") or t in {"(", "!"}:
+                break
+            starts.append(t)
+        acts = any(t in {"-delete", "-exec", "-execdir", "-ok", "-okdir"} for t in tokens)
+        top = toplevel(ctx.cwd)
+        for start in starts or ["."]:
+            holds = ".git" in start or "$" in start or top is not None and Path(os.path.realpath(top)).is_relative_to(Path(os.path.realpath(ctx.cwd / os.path.expanduser(start))))
+            if acts and (".git" in start or ".git" in tokens or holds and not FILTERS & set(tokens)):
+                return refuse(tokens, "find -delete / -exec over .git or a directory that holds it destroys the repository", "give find a -name / -path filter that excludes .git, or name the files to remove")
+        return ""
+    if name in {"mv", "unlink", "shred", "truncate", "dd"} and any(re.search(r"(^|[=/])\.git(/|$)", t) for t in tokens[1:]):
+        return refuse(tokens, f"{name} on a .git path damages the repository", "leave .git alone; ask your lead")
+    if name in {"ln", "cp", "install", "rsync", "mv"} and ctx.wrapper_name and any(os.path.basename(t) == ctx.wrapper_name for t in tokens[1:]):
+        return refuse(tokens, "a copy or link of the push queue wrapper would run under another name", "call the push queue wrapper by its configured path")
     return ""
 
 
@@ -510,30 +621,44 @@ def matches_wrapper(tokens: list[str], wrapper: str, cwd: Path) -> int:
     return len(wanted) if [os.path.expanduser(t) for t in tokens[1:len(wanted)]] == [os.path.expanduser(t) for t in wanted[1:]] else 0
 
 
-def xargs_check(tokens: list[str]) -> str:
-    """`xargs ... git <sub>` or `xargs ... rm -r/-f`: the arguments come from a pipe and cannot be read, so a dangerous-capable command is refused."""
-    for k in range(1, len(tokens)):
-        name = os.path.basename(tokens[k])
-        if name == "git":
-            j = k + 1
-            while j < len(tokens) and tokens[j].startswith("-"):
-                j += 2 if tokens[j] in GIT_VALUE_OPTIONS else 1
-            if j < len(tokens) and tokens[j].lower() in XARGS_GIT_SUBS:
-                return refuse(tokens, f"xargs feeds git {tokens[j]} arguments that cannot be read", f"run git {tokens[j]} directly with literal arguments")
-        if name == "rm" and any(longopt(t, "recursive", "force") or {"r", "R", "f"} & set(cluster(t)) for t in tokens[k + 1:]):
-            return refuse(tokens, "xargs feeds rm -r/-f arguments that cannot be read", "run rm directly with literal paths")
+READONLY_GIT = {"status", "diff", "log", "show", "add", "grep", "ls-files", "blame", "rev-parse", "cat-file", "check-ignore", "fetch", "ls-tree", "describe"}
+XARGS_VALUED = {"-I", "-n", "-P", "-d", "-L", "-s", "-E", "-a", "-i"}
+
+
+def xargs_check(tokens: list[str], ctx: Context) -> str:
+    """`xargs CMD`: stdin supplies words the command line does not show (flags included), so only CMD names that cannot do harm run unread."""
+    k = 1
+    while k < len(tokens) and tokens[k].startswith("-"):
+        k += 2 if tokens[k] in XARGS_VALUED else 1
+    if k >= len(tokens):
+        return ""
+    command, base = tokens[k], shell_base(tokens[k])
+    if "$" in command:
+        return refuse(tokens, "the command xargs runs is built by a variable or substitution, so it cannot be read", "call the command by name")
+    if os.path.basename(command) == "rm" and "--" in tokens[k + 1:] and not any(t.startswith("-") and t != "--" for t in tokens[k + 1:tokens.index("--", k + 1)]):
+        return ""  # after `--` stdin can supply paths only, never flags
+    if os.path.basename(command) == "git":
+        j = k + 1
+        while j < len(tokens) and tokens[j].startswith("-"):
+            j += 2 if tokens[j] in GIT_VALUE_OPTIONS else 1
+        sub = tokens[j].lower() if j < len(tokens) else ""
+        if sub not in READONLY_GIT:
+            return refuse(tokens, f"xargs feeds git {sub or '<subcommand>'} words from stdin that cannot be read", f"run git {sub or '<subcommand>'} directly with literal arguments")
+    elif base in STDIN_RUNNERS or os.path.basename(command) in {"rm", "eval", "env", "sudo", "doas", "command", "exec", "find", "mv", "dd", "shred", "truncate", "unlink"} or matches_wrapper(tokens[k:], ctx.wrapper, ctx.cwd):
+        return refuse(tokens, f"xargs feeds {os.path.basename(command)} words from stdin that cannot be read (flags, paths or a refspec may arrive there)", "run the command directly with literal arguments")
     return ""
 
 
 def split_string(args: list[str]) -> str | None:
-    """The command text of `env -S X`, `--split-string X`, `--split-string=X` and the joined `-SX`; None when env has no such option."""
+    """The command text of `env -S X`, `--split-string X`, `--split-string=X`, `-SX` and clusters such as `-iSX`; None when env has no such option."""
     for k, token in enumerate(args):
-        if token in {"-S", "--split-string"}:
-            return args[k + 1] if k + 1 < len(args) else ""
         if token.startswith("--split-string="):
             return token.partition("=")[2]
-        if token.startswith("-S") and not token.startswith("--"):
-            return token[2:]
+        if token == "--split-string":
+            return args[k + 1] if k + 1 < len(args) else ""
+        if token.startswith("-") and not token.startswith("--") and "S" in token:
+            rest = token[token.index("S") + 1:]
+            return rest if rest else (args[k + 1] if k + 1 < len(args) else "")
     return None
 
 
@@ -541,6 +666,7 @@ def segment_check(tokens: list[str], ctx: Context, depth: int) -> str:
     lead = True  # still in the prefix zone: assignments, prefix commands, options, redirections
     for i, token in enumerate(tokens):
         base = os.path.basename(token)
+        shell = shell_base(token)
         taken = matches_wrapper(tokens[i:], ctx.wrapper, ctx.cwd)
         if taken:
             reason = push_check(tokens[i + taken:], tokens[i:], ctx)
@@ -550,24 +676,30 @@ def segment_check(tokens: list[str], ctx: Context, depth: int) -> str:
             reason = git_check(tokens[i:], ctx, depth)
         elif base == "rm":
             reason = rm_check(tokens[i:], ctx)
-        elif base == "find" and ".git" in tokens[i:] and any(t in {"-delete", "-exec", "-execdir", "-ok"} for t in tokens[i:]):
-            reason = refuse(tokens[i:], "find on .git with -delete / -exec destroys the repository", "name the files to remove explicitly")
+        elif base in {"find", "mv", "unlink", "shred", "truncate", "dd", "ln", "cp", "install", "rsync"} and (reason := destroy_check(tokens[i:], ctx)):
+            pass
         elif lead and token == SUBST_GIT:  # the command name is built by a substitution that names git or rm
             reason = refuse(tokens[i:], "the command name is built by a substitution that resolves to git or rm", "call git or rm by name")
         elif lead and re.search(r"\$", token):  # a command name built from a variable: read the rest as git or rm
             reason = git_check(["git", *tokens[i + 1:]], ctx, depth) or rm_check(["rm", *tokens[i + 1:]], ctx)
+            if not reason and (re.search(r"git|rm", token) or ctx.wrapper_name and ctx.wrapper_name in ctx.text or re.search(r"\b(git|rm)\b", ctx.text)):
+                reason = refuse(tokens[i:], "the command name is built by a variable or substitution in a command that uses git, rm or the push wrapper, so it cannot be read", "call the command by name")
         elif base == "xargs":
-            reason = xargs_check(tokens[i:])
+            reason = xargs_check(tokens[i:], ctx)
+        elif base in {"sudo", "doas"} and depth < 3 and any(t.startswith("-") and {"s", "i"} & set(cluster(t)) for t in tokens[i + 1:]):
+            reason = check_command(" ".join(tokens[i + 1:]), ctx, depth + 1)
         elif base == "alias" and any(re.search(r"=.*\b(git|rm)\b", t) for t in tokens[i + 1:]):
             reason = refuse(tokens[i:], "an alias for git or rm defined in the same command hides what runs next", "call git or rm by name")
-        elif base in SHELLS and (found := shell_script(tokens[i + 1:], base))[0]:
+        elif shell in SHELLS and (found := shell_script(tokens[i + 1:], shell))[0]:
             if found[1] is None:
                 reason = refuse(tokens[i:], "the script of the shell -c cannot be found", "put the command in the shell script string as one plain word")
+            elif re.match(r"\s*\$", found[1]):
+                reason = refuse(tokens[i:], "the script of the shell -c is built by a variable or substitution, so it cannot be read", "put the command in the shell script string as literal words")
             elif depth >= 3:
                 reason = refuse(tokens[i:], "shells nested more than three deep cannot be read", "run the git command directly")
             else:
                 reason = check_command(found[1], ctx, depth + 1)
-        elif depth < 3 and (base == "eval" or base in STRING_RUNNERS):
+        elif depth < 3 and (base == "eval" or shell_base(token) in STRING_RUNNERS):
             reason = check_command(" ".join(tokens[i + 1:]), ctx, depth + 1) or next(
                 (r for t in tokens[i + 1:] if " " in t for r in [check_command(t, ctx, depth + 1)] if r), "")
         elif base == "env" and (split := split_string(tokens[i + 1:])) is not None:
@@ -605,6 +737,7 @@ def check_command(command: str, ctx: Context, depth: int = 0) -> str:
         if reason:
             return reason
     for tokens in segments(command):
+        ctx.tick()
         reason = segment_check(tokens, ctx, depth)
         if reason:
             return reason
@@ -615,23 +748,55 @@ def check_command(command: str, ctx: Context, depth: int = 0) -> str:
 
 
 def check(command: str, wrapper: str, cwd: Path) -> str:
-    """Return the refusal text for a dangerous command, else an empty string."""
-    top = toplevel(cwd)
-    ctx = Context(cwd, wrapper, top)
-    reason = check_command(command, ctx)
+    """Return the refusal text for a dangerous command, else an empty string. Anything the reader cannot resolve to literal words is refused with
+    a reason that names it."""
+    if len(command) > MAX_COMMAND or len(re.findall(r"[;&|\n]", command)) > MAX_SEPARATORS:
+        return refuse(["<command>"], f"the command is too large to check ({len(command)} bytes, over {MAX_COMMAND} bytes or {MAX_SEPARATORS} separators)", "split it into smaller commands")
+    ctx = Context(cwd, wrapper, toplevel(cwd))
+    code, bodies = strip_heredocs(command)
+    ctx.text = code
+    name = ctx.wrapper_name
+    mentions = bool(re.search(r"\b(git|rm|xargs|eval|find|mv|unlink|shred|truncate|dd)\b", code) or name and name in code)
+    if mentions and re.search(r"\$['\"]", code):
+        return refuse(["<command>"], "a $'...' or $\"...\" word (ANSI-C or locale quoting) hides what a git, rm or wrapper command receives", "use plain quotes")
+    if mentions and tokenize(extract_substitutions(code)[0].replace("`", " ; ").replace("\\\n", "")) is None:
+        return refuse(["<command>"], "the command has an unmatched quote, so its words cannot be read", "close the quote")
+    if (mentions or "GIT_CONFIG" in code) and re.search(r"\bGIT_CONFIG_(COUNT|KEY_|VALUE_|PARAMETERS)|\bGIT_CONFIG\b", code):
+        return refuse(["<command>"], "GIT_CONFIG_* environment variables set git configuration (aliases, core.hooksPath) the reader cannot see", "use plain git commands")
+    reason = check_command(code, ctx)
     if reason:
         return reason
-    fed = re.search(r"\||<<", command) is not None
-    for tokens in segments(command):  # a shell with no script and no -c that a pipe or here-string feeds: scan the whole command text
-        shell = next((i for i, t in enumerate(tokens) if os.path.basename(t) in SHELLS), None)
-        if fed and shell is not None and not shell_script(tokens[shell + 1:], os.path.basename(tokens[shell]))[0] and all(t.startswith("-") for t in tokens[shell + 1:]):
-            words = wrapper_words(wrapper)
-            wrapper_name = os.path.basename(words[-1]) if words else ""
-            if CRUDE.search(command) or wrapper_name and wrapper_name in command:
-                return refuse(["<command that feeds a shell>"], "a shell reads a git or push command from a pipe that cannot be inspected", "run the git command directly, or call the push queue wrapper without a pipe")
-    if wrapper_words(wrapper) and re.search(re.escape(os.path.basename(wrapper_words(wrapper)[-1])) + r"[^;&|\n]*(\$\(|`|\$\{)", command):
+    for quoted, body in bodies:  # an unquoted heredoc body is expanded: its $(...) and backticks run
+        if not quoted:
+            for inner in extract_substitutions(body)[1]:
+                reason = check_command(inner, ctx, 1)
+                if reason:
+                    return reason
+    fed = re.search(r"\||<", code) is not None or bool(bodies)
+    for tokens in segments(code):  # a shell (or at/batch) that reads its script from a pipe, here-string, heredoc or file redirect
+        k = next((i for i, t in enumerate(tokens) if shell_base(t) in STDIN_RUNNERS), None)
+        if fed and k is not None and not shell_script(tokens[k + 1:], shell_base(tokens[k]))[0] and (shell_base(tokens[k]) in {"at", "batch"} or not script_argument(tokens[k + 1:])):
+            if re.search(r"\b(git|rm)\b", command) or name and name in command:
+                return refuse(["<command that feeds a shell>"], f"a {shell_base(tokens[k])} script fed by a pipe, here-string or heredoc that mentions git, rm or the push wrapper cannot be read",
+                              "run the git command directly, or call the push queue wrapper without a pipe")
+    if name and re.search(re.escape(name) + r"[^;&|\n]*(\$\(|`|\$\{)", code):
         return refuse(["<wrapper call with a substitution>"], "a substitution can build the refspec at run time", "name the feature branch as a literal branch name")
     return ""
+
+
+def script_argument(args: list[str]) -> bool:
+    """True when a shell's arguments name a script file (a non-option word that is not part of a redirection)."""
+    skip = False
+    for n, t in enumerate(args):
+        if skip:
+            skip = False
+        elif t.isdigit() and n + 1 < len(args) and re.fullmatch(r"[<>]+&?", args[n + 1]):  # the fd of `2>&1`
+            continue
+        elif re.fullmatch(r"[0-9]*[<>&]+[0-9]*", t):
+            skip = not re.fullmatch(r"[0-9]*[<>]+&?[0-9-]+", t)  # `>&1` carries its target; `>` and `>&` take the next word
+        elif not t.startswith("-") and not t.startswith("+"):
+            return True
+    return False
 
 
 def deny_dangerous(common, command: str, wrapper: str, cwd: Path) -> bool:

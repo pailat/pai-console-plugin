@@ -332,9 +332,14 @@ def analyze(command: str, wrapper: str, cwd: Path, depth: int = 0) -> Analysis:
         bare = unwrap(tokens)
         if bare and os.path.basename(bare[0]) == "tee":
             found.targets += [t for t in bare[1:] if not t.startswith("-")]
+        if depth < 3:
+            for k, word in enumerate(tokens):  # env -S 'git push ...' (before unwrap drops env and its value)
+                split = git_guardrails.split_string(tokens[k + 1:]) if os.path.basename(word) == "env" else None
+                if split:
+                    found.merge(analyze(split, wrapper, cwd, depth + 1))
         if bare and depth < 3:
-            name = os.path.basename(bare[0])
-            script = git_guardrails.shell_script(bare[1:], name)[1] if name in SHELLS else None  # -c, -lc, -ce, -c -e, -c --
+            name = git_guardrails.shell_base(bare[0])
+            script = git_guardrails.shell_script(bare[1:], name)[1] if name in git_guardrails.SHELLS else None  # -c, -lc, -ce, -c -e, -c --
             if script is not None:
                 found.merge(analyze(script, wrapper, cwd, depth + 1))
             elif name == "eval":
@@ -351,7 +356,7 @@ def analyze(command: str, wrapper: str, cwd: Path, depth: int = 0) -> Analysis:
     return found
 
 
-def main() -> None:
+def run() -> None:
     event = common.read_event()
     if not common.role():
         return
@@ -418,6 +423,15 @@ def main() -> None:
         if reason:
             common.deny(reason)
             return
+
+def main() -> None:
+    """A hook that raises exits 1, which does not block: with a role set, any failure while checking a call denies it instead."""
+    try:
+        run()
+    except Exception as error:  # noqa: BLE001 - fail closed on every failure
+        if common.role():
+            common.deny(f"pre_tool_use could not check this call ({type(error).__name__}: {error}); it is refused. Split the command into plain commands, or ask your parent.")
+
 
 if __name__ == "__main__":
     main()
