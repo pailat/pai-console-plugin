@@ -221,7 +221,7 @@ def claude_command(args: argparse.Namespace, config: dict, resume: str | None, m
         allow, deny = lane_permissions(args, config)  # the lane never bypasses: dontAsk with scoped rules is narrower than any bypass
         command += ["--restricted", "--permission-mode", "dontAsk", "--tools", ",".join(MECHANICAL_TOOLS), "--allowed-tools", *allow, "--disallowed-tools", *deny]
         return command
-    if config["run"]["bypass_permissions"]:  # opt out per project with [run] bypass_permissions = false
+    if config["run"]["bypass_permissions"] and deny_baseline.applicable() and deny_baseline.user_policy()["bypass_permissions"]:  # opt out per project with [run] bypass_permissions = false (or machine-wide in the user policy); never in the Codex package
         command += ["--permission-mode", "bypassPermissions"]
     if args.allowed_tools:
         command += ["--allowed-tools", *args.allowed_tools]
@@ -229,14 +229,29 @@ def claude_command(args: argparse.Namespace, config: dict, resume: str | None, m
 
 
 def deny_missing(args: argparse.Namespace, config: dict) -> list[str]:
-    """Deny-baseline rules absent from the effective settings; empty when the run does not bypass or the project waives the check.
+    """Deny-baseline rules absent from the effective settings; empty when the run does not bypass or the machine owner waives the check.
 
+    The waiver is read from the user-level policy only (deny_baseline.required), never from the project config the run can write.
     Strict MCP is in force only when the machine config is passed (pai.mcp_url set); otherwise user-scope servers are loaded too.
     """
-    run = config["run"]
-    if args.profile or not (run["bypass_permissions"] and run["require_deny_baseline"]):  # the mechanical lane never bypasses (dontAsk, four tools)
+    if args.profile or not deny_baseline.required():  # the mechanical lane never bypasses (dontAsk, four tools)
         return []
     return deny_baseline.missing_baseline(args.cwd or os.getcwd(), bool(config["pai"]["mcp_url"]), args.role or "implementer")
+
+
+def preflight_block(args: argparse.Namespace, config: dict, state: Path, state_file: Path, role: str) -> int | None:
+    """Check the deny baseline now; on a miss record a named BLOCKER (journal, registry, run state) and return the blocked exit code."""
+    missing = deny_missing(args, config)
+    if not missing:
+        return None
+    reason = deny_baseline.preflight_reason(missing)
+    blocker = lib.blocker(state, args.issue, reason)
+    lib.emit(state, "run.blocked", {"issue": args.issue, "role": role, "blocker": blocker})
+    lib.register(state, args.issue, state="blocked", reason=reason)
+    now = lib.stamp()  # --status reads this record: a preflight block must replace the previous run's state, keeping its session for a later resume
+    lib.write_json(state_file, {**(lib.read_json(state_file) or {}), "issue": args.issue, "role": args.role, "state": "blocked", "reason": reason,
+                                "finished": now, "exit_code": None})
+    return lib.EXIT_BLOCKED
 
 
 def launch_base(args: argparse.Namespace, previous: dict) -> str | None:
@@ -391,6 +406,9 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
     if args.resume_run and not resume:
         print(f"{args.issue}: no recorded session id to resume", file=sys.stderr)
         return lib.EXIT_USAGE
+    blocked = preflight_block(args, config, state, state_file, args.role or "implementer")  # the settings the pane's claude will read, checked just before it starts
+    if blocked is not None:
+        return blocked
     prompt = Path(args.prompt_file).read_text(encoding="utf-8") if args.prompt_file else (args.prompt or "")
     queue = args.queue or previous.get("queue")
     if resume:
@@ -718,16 +736,11 @@ def main(argv: list[str]) -> int:
         if not args.dry_run:
             lib.emit(state, "run.blocked", {"issue": args.issue, "role": role, "blocker": blocker})
         return lib.EXIT_FAILED
-    missing = [] if args.inner else deny_missing(args, config)  # the outer launcher checks once; a pane's inner run may see another environment
-    if missing and not args.dry_run:
-        reason = deny_baseline.preflight_reason(missing)
-        blocker = lib.blocker(state, args.issue, reason)
-        lib.emit(state, "run.blocked", {"issue": args.issue, "role": role, "blocker": blocker})
-        lib.register(state, args.issue, state="blocked", reason=reason)
-        now = lib.stamp()  # --status reads this record: a preflight block must replace the previous run's state, keeping its session for a later resume
-        lib.write_json(state_file, {**(lib.read_json(state_file) or {}), "issue": args.issue, "role": args.role, "state": "blocked", "reason": reason,
-                                    "finished": now, "exit_code": None})
-        return lib.EXIT_BLOCKED
+    missing = deny_missing(args, config)
+    if not args.inner and not args.dry_run:  # the outer launcher fails closed here; inner() checks again in whichever process starts claude
+        blocked = preflight_block(args, config, state, state_file, role)
+        if blocked is not None:
+            return blocked
     if args.dry_run:
         previous = lib.read_json(state_file) or {}
         resume = previous.get("session_id") if args.resume_run else None

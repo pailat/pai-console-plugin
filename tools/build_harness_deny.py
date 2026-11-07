@@ -12,7 +12,7 @@ sys.path.insert(0, str(ROOT / "plugins/pai-harness/scripts"))
 import deny_baseline  # noqa: E402
 
 BASE_NOTE = ("Generic example for Acme. Copy into .claude/settings.json (project) or ~/.claude/settings.json (user). Deny rules hold in bypassPermissions "
-             "and are the layer that stops Bash patterns and MCP writes, which no hook sees; launch.sh refuses to start a bypass run until the baseline is present. "
+             "and are the layer that stops Bash patterns and MCP writes, which the plugin hooks do not match today; launch.sh refuses to start a bypass run until the baseline is present. "
              "Patterns match the whole command with * as a wildcard; they are best effort, so keep the plugin hooks on as well. "
              "Merge and protected-branch denials are in settings.deny.non-merge.json: apply them to every role except the integrator and orchestrator.")
 NON_MERGE_NOTE = ("Generic example for Acme. Add to the project settings of every role except the integrator and orchestrator (the roles that merge by design); "

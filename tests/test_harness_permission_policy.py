@@ -108,7 +108,7 @@ class DenyExampleTest(unittest.TestCase):
     def test_parses_with_claude_code_rule_syntax(self) -> None:
         self.assertTrue(self.deny and len(set(self.deny)) == len(self.deny))
         for rule in self.deny:
-            self.assertRegex(rule, r"^((Bash|Read|Edit|Write)\(.+\)|mcp__[A-Za-z0-9_-]+__[A-Za-z0-9_*-]+)$")
+            self.assertRegex(rule, r"^((Bash|Read|Edit|Write|NotebookEdit)\(.+\)|mcp__[A-Za-z0-9_-]+__[A-Za-z0-9_*-]+)$")
 
     def test_real_command_spellings_are_denied(self) -> None:
         for command in ("git push --force origin x", "git -C repo push --force origin x", "git -c a=b push --force-with-lease", "git push -f",
@@ -198,12 +198,11 @@ class DenyExampleTest(unittest.TestCase):
         done = subprocess.run([sys.executable, str(ROOT / "tools/build_harness_deny.py"), "--check"], capture_output=True, text=True)
         self.assertEqual(done.returncode, 0, done.stderr)
 
-    def test_the_settings_model_accepts_equivalent_wildcards(self) -> None:
-        self.assertTrue(deny_baseline.covers("mcp__pai__*", "mcp__pai__iam_*"))
-        self.assertTrue(deny_baseline.covers("mcp__pai", "mcp__pai__*delete*"))
+    def test_the_settings_model_is_strict_no_equivalent_rule_reasoning(self) -> None:
         self.assertTrue(deny_baseline.covers("mcp__pai__iam_*", "mcp__pai__iam_*"))
-        self.assertTrue(deny_baseline.covers("Bash(git *)", "Bash(git *reset --hard*)"))
-        self.assertFalse(deny_baseline.covers("mcp__pai__iam_*", "mcp__pai__*delete*"))
+        self.assertFalse(deny_baseline.covers("mcp__pai__*", "mcp__pai__iam_*"))
+        self.assertFalse(deny_baseline.covers("mcp__pai", "mcp__pai__*delete*"))
+        self.assertFalse(deny_baseline.covers("Bash(git *)", "Bash(git *reset --hard*)"))
         self.assertFalse(deny_baseline.covers("Read(./.env)", "Bash(sudo *)"))
 
     def test_no_rule_mixes_a_mid_pattern_star_with_the_colon_star_suffix(self) -> None:
@@ -243,11 +242,11 @@ class PreflightTest(HarnessCase):
         self.blocked(done)
         self.assertIn("mcp__pai__iam_*", done.stdout)
 
-    def test_an_equivalent_wildcard_satisfies_the_baseline(self) -> None:
+    def test_a_broader_wildcard_rule_does_not_satisfy_the_baseline(self) -> None:
         rules = [r for r in deny_baseline.baseline(False, "implementer") if not r.startswith("mcp__")] + ["mcp__pai", "mcp__plugin_pai-console_pai",
-                 "mcp__plugin_linear_linear", "mcp__railway", "mcp__plugin_railway_railway"]
+                 "mcp__plugin_linear_linear", "mcp__railway", "mcp__plugin_railway_railway", "mcp__pai__*"]
         write_deny_settings(self.claude_home / "settings.json", rules)
-        self.assertEqual(self.launch("ACME-7", "success", 0).returncode, 0)
+        self.blocked(self.launch("ACME-7", "success", 0))
 
     def test_a_role_that_does_not_merge_needs_the_merge_denials_and_the_integrator_does_not(self) -> None:
         rules = [r for r in deny_baseline.baseline(False, "implementer") if r not in deny_baseline.NON_MERGE_RULES]
@@ -303,14 +302,49 @@ class PreflightTest(HarnessCase):
         done = self.launch("ACME-7", "success", 0, "--cwd", str(work))
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
 
-    def test_waiver_and_opt_out_skip_the_check(self) -> None:
+    def write_project_config(self, body: str) -> None:
+        config = self.tmp / "project.toml"
+        config.write_text(MINIMAL + "\n" + body)
+        self.env["PAI_HARNESS_CONFIG"] = str(config)
+
+    def write_user_policy(self, body: str) -> None:
+        (self.xdg / "pai-harness").mkdir(parents=True, exist_ok=True)
+        (self.xdg / "pai-harness/policy.toml").write_text(body)
+
+    def test_a_project_config_cannot_waive_the_check_or_opt_the_check_out(self) -> None:
+        (self.claude_home / "settings.json").unlink()
+        for body in ("[run]\nrequire_deny_baseline = false\n", "[run]\nbypass_permissions = false\n", "[run]\nrequire_deny_baseline = false\nbypass_permissions = false\n"):
+            self.write_project_config(body)
+            self.blocked(self.launch("ACME-7", "success", 0))
+            (self.tmp / "claude.json").unlink(missing_ok=True)
+
+    def test_a_project_config_may_still_drop_the_bypass_flag_when_the_baseline_is_there(self) -> None:
+        self.write_project_config("[run]\nbypass_permissions = false\n")
+        self.assertEqual(self.launch("ACME-7", "success", 0).returncode, 0)
+        self.assertNotIn("--permission-mode", json.loads((self.tmp / "claude.json").read_text())["argv"])
+
+    def test_the_user_level_policy_can_waive_or_opt_out(self) -> None:
         (self.claude_home / "settings.json").unlink()
         for body in ("[run]\nrequire_deny_baseline = false\n", "[run]\nbypass_permissions = false\n"):
-            config = self.tmp / "waive.toml"
-            config.write_text(MINIMAL + "\n" + body)
-            self.env["PAI_HARNESS_CONFIG"] = str(config)
+            self.write_user_policy(body)
             done = self.launch("ACME-7", "success", 0)
             self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        argv = json.loads((self.tmp / "claude.json").read_text())["argv"]
+        self.assertNotIn("bypassPermissions", argv)  # the last policy (opt-out) also dropped the flag
+
+    def test_the_inner_process_checks_again_with_the_config_dir_claude_will_read(self) -> None:
+        """A pane's inner run with another CLAUDE_CONFIG_DIR than the outer launcher saw must still fail closed before claude starts."""
+        empty = self.tmp / "other-home"
+        empty.mkdir()
+        done = self.run_script("launch.sh", "ACME-7", "--inner", "--prompt-file", str(self.prompt), CLAUDE_CONFIG_DIR=str(empty),
+                               FAKE_CLAUDE_FIXTURE=str(self.fixture("success")))
+        self.assertEqual(done.returncode, 3, done.stdout + done.stderr)
+        self.assertIn("BLOCKER ACME-7:", done.stdout)
+        self.assertFalse((self.tmp / "claude.json").exists())
+        self.assertEqual(self.record("ACME-7")["state"], "blocked")
+        # and with the matching directory the same inner run proceeds
+        done = self.run_script("launch.sh", "ACME-8", "--inner", "--prompt-file", str(self.prompt), FAKE_CLAUDE_FIXTURE=str(self.fixture("success")))
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
 
     def test_dry_run_reports_the_missing_count_and_does_not_block(self) -> None:
         (self.claude_home / "settings.json").unlink()
@@ -367,15 +401,132 @@ class StandaloneCheckTest(HarnessCase):
         self.assertIn("FAIL deny-baseline", done.stderr)
         self.assertEqual(json.loads(done.stdout)["deny_baseline"], "FAIL")
 
-    def test_health_check_skips_the_baseline_when_bypass_is_off_or_waived(self) -> None:
+    def test_health_check_skips_the_baseline_only_for_a_user_level_waiver(self) -> None:
         (self.claude_home / "settings.json").unlink()
         self.run_script("health.sh", "beat", "ACME-7", "--state", "done")
-        for body in ("[run]\nbypass_permissions = false\n", "[run]\nrequire_deny_baseline = false\n"):
-            config = self.tmp / "skip.toml"
-            config.write_text(MINIMAL + "\n" + body)
-            done = self.run_script("health.sh", "check", "--config", str(config))
+        config = self.tmp / "skip.toml"
+        config.write_text(MINIMAL + "\n[run]\nrequire_deny_baseline = false\nbypass_permissions = false\n")
+        self.assertEqual(self.run_script("health.sh", "check", "--config", str(config)).returncode, 4)  # a project config does not waive
+        (self.xdg / "pai-harness").mkdir(parents=True)
+        (self.xdg / "pai-harness/policy.toml").write_text("[run]\nrequire_deny_baseline = false\n")
+        done = self.run_script("health.sh", "check")
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        self.assertEqual(json.loads(done.stdout)["deny_baseline"], "skipped")
+
+
+class SelfProtectionAndHistoryTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.deny = json.loads((PLUGIN_ROOT / "examples/settings.deny.json").read_text())["permissions"]["deny"]
+
+    def file_denied(self, tool: str, path: str) -> bool:
+        # Edit/Write rules are path globs: ** crosses directories, * does not; ~ and ./ anchors are compared as written
+        for rule in self.deny:
+            if rule.startswith(tool + "("):
+                glob = rule[len(tool) + 1:-1]
+                regex = re.escape(glob).replace(r"\*\*", "\0").replace(r"\*", "[^/]*").replace("\0", ".*")
+                if re.fullmatch(regex, path):
+                    return True
+        return False
+
+    def test_the_controls_cannot_be_edited_or_written(self) -> None:
+        for tool in ("Edit", "Write", "NotebookEdit"):
+            for path in ("~/.claude/settings.json", "~/.claude/settings.local.json", "proj/.claude/settings.json", "./.claude/settings.local.json",
+                         "~/.claude/plugins/cache/pai-harness/hooks/hooks.json", "~/.claude/hooks/x.sh", "~/.config/pai-harness/policy.toml", "./.pai-harness.toml"):
+                self.assertTrue(self.file_denied(tool, path), f"{tool} {path}")
+
+    def test_ordinary_files_with_similar_names_stay_editable(self) -> None:
+        for path in ("src/settings.json", "./app/settings.json", "plugins/pai-harness/scripts/launch.py", "plugins/pai-harness/hooks/pre_tool_use.py",
+                     "plugins/pai-harness/examples/acme/.pai-harness.toml", "docs/claude-settings.md"):
+            self.assertFalse(self.file_denied("Edit", path), path)
+
+    def test_shell_writes_to_the_controls_are_denied_and_reads_and_other_writes_are_not(self) -> None:
+        for command in ("echo '{}' > ~/.claude/settings.json", "echo x >> .claude/settings.local.json", "printf x | tee ~/.claude/settings.json",
+                        "sed -i 's/a/b/' .claude/settings.json", "sed -n 1p x && sed -i s/a/b/ ~/.claude/settings.json", "cp /tmp/a ~/.claude/settings.json",
+                        "mv x .claude/settings.json", "rm ~/.claude/settings.json", "echo x > .pai-harness.toml", "echo x > ~/.config/pai-harness/policy.toml",
+                        "rm -r ~/.claude/plugins/cache", "ln -sf /dev/null ~/.claude/settings.json", "truncate -s0 .claude/settings.json"):
+            self.assertTrue(denied(self.deny, command), command)
+        for command in ("cat ~/.claude/settings.json", "echo hi > out.txt", "echo '{}' > src/settings.json", "sed -i s/a/b/ src/app.py", "cp a b",
+                        "git status", "cat .pai-harness.toml", "grep deny .claude/settings.json 2>&1"):
+            self.assertFalse(denied(self.deny, command), command)
+
+    def test_history_rewriting_and_object_loss_are_denied(self) -> None:
+        for command in ("git filter-branch --all", "git -C r filter-branch -f", "git filter-repo --path x", "git update-ref -d refs/heads/x",
+                        "git update-ref --delete refs/heads/x", "git reflog expire --expire=now --all", "git stash clear", "git gc --prune=now",
+                        "git -C r gc --aggressive --prune=now"):
+            self.assertTrue(denied(self.deny, command), command)
+        for command in ("git gc", "git stash", "git stash pop", "git reflog", "git update-ref refs/heads/x HEAD"):
+            self.assertFalse(denied(self.deny, command), command)
+
+
+class CodexMachineTest(unittest.TestCase):
+    """The generated Codex package has no Claude deny-rule layer: no check, no exit 4, no bypass flag, no pointer to files it does not ship."""
+
+    package = ROOT / "plugins/codex-harness/scripts"
+
+    def env(self, home: str) -> dict:
+        return {**os.environ, "CLAUDE_CONFIG_DIR": home, "XDG_CONFIG_HOME": home, "PAI_HARNESS_CONFIG": str(FIXTURES / "acme.pai-harness.toml"),
+                "PAI_HARNESS_STATE_DIR": home + "/state", "PYTHONDONTWRITEBYTECODE": "1"}  # the generated package must stay byte-for-byte what the builder wrote
+
+    def test_health_check_does_not_fail_on_a_codex_machine_without_claude_settings(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as home:
+            env = self.env(home)
+            subprocess.run(["bash", str(self.package / "health.sh"), "beat", "ACME-7", "--state", "done"], env=env, check=True, capture_output=True)
+            done = subprocess.run(["bash", str(self.package / "health.sh"), "check"], env=env, capture_output=True, text=True)
             self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
             self.assertEqual(json.loads(done.stdout)["deny_baseline"], "skipped")
+            self.assertNotIn("FAIL", done.stderr)
+
+    def test_the_standalone_check_is_not_applicable_and_the_launcher_never_bypasses(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as home:
+            env = self.env(home)
+            done = subprocess.run([sys.executable, "-B", str(self.package / "deny_baseline.py"), "--check"], env=env, capture_output=True, text=True)
+            self.assertEqual(done.returncode, 0, done.stderr)
+            self.assertIn("not applicable", done.stdout)
+            dry = subprocess.run(["bash", str(self.package / "launch.sh"), "ACME-7", "--prompt", "x", "--dry-run"], env=env, capture_output=True, text=True)
+            self.assertEqual(dry.returncode, 0, dry.stdout + dry.stderr)
+            self.assertNotIn("bypassPermissions", dry.stdout)
+            self.assertEqual(json.loads(dry.stdout)["deny_baseline_missing"], 0)
+
+    def test_the_codex_package_ships_no_pointer_to_the_claude_deny_files(self) -> None:
+        for path in sorted((ROOT / "plugins/codex-harness").rglob("*")):
+            if path.is_file() and path.suffix in {".md", ".json"}:
+                self.assertNotIn("settings.deny", path.read_text(errors="ignore"), str(path.relative_to(ROOT)))
+
+
+class LiveProofScriptTest(unittest.TestCase):
+    """The opt-in live proof is never run here; only its offline parts are: the skip, the fake MCP server and the generated baseline."""
+
+    script = ROOT / "tests/live/live_bypass_proof.py"
+
+    def test_it_skips_without_the_opt_in_and_is_not_collected_by_the_suite(self) -> None:
+        env = {k: v for k, v in os.environ.items() if k != "PAI_HARNESS_LIVE_CLAUDE"}
+        done = subprocess.run([sys.executable, str(self.script)], env=env, capture_output=True, text=True)
+        self.assertEqual(done.returncode, 0)
+        self.assertIn("skipped", done.stdout)
+        self.assertFalse(self.script.name.startswith("test"))
+        wrapper = subprocess.run([str(self.script.with_name("live-bypass-proof.sh"))], env=env, capture_output=True, text=True)
+        self.assertEqual((wrapper.returncode, "skipped" in wrapper.stdout), (0, True))
+
+    def test_the_fake_mcp_server_lists_tools_and_records_calls(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            log = Path(tmp) / "calls.log"
+            requests = [{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05"}},
+                        {"jsonrpc": "2.0", "method": "notifications/initialized"},
+                        {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
+                        {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "page_read", "arguments": {}}}]
+            done = subprocess.run([sys.executable, str(self.script), "--serve", str(log)], input="\n".join(map(json.dumps, requests)) + "\n", capture_output=True, text=True)
+            replies = [json.loads(line) for line in done.stdout.splitlines()]
+            self.assertEqual([r["id"] for r in replies], [1, 2, 3])
+            self.assertEqual(sorted(t["name"] for t in replies[1]["result"]["tools"]), ["iam_x", "page_delete", "page_read"])
+            self.assertEqual(log.read_text().split(), ['"page_read"'])
+
+    def test_the_proof_targets_rules_that_exist_in_the_baseline(self) -> None:
+        baseline = deny_baseline.baseline(False, "implementer")
+        for rule in ("mcp__pai__*delete*", "mcp__plugin_pai-console_pai__*delete*", "Bash(git *push *--force*)", "mcp__pai__iam_*"):
+            self.assertIn(rule, baseline)
 
 
 class WordingTest(unittest.TestCase):

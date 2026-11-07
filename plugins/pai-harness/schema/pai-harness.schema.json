@@ -263,7 +263,7 @@
         "require_deny_baseline": {
           "type": "boolean",
           "default": true,
-          "description": "With bypass on, refuse to start a run (blocked, a named BLOCKER) unless the effective Claude Code settings carry the deny baseline (examples/settings.deny.json). Set false only where another control already denies those actions."
+          "description": "Reserved: ignored in a project config. The deny-baseline waiver is read only from the user-level policy file ~/.config/pai-harness/policy.toml, because a run can write the project config. See examples/README.md."
         }
       }
     },

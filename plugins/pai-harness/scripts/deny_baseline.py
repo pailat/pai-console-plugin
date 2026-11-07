@@ -14,6 +14,7 @@ import json
 import os
 import re
 import sys
+import tomllib
 from pathlib import Path
 
 PAI_PREFIXES = ("mcp__pai__", "mcp__plugin_pai-console_pai__")  # the harness machine server, and the interactive plugin server
@@ -22,7 +23,8 @@ RAILWAY_PREFIXES = ("mcp__railway__", "mcp__plugin_railway_railway__")
 MERGE_ROLES = ("integrator", "orchestrator")  # the roles that merge by design; every other role also needs NON_MERGE_RULES
 
 # MCP deny patterns by verb, not by hand-picked tool: a new Pai tool whose name carries one of these verbs is denied without a list update.
-# Hooks never see MCP calls, so under bypass these rules are the only layer for MCP writes.
+# The plugin's PreToolUse matcher (Write|Edit|MultiEdit|NotebookEdit|Bash) does not include MCP tools today, so under bypass these rules are the
+# only layer for MCP writes (a matcher such as mcp__.* could add a second one; follow-up).
 PAI_PATTERNS = tuple(f"*{verb}*" for verb in ("delete", "remove", "revoke", "deploy", "publish", "purge", "anonymize", "terminate", "void",
                                               "rotate", "renounce", "staff_grant", "enrollment_approve", "archive", "merge", "unlink")) + (
     "iam_*", "finance_*", "workforce_*", "*_ban", "*_unban", "*_win", "*slug_set", "*domain_set", "*production_access_set", "*member_role_set",
@@ -40,7 +42,19 @@ BASE_RULES = (
     "Bash(git *reset --hard*)", "Bash(git *clean *-*f*)", "Bash(git *branch -D *)", "Bash(git *branch *--delete *--force*)",
     "Bash(git *checkout .)", "Bash(git *checkout -- .)", "Bash(git *restore .)", "Bash(git *restore --staged --worktree .)",
     "Bash(sudo *)", "Bash(su *)", "Bash(ssh *)", "Bash(scp *)", "Bash(sftp *)",
+    # history rewriting and loss of recoverable objects
+    "Bash(git *filter-branch*)", "Bash(git *filter-repo*)", "Bash(git *update-ref -d*)", "Bash(git *update-ref --delete*)",
+    "Bash(git *reflog expire*)", "Bash(git *reflog delete*)", "Bash(git *stash clear*)", "Bash(git *gc *--prune=now*)", "Bash(git *gc --prune=now*)",
 )
+# Self-protection: a run must not edit the controls that confine it (Claude settings, the harness config and policy, the installed plugin
+# and its hooks). Anchored to the run directory and the user's own directories, so a repository that merely contains a settings.json or a
+# plugin source tree (this one) stays editable.
+PROTECTED_PATHS = ("~/.claude/settings*.json", "**/.claude/settings*.json", "~/.claude/plugins/**", "~/.claude/hooks/**", "~/.config/pai-harness/**",
+                   "./.pai-harness.toml")
+PROTECTED_BASH = (".claude/settings", ".claude/plugins/", ".claude/hooks/", ".config/pai-harness/", ".pai-harness.toml")
+SELF_PROTECTION_RULES = (tuple(f"{tool}({path})" for path in PROTECTED_PATHS for tool in ("Edit", "Write", "NotebookEdit"))
+                         + tuple(f"Bash({lead.format(t=target)})" for target in PROTECTED_BASH
+                                 for lead in ("*>*{t}*", "*tee *{t}*", "sed *-i*{t}*", "cp *{t}*", "mv *{t}*", "rm *{t}*", "ln *{t}*", "truncate *{t}*")))
 # rm: only the whole-target spellings are denied (end-anchored), so scratch-directory cleanup (dist, ./build, node_modules, mktemp dirs) still runs.
 # A backslash-star is a literal star: the glob spellings (rm -rf /*, ~/*, $HOME/*, ./*) are their own targets.
 RM_TARGETS = ("/", "~", "~/", "$HOME", "$HOME/", '"$HOME"', "${HOME}", "..", "../", ".", "./", ".git", "./.git", "*/.git",
@@ -85,13 +99,13 @@ OTHER_RULES = (
 def baseline(strict: bool, role: str) -> tuple[str, ...]:
     """What a launch requires: git, rm, privilege and secret rules; the MCP verb rules (the machine server only under strict MCP,
     every known server otherwise); and the merge and protected-branch rules for every role that does not merge."""
-    return (BASE_RULES + RM_RULES + SECRET_RULES + ENV_RULES + (STRICT_MCP_RULES if strict else MCP_RULES)
+    return (BASE_RULES + SELF_PROTECTION_RULES + RM_RULES + SECRET_RULES + ENV_RULES + (STRICT_MCP_RULES if strict else MCP_RULES)
             + (() if role in MERGE_ROLES else NON_MERGE_RULES))
 
 
 def example_rules() -> list[str]:
     """The rules of examples/settings.deny.json (every role); the merge rules ship in settings.deny.non-merge.json."""
-    return list(dict.fromkeys(BASE_RULES + RM_RULES + SECRET_RULES + ENV_RULES + OTHER_RULES + MCP_RULES))
+    return list(dict.fromkeys(BASE_RULES + SELF_PROTECTION_RULES + RM_RULES + SECRET_RULES + ENV_RULES + OTHER_RULES + MCP_RULES))
 
 
 def glob_match(pattern: str, text: str) -> bool:
@@ -101,17 +115,38 @@ def glob_match(pattern: str, text: str) -> bool:
 
 
 def covers(effective: str, wanted: str) -> bool:
-    """Whether one effective deny rule satisfies one baseline rule: equal, a wildcard rule that matches it (`mcp__pai__iam_*` covers
-    `mcp__pai__iam_policy_set`), or a whole-server rule (`mcp__pai`). Approximate by design: it never proves what Claude Code enforces."""
-    if effective == wanted:
-        return True
-    if wanted.startswith("mcp__"):
-        server = wanted.split("__")[1] if wanted.count("__") >= 2 else ""
-        return effective == f"mcp__{server}" or (effective.startswith("mcp__") and glob_match(effective, wanted))
-    kind = wanted.split("(", 1)[0]
-    if effective.startswith(kind + "(") and effective.endswith(")") and wanted.endswith(")"):
-        return glob_match(effective[len(kind) + 1:-1], wanted[len(kind) + 1:-1])
-    return False
+    """Whether an effective deny rule satisfies a baseline rule: strictly, the identical string. No equivalent-rule reasoning (a wildcard
+    or whole-server rule does not count), because the check must never claim more than the rules it can read."""
+    return effective == wanted
+
+
+def applicable() -> bool:
+    """True in the Claude Code plugin; False in the generated Codex package, which has no Claude settings or deny-rule layer."""
+    return (Path(__file__).resolve().parent.parent / ".claude-plugin/plugin.json").is_file()
+
+
+def user_policy_path() -> Path:
+    return Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "pai-harness" / "policy.toml"
+
+
+def user_policy() -> dict:
+    """The machine owner's policy: `[run] bypass_permissions` and `require_deny_baseline`, read only from the user-level policy file (both default
+    true). A project config or PAI_HARNESS_CONFIG cannot waive the check: the run can write those, and the self-protection rules deny it the policy file."""
+    policy = {"bypass_permissions": True, "require_deny_baseline": True}
+    try:
+        run = tomllib.loads(user_policy_path().read_text(encoding="utf-8")).get("run", {})
+    except (OSError, ValueError):
+        return policy
+    for key in policy:
+        if isinstance(run.get(key), bool):
+            policy[key] = run[key]
+    return policy
+
+
+def required() -> bool:
+    """Whether bypass runs on this machine must have the deny baseline in place."""
+    policy = user_policy()
+    return applicable() and policy["bypass_permissions"] and policy["require_deny_baseline"]
 
 
 def settings_files(cwd: str | os.PathLike | None) -> list[Path]:
@@ -184,6 +219,9 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--role", default="implementer", help="the agent's role (default implementer; integrator and orchestrator may merge)")
     parser.add_argument("--strict", action="store_true", help="strict MCP is in force (only the machine Pai server is loaded)")
     args = parser.parse_args(argv)
+    if not applicable():
+        print("deny-baseline: not applicable (this is not the Claude Code plugin; Codex gets approvals from native MCP policies)")
+        return 0
     result = report(args.cwd, args.strict, args.role)
     if result["ok"]:
         print(f"OK deny-baseline: present for role {args.role} in {result['cwd']}")

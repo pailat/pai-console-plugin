@@ -60,6 +60,8 @@ class HarnessCase(unittest.TestCase):
         self.claude_home = self.tmp / "claude-home"  # the user settings the launcher preflight reads: the deny baseline is present
         write_deny_settings(self.claude_home / "settings.json", deny_baseline.baseline(False, "implementer"))
         self.env["CLAUDE_CONFIG_DIR"] = str(self.claude_home)
+        self.xdg = self.tmp / "xdg"  # the user-level policy file (~/.config/pai-harness/policy.toml) lives here; absent means no waiver
+        self.env["XDG_CONFIG_HOME"] = str(self.xdg)
         self.prompt = self.tmp / "prompt.md"
         self.prompt.write_text("Implement ACME-7 for the Acme app.\n")
 

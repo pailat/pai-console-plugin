@@ -4,7 +4,7 @@
 Usage: health.sh beat NAME [--state S] | health.sh check [--stale-minutes N] [--now ISO] [--config FILE]
 Exit codes of check: 0 every entry fresh, 1 at least one stale running entry, 2 empty registry or bad usage, 4 the deny baseline is missing
 on this machine (a named FAIL on stderr): bypass agents may run here and the effective Claude Code settings lack the deny rules. The
-check is skipped when the config sets [run] bypass_permissions = false or require_deny_baseline = false. Take the same check before
+check is skipped in the Codex package and when the user-level policy (~/.config/pai-harness/policy.toml) opts out. Take the same check before
 starting any agent with `deny_baseline.py --check`.
 """
 from __future__ import annotations
@@ -43,9 +43,8 @@ def main(argv: list[str]) -> int:
         fields = {"state": args.state} if args.state else {}
         lib.show(lib.register(state, args.name, **fields))
         return 0
-    run = config["run"]
     baseline_result = None
-    if run["bypass_permissions"] and run["require_deny_baseline"]:
+    if deny_baseline.required():  # Claude Code machines only; the waiver is the user-level policy, never the project config
         baseline_result = deny_baseline.report(os.getcwd(), bool(config["pai"]["mcp_url"]), "implementer")
     at = lib.parse_stamp(args.now) if args.now else lib.now()
     found = lib.entries(state)
