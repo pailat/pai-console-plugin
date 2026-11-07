@@ -8,6 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness_support import FIXTURES, SCRIPTS, HarnessCase as _HarnessCase  # noqa: E402
+from test_harness_mechanical import MechanicalCase  # noqa: E402
 
 
 class PaneCase(_HarnessCase):
@@ -74,6 +75,21 @@ class LauncherTagTest(PaneCase):
         self.assertIn("already hosts 'acme-lead'", done.stderr)
         self.assertEqual(self.tokens("wAC:p1"), {})
         self.assertTrue((agents / "acme-lead.json").is_file())
+
+
+class MechanicalTagTest(PaneCase, MechanicalCase):
+    def test_the_mechanical_profile_in_a_pane_is_tagged_and_needs_a_parent(self) -> None:
+        done = self.lane("--pane", "wAC:p1", "--parent", "acme-lead")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(self.tokens("wAC:p1"), {"name": "acme-7", "role": "mechanical", "parent": "acme-lead", "issue": "ACME-7", "wake_on_done": "1"})
+        order = [c[:2] for c in self.calls()]
+        self.assertLess(order.index(["pane", "report-metadata"]), order.index(["pane", "run"]))
+
+    def test_the_mechanical_profile_without_a_parent_is_refused_in_a_pane(self) -> None:
+        done = self.lane("--pane", "wAC:p1")
+        self.assertEqual(done.returncode, 2)
+        self.assertIn("no --parent", done.stderr)
+        self.assertNotIn(["pane", "run"], [c[:2] for c in self.calls()])
 
 
 class AgentStartTest(PaneCase):
