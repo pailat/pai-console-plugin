@@ -18,19 +18,21 @@ import os
 import re
 import shlex
 import subprocess
+import time
 from subprocess import run as run_process  # bare name: the denylist reads a dotted call ending in the run top-level domain as a hostname
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import hook_common as common  # noqa: E402
+import git_guardrails  # noqa: E402
 from harness_lib import WRITING_ROLES  # noqa: E402
 
 WRITE_TOOLS = {"Write": "file_path", "Edit": "file_path", "MultiEdit": "file_path", "NotebookEdit": "notebook_path"}
 REDIRECTS = {">", ">>", ">|", "&>", "&>>"}
 SEPARATORS = {";", "&&", "||", "|", "&", "|&", "(", ")", "{", "}"}
 SHELL_KEYWORDS = {"do", "then", "else", "elif", "while", "until", "if", "!", "time"}  # may open a segment: `for i in 1 2; do CMD; done`
-SHELLS = {"sh", "bash", "zsh", "dash"}
+SHELLS = git_guardrails.SHELLS
 IGNORED_TARGETS = {"/dev/null", "/dev/stdout", "/dev/stderr", "/dev/tty"}
 GIT_OPTIONS_WITH_VALUE = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path"}
 PREFIX_COMMANDS = {"env", "command", "exec", "nohup", "time", "builtin", "setsid", "sudo", "doas", "nice", "timeout", "xargs", "stdbuf", "ionice"}
@@ -175,8 +177,9 @@ def strip_heredocs(command: str) -> str:
 
 
 def segments(command: str) -> list[list[str]]:
-    lexer = shlex.shlex(strip_heredocs(command).replace("\n", " ; "), posix=True, punctuation_chars=True)
+    lexer = shlex.shlex(git_guardrails.strip_comments(strip_heredocs(command)).replace("\n", " ; "), posix=True, punctuation_chars=True)
     lexer.whitespace_split = True
+    lexer.commenters = ""  # a # inside a word is not a comment (strip_comments cut the real ones)
     try:
         tokens = list(lexer)
     except ValueError:  # unbalanced quotes: read what we can
@@ -227,10 +230,8 @@ def unwrap(tokens: list[str]) -> list[str]:
     return tokens
 
 
-def through_wrapper(tokens: list[str], wrapper: str) -> bool:
-    wanted = [expand(t) for t in shlex.split(wrapper)] if wrapper else []
-    got = [expand(t) for t in unwrap(tokens)]
-    return bool(wanted) and got[: len(wanted)] == wanted
+def through_wrapper(tokens: list[str], wrapper: str, cwd: Path) -> bool:
+    return bool(git_guardrails.matches_wrapper([expand(t) for t in unwrap(tokens)], wrapper, cwd))
 
 
 def is_no_verify(token: str) -> bool:
@@ -238,15 +239,24 @@ def is_no_verify(token: str) -> bool:
     return token.startswith("--no-v") and "--no-verify".startswith(token)
 
 
+ALIAS_DEADLINE = time.monotonic() + 2  # the hook is one process per tool call
+ALIAS_STATE = {"timed_out": False}
+
+
 def git_aliases(cwd: Path, directory: str | None, inline: dict[str, str]) -> dict[str, str]:
     """Aliases from `git config` (read in the directory the push would run in) plus those given inline with -c."""
     aliases: dict[str, str] = {}
     command = ["git"] + (["-C", directory] if directory else []) + ["config", "--get-regexp", r"^alias\."]
+    left = ALIAS_DEADLINE - time.monotonic()  # one budget for every git segment, below the 10 s hook timeout; an overrun denies in main()
     try:
-        done = run_process(command, cwd=cwd, capture_output=True, text=True, timeout=5)
+        if left <= 0:
+            raise subprocess.TimeoutExpired(command, 0)
+        done = run_process(command, cwd=cwd, capture_output=True, text=True, timeout=min(5, left))
         for line in done.stdout.splitlines():
             key, _, value = line.partition(" ")
             aliases[key[len("alias."):].lower()] = value
+    except subprocess.TimeoutExpired:
+        ALIAS_STATE["timed_out"] = True
     except (OSError, subprocess.SubprocessError):
         pass
     return {**aliases, **inline}
@@ -323,13 +333,19 @@ def analyze(command: str, wrapper: str, cwd: Path, depth: int = 0) -> Analysis:
         bare = unwrap(tokens)
         if bare and os.path.basename(bare[0]) == "tee":
             found.targets += [t for t in bare[1:] if not t.startswith("-")]
+        if depth < 3:
+            for k, word in enumerate(tokens):  # env -S 'git push ...' (before unwrap drops env and its value)
+                split = git_guardrails.split_string(tokens[k + 1:]) if os.path.basename(word) == "env" else None
+                if split:
+                    found.merge(analyze(split, wrapper, cwd, depth + 1))
         if bare and depth < 3:
-            name = os.path.basename(bare[0])
-            if name in SHELLS and "-c" in bare and bare.index("-c") + 1 < len(bare):
-                found.merge(analyze(bare[bare.index("-c") + 1], wrapper, cwd, depth + 1))
+            name = git_guardrails.shell_base(bare[0])
+            script = git_guardrails.shell_script(bare[1:], name)[1] if name in git_guardrails.SHELLS else None  # -c, -lc, -ce, -c -e, -c --
+            if script is not None:
+                found.merge(analyze(script, wrapper, cwd, depth + 1))
             elif name == "eval":
                 found.merge(analyze(" ".join(bare[1:]), wrapper, cwd, depth + 1))
-        if through_wrapper(tokens, wrapper):
+        if through_wrapper(tokens, wrapper, cwd):
             found.no_verify = found.no_verify or any(is_no_verify(t) or t.lower().startswith("core.hookspath") for t in bare)
             continue
         is_push, bypass = push_form(bare, cwd, wrapper, depth)
@@ -341,7 +357,7 @@ def analyze(command: str, wrapper: str, cwd: Path, depth: int = 0) -> Analysis:
     return found
 
 
-def main() -> None:
+def run() -> None:
     event = common.read_event()
     if not common.role():
         return
@@ -358,8 +374,12 @@ def main() -> None:
             wrapper = str(config["rules"]["push_wrapper"])
         if config is None:
             wrapper = ""  # fail closed: without a config even a wrapper push is refused
+        if git_guardrails.deny_dangerous(common, command, wrapper, Path(event.get("cwd") or os.getcwd())): return  # noqa: E702
         found = analyze(command, wrapper, Path(event.get("cwd") or os.getcwd()))
         direct_paths, pushed, no_verify = found.targets, found.pushed, found.no_verify
+        if ALIAS_STATE["timed_out"]:
+            common.deny("git aliases could not be read in time, so the command cannot be checked for a push. Retry, or spell the git command out without an alias.")
+            return
     else:
         return
     direct_paths = [p for p in direct_paths if p]
@@ -404,6 +424,15 @@ def main() -> None:
         if reason:
             common.deny(reason)
             return
+
+def main() -> None:
+    """A hook that raises exits 1, which does not block: with a role set, any failure while checking a call denies it instead."""
+    try:
+        run()
+    except Exception as error:  # noqa: BLE001 - fail closed on every failure
+        if common.role():
+            common.deny(f"pre_tool_use could not check this call ({type(error).__name__}: {error}); it is refused. Split the command into plain commands, or ask your parent.")
+
 
 if __name__ == "__main__":
     main()

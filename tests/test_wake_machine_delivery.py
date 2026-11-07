@@ -145,7 +145,7 @@ class NoSshInstructionsTest(unittest.TestCase):
 
     NEGATION = re.compile(r"\b(never|not|no|without|refuse[sd]?|deny|denies|block(s|ed)?|forbid\w*)\b", re.I)
     # Policy code that names ssh in order to refuse or detect it.
-    POLICY = {"hooks/pre_tool_use.py", "scripts/deny_baseline.py", "scripts/launch.py", "examples/settings.deny.json"}
+    POLICY = {"hooks/pre_tool_use.py", "hooks/git_guardrails.py", "scripts/deny_baseline.py", "scripts/launch.py", "examples/settings.deny.json"}
 
     def scan(self, base: Path, policy: set[str]) -> list[str]:
         offenders = []
