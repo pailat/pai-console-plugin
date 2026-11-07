@@ -53,6 +53,16 @@ Large efforts usually run as a tree of typed orchestrators. Your brief names the
 
 Report only up your own chain, never to another front's agents or to a level you skipped; anything across worktrees goes through the orchestrator above you. Only the orchestrator merges.
 
+## Session rotation
+
+A long-running agent's context grows until its quality drops. Rotate the session before that happens: write a checkpoint, ask to be relaunched, and continue from the checkpoint in a fresh session.
+
+- **Threshold.** Checkpoint at about 150k tokens of context, at the next natural pause (after a commit, a push or a finished wait), not in the middle of an edit.
+- **Resume file.** Write `NOTES-<agent>.md` in your worktree, for example `NOTES-impl-acme-42.md`, unless your brief names another path. Leave it uncommitted. It holds: what is done; what is next; what is blocked and on whom; the branch and the exact sha; open pull requests; the waits you have armed; and the decisions taken, with the reason for each. Write it so a reader with no memory of this session can continue from it alone.
+- **Rotate request.** When the file is complete, append one line to the orchestrator outbox and end your turn: `RELAY-REQUEST rotate <machine>: <agent>`, for example `RELAY-REQUEST rotate laptop: impl-acme-42`. The orchestrator side picks the line up and relaunches that agent with `--resume`. You never relaunch yourself.
+- **After the relaunch.** The new session reads the resume file first, checks the branch, sha and waits it lists against reality, and then continues. Delete or update the file once the work it describes is done.
+- **Quota is a different request.** When an account hits its usage limit, the line is `RELAY-REQUEST SWITCH ACCOUNT <machine>: <who is parked>`, for example `RELAY-REQUEST SWITCH ACCOUNT laptop: impl-acme-42`. The orchestrator side switches the account; you also leave a resume file so the work can continue.
+
 ## Closing
 
 No session stays open after its work is done. Before you stop, leave a written handoff where your brief says (usually a comment on your issue): what was done (commits, pull request, sha), verdicts and evidence paths, what is left with follow-up ids, decisions taken and why, and where your status notes are. Then run `herdr agent prompt <parent> "<name>: DONE, handoff posted"`. Ask whoever records decisions to record yours; do not write decision records yourself unless asked.
