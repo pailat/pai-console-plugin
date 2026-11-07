@@ -5,14 +5,19 @@
       "Bash(gh *pr merge*)",
       "Bash(git *push * main)",
       "Bash(git *push * main *)",
-      "Bash(git *push * HEAD:main)",
-      "Bash(git *push * HEAD:main *)",
+      "Bash(git *push *:main)",
+      "Bash(git *push *:main *)",
+      "Bash(git *push */main)",
+      "Bash(git *push */main *)",
       "Bash(git *push * master)",
       "Bash(git *push * master *)",
-      "Bash(git *push * HEAD:master)",
-      "Bash(git *push * HEAD:master *)",
+      "Bash(git *push *:master)",
+      "Bash(git *push *:master *)",
+      "Bash(git *push */master)",
+      "Bash(git *push */master *)",
       "Bash(git *push * release/*)",
-      "Bash(git *push * HEAD:release/*)"
+      "Bash(git *push *:release/*)",
+      "Bash(git *push *refs/heads/release/*)"
     ]
   }
 }

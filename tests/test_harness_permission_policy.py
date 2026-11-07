@@ -118,8 +118,8 @@ class DenyExampleTest(unittest.TestCase):
                         "git -C r clean -f", "git branch -D x", "git -C r branch -D x", "git checkout .", "git restore .",
                         "rm -rf /", "rm -rf ~", "rm -r -f ~", "rm -fr ~", "rm -Rf /", 'rm -rf "$HOME"', "rm -rf $HOME", "rm -rf ${HOME}", "rm -rf ./.git",
                         "rm -rf .git", "rm -rf ..", "rm -rf .", "rm -rf ./", "rm -rf sub/.git", "rm --recursive --force /", "rm -rf /etc", "rm -rf /usr",
-                        "rm -rf /home", "sudo ls", "ssh host", "cat .env", "cat ./.env.local", "head -3 .env", "grep KEY .env", "source .env",
-                        "cat app/.env.production", "cat ~/.ssh/id_rsa", "cat ~/.config/pai-harness/token"):
+                        "rm -rf /home", "rm -rf /*", "rm -rf ~/*", "rm -rf $HOME/*", 'rm -rf "$HOME"/*', "rm -rf ./*", "rm -rf ../*", "rm -fr /*", "sudo ls", "ssh host", "cat .env", "cat ./.env.local", "head -3 .env", "grep KEY .env", "source .env",
+                        "cat app/.env.production", "cat -n .env", "cat ./.env", "rg SECRET ./.env", "grep -n KEY .env.production", "tail -f .env.staging", "cat ~/.ssh/id_rsa", "cat ~/.config/pai-harness/token"):
             self.assertTrue(denied(self.deny, command), command)
 
     def test_ordinary_work_is_not_denied(self) -> None:
@@ -127,7 +127,9 @@ class DenyExampleTest(unittest.TestCase):
                         "git clean -n", "rm -rf build", "rm file.txt", "cat README.md", "grep env README.md", "git push origin main-fix",
                         "rm -rf /tmp/x", "rm -rf /tmp/*", "rm -rf /tmp/build-1234", 'rm -rf "$(mktemp -d)"', "rm -rf dist", "rm -rf ./build",
                         "rm -rf node_modules", "rm -rf ../sibling-tmp", "rm -rf ~/scratch/x", "rm -rf /var/tmp/x", "cat .env.example", "git add .env.example",
-                        "cat .env.sample", 'git commit -m "explain .env loading"', 'git commit -m "list -n option"', 'git commit -m "x -n y"'):
+                        "cat .env.sample", "rm -rf /tmp/x/*", "rm -rf ./build/*", "rm -rf build/*", "rm -rf /var/tmp/x/*",
+                        "grep -rn process.env src", "rg import.meta.env src/", "cp .env.example .env", "grep -rn dotenv src", 'grep -n ".env" README.md',
+                        "sed -n 1,5p src/env.ts", "grep -rn env.example docs", "cat src/lib/env.ts", 'git commit -m "explain .env loading"', 'git commit -m "list -n option"', 'git commit -m "x -n y"'):
             self.assertFalse(denied(self.deny + self.non_merge, command), command)
         for path in ("./.env.example", "./.env.sample"):
             self.assertNotIn(f"Read({path})", self.deny)
@@ -139,7 +141,10 @@ class DenyExampleTest(unittest.TestCase):
                "organization_archive", "organization_theme_publish", "crm_lead_purge", "crm_lead_anonymize", "crm_opportunity_win", "user_ban",
                "user_unban", "user_create", "user_export", "page_delete", "file_delete", "folder_delete", "milestone_delete", "asset_delete",
                "project_delete", "project_slug_set", "connection_revoke", "connection_terminal_terminate", "payment_void", "finance_payment_register",
-               "status_update_publish", "product_domain_remove", "product_production_access_set", "workforce_access_set")
+               "status_update_publish", "product_domain_remove", "product_production_access_set", "workforce_access_set", "product_variables_set",
+               "product_domain_attach", "product_environment_set", "product_manifest_save", "product_link_set", "payment_record", "project_invite_client",
+               "connection_create", "knowledge_merge", "crm_lead_import", "organization_join_as_staff", "crm_lead_workspace_join", "space_version_archive",
+               "product_unlink_project")
         for prefix in deny_baseline.PAI_PREFIXES:
             for tool in pai:
                 self.assertTrue(mcp_denied(self.deny, prefix + tool), prefix + tool)
@@ -151,7 +156,8 @@ class DenyExampleTest(unittest.TestCase):
         for prefix in deny_baseline.RAILWAY_PREFIXES:
             for tool in railway:
                 self.assertTrue(mcp_denied(self.deny, prefix + tool), prefix + tool)
-        for tool in ("knowledge_search", "knowledge_create", "knowledge_update", "page_read", "task_create", "comment_create", "project_list", "whoami"):
+        for tool in ("knowledge_search", "knowledge_create", "knowledge_update", "page_read", "task_create", "comment_create", "project_list", "whoami", "knowledge_link",
+                     "knowledge_batch", "knowledge_audit", "page_create", "page_update", "page_search"):
             self.assertFalse(mcp_denied(self.deny, "mcp__pai__" + tool), tool)  # the harness's own work stays allowed
         for tool in ("save_issue", "save_comment", "list_issues", "get_issue"):
             self.assertFalse(mcp_denied(self.deny, deny_baseline.LINEAR_PREFIX + tool), tool)
@@ -161,16 +167,27 @@ class DenyExampleTest(unittest.TestCase):
     def test_every_destructive_pai_tool_with_a_denied_verb_is_denied(self) -> None:
         """Drift guard on hooks/tools.json: a tool whose name carries a denied verb can never slip through the patterns."""
         tools = json.loads((ROOT / "hooks/tools.json").read_text())["tools"]
-        verbs = ("delete", "remove", "revoke", "deploy", "publish", "purge", "anonymize", "terminate", "void", "rotate", "renounce")
-        for name in tools:
-            if any(verb in name for verb in verbs) or name.startswith(("iam_", "finance_")):
+        verbs = ("delete", "remove", "revoke", "deploy", "publish", "purge", "anonymize", "terminate", "void", "rotate", "renounce", "archive", "merge")
+        endings = ("_set", "_save", "_attach", "_record", "_import")
+        for name, flags in tools.items():
+            if any(verb in name for verb in verbs) or name.startswith(("iam_", "finance_")) or name.endswith(endings) or "_invite" in name or "_join" in name:
                 self.assertTrue(mcp_denied(self.deny, "mcp__pai__" + name), name)
+        used = ("knowledge_search", "knowledge_get", "knowledge_create", "knowledge_update", "knowledge_link", "knowledge_batch", "knowledge_audit", "page_search")
+        for name in used:  # the distiller's own tools stay allowed
+            self.assertFalse(mcp_denied(self.deny, "mcp__pai__" + name), name)
 
     def test_merge_roles_are_not_denied_the_merge_and_others_are(self) -> None:
         for command in ("gh pr merge 51 --squash", "gh -R o/r pr merge 51", "git push origin main", "git push origin HEAD:main", "git push origin release/1.2"):
             self.assertFalse(denied(self.deny, command), command)  # the integrator documented flow can run
             self.assertTrue(denied(self.non_merge, command), command)  # every other role's worktree adds this file
         self.assertFalse(denied(self.non_merge, "git push origin main-fix"))
+        for command in ("git push origin feat:main", "git push origin main:main", "git push origin HEAD:refs/heads/main", "git push origin +feat:main",
+                        "git push origin refs/heads/main", "git -C r push origin main", "git push origin HEAD:release/1.2", "git push origin release/2",
+                        "git push origin feat:master", "git push origin HEAD:refs/heads/release/3", "git push origin main --tags"):
+            self.assertTrue(denied(self.non_merge + self.deny, command), command)
+        for command in ("git push origin main-fix", "git push origin feature/main-x", "git push origin feat:feature", "git push -u origin feature/x",
+                        "git push origin domain", "git push origin feature/remain", "git push origin HEAD:feature/release-notes"):
+            self.assertFalse(denied(self.non_merge, command), command)
 
     def test_baseline_is_part_of_the_example_and_the_files_are_generated(self) -> None:
         for role in ("implementer", "integrator"):

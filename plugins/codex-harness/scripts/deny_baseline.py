@@ -21,9 +21,9 @@ MERGE_ROLES = ("integrator", "orchestrator")  # the roles that merge by design; 
 # MCP deny patterns by verb, not by hand-picked tool: a new Pai tool whose name carries one of these verbs is denied without a list update.
 # Hooks never see MCP calls, so under bypass these rules are the only layer for MCP writes.
 PAI_PATTERNS = tuple(f"*{verb}*" for verb in ("delete", "remove", "revoke", "deploy", "publish", "purge", "anonymize", "terminate", "void",
-                                              "rotate", "renounce", "staff_grant", "enrollment_approve")) + (
+                                              "rotate", "renounce", "staff_grant", "enrollment_approve", "archive", "merge", "unlink")) + (
     "iam_*", "finance_*", "workforce_*", "*_ban", "*_unban", "*_win", "*slug_set", "*domain_set", "*production_access_set", "*member_role_set",
-    "*_provision", "user_create", "user_export", "organization_export", "organization_archive", "project_close",
+    "*_provision", "*_set", "*_save", "*_attach", "*_record", "*_invite*", "*_join*", "*_import", "connection_create", "user_create", "user_export", "organization_export", "organization_archive", "project_close",
 )
 LINEAR_PATTERNS = ("delete_*", "merge_diff")
 RAILWAY_PATTERNS = ("delete-*", "*deploy*", "redeploy", "restart-service", "purge-cdn-cache", "reset-bucket-credentials", "set-variables",
@@ -39,15 +39,19 @@ BASE_RULES = (
     "Bash(sudo *)", "Bash(su *)", "Bash(ssh *)", "Bash(scp *)", "Bash(sftp *)",
 )
 # rm: only the whole-target spellings are denied (end-anchored), so scratch-directory cleanup (dist, ./build, node_modules, mktemp dirs) still runs.
+# A backslash-star is a literal star: the glob spellings (rm -rf /*, ~/*, $HOME/*, ./*) are their own targets.
 RM_TARGETS = ("/", "~", "~/", "$HOME", "$HOME/", '"$HOME"', "${HOME}", "..", "../", ".", "./", ".git", "./.git", "*/.git",
+              "/\\*", "~/\\*", "$HOME/\\*", '"$HOME"/\\*', "${HOME}/\\*", "./\\*", "../\\*", ".git/\\*",
               "/etc", "/usr", "/var", "/bin", "/sbin", "/lib", "/boot", "/home", "/root", "/opt", "/sys", "/proc", "/dev")
 RM_RULES = tuple(f"Bash(rm *{flag}* {target})" for target in RM_TARGETS for flag in ("r", "R"))
 # Secrets: real env files only (.env.example and friends stay readable), through the common readers, and the credential directories.
 ENV_FILES = (".env", ".env.l*",  # l* covers the local variant (spelled out, it reads as a hostname to the denylist test)
-              ".env.production", ".env.development", ".env.staging", ".env.test")
-READERS = ("cat", "head", "tail", "less", "more", "grep", "rg", "sed", "awk", "source", "cp", "base64", "strings", "xxd")
+             ".env.p*", ".env.d*", ".env.staging", ".env.test")
+READERS = ("cat", "head", "tail", "less", "grep", "rg", "source", "sed")  # cp is not a reader here: cp .env.example .env must run
+# The env file must start a token (after a space or a slash), so code that mentions the name (process.env, import.meta.env) is never denied.
+ENV_LEADS = ("{r} {e}", "{r} * {e}", "{r} */{e}")
 ENV_RULES = tuple(rule for env in ENV_FILES for rule in (f"Read(./{env})", f"Read(**/{env})", f"Edit(./{env})", f"Write(./{env})"))
-SECRET_RULES = tuple(f"Bash({reader} *{env}{tail})" for reader in READERS for env in ENV_FILES for tail in ("", " *")) + (
+SECRET_RULES = tuple(f"Bash({lead.format(r=reader, e=env)}{tail})" for reader in READERS for env in ENV_FILES for lead in ENV_LEADS for tail in ("", " *")) + (
     "Bash(*~/.ssh/*)", "Bash(*~/.aws/*)", "Bash(*.config/gh/*)", "Bash(*pai-harness/token*)",
     "Read(~/.ssh/**)", "Read(~/.aws/**)", "Read(~/.config/gh/**)", "Read(~/.config/pai-harness/token)",
     "Edit(~/.ssh/**)", "Write(~/.ssh/**)", "Read(**/*.pem)", "Read(**/*.key)", "Read(**/secrets/**)",
@@ -58,12 +62,15 @@ MCP_RULES = (tuple(f"{prefix}{pattern}" for prefix in PAI_PREFIXES for pattern i
 STRICT_MCP_RULES = tuple(f"{PAI_PREFIXES[0]}{pattern}" for pattern in PAI_PATTERNS)  # strict MCP: the machine config's one server is all there is
 
 # Rules for every role except the integrator and the orchestrator, which merge by documented design (see examples/README.md).
+def _protected(branch: str) -> tuple[str, ...]:
+    """Destinations written bare, as src:dst, as refs/heads/..., or as a remote-qualified name, each as the last argument or followed by more."""
+    return tuple(f"Bash(git *push *{sep}{branch}{tail})" for sep in (" ", ":", "/") for tail in ("", " *"))
+
+
 NON_MERGE_RULES = (
-    "Bash(gh *pr merge*)",
-    "Bash(git *push * main)", "Bash(git *push * main *)", "Bash(git *push * HEAD:main)", "Bash(git *push * HEAD:main *)",
-    "Bash(git *push * master)", "Bash(git *push * master *)", "Bash(git *push * HEAD:master)", "Bash(git *push * HEAD:master *)",
-    "Bash(git *push * release/*)", "Bash(git *push * HEAD:release/*)",
-)
+    "Bash(gh *pr merge*)", *_protected("main"), *_protected("master"),
+    "Bash(git *push * release/*)", "Bash(git *push *:release/*)", "Bash(git *push *refs/heads/release/*)",
+)  # a bare `git push` on a protected branch has no destination to match: the push queue guard in the hooks is the layer for it
 OTHER_RULES = (
     "Bash(gh repo delete *)", "Bash(gh repo archive *)", "Bash(gh release delete *)", "Bash(gh api -X DELETE *)", "Bash(gh api --method DELETE *)",
     "Bash(gh secret *)", "Bash(gh auth token*)",
@@ -85,8 +92,9 @@ def example_rules() -> list[str]:
 
 
 def glob_match(pattern: str, text: str) -> bool:
-    """`*` matches any characters; everything else is literal."""
-    return re.fullmatch(".*".join(re.escape(part) for part in pattern.split("*")), text, re.S) is not None
+    """`*` matches any characters, a backslash-star is a literal star, everything else is literal."""
+    regex = "".join(".*" if c == "*" else re.escape(c) for c in re.sub(r"\\\*", "\0", pattern))
+    return re.fullmatch(regex.replace("\0", re.escape("*")), text, re.S) is not None
 
 
 def covers(effective: str, wanted: str) -> bool:
