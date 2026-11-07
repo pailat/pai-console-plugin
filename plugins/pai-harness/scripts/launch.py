@@ -137,17 +137,14 @@ def claude_command(args: argparse.Namespace, config: dict, resume: str | None, m
 
 
 def deny_missing(args: argparse.Namespace, config: dict) -> list[str]:
-    """Deny-baseline rules absent from the effective settings; empty when the run does not bypass or the project waives the check."""
+    """Deny-baseline rules absent from the effective settings; empty when the run does not bypass or the project waives the check.
+
+    Strict MCP is in force only when the machine config is passed (pai.mcp_url set); otherwise user-scope servers are loaded too.
+    """
     run = config["run"]
     if not (run["bypass_permissions"] and run["require_deny_baseline"]):
         return []
-    cwd = args.cwd or os.getcwd()
-    try:
-        done = run_process(["git", "-C", str(cwd), "rev-parse", "--show-toplevel"], capture_output=True, text=True, timeout=10)
-        root = done.stdout.strip() if done.returncode == 0 else None
-    except (OSError, subprocess.SubprocessError):
-        root = None
-    return deny_baseline.missing_baseline(cwd, root)
+    return deny_baseline.missing_baseline(args.cwd or os.getcwd(), bool(config["pai"]["mcp_url"]), args.role or "implementer")
 
 
 def launch_base(args: argparse.Namespace, previous: dict) -> str | None:
@@ -450,6 +447,8 @@ def in_pane(args: argparse.Namespace, state: Path, argv: list[str], tab: str | N
         inner_argv += ["--herdr-tab", tab]
     # A pane's shell is a fresh process: hand it this launcher's resolved config and state dir and every PAI_HARNESS_* setting.
     carried = {**{k: v for k, v in os.environ.items() if k.startswith("PAI_HARNESS_")}, "PAI_HARNESS_CONFIG": str(config_path), "PAI_HARNESS_STATE_DIR": str(state)}
+    if os.environ.get("CLAUDE_CONFIG_DIR"):
+        carried["CLAUDE_CONFIG_DIR"] = os.environ["CLAUDE_CONFIG_DIR"]  # the pane's claude must read the settings the preflight read
     command = f"{shlex.join(['env', *[f'{k}={v}' for k, v in sorted(carried.items())], sys.executable, str(Path(__file__).resolve()), *inner_argv])}; echo {marker}_RC=$?"
     run_process([herdr, "pane", "run", args.pane, command], check=True)
     waited = run_process([herdr, "pane", "wait-output", args.pane, "--regex", f"{marker}_RC=[0-9]+", "--timeout", str(args.wait_ms)])
@@ -517,12 +516,15 @@ def main(argv: list[str]) -> int:
         if not args.dry_run:
             lib.emit(state, "run.blocked", {"issue": args.issue, "role": role, "blocker": blocker})
         return lib.EXIT_FAILED
-    missing = deny_missing(args, config)
+    missing = [] if args.inner else deny_missing(args, config)  # the outer launcher checks once; a pane's inner run may see another environment
     if missing and not args.dry_run:
         reason = deny_baseline.preflight_reason(missing)
         blocker = lib.blocker(state, args.issue, reason)
         lib.emit(state, "run.blocked", {"issue": args.issue, "role": role, "blocker": blocker})
         lib.register(state, args.issue, state="blocked", reason=reason)
+        now = lib.stamp()  # --status reads this record: a preflight block must replace the previous run's state, keeping its session for a later resume
+        lib.write_json(state_file, {**(lib.read_json(state_file) or {}), "issue": args.issue, "role": args.role, "state": "blocked", "reason": reason,
+                                    "finished": now, "exit_code": None})
         return lib.EXIT_BLOCKED
     if args.dry_run:
         previous = lib.read_json(state_file) or {}

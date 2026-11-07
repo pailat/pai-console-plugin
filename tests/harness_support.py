@@ -58,7 +58,7 @@ class HarnessCase(unittest.TestCase):
         for name in [k for k in self.env if k.startswith("HERDR_")]:
             self.env.pop(name)  # a launch under test must not open a tab in the developer's own Herdr session
         self.claude_home = self.tmp / "claude-home"  # the user settings the launcher preflight reads: the deny baseline is present
-        write_deny_settings(self.claude_home / "settings.json", deny_baseline.BASELINE)
+        write_deny_settings(self.claude_home / "settings.json", deny_baseline.baseline(False, "implementer"))
         self.env["CLAUDE_CONFIG_DIR"] = str(self.claude_home)
         self.prompt = self.tmp / "prompt.md"
         self.prompt.write_text("Implement ACME-7 for the Acme app.\n")

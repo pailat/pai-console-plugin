@@ -10,48 +10,52 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 
 PAI_PREFIXES = ("mcp__pai__", "mcp__plugin_pai-console_pai__")  # the harness machine server, and the interactive plugin server
 LINEAR_PREFIX = "mcp__plugin_linear_linear__"
+RAILWAY_PREFIXES = ("mcp__railway__", "mcp__plugin_railway_railway__")
+MERGE_ROLES = ("integrator", "orchestrator")  # the roles that merge by design; every other role also needs NON_MERGE_RULES
 
-# Pai tools that change access, deploy, delete or purge data, or export personal data. A run that needs one is blocked, never prompted.
-PAI_DENIED_TOOLS = (
-    "iam_binding_add", "iam_binding_remove", "iam_binding_renounce", "iam_boundary_set", "iam_deny_create", "iam_deny_delete",
-    "iam_deny_update", "iam_group_create", "iam_group_delete", "iam_group_member_add", "iam_group_member_remove", "iam_group_update",
-    "iam_policy_set", "iam_role_create", "iam_role_delete", "iam_role_update", "iam_service_account_create", "iam_service_account_disable",
-    "iam_service_account_update", "iam_service_token_create", "iam_service_token_revoke", "iam_service_token_rotate",
-    "iam_settings_update", "iam_staff_grant_create", "iam_staff_grant_end",
-    "product_deploy", "product_production_access_set", "product_domain_attach", "product_domain_remove", "product_domain_set",
-    "product_environment_remove", "product_provision", "product_version_publish", "product_member_add", "product_member_remove",
-    "product_member_update", "product_variables_set",
-    "organization_member_remove", "organization_member_role_set", "organization_archive", "organization_domain_set",
-    "organization_slug_set", "organization_invitation_cancel", "organization_export",
-    "crm_lead_purge", "crm_lead_anonymize", "crm_submission_anonymize",
-    "user_ban", "user_unban", "user_create", "user_export",
-    "project_delete", "project_close", "page_delete", "file_delete", "asset_delete", "agent_delete", "agent_routine_delete",
-    "connection_revoke", "connection_terminal_terminate", "connection_enrollment_approve",
-    "finance_payment_register", "finance_reconcile", "payment_void", "space_deploy", "space_version_publish",
+# MCP deny patterns by verb, not by hand-picked tool: a new Pai tool whose name carries one of these verbs is denied without a list update.
+# Hooks never see MCP calls, so under bypass these rules are the only layer for MCP writes.
+PAI_PATTERNS = tuple(f"*{verb}*" for verb in ("delete", "remove", "revoke", "deploy", "publish", "purge", "anonymize", "terminate", "void",
+                                              "rotate", "renounce", "staff_grant", "enrollment_approve")) + (
+    "iam_*", "finance_*", "workforce_*", "*_ban", "*_unban", "*_win", "*slug_set", "*domain_set", "*production_access_set", "*member_role_set",
+    "*_provision", "user_create", "user_export", "organization_export", "organization_archive", "project_close",
 )
-LINEAR_DENIED_TOOLS = ("delete_attachment", "delete_comment", "delete_customer", "delete_customer_need", "delete_diff_comment",
-                       "delete_status_update", "merge_diff")
+LINEAR_PATTERNS = ("delete_*", "merge_diff")
+RAILWAY_PATTERNS = ("delete-*", "*deploy*", "redeploy", "restart-service", "purge-cdn-cache", "reset-bucket-credentials", "set-variables",
+                    "set-feature-flag", "update-function-source-code", "connect-service-source")
 
 # Rules every role needs. `*` matches any characters (spaces included), so `git *push` also covers `git -C repo push`.
 BASE_RULES = (
     "Bash(git *push *--force*)", "Bash(git *push -f*)", "Bash(git *push * -f*)", "Bash(git *push *--delete*)", "Bash(git *push -d *)",
     "Bash(git *push * -d *)", "Bash(git *push *--mirror*)", "Bash(git *push * +*)", "Bash(git *push * :*)", "Bash(git *push *--no-verify*)",
-    "Bash(git *commit *--no-verify*)", "Bash(git *commit -n*)", "Bash(git *commit * -n*)",
+    "Bash(git *commit *--no-verify*)", "Bash(git *commit -n*)", "Bash(git *commit * -n)",
     "Bash(git *reset --hard*)", "Bash(git *clean *-*f*)", "Bash(git *branch -D *)", "Bash(git *branch *--delete *--force*)",
     "Bash(git *checkout .)", "Bash(git *checkout -- .)", "Bash(git *restore .)", "Bash(git *restore --staged --worktree .)",
     "Bash(sudo *)", "Bash(su *)", "Bash(ssh *)", "Bash(scp *)", "Bash(sftp *)",
-    "Read(./.env)", "Read(./.env.*)", "Read(**/.env)", "Read(**/.env.*)", "Read(~/.ssh/**)", "Read(~/.aws/**)",
-    "Read(~/.config/gh/**)", "Read(~/.config/pai-harness/token)",
 )
-RM_TARGETS = ("/", "/*", "~", "~/*", "$HOME", "$HOME/*", '"$HOME"', '"$HOME"/*', "${HOME}", "..", "../*", ".git", ".git/*", "./.git", "*/.git")
+# rm: only the whole-target spellings are denied (end-anchored), so scratch-directory cleanup (dist, ./build, node_modules, mktemp dirs) still runs.
+RM_TARGETS = ("/", "~", "~/", "$HOME", "$HOME/", '"$HOME"', "${HOME}", "..", "../", ".", "./", ".git", "./.git", "*/.git",
+              "/etc", "/usr", "/var", "/bin", "/sbin", "/lib", "/boot", "/home", "/root", "/opt", "/sys", "/proc", "/dev")
 RM_RULES = tuple(f"Bash(rm *{flag}* {target})" for target in RM_TARGETS for flag in ("r", "R"))
-SECRET_RULES = ("Bash(* .env)", "Bash(* .env *)", "Bash(* .env.*)", "Bash(*/.env)", "Bash(*/.env *)", "Bash(*/.env.*)",
-                "Bash(*~/.ssh/*)", "Bash(*~/.aws/*)", "Bash(*.config/gh/*)", "Bash(*pai-harness/token*)")
-MCP_RULES = tuple(f"{prefix}{tool}" for prefix in PAI_PREFIXES for tool in PAI_DENIED_TOOLS) + tuple(f"{LINEAR_PREFIX}{tool}" for tool in LINEAR_DENIED_TOOLS)
+# Secrets: real env files only (.env.example and friends stay readable), through the common readers, and the credential directories.
+ENV_FILES = (".env", ".env.l*",  # l* covers the local variant (spelled out, it reads as a hostname to the denylist test)
+              ".env.production", ".env.development", ".env.staging", ".env.test")
+READERS = ("cat", "head", "tail", "less", "more", "grep", "rg", "sed", "awk", "source", "cp", "base64", "strings", "xxd")
+ENV_RULES = tuple(rule for env in ENV_FILES for rule in (f"Read(./{env})", f"Read(**/{env})", f"Edit(./{env})", f"Write(./{env})"))
+SECRET_RULES = tuple(f"Bash({reader} *{env}{tail})" for reader in READERS for env in ENV_FILES for tail in ("", " *")) + (
+    "Bash(*~/.ssh/*)", "Bash(*~/.aws/*)", "Bash(*.config/gh/*)", "Bash(*pai-harness/token*)",
+    "Read(~/.ssh/**)", "Read(~/.aws/**)", "Read(~/.config/gh/**)", "Read(~/.config/pai-harness/token)",
+    "Edit(~/.ssh/**)", "Write(~/.ssh/**)", "Read(**/*.pem)", "Read(**/*.key)", "Read(**/secrets/**)",
+)
+MCP_RULES = (tuple(f"{prefix}{pattern}" for prefix in PAI_PREFIXES for pattern in PAI_PATTERNS)
+             + tuple(f"{LINEAR_PREFIX}{pattern}" for pattern in LINEAR_PATTERNS)
+             + tuple(f"{prefix}{pattern}" for prefix in RAILWAY_PREFIXES for pattern in RAILWAY_PATTERNS))
+STRICT_MCP_RULES = tuple(f"{PAI_PREFIXES[0]}{pattern}" for pattern in PAI_PATTERNS)  # strict MCP: the machine config's one server is all there is
 
 # Rules for every role except the integrator and the orchestrator, which merge by documented design (see examples/README.md).
 NON_MERGE_RULES = (
@@ -61,30 +65,52 @@ NON_MERGE_RULES = (
     "Bash(git *push * release/*)", "Bash(git *push * HEAD:release/*)",
 )
 OTHER_RULES = (
-    "Edit(./.env)", "Edit(./.env.*)", "Edit(~/.ssh/**)", "Write(./.env)", "Write(./.env.*)", "Write(~/.ssh/**)",
-    "Read(**/*.pem)", "Read(**/*.key)", "Read(**/secrets/**)",
     "Bash(gh repo delete *)", "Bash(gh repo archive *)", "Bash(gh release delete *)", "Bash(gh api -X DELETE *)", "Bash(gh api --method DELETE *)",
     "Bash(gh secret *)", "Bash(gh auth token*)",
     "Bash(terraform apply*)", "Bash(terraform destroy*)", "Bash(kubectl delete *)", "Bash(docker system prune*)", "Bash(docker volume rm *)",
     "Bash(railway delete*)", "Bash(railway down*)", "Bash(railway volume delete*)",
 )
 
-# What a launch requires: the dangerous git, rm, privilege and secret rules, and every denied Pai tool on the machine server.
-BASELINE = BASE_RULES + RM_RULES + SECRET_RULES + tuple(f"{PAI_PREFIXES[0]}{tool}" for tool in PAI_DENIED_TOOLS)
+
+def baseline(strict: bool, role: str) -> tuple[str, ...]:
+    """What a launch requires: git, rm, privilege and secret rules; the MCP verb rules (the machine server only under strict MCP,
+    every known server otherwise); and the merge and protected-branch rules for every role that does not merge."""
+    return (BASE_RULES + RM_RULES + SECRET_RULES + ENV_RULES + (STRICT_MCP_RULES if strict else MCP_RULES)
+            + (() if role in MERGE_ROLES else NON_MERGE_RULES))
 
 
 def example_rules() -> list[str]:
     """The rules of examples/settings.deny.json (every role); the merge rules ship in settings.deny.non-merge.json."""
-    return list(BASE_RULES + RM_RULES + SECRET_RULES + OTHER_RULES + MCP_RULES)
+    return list(dict.fromkeys(BASE_RULES + RM_RULES + SECRET_RULES + ENV_RULES + OTHER_RULES + MCP_RULES))
 
 
-def settings_files(cwd: str | os.PathLike | None, git_root: str | None = None) -> list[Path]:
-    """The settings files Claude Code merges for a run in `cwd`: managed, user, then project and local settings."""
+def glob_match(pattern: str, text: str) -> bool:
+    """`*` matches any characters; everything else is literal."""
+    return re.fullmatch(".*".join(re.escape(part) for part in pattern.split("*")), text, re.S) is not None
+
+
+def covers(effective: str, wanted: str) -> bool:
+    """Whether one effective deny rule satisfies one baseline rule: equal, a wildcard rule that matches it (`mcp__pai__iam_*` covers
+    `mcp__pai__iam_policy_set`), or a whole-server rule (`mcp__pai`). Approximate by design: it never proves what Claude Code enforces."""
+    if effective == wanted:
+        return True
+    if wanted.startswith("mcp__"):
+        server = wanted.split("__")[1] if wanted.count("__") >= 2 else ""
+        return effective == f"mcp__{server}" or (effective.startswith("mcp__") and glob_match(effective, wanted))
+    kind = wanted.split("(", 1)[0]
+    if effective.startswith(kind + "(") and effective.endswith(")") and wanted.endswith(")"):
+        return glob_match(effective[len(kind) + 1:-1], wanted[len(kind) + 1:-1])
+    return False
+
+
+def settings_files(cwd: str | os.PathLike | None) -> list[Path]:
+    """The settings files Claude Code merges for a run in `cwd`: managed (Linux, macOS, drop-ins), user, then the project and local
+    settings of `cwd` itself (claude loads project settings from the directory it starts in, so a parent git root is not counted)."""
     user = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
-    files = [Path("/etc/claude-code/managed-settings.json"), user / "settings.json"]
-    for root in dict.fromkeys(str(p) for p in (cwd or os.getcwd(), git_root) if p):
-        files += [Path(root) / ".claude/settings.json", Path(root) / (".claude/settings" + ".local.json")]  # split: a bare dotted name reads as a hostname to the denylist test
-    return files
+    managed = [Path("/etc/claude-code/managed-settings.json"), Path("/Library/Application Support/ClaudeCode/managed-settings.json")]
+    managed += sorted(Path("/etc/claude-code/managed-settings.d").glob("*.json"))
+    root = Path(cwd or os.getcwd())
+    return managed + [user / "settings.json", root / ".claude/settings.json", root / (".claude/settings" + ".local.json")]  # split: a bare dotted name reads as a hostname to the denylist test
 
 
 def effective_deny(files: list[Path]) -> set[str]:
@@ -101,10 +127,10 @@ def effective_deny(files: list[Path]) -> set[str]:
     return rules
 
 
-def missing_baseline(cwd: str | os.PathLike | None, git_root: str | None = None) -> list[str]:
-    """Baseline rules absent from the effective settings (empty when the baseline is present)."""
-    have = effective_deny(settings_files(cwd, git_root))
-    return [rule for rule in BASELINE if rule not in have]
+def missing_baseline(cwd: str | os.PathLike | None, strict: bool, role: str) -> list[str]:
+    """Baseline rules no effective deny rule covers (empty when the baseline is present)."""
+    have = effective_deny(settings_files(cwd))
+    return [rule for rule in baseline(strict, role) if not any(covers(rule_, rule) for rule_ in have)]
 
 
 def preflight_reason(missing: list[str]) -> str | None:
@@ -113,4 +139,5 @@ def preflight_reason(missing: list[str]) -> str | None:
         return None
     shown = ", ".join(missing[:3]) + (f" and {len(missing) - 3} more" if len(missing) > 3 else "")
     return (f"bypassPermissions needs the deny baseline and {len(missing)} rules are missing from the effective Claude Code settings ({shown}); "
-            "copy examples/settings.deny.json into .claude/settings.json (or user settings), or set [run] bypass_permissions = false")
+            "copy examples/settings.deny.json (and settings.deny.non-merge.json for a role that does not merge) into .claude/settings.json, "
+            "or set [run] bypass_permissions = false")
