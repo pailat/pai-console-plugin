@@ -124,7 +124,7 @@ SAFE_SUBS = {"status", "diff", "log", "show", "add", "fetch", "pull", "rev-parse
 SEMI_SUBS = {"commit", "merge"}  # an unresolved word is fine only as the value of a message-like option
 VALUE_OPTIONS = {"-m", "--message", "-F", "--file", "-C", "-c", "--author", "--date", "-t", "--template", "--cleanup", "-S", "--reuse-message", "--reedit-message"}
 COMMAND_KEYS = re.compile(r"^(core\.(sshcommand|pager|editor|fsmonitor|askpass|hookspath|gitproxy)|diff\.external|credential\.helper|sequence\.editor|"
-                          r"filter\..*\.(clean|smudge|process)|diff\..*\.textconv|alias\..*)$")
+                          r"filter\..*\.(clean|smudge|process)|diff\..*\.textconv|alias\..*|.*\.(cmd|command)|protocol\.ext\.allow)$")
 
 
 def brace_words(token: str, budget: list[int]) -> list[str]:
@@ -161,6 +161,7 @@ LITERAL_WORDS = {"[", "[[", "]", "]]", "!", ".", ":"}
 PREFIX_VALUE_OPTIONS = {"env": {"-u", "-C", "-S", "--unset", "--chdir", "--split-string"}, "sudo": {"-u", "-g", "-h", "-p", "-C", "-D", "-R", "-T", "-U", "--user", "--group"},
                         "doas": {"-u", "-C"}, "nice": {"-n"}, "timeout": {"-s", "-k", "--signal", "--kill-after"}, "ionice": {"-c", "-n", "-p"},
                         "xargs": {"-I", "-n", "-P", "-d", "-L", "-s", "-E", "-a"}, "stdbuf": {"-i", "-o", "-e"}, "exec": {"-a"}, "time": {"-f", "-o"}}
+RUN_ENV = re.compile(r"(GIT_EDITOR|GIT_SEQUENCE_EDITOR|GIT_SSH_COMMAND|GIT_SSH|GIT_EXTERNAL_DIFF|GIT_PAGER|GIT_ASKPASS|GIT_PROXY_COMMAND|GIT_EXEC_PATH|GIT_ALLOW_PROTOCOL|EDITOR|VISUAL|PAGER|SSH_ASKPASS)=(.*)", re.S)  # variables whose value git runs as a command
 CONFIG_ENV = re.compile(r"(GIT_CONFIG[A-Z_0-9]*|GIT_DIR|GIT_WORK_TREE|GIT_COMMON_DIR|HOME|XDG_CONFIG_HOME)=")
 BUILTINS = set("""add am apply archive bisect blame branch bundle cat-file check-attr check-ignore checkout checkout-index cherry cherry-pick clean clone column commit
 commit-graph commit-tree config count-objects credential describe diff diff-files diff-index diff-tree difftool fast-export fast-import fetch filter-branch
@@ -201,9 +202,33 @@ def shell_base(token: str) -> str:
     return re.sub(r"[-_.]?(preview|\d[\d.]*)$", "", name) if re.match(r"[a-z]", name) else name
 
 
+def strip_comments(text: str) -> str:
+    """Cut shell comments: a `#` starts one only at the start of a word (after blank, newline, ; & | or a parenthesis) and outside quotes. shlex would also
+    treat `echo a#` as a comment, which hid every command after it."""
+    out, i, quote = [], 0, ""
+    while i < len(text):
+        c = text[i]
+        if c == "\\" and quote != "'" and i + 1 < len(text):
+            out.append(text[i:i + 2])
+            i += 2
+            continue
+        if quote:
+            quote = "" if c == quote else quote
+        elif c in "'\"":
+            quote = c
+        elif c == "#" and (i == 0 or text[i - 1] in " \t\n;&|()"):
+            while i < len(text) and text[i] != "\n":
+                i += 1
+            continue
+        out.append(c)
+        i += 1
+    return "".join(out)
+
+
 def tokenize(text: str) -> list[str] | None:
-    lexer = shlex.shlex(text, posix=True, punctuation_chars=True)
+    lexer = shlex.shlex(strip_comments(text), posix=True, punctuation_chars=True)
     lexer.whitespace_split = True
+    lexer.commenters = ""  # comments are cut by strip_comments: a mid-word # is part of the word
     try:
         return list(lexer)
     except ValueError:
@@ -246,7 +271,7 @@ def shell_script(args: list[str], name: str) -> tuple[bool, str | None]:
 
 
 def segments(command: str) -> list[list[str]]:
-    text = command.replace("\\\n", "").replace("`", " ; ").replace("\n", " ; ")
+    text = strip_comments(command.replace("\\\n", "")).replace("`", " ; ").replace("\n", " ; ")
     tokens = tokenize(text)
     if tokens is None:  # unbalanced quotes: read what we can (check() refuses such a command when it names git, rm or the wrapper)
         tokens = text.replace("(", " ; ").replace(")", " ; ").split()
@@ -305,6 +330,7 @@ class Context:
         self.deadline = time.monotonic() + LOOKUP_BUDGET
         self.parse_deadline = time.monotonic() + PARSE_BUDGET
         self.text, self.segments_read = "", 0
+        self.run_env = False  # set once an earlier segment assigned or exported a variable whose value git runs
         self.config_env = False  # set once an earlier segment assigned or exported a variable that moves git's configuration
         words = wrapper_words(wrapper)
         self.wrapper_words = words
@@ -541,6 +567,8 @@ def embedded_command(sub: str, args: list[str]) -> str | None:
             elif t.startswith("-x") and not t.startswith("--") and len(t) > 2:
                 found.append(t[2:])
         return " ; ".join(found) if found else None
+    if sub == "bisect" and "run" in args:
+        return " ".join(args[args.index("run") + 1:])
     if sub == "submodule" and "foreach" in args:
         words = [t for t in args[args.index("foreach") + 1:] if t not in {"--recursive", "-q", "--quiet"}]
         return " ".join(words)
@@ -577,6 +605,13 @@ def subcommand_check(sub: str, args: list[str], shown: list[str], ctx: Context, 
             return refuse(shown, f"a word of git {sub} is built by a variable, substitution or brace expansion ($VAR, $(...), backticks, ${{...}}, {{a,b}}), so it cannot be read; only read-only subcommands accept one",
                           "spell the arguments out as literal words")
     letters = option_letters(args, VALUED_LETTERS.get(sub, ""))
+    if sub == "send-pack":
+        return refuse(shown, "send-pack pushes refs like git push, outside the push queue wrapper", "push through the push queue wrapper")
+    if any(longopt(t, "upload-pack", "receive-pack", "exec", "extcmd", "tool-cmd", least=3) and t.split("=", 1)[0] not in {"--exec-path"} for t in args) \
+            or sub == "clone" and "-u" in args or sub == "difftool" and ("x" in letters or any(t.startswith("-x") for t in args)):
+        return refuse(shown, f"a git {sub} option names a program that git runs (--upload-pack, --receive-pack, --exec, --extcmd, --tool-cmd, difftool -x)", "use the default programs")
+    if any("ext::" in t for t in args):
+        return refuse(shown, "an ext:: URL makes git run a command", "use an ordinary remote URL")
     if sub == "config" and any(COMMAND_KEYS.match(t.lower()) or "alias." in t.lower() or "hookspath" in t.lower() for t in args):
         return refuse(shown, "git config sets an alias or core.hooksPath, which changes what later git commands do", "use plain git commands; ask your lead for configuration changes")
     if sub == "commit" and "n" in option_letters(args, "mFCct"):
@@ -823,7 +858,7 @@ def segment_check(tokens: list[str], ctx: Context, depth: int) -> str:
         return refuse(tokens[at:at + 4], f"the command name {shown!r} is built by a variable, substitution, glob, brace or escape, so it cannot be read",
                       "call the command by its literal name")
     lead = True  # still in the prefix zone: assignments, prefix commands, options, redirections
-    command_word = next((os.path.basename(t) for t in tokens if not (shell_base(t) in PREFIXES or t.startswith("-") or ASSIGNMENT.fullmatch(t) or t in KEYWORDS)), "")
+    command_word = os.path.basename(tokens[at]) if at is not None else ""  # past prefix option values: `exec -a git rm -rf .git` runs rm
     names = ["git", "rm", *([ctx.wrapper_name] if ctx.wrapper_name else [])]
     for i, token in enumerate(tokens):
         ctx.tick()  # one deadline for everything, checked for every word: a long segment cannot outrun it
@@ -838,8 +873,19 @@ def segment_check(tokens: list[str], ctx: Context, depth: int) -> str:
             reason = push_check(tokens[i + taken:], tokens[i:], ctx)
             if reason:
                 return reason
-        if base == "git":
-            reason = git_check(tokens[i:], ctx, depth, env_changed=ctx.config_env or any(CONFIG_ENV.match(t) for t in tokens[:i]))
+        if i == at and base.startswith("git-") and len(base) > 4 and not taken:  # /usr/lib/git-core/git-reset is `git reset`
+            dashed = base[4:].lower()
+            if dashed in {"push", "send-pack", "http-push"}:
+                reason = refuse(tokens[i:], f"{base} is a direct git push", "push through the push queue wrapper")
+            else:
+                reason = git_check(["git", dashed, *tokens[i + 1:]], ctx, depth)
+        elif base == "git":
+            run_env = [t for t in [*tokens[:i]] if RUN_ENV.match(t) and RUN_ENV.match(t).group(2).strip("'\"") not in {"true", ":"}]
+            if run_env or ctx.run_env:
+                reason = refuse(tokens[i:i + 4], f"{(run_env or ['an earlier assignment'])[0].split('=')[0]} makes git run a command the reader cannot see (editor, ssh, pager, askpass, external diff, exec path)",
+                                "run git with the default settings; only GIT_EDITOR=true / : is accepted")
+            else:
+                reason = git_check(tokens[i:], ctx, depth, env_changed=ctx.config_env or any(CONFIG_ENV.match(t) for t in tokens[:i]))
         elif base == "rm" and command_word not in NOT_COMMANDS:  # `git rm -r .` and `echo rm -r .` do not run rm
             reason = rm_check(tokens[i:], ctx)
         elif base in {"find", "mv", "unlink", "shred", "truncate", "dd", "ln", "cp", "install", "rsync"} and (reason := destroy_check(tokens[i:], ctx)):
@@ -910,6 +956,8 @@ def check_command(command: str, ctx: Context, depth: int = 0) -> str:
             return reason
         if any(CONFIG_ENV.match(t) for t in tokens):
             ctx.config_env = True
+        if any(RUN_ENV.match(t) and RUN_ENV.match(t).group(2).strip("'\"") not in {"true", ":"} for t in tokens):
+            ctx.run_env = True
         is_cd, target = cd_target(tokens)  # later segments run where this one went (a conservative reading of subshells and `||`)
         if is_cd:
             ctx = ctx.moved(None if target is None else Path(os.path.realpath(ctx.cwd / os.path.expanduser(target))))

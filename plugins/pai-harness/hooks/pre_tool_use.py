@@ -177,8 +177,9 @@ def strip_heredocs(command: str) -> str:
 
 
 def segments(command: str) -> list[list[str]]:
-    lexer = shlex.shlex(strip_heredocs(command).replace("\n", " ; "), posix=True, punctuation_chars=True)
+    lexer = shlex.shlex(git_guardrails.strip_comments(strip_heredocs(command)).replace("\n", " ; "), posix=True, punctuation_chars=True)
     lexer.whitespace_split = True
+    lexer.commenters = ""  # a # inside a word is not a comment (strip_comments cut the real ones)
     try:
         tokens = list(lexer)
     except ValueError:  # unbalanced quotes: read what we can
