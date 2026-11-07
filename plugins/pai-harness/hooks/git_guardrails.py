@@ -25,8 +25,12 @@ PARSING: quoting, `git -C dir`, `-c`, `--git-dir=...`, env/sudo/command/xargs pr
 newlines, line continuations, backticks and `$( )`, sh/bash -c, eval, ssh/su/watch strings, git aliases (the literal
 name AND its expansion are both checked, because git ignores an alias that shadows a builtin), a command name built
 from a variable (`$g reset --hard`) and a shell that reads its script from a pipe (the whole command is scanned).
-A command that cannot be parsed is read as best as possible, never skipped. Known limits: code generated at run time
-(`python -c`, `base64 -d | sh`) is not read.
+FAIL CLOSED: the command word of every segment (after assignments, prefix wrappers with their option values such as `timeout 5`,
+`nice -n 5`, `exec -a x`, `env -u X`, and redirections such as `2>/dev/null`) must be a plain literal word; a variable, substitution, glob,
+brace or escape there is refused whatever follows. A git call that changes where config comes from (GIT_CONFIG*, GIT_DIR, HOME, XDG_CONFIG_HOME,
+--git-dir, -c include.*) with a subcommand that is not a git builtin is refused (it may be an alias the hook cannot read). Unbalanced quotes,
+oversize input, a missed deadline and any internal error are refused too. Known limits: code generated at run time (`python -c`, `base64 -d | sh`)
+is not read.
 """
 from __future__ import annotations
 
@@ -51,8 +55,6 @@ STRING_RUNNERS = {"ssh", "su", "runuser", "watch", "sg", "script", "tmux", "scre
 PREFIXES = {"env", "command", "exec", "nohup", "builtin", "setsid", "sudo", "doas", "nice", "timeout", "xargs", "stdbuf", "ionice", "time"}
 GIT_VALUE_OPTIONS = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path", "--super-prefix", "--config-env"}
 BROAD = {".", "./", ":/", ":(top)", "*", "**", "./*", ":/*", "..", "../", ".*"}
-CRUDE = re.compile(r"git\b.*\b(reset\b.*--ha|clean\b|push\b.*(-\w*[fd]\b|--(f|de|mi|pr)|\s[+:])|branch\b.*-\w*[Df]|stash\s+(drop|clear)|rebase\b.*(-\w*i|--inter)"
-                   r"|update-ref\b.*-\w*d|worktree\s+remove|checkout\b.*(\s\.(\s|$)|-f)|restore\b)|rm\b.*\.git\b")
 
 
 def extract_substitutions(text: str) -> tuple[str, list[str]]:
@@ -151,6 +153,46 @@ def expand_braces(tokens: list[str]) -> list[str]:
     if not any(BRACE.search(t) for t in tokens):
         return tokens
     return [w for token in tokens for w in brace_words(token, budget) if w or not BRACE.search(token)]  # `{git,}` is `git`: the shell drops the empty word
+
+
+REDIRECT = re.compile(r"(?:\d*|&)[<>]+[|&]?(?:\d+-?)?")  # >, >>, 2>, &>, >|, >&2, <<<, <<
+LITERAL = re.compile(r"[A-Za-z0-9_@%+:,./~-]+")
+LITERAL_WORDS = {"[", "[[", "]", "]]", "!", ".", ":"}
+PREFIX_VALUE_OPTIONS = {"env": {"-u", "-C", "-S", "--unset", "--chdir", "--split-string"}, "sudo": {"-u", "-g", "-h", "-p", "-C", "-D", "-R", "-T", "-U", "--user", "--group"},
+                        "doas": {"-u", "-C"}, "nice": {"-n"}, "timeout": {"-s", "-k", "--signal", "--kill-after"}, "ionice": {"-c", "-n", "-p"},
+                        "xargs": {"-I", "-n", "-P", "-d", "-L", "-s", "-E", "-a"}, "stdbuf": {"-i", "-o", "-e"}, "exec": {"-a"}, "time": {"-f", "-o"}}
+CONFIG_ENV = re.compile(r"(GIT_CONFIG[A-Z_0-9]*|GIT_DIR|GIT_WORK_TREE|GIT_COMMON_DIR|HOME|XDG_CONFIG_HOME)=")
+BUILTINS = set("""add am apply archive bisect blame branch bundle cat-file check-attr check-ignore checkout checkout-index cherry cherry-pick clean clone column commit
+commit-graph commit-tree config count-objects credential describe diff diff-files diff-index diff-tree difftool fast-export fast-import fetch filter-branch
+fmt-merge-msg for-each-ref format-patch fsck gc grep gui hash-object help init interpret-trailers log ls-files ls-remote ls-tree maintenance merge merge-base
+mergetool mktag mktree mv name-rev notes pack-objects pack-refs prune pull push range-diff read-tree rebase reflog remote repack replace request-pull rerere
+reset restore rev-list rev-parse revert rm shortlog show show-branch show-ref sparse-checkout stash status submodule switch symbolic-ref tag unpack-file
+update-index update-ref update-server-info var verify-commit verify-pack verify-tag version whatchanged worktree write-tree bugreport diagnose scalar
+citool bundle-uri multi-pack-index""".split())
+
+
+def command_index(tokens: list[str]) -> int | None:
+    """The index of the command word of a segment, found the way the shell finds it: past assignments, keywords, redirections (with their targets)
+    and prefix wrappers with their option values (`timeout 5`, `nice -n 5`, `exec -a x`, `env -u X`, `sudo -u user`); None when there is none."""
+    i, n = 0, len(tokens)
+    while i < n:
+        t = tokens[i]
+        if ASSIGNMENT.fullmatch(t) or t in KEYWORDS:
+            i += 1
+        elif REDIRECT.fullmatch(t):
+            i += 1 if re.search(r"[0-9]-?$", t) and "&" in t else 2
+        elif t.isdigit() and i + 1 < n and REDIRECT.fullmatch(tokens[i + 1]):
+            i += 1
+        elif os.path.basename(t) in PREFIXES:
+            name, valued = os.path.basename(t), PREFIX_VALUE_OPTIONS.get(os.path.basename(t), set())
+            i += 1
+            while i < n and (tokens[i].startswith("-") and len(tokens[i]) > 1 or name == "env" and ASSIGNMENT.fullmatch(tokens[i])):
+                i += 2 if tokens[i] in valued else 1
+            if name == "timeout" and i < n and not REDIRECT.fullmatch(tokens[i]):
+                i += 1  # the duration
+        else:
+            return i
+    return None
 
 
 def shell_base(token: str) -> str:
@@ -263,6 +305,7 @@ class Context:
         self.deadline = time.monotonic() + LOOKUP_BUDGET
         self.parse_deadline = time.monotonic() + PARSE_BUDGET
         self.text, self.segments_read = "", 0
+        self.config_env = False  # set once an earlier segment assigned or exported a variable that moves git's configuration
         words = wrapper_words(wrapper)
         self.wrapper_words = words
         self.wrapper_name = os.path.basename(words[-1]) if words else ""
@@ -419,7 +462,7 @@ def push_check(args: list[str], shown: list[str], ctx: Context) -> str:
     return ""
 
 
-def git_check(tokens: list[str], ctx: Context, depth: int, inline: dict[str, str] | None = None) -> str:
+def git_check(tokens: list[str], ctx: Context, depth: int, inline: dict[str, str] | None = None, env_changed: bool = False) -> str:
     """tokens start at `git`. Returns the refusal text or an empty string."""
     directories, aliases, j, hooks_path = [], dict(inline or {}), 1, False
     while j < len(tokens) and tokens[j].startswith("-"):
@@ -433,6 +476,8 @@ def git_check(tokens: list[str], ctx: Context, depth: int, inline: dict[str, str
         if token == "-c" and j + 1 < len(tokens):
             key, _, value = tokens[j + 1].partition("=")
             hooks_path = hooks_path or key.lower() == "core.hookspath"
+            if re.match(r"include(if)?\.", key.lower()):
+                env_changed = True  # an included file can define aliases the hook cannot read
             if key.lower() != "core.hookspath" and COMMAND_KEYS.match(key.lower()) and not key.lower().startswith("alias."):
                 return refuse(tokens, f"-c {key} makes git run a command the reader cannot see", "use plain git options")
             if key.lower().startswith("alias."):
@@ -443,6 +488,9 @@ def git_check(tokens: list[str], ctx: Context, depth: int, inline: dict[str, str
     rest = tokens[j:]
     if not rest:
         return ""
+    if (env_changed or "\0unknown" in directories) and rest[0].lower() not in BUILTINS:
+        return refuse(tokens, f"git {rest[0]} is not a git builtin and this command changes where git reads its configuration from (GIT_CONFIG*, GIT_DIR, HOME, XDG_CONFIG_HOME, --git-dir, -c include.*), so it may be an alias the hook cannot read",
+                      "run a git builtin, or use the default configuration")
     if hooks_path and rest[0].lower() != "push":  # a push with core.hooksPath is refused with the no-verify text by pre_tool_use.py
         return refuse(tokens, "core.hooksPath overrides the git hooks", "fix what the hook reports instead of bypassing it")
     effective = effective_dir(directories, ctx)
@@ -769,6 +817,11 @@ def segment_check(tokens: list[str], ctx: Context, depth: int) -> str:
         return refuse(tokens[:6], "a brace expansion produces too many words to read", "write the words out")
     if tokens is not original and any(os.path.basename(t) == "git" for t in tokens) and any(t.lower() == "push" for t in tokens):
         return refuse(original[:8], "a git push whose words are built by a brace expansion cannot be read", "write the push out as literal words, through the push queue wrapper")
+    at = command_index(tokens)
+    if at is not None and tokens[at] not in LITERAL_WORDS and not LITERAL.fullmatch(tokens[at]):
+        shown = tokens[at].replace(SUBST_GIT, "$(...)").replace(SUBST, "$(...)")
+        return refuse(tokens[at:at + 4], f"the command name {shown!r} is built by a variable, substitution, glob, brace or escape, so it cannot be read",
+                      "call the command by its literal name")
     lead = True  # still in the prefix zone: assignments, prefix commands, options, redirections
     command_word = next((os.path.basename(t) for t in tokens if not (shell_base(t) in PREFIXES or t.startswith("-") or ASSIGNMENT.fullmatch(t) or t in KEYWORDS)), "")
     names = ["git", "rm", *([ctx.wrapper_name] if ctx.wrapper_name else [])]
@@ -786,7 +839,7 @@ def segment_check(tokens: list[str], ctx: Context, depth: int) -> str:
             if reason:
                 return reason
         if base == "git":
-            reason = git_check(tokens[i:], ctx, depth)
+            reason = git_check(tokens[i:], ctx, depth, env_changed=ctx.config_env or any(CONFIG_ENV.match(t) for t in tokens[:i]))
         elif base == "rm" and command_word not in NOT_COMMANDS:  # `git rm -r .` and `echo rm -r .` do not run rm
             reason = rm_check(tokens[i:], ctx)
         elif base in {"find", "mv", "unlink", "shred", "truncate", "dd", "ln", "cp", "install", "rsync"} and (reason := destroy_check(tokens[i:], ctx)):
@@ -855,6 +908,8 @@ def check_command(command: str, ctx: Context, depth: int = 0) -> str:
         reason = segment_check(tokens, ctx, depth)
         if reason:
             return reason
+        if any(CONFIG_ENV.match(t) for t in tokens):
+            ctx.config_env = True
         is_cd, target = cd_target(tokens)  # later segments run where this one went (a conservative reading of subshells and `||`)
         if is_cd:
             ctx = ctx.moved(None if target is None else Path(os.path.realpath(ctx.cwd / os.path.expanduser(target))))
