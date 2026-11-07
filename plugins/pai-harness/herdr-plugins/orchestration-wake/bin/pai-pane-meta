@@ -3,17 +3,22 @@
 # wake_on_done) AND cache them in <plugin config dir>/agents/<name>.json (name= token, else pane-<id>, sanitized to [A-Za-z0-9_-]) as
 # {"pane":"<id>","tokens":{...}}: herdr drops tokens when the server restarts and before pane.exited fires, and pane ids change on every
 # relaunch, so one file per agent is rewritten in place. The hook finds it by its pane field. Any old panes/<id>.json of this pane is removed.
-# Launchers call this instead of `herdr pane report-metadata`. Never fails the launcher. Uses HERDR_BIN_PATH (else herdr).
+# Launchers call this instead of `herdr pane report-metadata`. Uses HERDR_BIN_PATH (else herdr).
+# Default: never fails the launcher (always exits 0). PAI_PANE_META_STRICT=1: exits 1 when jq is missing, a token has a newline or
+# control character, report-metadata fails, or the cache cannot be written; callers that need the tags (agent-start.sh) set it.
 H=${HERDR_BIN_PATH:-herdr}; pane=${1:?pane_id}; shift
 [ $# -gt 0 ] || exit 0
+bad() { [ "${PAI_PANE_META_STRICT:-}" = 1 ] && { echo "pai-pane-meta: $1" >&2; exit 1; }; exit 0; }
+command -v jq >/dev/null 2>&1 || bad "jq is required"
+for kv in "$@"; do case $kv in *=*) ;; *) bad "token '$kv' is not key=value" ;; esac; [ -z "$(printf %s "$kv" | tr -d '[:print:]')" ] || bad "token '${kv%%=*}' has a newline or control character"; done
 args=(); json='{}'
 for kv in "$@"; do k=${kv%%=*}; v=${kv#*=}; args=(${args[@]+"${args[@]}"} --token "$k=$v"); json=$(jq -c --arg k "$k" --arg v "$v" '.tokens[$k]=$v' <<<"$json"); done
-"$H" pane report-metadata "$pane" --source pai "${args[@]}" >/dev/null 2>&1 || exit 0
-C=${HERDR_PLUGIN_CONFIG_DIR:-$("$H" plugin config-dir pai.orchestration-wake 2>/dev/null)}; [ -n "$C" ] || exit 0
+"$H" pane report-metadata "$pane" --source pai "${args[@]}" >/dev/null 2>&1 || bad "report-metadata failed for pane $pane"
+C=${HERDR_PLUGIN_CONFIG_DIR:-$("$H" plugin config-dir pai.orchestration-wake 2>/dev/null)}; [ -n "$C" ] || bad "no plugin config dir"
 san=$(printf %s "$pane" | tr -c 'A-Za-z0-9' _); name=$(jq -r '.tokens.name // empty' <<<"$json"); name=$(printf %s "${name:-pane-$san}" | tr -c 'A-Za-z0-9_-' _)
-mkdir -p "$C/agents" 2>/dev/null
+mkdir -p "$C/agents" 2>/dev/null || bad "cannot create $C/agents"
 # One file per pane: drop any other agent file that names this pane (an earlier call with another name, a stale entry).
 for f in "$C"/agents/*.json; do [ -f "$f" ] && [ "$f" != "$C/agents/$name.json" ] && [ "$(jq -r '.pane // empty' "$f" 2>/dev/null)" = "$pane" ] && rm -f "$f"; done
-jq -c --arg p "$pane" '{pane:$p, tokens:.tokens}' <<<"$json" >"$C/agents/$name.json"
+jq -c --arg p "$pane" '{pane:$p, tokens:.tokens}' <<<"$json" >"$C/agents/$name.json" 2>/dev/null || bad "cannot write $C/agents/$name.json"
 [ -f "$C/panes/$san.json" ] && rm -f "$C/panes/$san.json"
 exit 0

@@ -10,6 +10,7 @@ Usage: dispatcher.sh --queue Q [--ready FILE] [--wait] [--dry-run] [--config FIL
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 from subprocess import run as run_process  # bare name: the denylist reads a dotted call ending in the run top-level domain as a hostname
 import sys
@@ -86,6 +87,8 @@ def main(argv: list[str]) -> int:
     for item in plan["launch"]:
         command = [sys.executable, str(HERE / "launch.py"), item["issue"], "--prompt-file", item["prompt-file"], "--queue", args.queue,
                    "--config", str(config_path)]
+        if os.environ.get("PAI_HARNESS_PARENT"):
+            command += ["--parent", os.environ["PAI_HARNESS_PARENT"]]  # the agent woken when the run ends; launch.py refuses a pane run without one
         for key in ("model", "role", "cwd"):
             if key in item:
                 command += [f"--{key}", item[key]]

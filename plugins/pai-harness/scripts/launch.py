@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shlex
 import subprocess
 from subprocess import run as run_process  # bare name: the denylist reads a dotted call ending in the run top-level domain as a hostname
@@ -622,6 +623,57 @@ def in_pane(args: argparse.Namespace, state: Path, argv: list[str], tab: str | N
     return lib.exit_for(record["state"])
 
 
+NAME_RULE = re.compile(r"[a-z][a-z0-9_-]{0,31}")
+SAFE_RULE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}")
+
+
+def tag_pane(args: argparse.Namespace, role: str) -> int:
+    """Give the run's pane its pai wake tokens before the run starts, so the parent is woken on done or blocked. Fail closed: 0 tagged and
+    verified, else the exit code to stop with (the run does not start). Refuses a pane that already hosts another pai-tagged agent."""
+    name = args.issue.lower()  # the name token follows herdr's agent-name rule; issue ids are upper case
+    parent = args.parent or os.environ.get("PAI_HARNESS_PARENT") or ""
+    problems = []
+    if not NAME_RULE.fullmatch(name):
+        problems.append(f"issue '{args.issue}' does not give a valid name token ([a-z][a-z0-9_-]{{0,31}} after lower-casing)")
+    if not NAME_RULE.fullmatch(role):
+        problems.append(f"role '{role}' must match [a-z][a-z0-9_-]{{0,31}}")
+    if not SAFE_RULE.fullmatch(args.pane) or not SAFE_RULE.fullmatch(args.issue) or (parent and not SAFE_RULE.fullmatch(parent)):
+        problems.append("pane, issue and parent must match [A-Za-z0-9][A-Za-z0-9_.:-]{0,63}")
+    if not parent and not args.no_parent:
+        problems.append("no --parent (or PAI_HARNESS_PARENT): nobody would be woken when this run ends; pass --no-parent to run unwatched on purpose")
+    if problems:
+        for text in problems:
+            print(f"{args.issue}: {text}", file=sys.stderr)
+        return lib.EXIT_USAGE
+    herdr = os.environ.get("HERDR_BIN_PATH") or os.environ.get("PAI_HARNESS_HERDR", "herdr")
+    tool = Path(os.environ.get("PAI_HARNESS_PANE_META") or Path(__file__).resolve().parent.parent / "herdr-plugins/orchestration-wake/bin/pai-pane-meta")
+    env = {**os.environ, "HERDR_BIN_PATH": herdr, "PAI_PANE_META_STRICT": "1"}
+
+    # Occupancy: the wake plugin's per-agent cache names the pane each agent holds (the launcher never reads agent status from Herdr).
+    cache = os.environ.get("HERDR_PLUGIN_CONFIG_DIR")
+    for entry in sorted(Path(cache, "agents").glob("*.json")) if cache else []:
+        try:
+            data = json.loads(entry.read_text())
+        except (OSError, ValueError):
+            continue
+        held = (data.get("tokens") or {}).get("name") if isinstance(data, dict) else None
+        if isinstance(data, dict) and data.get("pane") == args.pane and held and held != name:
+            print(f"{args.issue}: pane {args.pane} already hosts '{held}'; refusing to overwrite its pai tags (use an empty pane)", file=sys.stderr)
+            return lib.EXIT_USAGE
+    pairs = [f"name={name}", f"role={role}", f"parent={parent}", f"issue={args.issue}", "wake_on_done=1"]
+    if not parent:
+        pairs = [p for p in pairs if not p.startswith("parent=")]
+    try:
+        done = run_process([str(tool), args.pane, *pairs], capture_output=True, text=True, timeout=20, env=env)
+    except (OSError, subprocess.SubprocessError) as exc:
+        print(f"{args.issue}: FAILED to tag pane {args.pane} with pai tokens ({tool}): {exc}; the run does not start", file=sys.stderr)
+        return 1
+    if done.returncode != 0:
+        print(f"{args.issue}: FAILED to tag pane {args.pane} with pai tokens: {done.stderr.strip()}; the run does not start", file=sys.stderr)
+        return 1
+    return 0
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="launch.sh", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("issue")
@@ -630,6 +682,8 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--pane", help="run in this Herdr pane (default inside Herdr: the launcher opens its own tab; outside Herdr: this terminal)")
     parser.add_argument("--model")
     parser.add_argument("--role")
+    parser.add_argument("--parent", help="agent that is woken when this run ends (pane token parent; default: PAI_HARNESS_PARENT; required in a pane)")
+    parser.add_argument("--no-parent", action="store_true", help="run in a pane with no parent to wake (explicit opt-out)")
     parser.add_argument("--cwd")
     parser.add_argument("--queue")
     parser.add_argument("--stream", help="Knowledge stream (default: the queue name, else the default [knowledge] target)")
@@ -714,6 +768,9 @@ def main(argv: list[str]) -> int:
             if not args.pane:
                 print(f"{args.issue}: could not open a Herdr tab; running in this terminal", file=sys.stderr)
         if args.pane:
+            tagged = tag_pane(args, role)
+            if tagged:
+                return tagged
             passed, skip = [], False
             for item in argv:
                 if skip:
