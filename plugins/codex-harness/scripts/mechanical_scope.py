@@ -7,8 +7,8 @@ Three sources make the changed set: tracked paths that differ from the start com
 gitignored paths that are new or different from a baseline (an ignored file like `.env` is invisible to `git diff` and
 `git status`, and the lane has Edit).
 
-Ignored paths are fingerprinted cheaply: a dependency/cache directory (BULK_DIRS: node_modules, .venv, target...) is fingerprinted by the
-mtimes of its directories only, every other ignored file by size and mtime. Two modes: strict (launch baseline vs the lane's own edits)
+Ignored paths are fingerprinted cheaply: a dependency/cache directory (BULK_DIRS: node_modules, .venv...) is fingerprinted per directory by its
+mtime and a digest of the size and mtime of its files (an in-place edit is seen, no content is read), every other ignored file by size and mtime. Two modes: strict (launch baseline vs the lane's own edits)
 and, after the project checks, tolerant: the checks may write caches and build output, so only sensitive ignored names (SENSITIVE) and
 the listed files still count. Every git call runs with the repo's own config neutralised (see git()).
 """
@@ -30,6 +30,9 @@ GIT_TIMEOUT_SECONDS = 300
 BULK_DIRS = frozenset({"node_modules", ".venv", "venv", ".tox", ".nox", ".mypy_cache", ".pytest_cache", ".ruff_cache", ".next", ".nuxt", ".gradle",
                        ".cache", "__pycache__", ".terraform"})
 SENSITIVE = (".env", "*.env", ".env.*", "*.pem", "*.key", ".npmrc", ".netrc", ".pypirc", "*settings?local?json", "*credentials*", "id_rsa*", "*.p12")
+# Names the lane may not Read even inside the worktree (permission-rule globs matched at any depth). Template files (.env.example, .env.sample) are not here.
+READ_DENIED_NAMES = (".env", ".env.local", ".env.development", ".env.production", ".env.staging", ".env.test", ".env.*.local", "*.env", "credentials", "credentials.*",
+                     "*.credentials", "*.pem", "id_rsa*", "id_ed25519*", "id_ecdsa*", "*.key", "tokens", "tokens.*", ".tokens", "*.token", ".npmrc", ".netrc", ".pypirc")
 # Command-line -c overrides the repository's own config, so a hook, fsmonitor or pager written into .git cannot run inside the verifier.
 GIT_HARDENING = ("-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null", "-c", "core.pager=cat", "-c", "core.untrackedCache=false",
                  "-c", "diff.external=", "-c", "protocol.ext.allow=never")
@@ -86,12 +89,24 @@ def _lstat(root: str, path: str) -> list[int] | None:
     return [info.st_size, info.st_mtime_ns]
 
 
-def _dir_fingerprint(root: str, rel: str) -> dict[str, int]:
-    """mtime of a directory and of every directory below it: a created or removed entry changes its parent's mtime. Files are not stat'ed."""
-    out: dict[str, int] = {}
+def _dir_fingerprint(root: str, rel: str) -> dict[str, list]:
+    """For a directory and every directory below it: [its mtime, a digest of the (name, type, size, mtime) of its direct entries that are not directories].
+
+    The mtime catches a created or removed entry; the digest catches an in-place edit of a file (a directory's mtime does not move for that), so a
+    changed dependency file is seen even if the permission rules that deny Edit there were bypassed. One stat per file, no content read.
+    """
+    out: dict[str, list] = {}
     for current, dirnames, _ in os.walk(os.path.join(root, rel)):
         try:
-            out[os.path.relpath(current, root)] = os.lstat(current).st_mtime_ns
+            mtime = os.lstat(current).st_mtime_ns
+            h = hashlib.sha256()
+            with os.scandir(current) as entries:
+                for entry in sorted(entries, key=lambda e: e.name):
+                    if entry.is_dir(follow_symlinks=False):
+                        continue
+                    info = entry.stat(follow_symlinks=False)
+                    h.update(f"{entry.name}\0{info.st_mode:o}\0{info.st_size}\0{info.st_mtime_ns}\0".encode(errors="surrogateescape"))
+            out[os.path.relpath(current, root)] = [mtime, h.hexdigest()]
         except OSError:
             continue
         dirnames[:] = [d for d in dirnames if not os.path.islink(os.path.join(current, d))]
@@ -101,7 +116,7 @@ def _dir_fingerprint(root: str, rel: str) -> dict[str, int]:
 def ignored_state(root: str) -> dict:
     """The gitignored untracked files (size, mtime) and, for the BULK_DIRS, a directory-level fingerprint."""
     files: dict[str, list[int]] = {}
-    dirs: dict[str, dict[str, int]] = {}
+    dirs: dict[str, dict[str, list]] = {}
     for entry in _listing(root, "ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "-z"):
         if not entry.endswith("/"):
             stat = _lstat(root, entry)
@@ -251,14 +266,44 @@ def _config_keys(path: str) -> list[str]:
     return sorted(keys)
 
 
+DRIVER_ATTRIBUTES = ("filter", "diff", "merge")
+
+
+def attribute_drivers(root: str) -> list[str]:
+    """The filter/diff/merge attribute assignments of every tracked or untracked (not ignored) .gitattributes file, as sorted `path:pattern attr` lines.
+
+    A clean filter runs inside `git diff` and `git add`, and a merge or diff driver in the operator's git, so a driver newly referenced from .gitattributes
+    changes what code git runs even when .git itself is untouched, and the digest of the changed content does not see an unchanged tracked file.
+    Other attributes (text, eol, linguist-*) are not part of it. Both the lines and the driver names are kept, so renaming a driver changes the hash.
+    """
+    found: list[str] = []
+    names = _listing(root, "ls-files", "--cached", "--others", "--exclude-standard", "-z")
+    for path in sorted({n for n in names if posixpath.basename(n) == ".gitattributes"}):
+        try:
+            text = Path(root, path).read_text(encoding="utf-8", errors="surrogateescape")
+        except OSError:
+            found.append(f"{path}:unreadable")
+            continue
+        for line in text.splitlines():
+            tokens = line.split()
+            if not tokens or tokens[0].startswith("#"):
+                continue
+            for token in tokens[1:]:
+                if token.lstrip("-!").split("=", 1)[0] in DRIVER_ATTRIBUTES:
+                    found.append(f"{path}:{tokens[0]} {token}")
+    return sorted(found)
+
+
 def git_integrity(root: str) -> str:
-    """A hash of what in .git makes git run code: every config key but the ignore-list (repo, common, per-worktree and modules/*/config), hook files, info/attributes.
+    """A hash of what makes git run code: every config key but the ignore-list (repo, common, per-worktree and modules/*/config), hook files, info/attributes
+    and the filter/diff/merge assignments of every .gitattributes in the tree (attribute_drivers).
 
     The common git dir of a linked worktree is the main checkout's, shared with every other worktree, so ordinary git activity elsewhere
     (push -u, fetch, gh pr create, a new branch) must not change the hash: ignored_key keys, sample hooks and info/exclude are skipped.
     Any other key, a new hook or a changed attributes file does change it.
     """
     h = hashlib.sha256()
+    h.update("\n".join(attribute_drivers(root)).encode(errors="surrogateescape") + b"\0")
     git_dir = git_ok(root, "rev-parse", "--path-format=absolute", "--git-dir").strip()
     common = common_git_dir(root)
     for d in dict.fromkeys((git_dir, common)):

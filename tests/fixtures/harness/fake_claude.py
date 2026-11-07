@@ -10,6 +10,9 @@ import os
 import sys
 import time
 
+if "--help" in sys.argv[1:]:  # the launcher probes for --restricted; FAKE_CLAUDE_NO_RESTRICTED simulates an old claude
+    sys.stdout.write("Usage: claude [options]\n  --model <model>\n" + ("" if os.environ.get("FAKE_CLAUDE_NO_RESTRICTED") else "  --restricted   Restricted mode\n"))
+    sys.exit(0)
 prompt = sys.stdin.read()
 log = os.environ.get("FAKE_CLAUDE_LOG")
 if log:

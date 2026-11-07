@@ -10,8 +10,9 @@ worktree. Anything else is a `discard`: the paths the run changed are restored t
 Fail closed: any git failure, timeout or discard error writes a `discard` verdict (replacing any earlier one), prints a BLOCKER and exits 1.
 The verdict carries the HEAD and a digest of the changed content; `task-done.sh` re-checks both before it closes the issue.
 
-Sampling: every 5th passing run (a persistent counter in the state dir keyed by issue and run id, not a hash) is marked for a Sonnet review.
-`--sample-every N` (1 to 5) can only add runs to that, never remove one. `task-done.sh` then needs a review file naming this run's digest (`--sample-reviewed FILE`).
+Sampling: one passing run in every block of five (a persistent counter in the state dir keyed by issue and run id; which one of the five is picked
+by a secret in the state dir, so the position cannot be counted) is marked for a Sonnet review.
+`--sample-every N` (1 to 5, every N-th slot) can only add runs to that, never remove one. `task-done.sh` then needs a review file naming this run's digest (`--sample-reviewed FILE`).
 
 Usage: verify-mechanical.sh ISSUE (--check CMD ... | --gate NAME ...) [--sample-every N] [--keep] [--config FILE] [--dry-run]
 Exit: 0 pass, 1 discard (or, with --dry-run, anything that is not a verified pass), 2 usage.
@@ -20,6 +21,8 @@ from __future__ import annotations
 
 import argparse
 import fcntl
+import hashlib
+import hmac
 import json
 import os
 import subprocess
@@ -55,6 +58,31 @@ def sample_slot(state: Path, key: str) -> int:  # raises ScopeError when the cou
             issues[key] = max([n for n in issues.values() if isinstance(n, int)] + [0]) + 1
             lib.write_json(path, {"passes": issues[key], "issues": issues})
         return issues[key]
+
+
+def sampled_slot(state: Path, slot: int) -> bool:  # raises ScopeError when the secret is damaged
+    """True when this slot is the sampled one of its block of SAMPLE_EVERY consecutive slots (exactly one per block, so the rate stays 1 in 5).
+
+    Which slot of a block is the sampled one comes from an HMAC of the block number under a random secret kept in the state dir (mode 0600). The lane
+    cannot read the state dir (deny rule, and it has no shell), so nobody can count "four throwaway passes, then the real one". A missing secret is created
+    here; an unreadable or short one is an error and the caller samples the run (fail closed).
+    """
+    path = state / "mechanical_sample.key"
+    with (state / "mechanical_samples.lock").open("w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        try:
+            if not path.exists():
+                fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                with os.fdopen(fd, "wb") as handle:
+                    handle.write(os.urandom(32))
+            secret = path.read_bytes()
+        except OSError as error:
+            raise scope.ScopeError(f"the sampler secret is unreadable: {error}") from error
+    if len(secret) < 32:
+        raise scope.ScopeError("the sampler secret is damaged")
+    block, offset = divmod(slot - 1, SAMPLE_EVERY)
+    picked = int.from_bytes(hmac.new(secret, f"block:{block}".encode(), hashlib.sha256).digest()[:8], "big") % SAMPLE_EVERY
+    return offset == picked
 
 
 def run_checks(cwd: str, commands: list[str]) -> list[dict]:
@@ -241,11 +269,12 @@ def main(argv: list[str]) -> int:
         earlier = record.get("verify") or {}
         try:
             slot = sample_slot(state, sample_key)
+            slot_picked = sampled_slot(state, slot)
         except (scope.ScopeError, OSError) as error:
-            slot = None  # fail closed: a damaged counter never loses a review. The run is sampled and the file is left as it is for the operator to inspect.
+            slot, slot_picked = None, True  # fail closed: a damaged counter never loses a review. The run is sampled and the file is left as it is for the operator to inspect.
             print(f"{issue}: {error}; this run is marked for review", file=sys.stderr)
         # The constant rule decides; --sample-every and an earlier sampled verdict of this same run can only add to it.
-        sample_review = (slot is None or slot % SAMPLE_EVERY == 0 or slot % args.sample_every == 0
+        sample_review = (slot is None or slot_picked or slot % args.sample_every == 0
                          or bool(earlier.get("verdict") == "pass" and earlier.get("sample_key") == sample_key and earlier.get("sample_review")))
     result = {"issue": issue, "verdict": verdict, "reasons": reasons, "files": listed, "changed": changed, "outside": outside, "checks": checks,
               "discarded": discarded, "sample_review": sample_review, "sample_every": args.sample_every, "sample_slot": slot, "sample_key": sample_key,
