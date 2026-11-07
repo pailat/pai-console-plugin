@@ -31,6 +31,7 @@ MIN_BUDGET_USD = 0.01  # below this a cap ends every run within a turn
 DEFAULT_ROLE_LIMITS = {
     "relay": {"max_turns": 400, "max_budget_usd": 15}, "orchestrator": {"max_turns": 400, "max_budget_usd": 15},
     "lead": {"max_turns": 300, "max_budget_usd": 10}, "root-reviewer": {"max_turns": 120, "max_budget_usd": 8},
+    "mechanical": {"max_turns": 12, "max_budget_usd": 0.25},  # the mechanical lane is one closed brief: a low turn cap and a small cost cap
 }
 TOKEN_SCOPES = ("read", "write")
 TOKEN_SCOPE_ENV = "PAI_HARNESS_TOKEN_SCOPE"
