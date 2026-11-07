@@ -228,7 +228,7 @@ HARMLESS_CORE = frozenset({"core.repositoryformatversion", "core.filemode", "cor
 def ignored_key(key: str) -> bool:
     """True for a config key that ordinary git activity rewrites and that cannot make git run a program."""
     var = key.rsplit(".", 1)[-1]
-    if key.startswith(IGNORED_PREFIXES) or var.startswith("gh-") or key in HARMLESS_CORE:
+    if key.startswith(IGNORED_PREFIXES) or key in HARMLESS_CORE:
         return True
     if key.startswith("gc."):
         return not key.endswith(".command")

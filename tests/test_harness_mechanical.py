@@ -713,6 +713,8 @@ class LinkedWorktreeTest(MechanicalCase):
                        lambda: git(self.other, "config", "core.hooksPath", "/tmp/evil"),
                        lambda: git(self.other, "config", "alias.ci", "!touch pwned"),
                        lambda: git(self.other, "config", "filter.x.clean", "touch pwned"),
+                       lambda: git(self.other, "config", "alias.gh-x", "!touch pwned"),
+                       lambda: git(self.other, "config", "core.gh-foo", "touch pwned"),
                        lambda: git(self.other, "config", "interactive.diffFilter", "touch pwned"),
                        lambda: git(self.other, "config", "trailer.x.command", "touch pwned"),
                        lambda: git(self.other, "config", "remote.origin.receivepack", "touch pwned"),
@@ -727,7 +729,7 @@ class LinkedWorktreeTest(MechanicalCase):
             self.assertEqual(done.returncode, 1)
             self.assertIn("under .git", " ".join(json.loads(done.stdout)["reasons"]))
             for key in ("core.hooksPath", "alias.ci", "filter.x.clean", "interactive.diffFilter", "trailer.x.command", "remote.origin.receivepack", "submodule.x.update",
-                        "sendemail.smtpServer", "gc.pruneExpire.command"):
+                        "sendemail.smtpServer", "gc.pruneExpire.command", "alias.gh-x", "core.gh-foo"):
                 subprocess.run(["git", "-C", str(self.main), "config", "--unset-all", key], capture_output=True)
             (self.main / ".git/hooks/pre-commit").unlink(missing_ok=True)
             shutil.rmtree(self.main / ".git/modules", ignore_errors=True)
