@@ -523,6 +523,23 @@ class LiveProofScriptTest(unittest.TestCase):
             self.assertEqual(sorted(t["name"] for t in replies[1]["result"]["tools"]), ["iam_x", "page_delete", "page_read"])
             self.assertEqual(log.read_text().split(), ['"page_read"'])
 
+    def test_the_mcp_verdict_accepts_a_removed_tool_and_still_fails_when_the_tool_is_loaded_and_called(self) -> None:
+        sys.path.insert(0, str(ROOT / "tests/live"))
+        import live_bypass_proof as proof
+        removed = {"tools": ["mcp__pai__page_read"], "denied": []}
+        loaded = {"tools": ["mcp__pai__page_read", "mcp__pai__page_delete"], "denied": []}
+        ok = proof.mcp_checks("i", "mcp__pai", ("page_delete",), removed, ['"page_read"'], True)
+        self.assertTrue(all(passed for _, passed, _ in ok))
+        self.assertIn("tool removed from the session", ok[0][2])
+        # the deny rule is gone: the tool is loaded and the stub saw the call -> the positive check must FAIL
+        bad = proof.mcp_checks("i", "mcp__pai", ("page_delete",), loaded, ['"page_read"', '"page_delete"'], True)
+        self.assertFalse(bad[0][1])
+        # a denial that is listed but the stub still saw the call also fails
+        self.assertFalse(proof.mcp_checks("i", "mcp__pai", ("page_delete",), {"tools": [], "denied": ["mcp__pai__page_delete"]}, ['"page_delete"'], True)[0][1])
+        # the negative run passes only when the tool was loaded and called
+        self.assertTrue(proof.mcp_checks("i", "mcp__pai", ("page_delete",), loaded, ['"page_delete"'], False)[0][1])
+        self.assertFalse(proof.mcp_checks("i", "mcp__pai", ("page_delete",), removed, [], False)[0][1])
+
     def test_the_proof_targets_rules_that_exist_in_the_baseline(self) -> None:
         baseline = deny_baseline.baseline(False, "implementer")
         for rule in ("mcp__pai__*delete*", "mcp__plugin_pai-console_pai__*delete*", "Bash(git *push *--force*)", "mcp__pai__iam_*"):

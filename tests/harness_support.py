@@ -53,7 +53,7 @@ class HarnessCase(unittest.TestCase):
         self.state = self.tmp / "state"
         self.env = {**os.environ, "PAI_HARNESS_CONFIG": str(FIXTURES / "acme.pai-harness.toml"), "PAI_HARNESS_STATE_DIR": str(self.state),
                     "PAI_HARNESS_CLAUDE": str(FIXTURES / "fake_claude.py"), "PAI_HARNESS_INSTALLED_PLUGINS": str(self._tmp.name + "/none.json"), "FAKE_CLAUDE_LOG": str(self.tmp / "claude.json")}
-        for name in ("PAI_HARNESS_MCP_CMD", "LINEAR_API_KEY", "LINEAR_API_URL", "PAI_HARNESS_HERDR"):
+        for name in ("PAI_HARNESS_PARENT", "PAI_HARNESS_MCP_CMD", "LINEAR_API_KEY", "LINEAR_API_URL", "PAI_HARNESS_HERDR"):
             self.env.pop(name, None)
         for name in [k for k in self.env if k.startswith("HERDR_")]:
             self.env.pop(name)  # a launch under test must not open a tab in the developer's own Herdr session
@@ -62,6 +62,7 @@ class HarnessCase(unittest.TestCase):
         self.env["CLAUDE_CONFIG_DIR"] = str(self.claude_home)
         self.xdg = self.tmp / "xdg"  # the user-level policy file (~/.config/pai-harness/policy.toml) lives here; absent means no waiver
         self.env["XDG_CONFIG_HOME"] = str(self.xdg)
+        self.env["HERDR_PLUGIN_CONFIG_DIR"] = str(self.tmp / "wake-config")  # pane tags are cached here, never in the developer's own config
         self.prompt = self.tmp / "prompt.md"
         self.prompt.write_text("Implement ACME-7 for the Acme app.\n")
 
