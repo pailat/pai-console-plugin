@@ -15,6 +15,9 @@ limits nothing while bypass is on. Safety is the deny rules plus the plugin hook
 
 Usage: launch.sh ISSUE (--prompt TEXT | --prompt-file FILE) [--pane PANE] [--model M] [--role R] [--cwd DIR]
                  [--queue Q] [--stream S] [--allowed-tools T ...] [--config FILE] [--dry-run]
+       launch.sh ISSUE --profile mechanical --files F [F ...] --instruction TEXT [--model haiku|sonnet] [--cwd DIR]
+                 the mechanical lane: a closed brief, Haiku, an empty strict MCP config, Read/Edit/Grep/Glob only, `--output-format json`;
+                 check the result with verify-mechanical.sh before closing it (--files are relative to --cwd, which may be a repo subdirectory)
        launch.sh --resume ISSUE   continue a parked or blocked run by its recorded session id
        launch.sh --park ISSUE     mark a run parked (no process is touched)
        launch.sh --status ISSUE   print the recorded state
@@ -37,9 +40,24 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import deny_baseline  # noqa: E402
 import harness_config  # noqa: E402
 import harness_lib as lib  # noqa: E402
+import mechanical_scope as scope  # noqa: E402
 import render_stream  # noqa: E402
 
 
+MECHANICAL_TOOLS = ("Read", "Edit", "Grep", "Glob")  # the whole tool set of the mechanical lane: no Bash, no MCP, no web
+MECHANICAL_MODELS = ("haiku", "sonnet")  # Haiku by default; `--model sonnet` is the opt-in
+GLOB_CHARS = set("*?")  # [ ] { } are valid filename characters (app/[slug]/page.tsx); paths are compared and passed to git as literals
+LANE_ENV_KEYS = ("PATH", "HOME", "USER", "LOGNAME", "SHELL", "LANG", "LANGUAGE", "TERM", "TMPDIR", "TZ", "XDG_CONFIG_HOME", "XDG_DATA_HOME",
+                 "XDG_CACHE_HOME", "XDG_STATE_HOME", "XDG_RUNTIME_DIR", "CLAUDE_CONFIG_DIR", "CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_API_KEY",
+                 "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "ALL_PROXY", "http_proxy", "https_proxy",
+                 "no_proxy", "all_proxy", "SSL_CERT_FILE", "SSL_CERT_DIR", "NODE_EXTRA_CA_CERTS", "REQUESTS_CA_BUNDLE", "CLAUDE_CODE_USE_BEDROCK",
+                 "CLAUDE_CODE_USE_VERTEX")  # what `claude` needs to run, sign in and reach the API; nothing of Pai, SSH or other credentials
+BEDROCK_ENV = ("AWS_REGION", "AWS_DEFAULT_REGION", "AWS_PROFILE", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN",
+               "AWS_BEARER_TOKEN_BEDROCK", "ANTHROPIC_BEDROCK_BASE_URL")  # passed only when CLAUDE_CODE_USE_BEDROCK is set
+VERTEX_ENV = ("GOOGLE_APPLICATION_CREDENTIALS", "ANTHROPIC_VERTEX_PROJECT_ID", "CLOUD_ML_REGION", "ANTHROPIC_VERTEX_BASE_URL")  # only with CLAUDE_CODE_USE_VERTEX
+LANE_ENV_EXTRA = "PAI_HARNESS_LANE_ENV"  # the operator may name more variables (comma separated) to pass to the lane
+LANE_ENV_SECRETS = "PAI_HARNESS_LANE_ENV_ALLOW_SECRETS"  # =1 lets LANE_ENV_EXTRA name any variable, credentials included (the operator's explicit choice)
+SAFE_EXTRA = frozenset({"CI", "NO_COLOR", "FORCE_COLOR", "COLORTERM", "TERM_PROGRAM", "LC_ALL"})  # names PAI_HARNESS_LANE_ENV may add without the secrets opt-in
 HOOK_KEYS = ("PAI_HARNESS_ROLE", "PAI_HARNESS_AGENT", "PAI_HARNESS_ZONES", "PAI_HARNESS_BRIEF", "PAI_HARNESS_PUSH_WRAPPER", "PAI_HARNESS_BASE",
              "PAI_HARNESS_STREAM", "PAI_HARNESS_KNOWLEDGE_ORG", "PAI_HARNESS_KNOWLEDGE_PROJECT", "PAI_HARNESS_KNOWLEDGE_PRODUCT")
 KNOWLEDGE_ENV = ("PAI_HARNESS_STREAM", "PAI_HARNESS_KNOWLEDGE_ORG", "PAI_HARNESS_KNOWLEDGE_PROJECT", "PAI_HARNESS_KNOWLEDGE_PRODUCT")
@@ -80,6 +98,47 @@ def mcp_config_path(state: Path, issue: str) -> Path:
     return state / "mcp" / f"{issue}.json"
 
 
+def write_empty_mcp_config(state: Path, issue: str) -> Path:
+    """The mechanical lane's MCP config: no servers at all. With --strict-mcp-config no user or plugin server (Pai, OAuth) can load."""
+    path = mcp_config_path(state, issue)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lib.write_json(path, {"mcpServers": {}})
+    return path
+
+
+def closed_brief(instruction: str, files: list[str]) -> str:
+    """The only input of a mechanical run: the exact instruction and the explicit list of files it may touch."""
+    listing = "\n".join(f"- {f}" for f in files)
+    return (f"Instruction (do exactly this, nothing else):\n{instruction.strip()}\n\n"
+            f"Files you may change (the only ones; do not create, delete or rename files):\n{listing}\n\n"
+            "Use only Read, Edit, Grep and Glob. If the instruction cannot be done inside these files, change nothing and say why in one line.\n")
+
+
+def clean_files(files: list[str]) -> list[str]:
+    """Validate the brief's file list: relative literal paths inside the worktree, no globs, no duplicates. Raises ValueError."""
+    out: list[str] = []
+    for raw in files:
+        path = os.path.normpath(raw)
+        if any(ord(c) < 32 or ord(c) == 127 for c in raw):
+            raise ValueError(f"--files entry {raw!r} contains a control character or newline")
+        if not raw.strip() or os.path.isabs(path) or path == ".." or path.startswith("../") or path == "." or GLOB_CHARS & set(raw):
+            raise ValueError(f"--files entry {raw!r} must be a literal relative path inside the worktree (no glob, no ..)")
+        if path.startswith(".git/") or path == ".git":
+            raise ValueError(f"--files entry {raw!r} points into .git")
+        if path not in out:
+            out.append(path)
+    return out
+
+
+def worktree_dirty(cwd: str | None) -> bool:
+    """True when the worktree has uncommitted or untracked changes (the verifier discards by path, so the lane starts from a clean tree)."""
+    try:
+        done = run_process(["git", *scope.GIT_HARDENING, "-C", str(cwd or os.getcwd()), "status", "--porcelain"], capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return True  # fail closed: a tree that cannot be inspected is not clean
+    return done.returncode != 0 or bool(done.stdout.strip())
+
+
 def pai_mcp_config(config: dict, config_path: Path) -> dict:
     """The machine-only MCP config: one `pai` server whose headers come from mcp_headers.sh (headersHelper), never a static header.
 
@@ -117,18 +176,51 @@ def remaining_caps(args: argparse.Namespace, config: dict, previous: dict | None
     return turns, budget, None
 
 
+def abs_rule(tool: str, path: str, tail: str = "/**") -> str:
+    return f"{tool}(/{path}{tail})"  # a leading // is an absolute path in a Claude Code permission rule
+
+
+def lane_permissions(args: argparse.Namespace, config: dict) -> tuple[list[str], list[str]]:
+    """Scoped permission rules for the lane. The command also passes --restricted (ignores user, project and local settings, confines the file
+    tools to the working directory, leaves bypassPermissions unavailable) and --permission-mode dontAsk (what no allow rule covers is denied).
+
+    Allow: Read, Edit, Grep and Glob under the run directory only. Deny, in depth: Edit on .git (the repo's and the common one), the harness
+    state dir, any .claude directory and .mcp.json, and dependency/cache directories at any depth; Read on the state dir, .git and the usual
+    credential locations. Checked against the installed claude (tests: argv always, a live call with PAI_HARNESS_LIVE_CLAUDE=1)."""
+    cwd = str(Path(args.cwd or os.getcwd()).resolve())
+    state = str(lib.state_dir(config).resolve())
+    token = str(Path(str(config.get("pai", {}).get("token_file") or harness_config.DEFAULT_TOKEN_FILE)).expanduser())
+    guarded = [state, token, str(Path("~/.config/pai-harness").expanduser()), *[str(Path(f"~/{d}").expanduser()) for d in (".ssh", ".aws", ".gnupg", ".config/gcloud", ".claude")]]
+    try:
+        root, _ = scope.toplevel(cwd)
+        git_dirs = [os.path.join(root, ".git"), scope.common_git_dir(root)]
+    except scope.ScopeError:
+        root, git_dirs = cwd, [os.path.join(cwd, ".git")]
+    allow = [abs_rule("Read", cwd), abs_rule("Edit", cwd), abs_rule("Grep", cwd), abs_rule("Glob", cwd)]
+    deny = [abs_rule("Edit", p) for p in (*guarded, *git_dirs, os.path.join(root, ".claude"), os.path.join(cwd, ".claude"))]
+    deny += [abs_rule("Edit", p, "") for p in (*git_dirs, os.path.join(root, ".mcp.json"), os.path.join(cwd, ".mcp.json"))]
+    deny += [abs_rule("Edit", f"{cwd}/**/{d}") for d in sorted(scope.BULK_DIRS)] + [abs_rule("Edit", f"{cwd}/**/.claude")]
+    deny += [abs_rule("Read", p) for p in (*guarded, *git_dirs)]
+    return allow, list(dict.fromkeys(deny))
+
+
 def claude_command(args: argparse.Namespace, config: dict, resume: str | None, mcp_config: Path | None = None, previous: dict | None = None) -> list[str]:
     model = args.model or config["models"].get(args.role or "implementer", "sonnet")
-    command = [os.environ.get("PAI_HARNESS_CLAUDE", "claude"), "-p", "--output-format", "stream-json", "--verbose", "--model", model]
+    output = ["--output-format", "json"] if args.profile else ["--output-format", "stream-json", "--verbose"]
+    command = [os.environ.get("PAI_HARNESS_CLAUDE", "claude"), "-p", *output, "--model", model]
     if not lib.installed_plugin():
         command += ["--plugin-dir", str(lib.plugin_root())]  # every run loads the plugin, from the launcher's own location
-    if mcp_config:  # only the machine config: a user or plugin OAuth server must not stand in for it
+    if mcp_config:  # only the machine config (the mechanical lane: an empty one): a user or plugin OAuth server must not stand in for it
         command += ["--mcp-config", str(mcp_config), "--strict-mcp-config"]
     # Budgets fail closed: every run carries a turn cap and a dollar cap (the role's, from [limits] / [role_limits]); claude stops the run when either is hit.
     turns, budget, _ = remaining_caps(args, config, previous)
     command += ["--max-turns", str(max(turns, 1)), "--max-budget-usd", format(budget, ".4f").rstrip("0").rstrip(".")]
     if resume:
         command += ["--resume", resume]
+    if args.profile:  # the tool set is fixed: --tools removes every other built-in tool; the allow rules are scoped, and -p denies what no rule allows
+        allow, deny = lane_permissions(args, config)  # the lane never bypasses: dontAsk with scoped rules is narrower than any bypass
+        command += ["--restricted", "--permission-mode", "dontAsk", "--tools", ",".join(MECHANICAL_TOOLS), "--allowed-tools", *allow, "--disallowed-tools", *deny]
+        return command
     if config["run"]["bypass_permissions"]:  # opt out per project with [run] bypass_permissions = false
         command += ["--permission-mode", "bypassPermissions"]
     if args.allowed_tools:
@@ -142,7 +234,7 @@ def deny_missing(args: argparse.Namespace, config: dict) -> list[str]:
     Strict MCP is in force only when the machine config is passed (pai.mcp_url set); otherwise user-scope servers are loaded too.
     """
     run = config["run"]
-    if not (run["bypass_permissions"] and run["require_deny_baseline"]):
+    if args.profile or not (run["bypass_permissions"] and run["require_deny_baseline"]):  # the mechanical lane never bypasses (dontAsk, four tools)
         return []
     return deny_baseline.missing_baseline(args.cwd or os.getcwd(), bool(config["pai"]["mcp_url"]), args.role or "implementer")
 
@@ -152,7 +244,7 @@ def launch_base(args: argparse.Namespace, previous: dict) -> str | None:
     if args.resume_run and previous.get("base"):
         return previous["base"]
     try:
-        done = run_process(["git", "-C", str(args.cwd or os.getcwd()), "rev-parse", "HEAD"], capture_output=True, text=True, timeout=10)
+        done = run_process(["git", *scope.GIT_HARDENING, "-C", str(args.cwd or os.getcwd()), "rev-parse", "HEAD"], capture_output=True, text=True, timeout=10)
     except (OSError, subprocess.SubprocessError):
         return None
     return done.stdout.strip() if done.returncode == 0 and done.stdout.strip() else None
@@ -161,6 +253,8 @@ def launch_base(args: argparse.Namespace, previous: dict) -> str | None:
 def hook_env(args: argparse.Namespace, config: dict, state: Path, config_path: Path, write: bool = True, base: str | None = None) -> dict[str, str]:
     """The environment that activates the hooks for this run: role, agent, zones, brief, push wrapper, start commit and Knowledge command."""
     role = args.role or "implementer"
+    if args.profile:
+        return lane_env()
     env = {**os.environ, "PAI_HARNESS_ROLE": role, "PAI_HARNESS_AGENT": args.issue, "PAI_HARNESS_CONFIG": str(config_path),
            "PAI_HARNESS_STATE_DIR": str(state)}
     zones = config["role_zones"].get(role)
@@ -196,6 +290,31 @@ def hook_env(args: argparse.Namespace, config: dict, state: Path, config_path: P
         env["PAI_HARNESS_STREAM"] = stream
     # PAI_HARNESS_KNOWLEDGE_CMD has no config key (it is site tooling); an operator's value passes through the inherited environment.
     return env
+
+
+def enabled(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "on")  # like Claude Code: "0" and "false" mean off
+
+
+def lane_env() -> dict[str, str]:
+    """The environment of the mechanical lane: an allowlist, not os.environ, and no PAI_HARNESS_ROLE.
+
+    No Pai/machine token variable, SSH or unrelated cloud credential reaches the child; the Bedrock or Vertex variables are passed only when that
+    provider is selected. PAI_HARNESS_LANE_ENV adds names, but only those on SAFE_EXTRA unless
+    PAI_HARNESS_LANE_ENV_ALLOW_SECRETS=1; every refusal is printed. Without PAI_HARNESS_ROLE the plugin hooks (Stop delta marker,
+    zone checks) do nothing: the lane has no Write or MCP to satisfy them and its guard is the permission rules plus verify-mechanical.sh.
+    """
+    allowed = set(LANE_ENV_KEYS)
+    if enabled("CLAUDE_CODE_USE_BEDROCK"):
+        allowed.update(BEDROCK_ENV)
+    if enabled("CLAUDE_CODE_USE_VERTEX"):
+        allowed.update(VERTEX_ENV)
+    for name in (n.strip() for n in os.environ.get(LANE_ENV_EXTRA, "").split(",") if n.strip()):
+        if name not in SAFE_EXTRA and os.environ.get(LANE_ENV_SECRETS) != "1":
+            print(f"mechanical lane: {LANE_ENV_EXTRA} name {name!r} is not on the safe list and is NOT passed (set {LANE_ENV_SECRETS}=1 to pass any named variable)", file=sys.stderr)
+            continue
+        allowed.add(name)
+    return {k: v for k, v in os.environ.items() if k in allowed or k.startswith("LC_")}
 
 
 class InitCheck:
@@ -282,8 +401,19 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
             lib.emit(state, "run.blocked", {"issue": args.issue, "role": args.role, "blocker": reason})
             print(reason, file=sys.stderr)
             return lib.EXIT_FAILED
-    if not resume:
+    if not resume and not args.profile:  # the mechanical brief is closed: nothing is prepended to it
         prompt = knowledge_header(args, config, state) + prompt
+    lane = None
+    if args.profile:  # fail closed before anything runs: the repo root, the start commit and the ignored-files baseline the verifier compares against
+        try:
+            root, prefix = scope.toplevel(str(Path(args.cwd or os.getcwd()).resolve()))
+            lane = {"root": root, "git_integrity": scope.git_integrity(root), "files": scope.root_relative(prefix, args.files), "ignored_baseline": str(scope.write_baseline(root, run_paths(state, args.issue)[1].with_name(f"{args.issue}.ignored.json")))}
+        except (scope.ScopeError, OSError) as error:
+            reason = f"{args.issue}: the mechanical lane cannot record its baseline: {error}"
+            lib.blocker(state, args.issue, reason)
+            lib.emit(state, "run.blocked", {"issue": args.issue, "role": args.role, "blocker": reason})
+            print(f"BLOCKER {reason}", file=sys.stderr)
+            return lib.EXIT_FAILED
     machine = config["queues"].get(queue or "", {}).get("machine")
     started = lib.stamp()
     stream.parent.mkdir(parents=True, exist_ok=True)
@@ -292,8 +422,11 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
     lib.emit(state, "run.started", {"issue": args.issue, "queue": queue, "resume": bool(resume)})
     timeout = config["limits"]["turn_timeout_minutes"] * 60
     exit_code, timed_out, last_beat, lines = None, False, time.monotonic(), []
-    mcp_config = write_mcp_config(config, state, args.issue, config_path) if config["pai"]["mcp_url"] else None
-    init = InitCheck(lib.expected_skills(lib.plugin_root()), lib.PAI_SERVER if mcp_config else None)
+    if args.profile:
+        mcp_config = write_empty_mcp_config(state, args.issue)  # always empty and strict: the Pai MCP, its token and OAuth never reach this lane
+    else:
+        mcp_config = write_mcp_config(config, state, args.issue, config_path) if config["pai"]["mcp_url"] else None
+    init = InitCheck(lib.expected_skills(lib.plugin_root()), lib.PAI_SERVER if mcp_config and not args.profile else None)
     run_id = uuid.uuid4().hex[:8]
     renderer = render_stream.Renderer(sys.stderr, render_stream.hooks_of(lib.plugin_root()))
     status = render_stream.HerdrStatus(args.issue, run_id, args.herdr_workspace, args.herdr_tab)
@@ -368,28 +501,30 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
                     out.write(line)
                     out.flush()
                     lines.append(line)
-                    init.feed(line)
-                    track(line)
-                    show(line)
+                    if not args.profile:  # `--output-format json` has no init or live frames: the result is read once the run ends
+                        init.feed(line)
+                        track(line)
+                        show(line)
                     if time.monotonic() - last_beat > 60:
                         lib.register(state, args.issue, state="running")
                         last_beat = time.monotonic()
             reader = threading.Thread(target=read, daemon=True)
             reader.start()
-            init_wait = float(os.environ.get("PAI_HARNESS_INIT_TIMEOUT") or lib.INIT_TIMEOUT_SECONDS)
-            deadline = time.monotonic() + init_wait
-            while not init.done.is_set() and proc.poll() is None and time.monotonic() < deadline:
-                init.done.wait(0.05)
-            if proc.poll() is not None:
-                reader.join(10)  # the stream is complete: the init verdict below is final
-            if not init.done.is_set():
-                init.problems.append(f"no init event within {init_wait:g}s" if proc.poll() is None else "no init event before the run ended")
-            if init.problems or init.mcp:
-                proc.kill()  # the exact child PID; never a pattern
-                proc.wait()
-                reader.join(10)
-                closing("failed", "self-check: " + init_reason(init.problems, init.mcp))
-                return fail_closed(args, state, started, stream, queue, machine, init.problems, run_id, init.mcp, previous)
+            if not args.profile:
+                init_wait = float(os.environ.get("PAI_HARNESS_INIT_TIMEOUT") or lib.INIT_TIMEOUT_SECONDS)
+                deadline = time.monotonic() + init_wait
+                while not init.done.is_set() and proc.poll() is None and time.monotonic() < deadline:
+                    init.done.wait(0.05)
+                if proc.poll() is not None:
+                    reader.join(10)  # the stream is complete: the init verdict below is final
+                if not init.done.is_set():
+                    init.problems.append(f"no init event within {init_wait:g}s" if proc.poll() is None else "no init event before the run ended")
+                if init.problems or init.mcp:
+                    proc.kill()  # the exact child PID; never a pattern
+                    proc.wait()
+                    reader.join(10)
+                    closing("failed", "self-check: " + init_reason(init.problems, init.mcp))
+                    return fail_closed(args, state, started, stream, queue, machine, init.problems, run_id, init.mcp, previous)
             try:
                 exit_code = proc.wait(timeout=timeout)
             except subprocess.TimeoutExpired:
@@ -397,6 +532,11 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
                 proc.terminate()
                 exit_code = proc.wait()
             reader.join(10)
+    if args.profile:
+        lines = json_frames(lines)
+        for frame_line in lines:
+            show(frame_line)
+            result_usage(frame_line, usage)
     summary = lib.parse_stream(lines)
     verdict = lib.run_state(summary, exit_code, timed_out)
     finished = lib.stamp()
@@ -406,11 +546,55 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
     record = {"issue": args.issue, "queue": queue, "machine": machine, "role": args.role, "started": started, "finished": finished,
               "stream": str(stream), "resumed": bool(resume), "run_id": run_id, "model": args.model or config["models"].get(args.role or "implementer", "sonnet"),
               "model_reported": init.model, "compaction_alert": usage["compaction_alert"], **verdict, **accumulate(previous, bool(resume), this_run)}
+    if args.profile:  # what the verifier needs: the lane, the listed files, the worktree the start commit
+        record.update({"profile": args.profile, "base": base, "cwd": str(Path(args.cwd or os.getcwd()).resolve()), **lane})
     lib.write_json(state_file, record)
     lib.register(state, args.issue, state=verdict["state"], session_id=verdict["session_id"])
     lib.emit(state, "run.finished", {k: record[k] for k in ("issue", "state", "reason", "exit_code", "session_id", "cost_usd", "turns")})
     closing(verdict["state"], f"exit={exit_code} {verdict['reason']}")
     return lib.exit_for(verdict["state"])
+
+
+def mechanical_problem(args: argparse.Namespace, config: dict) -> str | None:
+    """Check and complete the arguments of the mechanical profile (closed brief, role, model). Returns the usage error, else None."""
+    if args.role not in (None, "mechanical"):
+        return f"--profile mechanical runs the mechanical role, not {args.role}"
+    if args.prompt or args.prompt_file or args.allowed_tools or args.resume_run:
+        return "--profile mechanical takes a closed brief (--files, --instruction) only: no --prompt, --prompt-file, --allowed-tools or --resume"
+    if not args.files or not (args.instruction or "").strip():
+        return "--profile mechanical needs --files (the explicit file list) and --instruction (the exact instruction)"
+    try:
+        args.files = clean_files(args.files)
+    except ValueError as error:
+        return str(error)
+    args.role = "mechanical"
+    args.model = args.model or config["models"].get("mechanical", "haiku")
+    if args.model not in MECHANICAL_MODELS:
+        return f"--profile mechanical runs {' or '.join(MECHANICAL_MODELS)}, not {args.model}"
+    args.prompt = closed_brief(args.instruction, args.files)
+    return None
+
+
+def result_usage(frame_line: str, usage: dict) -> None:
+    """`--output-format json` has no per-message frames: the spend totals come from the result object's own `usage`. There is no per-turn peak."""
+    try:
+        frame = json.loads(frame_line)
+        total = frame.get("usage") if frame.get("type") == "result" else None
+        if isinstance(total, dict):
+            for key, field in (("input_tokens", "input_tokens"), ("cache_write_tokens", "cache_creation_input_tokens"),
+                               ("cache_read_tokens", "cache_read_input_tokens"), ("output_tokens", "output_tokens")):
+                usage[key] += int(total.get(field) or 0)
+    except (ValueError, AttributeError, TypeError):
+        pass  # accounting only
+
+
+def json_frames(lines: list[str]) -> list[str]:
+    """`--output-format json` prints one result object (or, in some versions, an array of frames): return it as one JSON frame per line."""
+    try:
+        data = json.loads("".join(lines))
+    except json.JSONDecodeError:
+        return lines  # the bad text is counted by parse_stream and the run fails with "no result frame"
+    return [json.dumps(item) for item in data] if isinstance(data, list) else [json.dumps(data)]
 
 
 def herdr_json(*argv: str) -> dict:
@@ -471,6 +655,9 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--queue")
     parser.add_argument("--stream", help="Knowledge stream (default: the queue name, else the default [knowledge] target)")
     parser.add_argument("--allowed-tools", nargs="+")
+    parser.add_argument("--profile", choices=("mechanical",), help="the mechanical lane: closed brief (--files, --instruction), Haiku, empty strict MCP, Read/Edit/Grep/Glob")
+    parser.add_argument("--files", nargs="+", help="mechanical profile: the only files the run may change (literal relative paths)")
+    parser.add_argument("--instruction", help="mechanical profile: the exact instruction")
     parser.add_argument("--config")
     parser.add_argument("--wait-ms", type=int, default=5400000)
     parser.add_argument("--dry-run", action="store_true")
@@ -502,6 +689,14 @@ def main(argv: list[str]) -> int:
         lib.emit(state, "run.parked", {"issue": args.issue})
         lib.show(plan)
         return 0
+    if args.profile:
+        problem = mechanical_problem(args, config)
+        if problem:
+            print(f"{args.issue}: {problem}", file=sys.stderr)
+            return lib.EXIT_USAGE
+    elif args.files or args.instruction:
+        print("--files and --instruction belong to --profile mechanical", file=sys.stderr)
+        return lib.EXIT_USAGE
     if not (args.prompt or args.prompt_file or args.resume_run):
         print("need --prompt or --prompt-file (or --resume)", file=sys.stderr)
         return lib.EXIT_USAGE
@@ -512,6 +707,13 @@ def main(argv: list[str]) -> int:
     if role in lib.WRITING_ROLES and not lib.in_git_worktree(args.cwd):
         # Fail closed: Stop reads the changed paths from git, so a writing role outside a worktree would go unchecked.
         blocker = f"BLOCKER {args.issue}: writing role {role} must run inside a git worktree; {args.cwd or os.getcwd()} is not one"
+        print(blocker, file=sys.stderr)
+        if not args.dry_run:
+            lib.emit(state, "run.blocked", {"issue": args.issue, "role": role, "blocker": blocker})
+        return lib.EXIT_FAILED
+    if args.profile and worktree_dirty(args.cwd):
+        # Fail closed: the verifier discards a bad run by path, so the lane only starts from a clean tree (nothing of yours can be discarded).
+        blocker = f"BLOCKER {args.issue}: the mechanical lane needs a clean worktree; commit or stash the changes in {args.cwd or os.getcwd()} first"
         print(blocker, file=sys.stderr)
         if not args.dry_run:
             lib.emit(state, "run.blocked", {"issue": args.issue, "role": role, "blocker": blocker})
@@ -529,7 +731,7 @@ def main(argv: list[str]) -> int:
     if args.dry_run:
         previous = lib.read_json(state_file) or {}
         resume = previous.get("session_id") if args.resume_run else None
-        lib.show({"dry_run": True, "issue": args.issue, "command": claude_command(args, config, resume, mcp_config_path(state, args.issue) if config["pai"]["mcp_url"] else None, previous), "pane": args.pane,
+        lib.show({"dry_run": True, "issue": args.issue, "command": claude_command(args, config, resume, mcp_config_path(state, args.issue) if (config["pai"]["mcp_url"] or args.profile) else None, previous), "pane": args.pane,
                   "hook_env": {k: v for k, v in hook_env(args, config, state, config_path, write=False, base=launch_base(args, previous)).items() if k in HOOK_KEYS},
                   "deny_baseline_missing": len(missing), "stream": str(run_paths(state, args.issue)[0]), "state_file": str(state_file), "state_dir": str(state)})
         return 0
