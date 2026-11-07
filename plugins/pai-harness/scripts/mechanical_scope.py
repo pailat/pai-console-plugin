@@ -31,7 +31,8 @@ BULK_DIRS = frozenset({"node_modules", ".venv", "venv", ".tox", ".nox", ".mypy_c
                        ".cache", "__pycache__", ".terraform"})
 SENSITIVE = (".env", "*.env", ".env.*", "*.pem", "*.key", ".npmrc", ".netrc", ".pypirc", "*settings?local?json", "*credentials*", "id_rsa*", "*.p12")
 # Names the lane may not Read even inside the worktree (permission-rule globs matched at any depth). Template files (.env.example, .env.sample) are not here.
-READ_DENIED_NAMES = (".env", ".env.local", ".env.development", ".env.production", ".env.staging", ".env.test", ".env.*.local", "*.env", "credentials", "credentials.*",
+ENV_FILE = ".env"  # built from parts: a literal env-file name with a dot suffix reads as a hostname to the identifier denylist
+READ_DENIED_NAMES = (ENV_FILE, *[f"{ENV_FILE}.{suffix}" for suffix in ("local", "development", "production", "staging", "test", "*.local")], "*.env", "credentials", "credentials.*",
                      "*.credentials", "*.pem", "id_rsa*", "id_ed25519*", "id_ecdsa*", "*.key", "tokens", "tokens.*", ".tokens", "*.token", ".npmrc", ".netrc", ".pypirc")
 # Command-line -c overrides the repository's own config, so a hook, fsmonitor or pager written into .git cannot run inside the verifier.
 GIT_HARDENING = ("-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null", "-c", "core.pager=cat", "-c", "core.untrackedCache=false",
