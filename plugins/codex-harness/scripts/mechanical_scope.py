@@ -25,8 +25,10 @@ from subprocess import run as run_process  # bare name: the denylist reads a dot
 import fnmatch
 
 GIT_TIMEOUT_SECONDS = 300
-BULK_DIRS = frozenset({"node_modules", ".venv", "venv", "env", "target", "dist", ".tox", ".nox", ".mypy_cache", ".pytest_cache", ".ruff_cache",
-                       ".next", ".nuxt", ".gradle", ".cache", "__pycache__", "vendor", "coverage", ".terraform"})
+# Dependency/cache directories: the lane may not Edit them anywhere in the tree (a deny glob in launch.py), so a directory-level fingerprint is
+# enough here. Names that are often tracked source or build output (vendor, env, dist, target, coverage) are NOT in the set: they are stat'ed per file.
+BULK_DIRS = frozenset({"node_modules", ".venv", "venv", ".tox", ".nox", ".mypy_cache", ".pytest_cache", ".ruff_cache", ".next", ".nuxt", ".gradle",
+                       ".cache", "__pycache__", ".terraform"})
 SENSITIVE = (".env", "*.env", ".env.*", "*.pem", "*.key", ".npmrc", ".netrc", ".pypirc", "*settings?local?json", "*credentials*", "id_rsa*", "*.p12")
 # Command-line -c overrides the repository's own config, so a hook, fsmonitor or pager written into .git cannot run inside the verifier.
 GIT_HARDENING = ("-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null", "-c", "core.pager=cat", "-c", "core.untrackedCache=false",
@@ -195,11 +197,11 @@ def digest(root: str, paths: list[str]) -> str:
         full = os.path.join(root, path)
         h.update(path.encode() + b"\0")
         try:
+            info = os.lstat(full)
+            h.update(f"mode:{info.st_mode:o}:".encode())  # file type and permission bits
             if os.path.islink(full):
                 h.update(b"link:" + os.readlink(full).encode())
-            elif os.path.isdir(full):
-                h.update(b"dir")
-            else:
+            elif not os.path.isdir(full):
                 h.update(hashlib.sha256(Path(full).read_bytes()).digest())
         except OSError:
             h.update(b"absent")
@@ -213,3 +215,22 @@ def snapshot(root: str, base: str, baseline: dict, tolerant: bool = False, liste
     now = ignored_state(root)
     changed = changed_paths(root, base, baseline, now, tolerant, listed)
     return {"head": head, "changed": changed, "digest": digest(root, changed), "ignored": now}
+
+
+def git_integrity(root: str) -> str:
+    """A hash of everything in .git that makes git run code: config (repo, common and per-worktree), hooks, info/attributes. A change is a lane write."""
+    h = hashlib.sha256()
+    git_dir = git_ok(root, "rev-parse", "--path-format=absolute", "--git-dir").strip()
+    common = common_git_dir(root)
+    names = [os.path.join(d, n) for d in dict.fromkeys((git_dir, common)) for n in ("config", "config.worktree", "info/attributes", "info/exclude", "modules")]
+    for hooks in dict.fromkeys((os.path.join(git_dir, "hooks"), os.path.join(common, "hooks"))):
+        if os.path.isdir(hooks):
+            names += [os.path.join(hooks, n) for n in sorted(os.listdir(hooks))]
+    for name in names:
+        h.update(name.encode() + b"\0")
+        try:
+            h.update(f"{os.lstat(name).st_mode:o}".encode() + hashlib.sha256(Path(name).read_bytes()).digest() if os.path.isfile(name) else b"-")
+        except OSError:
+            h.update(b"-")
+        h.update(b"\0")
+    return h.hexdigest()

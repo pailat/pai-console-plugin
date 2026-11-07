@@ -23,7 +23,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
 import shlex
 import subprocess
 from subprocess import run as run_process  # bare name: the denylist reads a dotted call ending in the run top-level domain as a hostname
@@ -52,8 +51,8 @@ BEDROCK_ENV = ("AWS_REGION", "AWS_DEFAULT_REGION", "AWS_PROFILE", "AWS_ACCESS_KE
                "AWS_BEARER_TOKEN_BEDROCK", "ANTHROPIC_BEDROCK_BASE_URL")  # passed only when CLAUDE_CODE_USE_BEDROCK is set
 VERTEX_ENV = ("GOOGLE_APPLICATION_CREDENTIALS", "ANTHROPIC_VERTEX_PROJECT_ID", "CLOUD_ML_REGION", "ANTHROPIC_VERTEX_BASE_URL")  # only with CLAUDE_CODE_USE_VERTEX
 LANE_ENV_EXTRA = "PAI_HARNESS_LANE_ENV"  # the operator may name more variables (comma separated) to pass to the lane
-LANE_ENV_SECRETS = "PAI_HARNESS_LANE_ENV_ALLOW_SECRETS"  # =1 lets LANE_ENV_EXTRA name credential-looking variables (printed when used)
-SECRET_NAME = re.compile(r"TOKEN|SECRET|KEY|PASSWORD|CREDENTIAL|^PAI_HARNESS_", re.IGNORECASE)
+LANE_ENV_SECRETS = "PAI_HARNESS_LANE_ENV_ALLOW_SECRETS"  # =1 lets LANE_ENV_EXTRA name any variable, credentials included (the operator's explicit choice)
+SAFE_EXTRA = frozenset({"CI", "NO_COLOR", "FORCE_COLOR", "COLORTERM", "TERM_PROGRAM", "LC_ALL"})  # names PAI_HARNESS_LANE_ENV may add without the secrets opt-in
 HOOK_KEYS = ("PAI_HARNESS_ROLE", "PAI_HARNESS_AGENT", "PAI_HARNESS_ZONES", "PAI_HARNESS_BRIEF", "PAI_HARNESS_PUSH_WRAPPER", "PAI_HARNESS_BASE",
              "PAI_HARNESS_STREAM", "PAI_HARNESS_KNOWLEDGE_ORG", "PAI_HARNESS_KNOWLEDGE_PROJECT", "PAI_HARNESS_KNOWLEDGE_PRODUCT")
 KNOWLEDGE_ENV = ("PAI_HARNESS_STREAM", "PAI_HARNESS_KNOWLEDGE_ORG", "PAI_HARNESS_KNOWLEDGE_PROJECT", "PAI_HARNESS_KNOWLEDGE_PRODUCT")
@@ -129,7 +128,7 @@ def clean_files(files: list[str]) -> list[str]:
 def worktree_dirty(cwd: str | None) -> bool:
     """True when the worktree has uncommitted or untracked changes (the verifier discards by path, so the lane starts from a clean tree)."""
     try:
-        done = run_process(["git", "-C", str(cwd or os.getcwd()), "status", "--porcelain"], capture_output=True, text=True, timeout=60)
+        done = run_process(["git", *scope.GIT_HARDENING, "-C", str(cwd or os.getcwd()), "status", "--porcelain"], capture_output=True, text=True, timeout=60)
     except (OSError, subprocess.SubprocessError):
         return True  # fail closed: a tree that cannot be inspected is not clean
     return done.returncode != 0 or bool(done.stdout.strip())
@@ -177,21 +176,25 @@ def abs_rule(tool: str, path: str, tail: str = "/**") -> str:
 
 
 def lane_permissions(args: argparse.Namespace, config: dict) -> tuple[list[str], list[str]]:
-    """Scoped permission rules for the lane: Edit only under the run directory, never .git (the repo's and the common one), the harness state
-    dir or a dependency directory; Read denied for credential and state locations (deny rules win over allows, so Read elsewhere is not
-    confined: a deny of everything would also deny the worktree). Checked against the installed claude: an absolute Edit outside is denied."""
+    """Scoped permission rules for the lane. The command also passes --restricted (ignores user, project and local settings, confines the file
+    tools to the working directory, refuses bypassPermissions) and --permission-mode dontAsk (what no allow rule covers is denied).
+
+    Allow: Read, Edit, Grep and Glob under the run directory only. Deny, in depth: Edit on .git (the repo's and the common one), the harness
+    state dir, any .claude directory and .mcp.json, and dependency/cache directories at any depth; Read on the state dir, .git and the usual
+    credential locations. Checked against the installed claude (tests: argv always, a live call with PAI_HARNESS_LIVE_CLAUDE=1)."""
     cwd = str(Path(args.cwd or os.getcwd()).resolve())
     state = str(lib.state_dir(config).resolve())
-    guarded = [state, str(Path("~/.config/pai-harness").expanduser()), *[str(Path(f"~/{d}").expanduser()) for d in (".ssh", ".aws", ".gnupg", ".config/gcloud", ".claude")]]
-    git_dirs = []
+    token = str(Path(str(config.get("pai", {}).get("token_file") or harness_config.DEFAULT_TOKEN_FILE)).expanduser())
+    guarded = [state, token, str(Path("~/.config/pai-harness").expanduser()), *[str(Path(f"~/{d}").expanduser()) for d in (".ssh", ".aws", ".gnupg", ".config/gcloud", ".claude")]]
     try:
         root, _ = scope.toplevel(cwd)
         git_dirs = [os.path.join(root, ".git"), scope.common_git_dir(root)]
     except scope.ScopeError:
-        git_dirs = [os.path.join(cwd, ".git")]
-    bulk = [os.path.join(cwd, d) for d in sorted(scope.BULK_DIRS) if os.path.isdir(os.path.join(cwd, d))]
-    allow = [abs_rule("Read", cwd), abs_rule("Edit", cwd), "Grep", "Glob"]
-    deny = [abs_rule("Edit", p) for p in (*guarded, *git_dirs, *bulk)] + [abs_rule("Edit", p, "") for p in git_dirs]
+        root, git_dirs = cwd, [os.path.join(cwd, ".git")]
+    allow = [abs_rule("Read", cwd), abs_rule("Edit", cwd), abs_rule("Grep", cwd), abs_rule("Glob", cwd)]
+    deny = [abs_rule("Edit", p) for p in (*guarded, *git_dirs, os.path.join(root, ".claude"), os.path.join(cwd, ".claude"))]
+    deny += [abs_rule("Edit", p, "") for p in (*git_dirs, os.path.join(root, ".mcp.json"), os.path.join(cwd, ".mcp.json"))]
+    deny += [abs_rule("Edit", f"{cwd}/**/{d}") for d in sorted(scope.BULK_DIRS)] + [abs_rule("Edit", f"{cwd}/**/.claude")]
     deny += [abs_rule("Read", p) for p in (*guarded, *git_dirs)]
     return allow, list(dict.fromkeys(deny))
 
@@ -211,7 +214,7 @@ def claude_command(args: argparse.Namespace, config: dict, resume: str | None, m
         command += ["--resume", resume]
     if args.profile:  # the tool set is fixed: --tools removes every other built-in tool; the allow rules are scoped, and -p denies what no rule allows
         allow, deny = lane_permissions(args, config)
-        command += ["--tools", ",".join(MECHANICAL_TOOLS), "--allowed-tools", *allow, "--disallowed-tools", *deny]
+        command += ["--restricted", "--permission-mode", "dontAsk", "--tools", ",".join(MECHANICAL_TOOLS), "--allowed-tools", *allow, "--disallowed-tools", *deny]
     elif args.allowed_tools:
         command += ["--allowed-tools", *args.allowed_tools]
     return command
@@ -222,7 +225,7 @@ def launch_base(args: argparse.Namespace, previous: dict) -> str | None:
     if args.resume_run and previous.get("base"):
         return previous["base"]
     try:
-        done = run_process(["git", "-C", str(args.cwd or os.getcwd()), "rev-parse", "HEAD"], capture_output=True, text=True, timeout=10)
+        done = run_process(["git", *scope.GIT_HARDENING, "-C", str(args.cwd or os.getcwd()), "rev-parse", "HEAD"], capture_output=True, text=True, timeout=10)
     except (OSError, subprocess.SubprocessError):
         return None
     return done.stdout.strip() if done.returncode == 0 and done.stdout.strip() else None
@@ -270,22 +273,26 @@ def hook_env(args: argparse.Namespace, config: dict, state: Path, config_path: P
     return env
 
 
+def enabled(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "on")  # like Claude Code: "0" and "false" mean off
+
+
 def lane_env() -> dict[str, str]:
     """The environment of the mechanical lane: an allowlist, not os.environ, and no PAI_HARNESS_ROLE.
 
     No Pai/machine token variable, SSH or unrelated cloud credential reaches the child; the Bedrock or Vertex variables are passed only when that
-    provider is selected. PAI_HARNESS_LANE_ENV adds names, but a credential-looking one (TOKEN, SECRET, KEY, PASSWORD, CREDENTIAL, PAI_HARNESS_*) is
-    refused unless PAI_HARNESS_LANE_ENV_ALLOW_SECRETS=1, and the refusal is printed. Without PAI_HARNESS_ROLE the plugin hooks (Stop delta marker,
+    provider is selected. PAI_HARNESS_LANE_ENV adds names, but only those on SAFE_EXTRA unless
+    PAI_HARNESS_LANE_ENV_ALLOW_SECRETS=1; every refusal is printed. Without PAI_HARNESS_ROLE the plugin hooks (Stop delta marker,
     zone checks) do nothing: the lane has no Write or MCP to satisfy them and its guard is the permission rules plus verify-mechanical.sh.
     """
     allowed = set(LANE_ENV_KEYS)
-    if os.environ.get("CLAUDE_CODE_USE_BEDROCK"):
+    if enabled("CLAUDE_CODE_USE_BEDROCK"):
         allowed.update(BEDROCK_ENV)
-    if os.environ.get("CLAUDE_CODE_USE_VERTEX"):
+    if enabled("CLAUDE_CODE_USE_VERTEX"):
         allowed.update(VERTEX_ENV)
     for name in (n.strip() for n in os.environ.get(LANE_ENV_EXTRA, "").split(",") if n.strip()):
-        if SECRET_NAME.search(name) and os.environ.get(LANE_ENV_SECRETS) != "1":
-            print(f"mechanical lane: {LANE_ENV_EXTRA} name {name!r} looks like a credential and is NOT passed (set {LANE_ENV_SECRETS}=1 to allow it)", file=sys.stderr)
+        if name not in SAFE_EXTRA and os.environ.get(LANE_ENV_SECRETS) != "1":
+            print(f"mechanical lane: {LANE_ENV_EXTRA} name {name!r} is not on the safe list and is NOT passed (set {LANE_ENV_SECRETS}=1 to pass any named variable)", file=sys.stderr)
             continue
         allowed.add(name)
     return {k: v for k, v in os.environ.items() if k in allowed or k.startswith("LC_")}
@@ -381,7 +388,7 @@ def inner(args: argparse.Namespace, config: dict, state: Path, config_path: Path
     if args.profile:  # fail closed before anything runs: the repo root, the start commit and the ignored-files baseline the verifier compares against
         try:
             root, prefix = scope.toplevel(str(Path(args.cwd or os.getcwd()).resolve()))
-            lane = {"root": root, "files": scope.root_relative(prefix, args.files), "ignored_baseline": str(scope.write_baseline(root, run_paths(state, args.issue)[1].with_name(f"{args.issue}.ignored.json")))}
+            lane = {"root": root, "git_integrity": scope.git_integrity(root), "files": scope.root_relative(prefix, args.files), "ignored_baseline": str(scope.write_baseline(root, run_paths(state, args.issue)[1].with_name(f"{args.issue}.ignored.json")))}
         except (scope.ScopeError, OSError) as error:
             reason = f"{args.issue}: the mechanical lane cannot record its baseline: {error}"
             lib.blocker(state, args.issue, reason)

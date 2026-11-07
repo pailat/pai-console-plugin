@@ -32,7 +32,8 @@ def git(repo: Path, *argv: str) -> str:
 class MechanicalCase(HarnessCase):
     def setUp(self) -> None:
         super().setUp()
-        self.env["PAI_HARNESS_LANE_ENV"] = "FAKE_CLAUDE_FIXTURE,FAKE_CLAUDE_EXIT,FAKE_CLAUDE_LOG"  # the lane env is an allowlist: let the fake claude see its own switches
+        self.env["PAI_HARNESS_LANE_ENV"] = "FAKE_CLAUDE_FIXTURE,FAKE_CLAUDE_EXIT,FAKE_CLAUDE_LOG"
+        self.env["PAI_HARNESS_LANE_ENV_ALLOW_SECRETS"] = "1"  # the lane env is an allowlist: let the fake claude see its own switches
         self.repo = self.tmp / "repo"
         (self.repo / "src").mkdir(parents=True)
         for name in (*FILES, "src/other.py", "README.md"):
@@ -68,9 +69,11 @@ class ProfileTest(MechanicalCase):
         self.assertEqual(argv[argv.index("--tools") + 1], "Read,Edit,Grep,Glob")
         root = str(self.repo.resolve())
         allowed = argv[argv.index("--allowed-tools") + 1:argv.index("--allowed-tools") + 5]
-        self.assertEqual(allowed, [f"Read(/{root}/**)", f"Edit(/{root}/**)", "Grep", "Glob"])  # scoped to the run directory, not bare tool names
+        self.assertEqual(allowed, [f"Read(/{root}/**)", f"Edit(/{root}/**)", f"Grep(/{root}/**)", f"Glob(/{root}/**)"])  # every tool scoped to the run directory
+        self.assertIn("--restricted", argv)  # ignores user/project/local settings and confines the file tools
+        self.assertEqual(argv[argv.index("--permission-mode") + 1], "dontAsk")
         denied = argv[argv.index("--disallowed-tools") + 1:]
-        for rule in (f"Edit(/{root}/.git/**)", f"Edit(/{root}/.git)", f"Edit(/{self.state.resolve()}/**)", f"Read(/{self.state.resolve()}/**)",
+        for rule in (f"Edit(/{root}/.claude/**)", f"Edit(/{root}/.mcp.json)", f"Edit(/{root}/**/node_modules/**)", f"Edit(/{root}/**/.claude/**)", f"Edit(/{root}/.git/**)", f"Edit(/{root}/.git)", f"Edit(/{self.state.resolve()}/**)", f"Read(/{self.state.resolve()}/**)",
                      f"Read(/{Path('~/.ssh').expanduser()}/**)", f"Read(/{Path('~/.config/pai-harness').expanduser()}/**)"):
             self.assertIn(rule, denied)
         self.assertFalse([r for r in denied if not r.startswith(("Edit(", "Read("))])
@@ -531,11 +534,11 @@ class DeltaTwoTest(MechanicalCase):
         self.assertEqual(git(self.repo, "status", "--porcelain"), "")
 
     def test_the_verifier_ignores_the_repo_config_that_would_run_code(self) -> None:
-        self.started()
-        self.edit()
         marker = self.tmp / "ran"
         git(self.repo, "config", "core.fsmonitor", f"touch {marker}; echo")
         git(self.repo, "config", "core.pager", f"touch {marker}")
+        self.started()
+        self.edit()
         self.assertEqual(self.verify().returncode, 0)
         self.assertEqual(self.run_script("task-done.sh", "ACME-7").returncode, 0)
         self.assertFalse(marker.exists())
@@ -543,13 +546,19 @@ class DeltaTwoTest(MechanicalCase):
     def test_the_default_environment_reaches_the_api_and_credentials_are_not_opted_in_silently(self) -> None:
         env = {"HTTPS_PROXY": "http://p:3128", "NODE_EXTRA_CA_CERTS": "/ca.pem", "CLAUDE_CODE_USE_BEDROCK": "1", "AWS_REGION": "us-east-1",
                "AWS_ACCESS_KEY_ID": "id", "GOOGLE_APPLICATION_CREDENTIALS": "/g.json", "MY_TOKEN": "t", "PAI_HARNESS_TOKEN_FILE": "/t", "GITHUB_TOKEN": "g"}
-        with mock.patch.dict(os.environ, {**env, "PAI_HARNESS_LANE_ENV": "MY_TOKEN,PAI_HARNESS_TOKEN_FILE,HARMLESS", "HARMLESS": "1"}), mock.patch("builtins.print") as printed:
+        clean = {k: v for k, v in os.environ.items() if k != "PAI_HARNESS_LANE_ENV_ALLOW_SECRETS"}
+        with mock.patch.dict(os.environ, {**env, "PAI_HARNESS_LANE_ENV": "MY_TOKEN,GH_PAT,CI", "CI": "1", "GH_PAT": "p"}), mock.patch("builtins.print") as printed:
+            os.environ.pop("PAI_HARNESS_LANE_ENV_ALLOW_SECRETS", None)
             lane = launcher.lane_env()
-        self.assertTrue({"HTTPS_PROXY", "NODE_EXTRA_CA_CERTS", "CLAUDE_CODE_USE_BEDROCK", "AWS_REGION", "AWS_ACCESS_KEY_ID", "HARMLESS"} <= set(lane))
-        self.assertFalse({"GOOGLE_APPLICATION_CREDENTIALS", "MY_TOKEN", "PAI_HARNESS_TOKEN_FILE", "GITHUB_TOKEN"} & set(lane))  # Vertex not selected; secrets refused
+        self.assertTrue({"HTTPS_PROXY", "NODE_EXTRA_CA_CERTS", "CLAUDE_CODE_USE_BEDROCK", "AWS_REGION", "AWS_ACCESS_KEY_ID", "CI"} <= set(lane))
+        self.assertFalse({"GOOGLE_APPLICATION_CREDENTIALS", "MY_TOKEN", "GH_PAT", "PAI_HARNESS_TOKEN_FILE", "GITHUB_TOKEN"} & set(lane))  # Vertex not selected; unlisted names refused
         self.assertEqual(len(printed.call_args_list), 2)
+        for off in ("0", "false", ""):  # a provider flag that is off passes no provider credentials
+            with mock.patch.dict(os.environ, {**env, "CLAUDE_CODE_USE_BEDROCK": off}):
+                self.assertFalse({"AWS_ACCESS_KEY_ID", "AWS_REGION"} & set(launcher.lane_env()), off)
         with mock.patch.dict(os.environ, {"PAI_HARNESS_LANE_ENV": "MY_TOKEN", "MY_TOKEN": "t", "PAI_HARNESS_LANE_ENV_ALLOW_SECRETS": "1"}):
             self.assertIn("MY_TOKEN", launcher.lane_env())
+        self.assertTrue(clean)
 
     @unittest.skipUnless(os.environ.get("PAI_HARNESS_LIVE_CLAUDE") == "1", "set PAI_HARNESS_LIVE_CLAUDE=1 to run the installed claude (a real, tiny Haiku call)")
     def test_live_an_absolute_edit_outside_the_run_directory_is_denied(self) -> None:
@@ -557,12 +566,108 @@ class DeltaTwoTest(MechanicalCase):
         outside.write_text("secret\n")
         args = launcher.argparse.Namespace(cwd=str(self.repo), role="mechanical", profile="mechanical", model="haiku", resume_run=False, allowed_tools=None)
         config, _ = launcher.lib.load_config(self.env["PAI_HARNESS_CONFIG"])
-        allow, deny = launcher.lane_permissions(args, config)
-        done = subprocess.run(["claude", "-p", "--model", "haiku", "--max-turns", "6", "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}', "--tools", "Read,Edit,Grep,Glob",
-                               "--allowed-tools", *allow, "--disallowed-tools", *deny], input=f"Edit {outside} replacing secret with leaked, then Edit {self.repo}/.git/config appending a line.",
-                              text=True, capture_output=True, timeout=170, cwd=self.repo)
+        (self.repo / "pkg/node_modules/q").mkdir(parents=True)
+        (self.repo / "pkg/node_modules/q/i.js").write_text("v\n")
+        (self.repo / ".claude").mkdir()
+        (self.repo / ".claude/settings.json").write_text("{}\n")
+        command = launcher.claude_command(args, config, None, self.tmp / "mcp.json", None)
+        (self.tmp / "mcp.json").write_text('{"mcpServers":{}}')
+        command = ["claude", *command[1:]]
+        prompt = (f"Do each, do not retry a denied one: Edit {outside} secret->leaked; Read {outside}; Grep secret in {outside.parent}; Edit {self.repo}/.git/config appending a line; "
+                  f"Edit {self.repo}/pkg/node_modules/q/i.js v->w; Edit {self.repo}/.claude/settings.json to hold {{\"a\":1}}.")
+        done = subprocess.run(command, input=prompt, text=True, capture_output=True, timeout=170, cwd=self.repo)
         self.assertEqual(outside.read_text(), "secret\n", done.stdout)
         self.assertNotIn("leaked", (self.repo / ".git/config").read_text())
+        self.assertEqual((self.repo / "pkg/node_modules/q/i.js").read_text(), "v\n")
+        self.assertEqual((self.repo / ".claude/settings.json").read_text(), "{}\n")
+        denied = json.loads(done.stdout)["permission_denials"]
+        self.assertTrue({"Read", "Grep"} <= {d["tool_name"] for d in denied}, denied)  # out-of-tree Read and Grep are refused too
+
+
+class DeltaThreeTest(MechanicalCase):
+    """Review round three."""
+
+    def started(self, **kwargs: object) -> None:
+        done = self.lane(**kwargs)  # type: ignore[arg-type]
+        self.assertEqual(done.returncode, 0, done.stderr)
+
+    def edit(self, name: str = "src/cart.py", text: str = "changed\n") -> None:
+        (self.repo / name).write_text(text)
+
+    def test_discard_removes_a_symlink_itself_and_never_its_target(self) -> None:
+        self.started()
+        (self.repo / "evil").symlink_to("src/other.py")
+        (self.repo / "linkdir").symlink_to("src")
+        done, problems = vm.discard(str(self.repo), git(self.repo, "rev-parse", "HEAD"), ["evil", "linkdir"], {})
+        self.assertEqual((done, problems), (["evil", "linkdir"], []))
+        self.assertTrue((self.repo / "src/other.py").exists())
+        self.assertFalse((self.repo / "evil").is_symlink() or (self.repo / "linkdir").is_symlink())
+
+    def test_a_git_error_is_never_read_as_absent_from_the_start_commit(self) -> None:
+        self.started()
+        self.edit("src/other.py")
+        done, problems = vm.discard(str(self.repo), "0" * 40, ["src/other.py"], {})  # an unknown commit: ls-tree fails
+        self.assertEqual(done, [])
+        self.assertIn("ls-tree failed", problems[0])
+        self.assertTrue((self.repo / "src/other.py").exists())
+
+    def test_a_failed_post_check_scan_rereads_head_and_the_ignored_files(self) -> None:
+        self.started()
+        self.edit()
+        calls = {"n": 0}
+        real = scope.ignored_state
+
+        def fails_after_the_check_committed(root: str) -> dict:
+            calls["n"] += 1
+            if calls["n"] == 2:
+                (self.repo / "stray.env").write_text("K=1\n")
+                git(self.repo, "commit", "-q", "-am", "the check committed")
+                raise scope.ScopeError("timeout")
+            return real(root)
+        env = {k: self.env[k] for k in ("PAI_HARNESS_CONFIG", "PAI_HARNESS_STATE_DIR")}
+        with mock.patch.dict(os.environ, env), mock.patch.object(scope, "ignored_state", lambda root: fails_after_the_check_committed(root)), mock.patch("builtins.print"):
+            code = vm.main(["ACME-7", "--check", "true"])
+        self.assertEqual(code, 1)
+        verify = self.record("ACME-7")["verify"]
+        self.assertEqual(verify["verdict"], "discard")
+        self.assertIn("HEAD moved during the checks", " ".join(verify["reasons"]))  # the stale pre-check head was not trusted
+        self.assertEqual(verify["head"], git(self.repo, "rev-parse", "HEAD"))
+        self.assertTrue((self.repo / "src/cart.py").exists())  # nothing is restored against a moved HEAD
+
+    def test_a_check_that_plants_git_config_or_a_hook_is_a_discard_and_task_done_agrees(self) -> None:
+        self.started()
+        self.edit()
+        hook = "printf '#!/bin/sh\\n' > .git/hooks/pre-commit"
+        bad = self.run_script("verify-mechanical.sh", "ACME-7", "--check", hook)
+        self.assertEqual(bad.returncode, 1)
+        self.assertIn("under .git", " ".join(json.loads(bad.stdout)["reasons"]))
+        self.assertEqual(self.run_script("task-done.sh", "ACME-7").returncode, 1)
+
+    def test_a_git_config_change_after_a_pass_blocks_the_close(self) -> None:
+        self.started()
+        self.edit()
+        self.assertEqual(self.verify().returncode, 0)
+        git(self.repo, "config", "alias.x", "!touch pwned")
+        done = self.run_script("task-done.sh", "ACME-7")
+        self.assertEqual(done.returncode, 1)
+        self.assertIn("under .git", done.stderr)
+
+    def test_a_damaged_sampler_counter_samples_the_run_and_is_left_alone(self) -> None:
+        self.started()
+        self.edit()
+        counter = self.state / "mechanical_samples.json"
+        counter.write_text("{not json")
+        done = self.verify()
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertTrue(json.loads(done.stdout)["sample_review"])
+        self.assertEqual(counter.read_text(), "{not json")  # not reset to a fresh history
+
+    def test_a_mode_change_after_the_pass_blocks_the_close(self) -> None:
+        self.started()
+        self.edit()
+        self.assertEqual(self.verify().returncode, 0)
+        os.chmod(self.repo / "src/cart.py", 0o755)
+        self.assertEqual(self.run_script("task-done.sh", "ACME-7").returncode, 1)
 
 
 class SamplerTest(MechanicalCase):

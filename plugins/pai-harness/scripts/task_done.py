@@ -33,6 +33,8 @@ def stale_verdict(record: dict, verify: dict) -> str:
     try:
         before = scope.read_baseline(verify.get("ignored_baseline"))
         now = scope.snapshot(root, record["base"], before, tolerant=True, listed=record.get("files"))
+        if scope.git_integrity(root) != record.get("git_integrity"):
+            return "git config, hooks or attributes under .git differ from launch"
         descends = now["head"] == record["base"] or scope.is_ancestor(root, record["base"], now["head"])
     except (scope.ScopeError, KeyError) as error:
         return f"the tree cannot be checked against the verdict ({error})"

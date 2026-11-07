@@ -36,17 +36,21 @@ CHECK_TIMEOUT_SECONDS = 900
 OUTPUT_TAIL_LINES = 15
 
 
-def sample_slot(state: Path, key: str) -> int:
+def sample_slot(state: Path, key: str) -> int:  # raises ScopeError when the counter file is damaged
     """This run's place in the count of passing mechanical runs (key: issue and run id). Persistent and locked; a run keeps its slot when verified again."""
     path = state / "mechanical_samples.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     with (state / "mechanical_samples.lock").open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-            issues = data["issues"] if isinstance(data.get("issues"), dict) else {}
-        except (OSError, ValueError, AttributeError):
-            issues = {}
+        issues = {}
+        if path.exists():  # a missing file is an empty history; an unreadable or malformed one is not (the caller samples the run)
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+                issues = data["issues"]
+                if not isinstance(issues, dict):
+                    raise ValueError("issues is not a mapping")
+            except (OSError, ValueError, KeyError, TypeError) as error:
+                raise scope.ScopeError(f"the sampler counter is unreadable: {error}") from error
         if key not in issues:
             issues[key] = max([n for n in issues.values() if isinstance(n, int)] + [0]) + 1
             lib.write_json(path, {"passes": issues[key], "issues": issues})
@@ -71,7 +75,8 @@ def run_checks(cwd: str, commands: list[str]) -> list[dict]:
 def discard(root: str, base: str, paths: list[str], baseline: dict) -> tuple[list[str], list[str]]:
     """Undo the run's changes path by path: restore what the start commit has, remove what it does not. Returns (undone, problems); never raises.
 
-    A gitignored file that existed before the run and was changed cannot be restored (it is not in git): it is reported as a problem.
+    A path is acted on as itself (a symlink is removed, not followed). A gitignored file that existed before the run and was changed cannot be
+    restored (it is not in git) and is reported. Only a clean "not in the start commit" answer from git leads to a removal.
     """
     base_root = Path(root).resolve()
     done: list[str] = []
@@ -81,11 +86,15 @@ def discard(root: str, base: str, paths: list[str], baseline: dict) -> tuple[lis
             if path.endswith("/"):
                 problems.append(f"{path}: a dependency/cache directory changed; it is not in git and cannot be restored")
                 continue
-            target = (base_root / path).resolve()
-            if base_root not in target.parents:
-                problems.append(f"{path}: resolves outside the worktree, left alone")
+            full = base_root / path
+            if base_root not in full.parent.resolve().parents and full.parent.resolve() != base_root:
+                problems.append(f"{path}: its directory resolves outside the worktree, left alone")
                 continue
-            if scope.git(root, "cat-file", "-e", f"{base}:{path}").returncode == 0:
+            listed = scope.git(root, "ls-tree", "-z", "--name-only", base, "--", path)
+            if listed.returncode != 0:
+                problems.append(f"{path}: git ls-tree failed ({listed.returncode}): {listed.stderr.strip()}")
+                continue
+            if listed.stdout.strip("\0"):
                 restored = scope.git(root, "restore", f"--source={base}", "--staged", "--worktree", "--", path)
                 if restored.returncode != 0:
                     problems.append(f"{path}: git restore failed: {restored.stderr.strip()}")
@@ -95,8 +104,8 @@ def discard(root: str, base: str, paths: list[str], baseline: dict) -> tuple[lis
                 continue
             else:
                 scope.git(root, "rm", "--cached", "-q", "--ignore-unmatch", "--", path)
-                if target.is_file() or target.is_symlink():
-                    target.unlink()
+                if os.path.lexists(full) and (full.is_symlink() or not full.is_dir()):
+                    os.unlink(full)  # the path itself: a symlink is removed, never its target
             done.append(path)
         except (OSError, scope.ScopeError) as error:
             problems.append(f"{path}: {error}")
@@ -156,12 +165,37 @@ def main(argv: list[str]) -> int:
         outside = [p for p in changed if p not in listed]
         return now["ignored"]
 
+    def rescan_after_failure() -> None:
+        """The post-check scan failed: rebuild head, changed and outside from fresh, independent reads; name whatever still cannot be read."""
+        nonlocal changed, outside, head
+        try:
+            head = scope.head_of(root)
+        except scope.ScopeError:
+            head = ""
+            problems.append("HEAD could not be read after the checks, so nothing is undone")
+        try:
+            changed = sorted(set(changed) | scope.tracked_and_untracked(root, base))
+            outside = [p for p in changed if p not in listed]
+        except scope.ScopeError:
+            problems.append("tracked and untracked paths written by the checks could not be listed")
+        try:
+            sensitive_now = scope.ignored_diff(ignored_before, scope.ignored_state(root))
+            changed = sorted(set(changed) | {p for p in sensitive_now if scope.sensitive(p) or p in listed})
+            outside = [p for p in changed if p not in listed]
+        except (scope.ScopeError, OSError):
+            problems.append("the ignored files could not be scanned: a sensitive ignored file written by the checks may remain")
+        if head and head != base:
+            reasons.append(f"HEAD moved during the checks from {base[:12]} to {head[:12]}")
+
+    ignored_before: dict = {}
     try:
         top, _ = scope.toplevel(root)
         if top != str(Path(root).resolve()):
             raise scope.ScopeError(f"the recorded worktree root {root} is not the repository root {top}")
         baseline = scope.read_baseline(record.get("ignored_baseline"))
         ignored_before = measure(baseline)
+        if scope.git_integrity(root) != record.get("git_integrity"):
+            reasons.append("git config, hooks or attributes under .git differ from launch (or were never recorded): the lane wrote there; inspect and restore them by hand")
         if record.get("state") != "done":
             reasons.append(f"the run is {record.get('state')}: {record.get('reason')}")
         if outside:
@@ -184,19 +218,19 @@ def main(argv: list[str]) -> int:
                     reasons.append("changed outside the listed files after the checks: " + ", ".join(outside))
                 if head != base:
                     reasons.append(f"HEAD moved during the checks from {base[:12]} to {head[:12]}")
+                if scope.git_integrity(root) != record.get("git_integrity"):
+                    reasons.append("the checks changed git config, hooks or attributes under .git: inspect and restore them by hand")
             except (scope.ScopeError, OSError, subprocess.SubprocessError) as error:
                 reasons.append(f"could not measure the scope after the checks (fail closed), so it is unknown: {error}")
-                try:  # best effort for the discard: a fresh listing, not the stale pre-check one
-                    changed = sorted(set(changed) | scope.tracked_and_untracked(root, base))
-                except (scope.ScopeError, OSError, subprocess.SubprocessError):
-                    problems.append("paths written by the checks could not be listed")
+                rescan_after_failure()
     except (scope.ScopeError, OSError, subprocess.SubprocessError, KeyError) as error:
         reasons.append(f"could not establish the diff scope (fail closed): {error}")
     verdict = "discard" if reasons else ("unverified" if args.dry_run else "pass")
     if reasons and not (args.keep or args.dry_run):
         try:
             if changed and head == base:
-                discarded, problems = discard(root, base, changed, baseline)
+                discarded, more = discard(root, base, changed, baseline)
+                problems += more
         except Exception as error:  # noqa: BLE001 - a discard error must never prevent the verdict from being written
             problems.append(f"discard failed: {error}")
         if problems:
@@ -204,10 +238,14 @@ def main(argv: list[str]) -> int:
     sample_review, slot = False, None
     sample_key = f"{issue}:{record.get('run_id') or record.get('started')}"
     if verdict == "pass":
-        slot = sample_slot(state, sample_key)
         earlier = record.get("verify") or {}
+        try:
+            slot = sample_slot(state, sample_key)
+        except (scope.ScopeError, OSError) as error:
+            slot = None  # fail closed: a damaged counter never loses a review. The run is sampled and the file is left as it is for the operator to inspect.
+            print(f"{issue}: {error}; this run is marked for review", file=sys.stderr)
         # The constant rule decides; --sample-every and an earlier sampled verdict of this same run can only add to it.
-        sample_review = (slot % SAMPLE_EVERY == 0 or slot % args.sample_every == 0
+        sample_review = (slot is None or slot % SAMPLE_EVERY == 0 or slot % args.sample_every == 0
                          or bool(earlier.get("verdict") == "pass" and earlier.get("sample_key") == sample_key and earlier.get("sample_review")))
     result = {"issue": issue, "verdict": verdict, "reasons": reasons, "files": listed, "changed": changed, "outside": outside, "checks": checks,
               "discarded": discarded, "sample_review": sample_review, "sample_every": args.sample_every, "sample_slot": slot, "sample_key": sample_key,
