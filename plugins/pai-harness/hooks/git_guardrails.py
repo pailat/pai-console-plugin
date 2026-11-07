@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import copy
 import fnmatch
+import glob
 import os
 import time
 import re
@@ -50,7 +51,7 @@ PARSE_BUDGET = 2.0  # seconds for the whole static reading of one command
 STRING_RUNNERS = {"ssh", "su", "runuser", "watch", "sg", "script", "tmux", "screen", "parallel"}  # commands that run a string argument as a command line
 PREFIXES = {"env", "command", "exec", "nohup", "builtin", "setsid", "sudo", "doas", "nice", "timeout", "xargs", "stdbuf", "ionice", "time"}
 GIT_VALUE_OPTIONS = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path", "--super-prefix", "--config-env"}
-BROAD = {".", "./", ":/", ":(top)", "*", "./*", ":/*", "..", "../", ".*"}
+BROAD = {".", "./", ":/", ":(top)", "*", "**", "./*", ":/*", "..", "../", ".*"}
 CRUDE = re.compile(r"git\b.*\b(reset\b.*--ha|clean\b|push\b.*(-\w*[fd]\b|--(f|de|mi|pr)|\s[+:])|branch\b.*-\w*[Df]|stash\s+(drop|clear)|rebase\b.*(-\w*i|--inter)"
                    r"|update-ref\b.*-\w*d|worktree\s+remove|checkout\b.*(\s\.(\s|$)|-f)|restore\b)|rm\b.*\.git\b")
 
@@ -113,6 +114,42 @@ def strip_heredocs(command: str) -> tuple[str, list[tuple[bool, str]]]:
             pos = end + 1
         i = pos
     return "\n".join(out), bodies
+
+
+UNRES = re.compile(r"\$|\{[^{}\s]*(?:,|\.\.)[^{}\s]*\}")  # a variable, substitution or brace expansion: the words are built at run time
+BRACE = re.compile(r"\{[^{}\s]*(?:,|\.\.)[^{}\s]*\}")
+SAFE_SUBS = {"status", "diff", "log", "show", "add", "fetch", "pull", "rev-parse", "ls-files", "grep", "blame", "describe", "ls-tree", "cat-file", "show-ref",
+             "shortlog", "diff-tree", "check-ignore", "merge-base", "rev-list", "name-rev", "for-each-ref", "var", "version", "help", "whatchanged"}  # unresolved words are harmless here
+SEMI_SUBS = {"commit", "merge"}  # an unresolved word is fine only as the value of a message-like option
+VALUE_OPTIONS = {"-m", "--message", "-F", "--file", "-C", "-c", "--author", "--date", "-t", "--template", "--cleanup", "-S", "--reuse-message", "--reedit-message"}
+COMMAND_KEYS = re.compile(r"^(core\.(sshcommand|pager|editor|fsmonitor|askpass|hookspath|gitproxy)|diff\.external|credential\.helper|sequence\.editor|"
+                          r"filter\..*\.(clean|smudge|process)|diff\..*\.textconv|alias\..*)$")
+
+
+def brace_words(token: str, budget: list[int]) -> list[str]:
+    """The words a shell makes of one token with a brace expansion ({a,b} or {1..3}); the token itself when it has none."""
+    found = BRACE.search(token)
+    if not found:
+        return [token]
+    budget[0] -= 1
+    if budget[0] < 0:
+        raise ValueError("brace expansion produces too many words")
+    body = found.group(0)[1:-1]
+    if ".." in body and "," not in body:
+        a, _, b = body.partition("..")
+        if a.lstrip("-").isdigit() and b.lstrip("-").isdigit():
+            step = 1 if int(a) <= int(b) else -1
+            options = [str(n) for n in range(int(a), int(b) + step, step)][:64]
+        else:
+            options = [a, b]
+    else:
+        options = body.split(",")
+    return [w for option in options for w in brace_words(token[:found.start()] + option + token[found.end():], budget)]
+
+
+def expand_braces(tokens: list[str]) -> list[str]:
+    budget = [200]
+    return [w for token in tokens for w in brace_words(token, budget)] if any(BRACE.search(t) for t in tokens) else tokens
 
 
 def shell_base(token: str) -> str:
@@ -226,6 +263,7 @@ class Context:
         self.parse_deadline = time.monotonic() + PARSE_BUDGET
         self.text, self.segments_read = "", 0
         words = wrapper_words(wrapper)
+        self.wrapper_words = words
         self.wrapper_name = os.path.basename(words[-1]) if words else ""
 
     def tick(self) -> None:
@@ -256,6 +294,8 @@ class Context:
 XARGS_GIT_SUBS = {"reset", "branch", "clean", "checkout", "restore", "stash", "rebase", "update-ref", "worktree", "push"}
 CAPABLE_SUBS = XARGS_GIT_SUBS - {"push"}  # a direct push is refused whole by the push guard
 SUBST = "$SUBST"  # stands for a $(...), backtick or ${...} expansion once its inner command has been checked on its own
+ASSIGNMENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\+?=.*", re.S)
+NOT_COMMANDS = {"git", "echo", "printf", "grep", "egrep", "fgrep", "rg", "man", "which", "type", "cat", "ls", "head", "tail", "less", "sed", "awk", "wc"}  # their arguments are text or git's own
 SUBST_GIT = "$SUBSTGIT"  # the same, when the inner command text names git or rm
 LOOKUP_TIMEOUT = 3  # seconds for one git call; pre_tool_use.py has a 10 s hook timeout, and a hook timeout does not block
 LOOKUP_BUDGET = 3  # seconds for all git calls of one check()
@@ -306,7 +346,7 @@ def refuse(command: list[str], why: str, alternative: str) -> str:
 
 PROTECTED = ("main", "staging", "production", "release/*")
 GLOB = re.compile(r"[*?\[]")
-UNREADABLE = re.compile(r"[$`~]")
+UNREADABLE = re.compile(r"[$`~{]")
 MISSING = "\0missing"  # current_branch: the directory does not exist (yet)
 
 
@@ -392,6 +432,8 @@ def git_check(tokens: list[str], ctx: Context, depth: int, inline: dict[str, str
         if token == "-c" and j + 1 < len(tokens):
             key, _, value = tokens[j + 1].partition("=")
             hooks_path = hooks_path or key.lower() == "core.hookspath"
+            if key.lower() != "core.hookspath" and COMMAND_KEYS.match(key.lower()) and not key.lower().startswith("alias."):
+                return refuse(tokens, f"-c {key} makes git run a command the reader cannot see", "use plain git options")
             if key.lower().startswith("alias."):
                 aliases[key[len("alias."):].lower()] = value
         if token.startswith("--git-dir") or token.startswith("--work-tree"):
@@ -404,6 +446,13 @@ def git_check(tokens: list[str], ctx: Context, depth: int, inline: dict[str, str
         return refuse(tokens, "core.hooksPath overrides the git hooks", "fix what the hook reports instead of bypassing it")
     effective = effective_dir(directories, ctx)
     unknown = "\0unknown" in directories or ctx.unknown_cwd
+    embedded = embedded_command(rest[0].lower(), rest[1:])
+    if embedded is not None:  # `rebase --exec CMD` and `submodule foreach CMD` run a shell command line
+        if depth >= 3 or UNRES.search(embedded):
+            return refuse(tokens, f"git {rest[0]} runs a command that is built at run time or nested too deep, so it cannot be read", "run the command directly")
+        reason = check_command(embedded, ctx, depth + 1)
+        if reason:
+            return reason
     reason = subcommand_check(rest[0], rest[1:], tokens, ctx, effective, unknown)
     if reason or depth >= 3:
         return reason
@@ -430,6 +479,24 @@ def git_check(tokens: list[str], ctx: Context, depth: int, inline: dict[str, str
     return ""
 
 
+def embedded_command(sub: str, args: list[str]) -> str | None:
+    """The shell command line git runs for `rebase -x/--exec CMD` and `submodule foreach CMD`; None when the subcommand has none."""
+    if sub == "rebase":
+        found = []
+        for k, t in enumerate(args):
+            if t in {"-x", "--exec"} and k + 1 < len(args):
+                found.append(args[k + 1])
+            elif t.startswith("--exec="):
+                found.append(t.partition("=")[2])
+            elif t.startswith("-x") and not t.startswith("--") and len(t) > 2:
+                found.append(t[2:])
+        return " ; ".join(found) if found else None
+    if sub == "submodule" and "foreach" in args:
+        words = [t for t in args[args.index("foreach") + 1:] if t not in {"--recursive", "-q", "--quiet"}]
+        return " ".join(words)
+    return None
+
+
 def config_aliases(directory: Path, ctx: Context) -> dict[str, str] | None:
     """The aliases git config knows in directory (cached per check()); None when git cannot answer in time."""
     key = os.path.realpath(directory)
@@ -450,17 +517,20 @@ def config_aliases(directory: Path, ctx: Context) -> dict[str, str] | None:
 
 
 def subcommand_check(sub: str, args: list[str], shown: list[str], ctx: Context, effective: Path, unknown_dir: bool) -> str:
-    if "$" in sub:
-        return refuse(shown, "the git subcommand is built by a variable or substitution, so it cannot be read", "spell the git subcommand out")
+    if UNRES.search(sub):
+        return refuse(shown, "the git subcommand is built by a variable, substitution or brace expansion, so it cannot be read", "spell the git subcommand out")
     sub = sub.lower()
-    if sub in CAPABLE_SUBS | {"switch", "tag", "remote", "reflog", "gc", "config"} and any(t.startswith("-") and "$" in t for t in args):
-        return refuse(shown, f"an option of git {sub} is built by a variable or substitution, so it cannot be read", "spell the option out as a literal word")
-    if sub in CAPABLE_SUBS and any("$" in t for t in args):
-        return refuse(shown, f"an argument of git {sub} is built by a variable or substitution ($VAR, $(...), backticks or ${{...}}), so it cannot be read",
-                      "spell the arguments out as literal words")
+    unresolved = [k for k, t in enumerate(args) if UNRES.search(t)]
+    if unresolved and sub not in SAFE_SUBS:
+        value_of = lambda k: k > 0 and (args[k - 1] in VALUE_OPTIONS or args[k - 1].startswith("-") and not args[k - 1].startswith("--") and args[k - 1][-1:] in "mFCct")  # noqa: E731
+        if sub not in SEMI_SUBS or any(not value_of(k) for k in unresolved):
+            return refuse(shown, f"a word of git {sub} is built by a variable, substitution or brace expansion ($VAR, $(...), backticks, ${{...}}, {{a,b}}), so it cannot be read; only read-only subcommands accept one",
+                          "spell the arguments out as literal words")
     letters = option_letters(args, VALUED_LETTERS.get(sub, ""))
-    if sub == "config" and any("alias." in t.lower() or "hookspath" in t.lower() for t in args):
+    if sub == "config" and any(COMMAND_KEYS.match(t.lower()) or "alias." in t.lower() or "hookspath" in t.lower() for t in args):
         return refuse(shown, "git config sets an alias or core.hooksPath, which changes what later git commands do", "use plain git commands; ask your lead for configuration changes")
+    if sub == "commit" and "n" in option_letters(args, "mFCct"):
+        return refuse(shown, "commit -n is --no-verify and skips the git hooks", "fix what the hook reports instead of bypassing it")
     if sub in {"commit", "merge", "am", "cherry-pick", "rebase"} and any(longopt(t, "no-verify", least=5) for t in args):
         return refuse(shown, "--no-verify skips the git hooks", "fix what the hook reports instead of bypassing it")
     options, plain = positionals(args)
@@ -480,6 +550,10 @@ def subcommand_check(sub: str, args: list[str], shown: list[str], ctx: Context, 
         return refuse(shown, "branch -D / -f deletes or moves a branch without the merged check", "git branch -d (refuses an unmerged branch), or ask your lead")
     if sub == "switch" and ("f" in letters or "C" in letters or any(longopt(t, "force", "discard-changes", "force-create") for t in args)):
         return refuse(shown, "switch -f / --discard-changes / -C discards local changes or resets a branch", "commit or stash first, then git switch <branch> (or -c for a new branch)")
+    if sub == "checkout-index" and ("f" in letters or "a" in letters or any(longopt(t, "force", "all") for t in args)):
+        return refuse(shown, "checkout-index -f / -a overwrites the worktree files", "git restore of one named file")
+    if sub == "read-tree" and any(longopt(t, "reset") for t in args):
+        return refuse(shown, "read-tree --reset overwrites the index and worktree", "git restore of one named file")
     if sub == "filter-branch":
         return refuse(shown, "filter-branch rewrites the history of every ref it touches", "ask your lead; a rewrite needs an explicit decision")
     if sub == "reflog" and plain and plain[0] in {"expire", "delete"}:
@@ -514,7 +588,7 @@ def subcommand_check(sub: str, args: list[str], shown: list[str], ctx: Context, 
     return ""
 
 
-VALUED_LETTERS = {"clean": "e", "rebase": "XxsSC"}  # short options whose value is the rest of the cluster (`-enode_modules`, `-Xpatience`)
+VALUED_LETTERS = {"clean": "e", "rebase": "XxsSC", "commit": "mFCct"}  # short options whose value is the rest of the cluster (`-enode_modules`, `-Xpatience`)
 
 
 def option_letters(args: list[str], valued: str = "") -> set[str]:
@@ -540,7 +614,11 @@ def pathspec_check(shown: list[str], args: list[str], plain: list[str], ctx: Con
         specs = plain
     else:  # checkout: the first positional is a branch or tree-ish, unless it is the lone broad pathspec itself
         specs = plain[1:] if len(plain) > 1 else (plain if plain and broad(plain[0]) else [])
-    wide = [s for s in specs if broad(s)]
+    if any(t.startswith("--pathspec-from-file") for t in args):
+        return refuse(shown, "the pathspecs come from a file or stdin, so they cannot be read", "name the files as literal words")
+    top = toplevel(effective)
+    wide = [s for s in specs if broad(s) or top is not None and not s.startswith(":") and not GLOB.search(s)
+            and Path(os.path.realpath(top)).is_relative_to(Path(os.path.realpath(effective / os.path.expanduser(s))))]
     if not wide:
         return ""
     if not unknown_dir and in_throwaway([effective / s for s in wide], ctx, effective):
@@ -555,10 +633,13 @@ def rm_check(tokens: list[str], ctx: Context) -> str:
         return ""
     tops = [t for t in (toplevel(ctx.cwd), toplevel(ctx.origin)) if t is not None]  # the repository the session started in counts after a `cd` too
     for target in plain:
+        ctx.tick()
         if target.startswith("$") or ".git" in target and "$" in target:
             return refuse(tokens, f"the rm -r target {target.replace(SUBST_GIT, '$(...)').replace(SUBST, '$(...)')} is built by a variable or substitution, so it cannot be checked against .git",
                           "name the path to remove as a literal word")
         parts = [p for p in re.split(r"/+", target) if p]
+        if parts and parts[-1] in {"*", "**"} and any(Path(os.path.realpath(top)) == Path(os.path.realpath(ctx.cwd / os.path.expanduser("/".join(parts[:-1]) or "."))) for top in tops):
+            return refuse(tokens, "rm -r of everything in the top level of the repository discards the whole worktree", "remove only the named files with git rm, or ask your lead")
         on_git = ".git" in parts or any(p[:1] in {".", "[", "\\"} and any(c in p for c in "*?[") and fnmatch.fnmatchcase(".git", p) for p in parts)
         resolved = Path(os.path.realpath(ctx.cwd / os.path.expandvars(os.path.expanduser(target))))
         covers = any(Path(os.path.realpath(top)).is_relative_to(resolved) for top in tops)
@@ -567,7 +648,19 @@ def rm_check(tokens: list[str], ctx: Context) -> str:
     return ""
 
 
-FILTERS = {"-name", "-iname", "-path", "-ipath", "-regex", "-iregex", "-wholename", "-prune", "-newer"}
+NAME_FILTERS = {"-name": ".git", "-iname": ".git", "-path": "./.git/HEAD", "-ipath": "./.git/HEAD", "-wholename": "./.git/HEAD"}
+
+
+def excludes_git(tokens: list[str]) -> bool:
+    """True only when the find expression provably leaves .git alone: a literal `-name .git -prune` / `-path ./.git -prune`, or positive -name/-path patterns
+    (no negation, -o or -regex) that cannot match .git or anything below it."""
+    if "-prune" in tokens and any(tokens[k] in {"-name", "-path"} and tokens[k + 1].rstrip("/*") in {".git", "./.git", "*/.git"} for k in range(len(tokens) - 1)):
+        return True
+    if {"!", "-not", "-o", "-or", "-regex", "-iregex"} & set(tokens):
+        return False
+    patterns = [(tokens[k], tokens[k + 1]) for k in range(len(tokens) - 1) if tokens[k] in NAME_FILTERS]
+    return bool(patterns) and not any(fnmatch.fnmatchcase(sample, pattern) or fnmatch.fnmatchcase(".git", pattern) or fnmatch.fnmatchcase("./.git", pattern)
+                                      for flag, pattern in patterns for sample in [NAME_FILTERS[flag], ".git/HEAD"])
 
 
 def destroy_check(tokens: list[str], ctx: Context) -> str:
@@ -583,7 +676,7 @@ def destroy_check(tokens: list[str], ctx: Context) -> str:
         top = toplevel(ctx.cwd)
         for start in starts or ["."]:
             holds = ".git" in start or "$" in start or top is not None and Path(os.path.realpath(top)).is_relative_to(Path(os.path.realpath(ctx.cwd / os.path.expanduser(start))))
-            if acts and (".git" in start or ".git" in tokens or holds and not FILTERS & set(tokens)):
+            if acts and (".git" in start or UNRES.search(start) or (".git" in tokens or holds) and not excludes_git(tokens)):
                 return refuse(tokens, "find -delete / -exec over .git or a directory that holds it destroys the repository", "give find a -name / -path filter that excludes .git, or name the files to remove")
         return ""
     if name in {"mv", "unlink", "shred", "truncate", "dd"} and any(re.search(r"(^|[=/])\.git(/|$)", t) for t in tokens[1:]):
@@ -596,14 +689,15 @@ def destroy_check(tokens: list[str], ctx: Context) -> str:
 def wrapper_words(wrapper: str) -> list[str]:
     """The configured wrapper as words; an unbalanced quote falls back to a plain split (never raises)."""
     try:
-        return shlex.split(wrapper) if wrapper else []
+        words = shlex.split(wrapper) if wrapper else []
     except ValueError:
-        return wrapper.split()
+        words = wrapper.split()
+    return [os.path.expandvars(os.path.expanduser(w)) for w in words]  # `$ROOT/queue-push.sh` and `~/queue-push.sh`: the shell expands them too
 
 
 def same_file(token: str, wanted: str, cwd: Path) -> bool:
     """True when two spellings (`scripts/q.sh`, `./scripts/q.sh`, an absolute path) name the same file, relative to the cwd or its git top level."""
-    token, wanted = os.path.expanduser(token), os.path.expanduser(wanted)
+    token, wanted = os.path.expandvars(os.path.expanduser(token)), os.path.expandvars(os.path.expanduser(wanted))
     if token == wanted:
         return True
     if "/" not in token and "/" not in wanted:
@@ -616,13 +710,16 @@ def same_file(token: str, wanted: str, cwd: Path) -> bool:
 def matches_wrapper(tokens: list[str], wrapper: str, cwd: Path) -> int:
     """The number of words the wrapper takes at the start of tokens (0 when tokens do not start with it). Any spelling of its path matches."""
     wanted = wrapper_words(wrapper)
-    if not wanted or len(tokens) < len(wanted) or not same_file(tokens[0], wanted[0], cwd):
+    if not wanted or len(tokens) < len(wanted):
         return 0
-    return len(wanted) if [os.path.expanduser(t) for t in tokens[1:len(wanted)]] == [os.path.expanduser(t) for t in wanted[1:]] else 0
+    first = os.path.expandvars(os.path.expanduser(tokens[0]))
+    if os.path.basename(first) != os.path.basename(wanted[0]) or not same_file(tokens[0], wanted[0], cwd):  # cheap test first: no file system work for other words
+        return 0
+    return len(wanted) if [os.path.expandvars(os.path.expanduser(t)) for t in tokens[1:len(wanted)]] == wanted[1:] else 0
 
 
 READONLY_GIT = {"status", "diff", "log", "show", "add", "grep", "ls-files", "blame", "rev-parse", "cat-file", "check-ignore", "fetch", "ls-tree", "describe"}
-XARGS_VALUED = {"-I", "-n", "-P", "-d", "-L", "-s", "-E", "-a", "-i"}
+XARGS_VALUED = {"-I", "-n", "-P", "-d", "-L", "-s", "-E", "-a"}  # -i, -e and -l take an attached value only
 
 
 def xargs_check(tokens: list[str], ctx: Context) -> str:
@@ -663,24 +760,35 @@ def split_string(args: list[str]) -> str | None:
 
 
 def segment_check(tokens: list[str], ctx: Context, depth: int) -> str:
+    try:
+        tokens = expand_braces(tokens)  # `git reset --har{d,}` is `git reset --hard --har` once the shell has run
+    except ValueError:
+        return refuse(tokens[:6], "a brace expansion produces too many words to read", "write the words out")
     lead = True  # still in the prefix zone: assignments, prefix commands, options, redirections
+    command_word = next((os.path.basename(t) for t in tokens if not (shell_base(t) in PREFIXES or t.startswith("-") or ASSIGNMENT.fullmatch(t) or t in KEYWORDS)), "")
     for i, token in enumerate(tokens):
+        ctx.tick()  # one deadline for everything, checked for every word: a long segment cannot outrun it
         base = os.path.basename(token)
         shell = shell_base(token)
-        taken = matches_wrapper(tokens[i:], ctx.wrapper, ctx.cwd)
+        if lead and re.search(r"[*?\[]", token) and not ASSIGNMENT.fullmatch(token):  # a glob in the command name: the shell replaces it by the files it matches
+            for match in sorted(glob.glob(os.path.expanduser(token), root_dir=ctx.cwd))[:200]:
+                reason = segment_check([match, *tokens[i + 1:]], ctx, depth)
+                if reason:
+                    return reason
+        taken = matches_wrapper(tokens[i:i + len(ctx.wrapper_words)], ctx.wrapper, ctx.cwd) if ctx.wrapper_words else 0  # a short slice: no copy of the rest
         if taken:
             reason = push_check(tokens[i + taken:], tokens[i:], ctx)
             if reason:
                 return reason
         if base == "git":
             reason = git_check(tokens[i:], ctx, depth)
-        elif base == "rm":
+        elif base == "rm" and command_word not in NOT_COMMANDS:  # `git rm -r .` and `echo rm -r .` do not run rm
             reason = rm_check(tokens[i:], ctx)
         elif base in {"find", "mv", "unlink", "shred", "truncate", "dd", "ln", "cp", "install", "rsync"} and (reason := destroy_check(tokens[i:], ctx)):
             pass
         elif lead and token == SUBST_GIT:  # the command name is built by a substitution that names git or rm
             reason = refuse(tokens[i:], "the command name is built by a substitution that resolves to git or rm", "call git or rm by name")
-        elif lead and re.search(r"\$", token):  # a command name built from a variable: read the rest as git or rm
+        elif lead and re.search(r"\$", token) and not ASSIGNMENT.fullmatch(token) and not taken:  # a command name built from a variable: read the rest as git or rm
             reason = git_check(["git", *tokens[i + 1:]], ctx, depth) or rm_check(["rm", *tokens[i + 1:]], ctx)
             if not reason and (re.search(r"git|rm", token) or ctx.wrapper_name and ctx.wrapper_name in ctx.text or re.search(r"\b(git|rm)\b", ctx.text)):
                 reason = refuse(tokens[i:], "the command name is built by a variable or substitution in a command that uses git, rm or the push wrapper, so it cannot be read", "call the command by name")
@@ -729,6 +837,7 @@ def cd_target(tokens: list[str]) -> tuple[bool, str | None]:
 
 
 def check_command(command: str, ctx: Context, depth: int = 0) -> str:
+    ctx.tick()
     command, inners = extract_substitutions(command)
     if inners and depth >= 4:
         return refuse(["<command>"], "substitutions nested too deep cannot be read", "run the git command directly")

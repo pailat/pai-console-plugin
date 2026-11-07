@@ -405,6 +405,58 @@ class FailClosedTest(GuardrailTest):
         self.assertEqual(done.stdout.strip(), "")  # no role: the hook stays inert
 
 
+class RoundFiveTest(GuardrailTest):
+    def test_a_wrapper_configured_with_a_variable_still_matches(self) -> None:
+        sys.path.insert(0, str(HOOKS))
+        import pre_tool_use
+        old = os.environ.get("QROOT")
+        os.environ["QROOT"] = "/q"
+        try:
+            for wrapper in ("$QROOT/queue-push.sh", "${QROOT}/queue-push.sh"):
+                with self.subTest(wrapper=wrapper):
+                    self.assertTrue(git_guardrails.check("/q/queue-push.sh origin main", wrapper, self.project))
+                    self.assertTrue(git_guardrails.check("$QROOT/queue-push.sh --all origin", wrapper, self.project))
+                    found = pre_tool_use.analyze("/q/queue-push.sh --no-verify origin feat", wrapper, self.project)
+                    self.assertTrue(found.no_verify)
+                    self.assertEqual(git_guardrails.check("/q/queue-push.sh origin feat/acme-7", wrapper, self.project), "")
+        finally:
+            os.environ.pop("QROOT", None) if old is None else os.environ.__setitem__("QROOT", old)
+
+    def test_one_long_segment_is_stopped_by_the_deadline_in_cpu_time(self) -> None:
+        import resource
+        for padding in ("env ", "git ", "rm "):
+            command = f"echo {padding * 15000}; git reset --hard"
+            before = resource.getrusage(resource.RUSAGE_CHILDREN)
+            out = self.hook(command, "bypassPermissions")
+            after = resource.getrusage(resource.RUSAGE_CHILDREN)
+            self.assertLess((after.ru_utime + after.ru_stime) - (before.ru_utime + before.ru_stime), 8, padding)
+            self.assertEqual(out["hookSpecificOutput"]["permissionDecision"], "deny", padding)
+        with self.assertRaises(TimeoutError):  # the reader itself raises, and deny_dangerous turns that into a named deny
+            original, git_guardrails.PARSE_BUDGET = git_guardrails.PARSE_BUDGET, 0.05
+            try:
+                git_guardrails.check("echo " + "git " * 12000 + "; git status", WRAPPER, self.project)
+            finally:
+                git_guardrails.PARSE_BUDGET = original
+
+    def test_a_glob_in_the_command_name_is_resolved(self) -> None:
+        (self.project / "bin").mkdir()
+        (self.project / "bin/git").write_text("#!/bin/sh\n")
+        for command in ("bin/gi[t] reset --hard", "bin/gi? reset --hard", "bin/g* reset --hard", "./bin/gi[t] reset --hard"):
+            with self.subTest(command=command):
+                self.assertTrue(git_guardrails.check(command, WRAPPER, self.project), "not blocked")
+        (self.project / "scripts").mkdir()
+        (self.project / "scripts/queue-push.sh").write_text("#!/bin/sh\n")
+        for command in ("scripts/queue-push.s[h] origin main", "scripts/queue-push.* origin main", "scripts/q* origin main"):
+            with self.subTest(command=command):
+                self.assertTrue(git_guardrails.check(command, WRAPPER, self.project), "not blocked")
+
+    def test_the_absolute_path_of_the_top_level_is_a_whole_worktree_restore(self) -> None:
+        for command in (f"git restore {self.project}", f"git checkout -- {self.project}", f"git restore {self.project.parent}"):
+            with self.subTest(command=command):
+                self.assertTrue(git_guardrails.check(command, WRAPPER, self.project), "not blocked")
+        self.assertEqual(git_guardrails.check(f"git restore {self.project}/apps/a.txt", WRAPPER, self.project), "")
+
+
 class ThrowawayTest(GuardrailTest):
     def test_denied_without_a_valid_opt_in(self) -> None:
         for case in CASES["throwaway"]["deny"]:
