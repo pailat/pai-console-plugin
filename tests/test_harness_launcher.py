@@ -22,6 +22,7 @@ class HarnessCase(_HarnessCase):
         super().setUp()
         for name in [k for k in self.env if k.startswith("HERDR_")]:
             self.env.pop(name)
+        self.env["HERDR_PLUGIN_CONFIG_DIR"] = str(self.tmp / "wake-config")
 
 
 def summary_of(name: str) -> dict:
@@ -278,13 +279,13 @@ class PaneLaunchTest(HarnessCase):
     def test_the_pane_run_ends_by_the_state_file_and_never_reads_agent_status(self) -> None:
         log = self.tmp / "herdr.log"
         done = self.run_script(
-            "launch.sh", "ACME-7", "--prompt-file", str(self.prompt), "--pane", "pane-1",
-            PAI_HARNESS_HERDR=str(FIXTURES / "fake_herdr.py"), FAKE_HERDR_LOG=str(log),
+            "launch.sh", "ACME-7", "--prompt-file", str(self.prompt), "--pane", "pane-1", "--parent", "acme-lead",
+            PAI_HARNESS_HERDR=str(FIXTURES / "fake_herdr.py"), FAKE_HERDR_LOG=str(log), PAI_HARNESS_PARENT="acme-lead",
             FAKE_CLAUDE_FIXTURE=str(self.fixture("success")))
         self.assertEqual(done.returncode, 0, done.stderr)
         calls = [json.loads(line) for line in log.read_text().splitlines()]
-        calls = [c for c in calls if c[:2] not in (["pane", "report-metadata"], ["plugin", "config-dir"])]  # the pane's pai tags are covered by test_harness_pane_tags
-        self.assertEqual([c[:2] for c in calls], [["pane", "get"], ["pane", "run"], ["pane", "wait-output"]])
+        # Full sequence: the pane's pai tags come first (their content is covered by test_harness_pane_tags).
+        self.assertEqual([c[:2] for c in calls], [["pane", "get"], ["pane", "report-metadata"], ["pane", "run"], ["pane", "wait-output"]])
         self.assertEqual(self.record("ACME-7")["state"], "done")
         self.assertNotIn("agent", [c[0] for c in calls])
         source = (SCRIPTS / "launch.py").read_text()
@@ -292,7 +293,7 @@ class PaneLaunchTest(HarnessCase):
 
     def test_a_blocked_pane_run_returns_3(self) -> None:
         done = self.run_script("launch.sh", "ACME-8", "--prompt-file", str(self.prompt), "--pane", "pane-1",
-                               PAI_HARNESS_HERDR=str(FIXTURES / "fake_herdr.py"), FAKE_HERDR_LOG=str(self.tmp / "h.log"),
+                               PAI_HARNESS_HERDR=str(FIXTURES / "fake_herdr.py"), FAKE_HERDR_LOG=str(self.tmp / "h.log"), PAI_HARNESS_PARENT="acme-lead",
                                FAKE_CLAUDE_FIXTURE=str(self.fixture("permission")))
         self.assertEqual(done.returncode, 3)
 
@@ -304,11 +305,11 @@ class DisplayTest(HarnessCase):
     """Every run is visible from Herdr: live lines in the pane, workspace metadata with a TTL, the tab label. Herdr and claude are fakes."""
 
     def herdr(self, **env: str) -> dict[str, str]:
-        return {"PAI_HARNESS_HERDR": str(RENDER / "fake_herdr.py"), "FAKE_HERDR_LOG": str(self.tmp / "herdr.log"), **env}
+        return {"PAI_HARNESS_HERDR": str(RENDER / "fake_herdr.py"), "FAKE_HERDR_LOG": str(self.tmp / "herdr.log"), "PAI_HARNESS_PARENT": "acme-lead", **env}
 
     def calls(self) -> list[list[str]]:
         log = self.tmp / "herdr.log"
-        return [c for c in ([json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []) if c[:2] not in (["pane", "report-metadata"], ["plugin", "config-dir"])]
+        return [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
 
     def run_fixture(self, issue: str, fixture: Path, *extra: str, exit_code: int = 0, **env: str):
         return self.run_script("launch.sh", issue, "--prompt-file", str(self.prompt), *extra, FAKE_CLAUDE_FIXTURE=str(self.render_fixture(fixture.stem)),
@@ -400,7 +401,7 @@ class DisplayTest(HarnessCase):
         self.assertEqual(calls[0][calls[0].index("--workspace") + 1], "wAC")
         self.assertEqual(calls[0][calls[0].index("--label") + 1], "ACME-7 · starting")
         self.assertNotIn("--focus", calls[0])
-        self.assertEqual(calls[1][:3], ["pane", "run", "wAC:p9"])
+        self.assertEqual([c[:3] for c in calls[1:3]], [["pane", "report-metadata", "wAC:p9"], ["pane", "run", "wAC:p9"]])  # tagged, then run
         self.assertEqual([c[2] for c in self.metadata()][:1], ["wAC"])
         self.assertEqual([c[2] for c in calls if c[:2] == ["tab", "rename"]], ["wAC:t3", "wAC:t3"])
         self.assertIn("■ result done", done.stderr)

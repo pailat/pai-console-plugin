@@ -2,7 +2,7 @@
 """Heartbeat and registry check.
 
 Usage: health.sh beat NAME [--state S] | health.sh check [--stale-minutes N] [--now ISO] [--config FILE]
-Check also warns (stderr, exit code unchanged) about each Herdr agent pane that has no pai tokens.
+Check also warns (stderr, exit code unchanged) about harness agent panes (carrying a pai token, or registered) missing name/role/parent/wake_on_done.
 Exit codes of check: 0 every entry fresh, 1 at least one stale running entry, 2 empty registry or bad usage.
 """
 from __future__ import annotations
@@ -20,18 +20,32 @@ import harness_lib as lib  # noqa: E402
 
 
 TOKEN_KEYS = ("role", "parent", "name", "issue", "wake_on_done")
+REQUIRED_KEYS = ("name", "role", "parent", "wake_on_done")  # a pane is tagged only when ALL of these are present
 
 
-def untagged_agents() -> list[dict]:
-    """Agent panes Herdr knows that carry none of the pai wake tokens (nobody is woken when they end). Empty when Herdr is absent."""
-    herdr = os.environ.get("PAI_HARNESS_HERDR", "herdr")
+def untagged_agents(known: set[str]) -> list[dict]:
+    """Harness agent panes whose wake tokens are incomplete (nobody, or the wrong one, is woken when they end).
+
+    Scope: only agents the harness started, i.e. agents that carry at least one pai token, or whose name is a registry entry (`known`,
+    lower-cased). Other Herdr agents are not the harness's and are never flagged. Empty when Herdr is absent.
+    Herdr binary: HERDR_BIN_PATH, else PAI_HARNESS_HERDR, else herdr (the first is what agent-start.sh and pai-pane-meta read).
+    """
+    herdr = os.environ.get("HERDR_BIN_PATH") or os.environ.get("PAI_HARNESS_HERDR", "herdr")
     try:
-        done = run_process([herdr, "agent", "list"], capture_output=True, text=True, timeout=10)
+        done = run_process([herdr, "agent", "list"], capture_output=True, text=True, timeout=5)
         agents = json.loads(done.stdout)["result"]["agents"] if done.returncode == 0 else []
     except (OSError, subprocess.SubprocessError, ValueError, KeyError, TypeError):
         return []
-    return [{"name": a.get("name"), "pane_id": a.get("pane_id")} for a in agents
-            if isinstance(a, dict) and not any((a.get("tokens") or {}).get(k) for k in TOKEN_KEYS)]
+    found = []
+    for a in agents:
+        if not isinstance(a, dict):
+            continue
+        tokens = a.get("tokens") or {}
+        harness = any(tokens.get(k) for k in TOKEN_KEYS) or str(a.get("name") or tokens.get("name") or "").lower() in known
+        gaps = [k for k in REQUIRED_KEYS if not tokens.get(k)]
+        if harness and gaps:
+            found.append({"name": a.get("name"), "pane_id": a.get("pane_id"), "missing": gaps})
+    return found
 
 
 def main(argv: list[str]) -> int:
@@ -60,13 +74,14 @@ def main(argv: list[str]) -> int:
     found = lib.entries(state)
     report = [{"name": e["name"], "state": e.get("state"), "heartbeat": e.get("heartbeat"),
                "stale": e.get("state") == "running" and lib.is_stale(e, at, args.stale_minutes)} for e in found]
-    untagged = untagged_agents()
+    if not report:  # nothing registered: report it first, without probing herdr
+        lib.show({"checked_at": lib.stamp(at), "stale_after_minutes": args.stale_minutes, "entries": report, "untagged_agent_panes": []})
+        return lib.EXIT_USAGE
+    untagged = untagged_agents({str(e["name"]).lower() for e in found})
     for a in untagged:
-        print(f"WARNING untagged-agent-pane: {a['name'] or a['pane_id']} ({a['pane_id']}) has no pai tokens; its parent is never woken. "
+        print(f"WARNING untagged-agent-pane: {a['name'] or a['pane_id']} ({a['pane_id']}) is missing pai tokens {','.join(a['missing'])}; its parent is not woken. "
               f"Start agents with scripts/agent-start.sh or run bin/pai-pane-meta {a['pane_id']} name=... role=... parent=... wake_on_done=1", file=sys.stderr)
     lib.show({"checked_at": lib.stamp(at), "stale_after_minutes": args.stale_minutes, "entries": report, "untagged_agent_panes": untagged})
-    if not report:
-        return lib.EXIT_USAGE
     return 1 if any(r["stale"] for r in report) else 0
 
 

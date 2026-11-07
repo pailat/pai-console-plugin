@@ -2,6 +2,7 @@
 """Fake `herdr` with pane tokens: `pane report-metadata` stores them, `agent start` registers an agent, `agent list` reports both.
 
 State lives in FAKE_HERDR_STATE (JSON). FAKE_HERDR_START_FAIL=1 fails `agent start`; FAKE_HERDR_TAG_FAIL=1 fails `report-metadata`.
+FAKE_HERDR_START_NOT_READY=1 registers the agent but exits 1 (agent_not_ready: running, blocked at a dialog). FAKE_HERDR_DROP_TOKENS=1 makes `agent list` show no tokens.
 FAKE_HERDR_AGENTS (JSON list of {name, pane_id, tokens}) seeds agents. Every argv is logged to FAKE_HERDR_LOG.
 """
 import json
@@ -36,8 +37,11 @@ elif argv[:2] == ["agent", "start"]:
         sys.exit(1)
     state["agents"].append({"name": argv[2], "pane_id": argv[argv.index("--pane") + 1]})
     save()
+    if os.environ.get("FAKE_HERDR_START_NOT_READY") == "1":
+        print(json.dumps({"error": {"code": "agent_not_ready"}}))
+        sys.exit(1)
 elif argv[:2] == ["agent", "list"]:
-    agents = [{**a, "tokens": a.get("tokens") or state["tokens"].get(a["pane_id"], {})} for a in state["agents"]]
+    agents = [{**a, "tokens": a.get("tokens") or ({} if os.environ.get("FAKE_HERDR_DROP_TOKENS") == "1" else state["tokens"].get(a["pane_id"], {}))} for a in state["agents"]]
     print(json.dumps({"id": "cli:agent:list", "result": {"type": "agent_list", "agents": agents}}))
 elif argv[:2] == ["pane", "get"]:
     print(json.dumps({"id": "cli:pane:get", "result": {"pane": {"pane_id": argv[2], "tab_id": "wAC:t2", "workspace_id": "wAC"}}}))
