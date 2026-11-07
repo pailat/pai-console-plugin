@@ -10,14 +10,13 @@
 herdr plugin install pailat/pai-console-plugin/herdr-plugins/orchestration-wake --ref <tag>
 ```
 
-Example settings for remote targets (`config.env` in the plugin config directory):
+Example setting for remote targets (`config.env` in the plugin config directory):
 
 ```bash
-PAI_WAKE_SSH_OPTS="-o BatchMode=yes -o ConnectTimeout=8 -o IdentityAgent=none"
-PAI_WAKE_REMOTE_PATH=~/bin
+PAI_WAKE_MACHINES="host-a=host-a host-b=host-b"
 ```
 
-`IdentityAgent=none` skips an ssh agent that stalls a non-interactive call; drop it when the agent holds your key. Write the remote path with a tilde, never `$HOME`: `$` is rejected by the validation (only `A-Za-z0-9_./:~-` are accepted), so a `$HOME` value would be ignored and only logged. See `config.env.example` for all settings (`PAI_WAKE_FALLBACK`, `PAI_WAKE_OUTBOX`, `PAI_WAKE_HOSTS`, `PAI_WAKE_SSH_OPTS`, `PAI_WAKE_REMOTE_PATH`, `PAI_WAKE_MIN_INTERVAL`, `PAI_WAKE_MAX_PER_HOUR`).
+Each entry maps an alias to the label (or id) of a saved Herdr machine (`herdr machine list`); the label contains no spaces. A target `host-a:orchestrator` is woken with `herdr --machine host-a agent prompt orchestrator ...`. Delivery never uses ssh. The old `PAI_WAKE_HOSTS`, `PAI_WAKE_SSH_OPTS` and `PAI_WAKE_REMOTE_PATH` are deprecated and ignored: when set, the plugin logs and prints a loud message and does not deliver over ssh. See `config.env.example` for all settings (`PAI_WAKE_FALLBACK`, `PAI_WAKE_OUTBOX`, `PAI_WAKE_MACHINES`, `PAI_WAKE_MIN_INTERVAL`, `PAI_WAKE_MAX_PER_HOUR`).
 
 ## Release watch
 
