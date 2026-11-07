@@ -44,7 +44,7 @@ class RunStateTest(HarnessCase):
 
     def test_permission_denials_block_even_on_a_success_frame(self) -> None:
         verdict = lib.run_state(summary_of("permission"), 0)
-        self.assertEqual((verdict["state"], verdict["reason"]), ("blocked", "permission needed: Bash"))
+        self.assertEqual((verdict["state"], verdict["reason"]), ("blocked", "denied by policy or not pre-approved: Bash; report BLOCKER, do not work around it"))
 
     def test_no_result_frame_fails_whatever_the_exit_code(self) -> None:
         for code in (0, 137):
@@ -146,13 +146,15 @@ class LaunchTest(HarnessCase):
         record = self.record("ACME-7")
         self.assertEqual((record["model"], record["model_reported"]), ("haiku", "claude-sonnet-5-5"))
 
-    def test_the_command_is_headless_stream_json_with_the_prompt_on_stdin_and_no_permission_bypass(self) -> None:
+    def test_the_command_is_headless_stream_json_with_the_prompt_on_stdin_and_bypass_permissions_by_default(self) -> None:
         self.launch("ACME-7", "success", 0, "--role", "mechanical")
         sent = json.loads((self.tmp / "claude.json").read_text())
         self.assertEqual(sent["argv"][:5], ["-p", "--output-format", "stream-json", "--verbose", "--model"])
         self.assertEqual(sent["argv"][5], "haiku")
         self.assertIn("Implement ACME-7", sent["prompt"])
-        self.assertFalse([a for a in sent["argv"] if "skip-permissions" in a or a == "bypassPermissions"])
+        at = sent["argv"].index("--permission-mode")
+        self.assertEqual(sent["argv"][at + 1], "bypassPermissions")
+        self.assertFalse([a for a in sent["argv"] if "skip-permissions" in a])  # the mode flag, never the blanket skip flag
 
     def run_with_env_probe(self, issue: str, *extra: str, **env: str) -> dict:
         probe = self.tmp / "probe_claude.py"
@@ -223,7 +225,7 @@ class LaunchTest(HarnessCase):
         done = self.launch("ACME-8", "permission", 0)
         self.assertEqual(done.returncode, 3)
         record = self.record("ACME-8")
-        self.assertEqual((record["state"], record["reason"]), ("blocked", "permission needed: Bash"))
+        self.assertEqual((record["state"], record["reason"]), ("blocked", "denied by policy or not pre-approved: Bash; report BLOCKER, do not work around it"))
         self.assertEqual(lib.read_json(self.state / "registry/ACME-8.json")["state"], "blocked")
 
     def test_a_failed_run_exits_1(self) -> None:
@@ -469,7 +471,7 @@ class TaskLifecycleTest(HarnessCase):
         self.launch("ACME-8", "permission", 0)
         done = self.run_script("task-done.sh", "ACME-8")
         self.assertEqual(done.returncode, 3)
-        self.assertIn("Blocked: permission needed: Bash", done.stdout)
+        self.assertIn("Blocked: denied by policy or not pre-approved: Bash; report BLOCKER, do not work around it", done.stdout)
 
     def test_a_success_frame_with_a_failing_exit_cannot_be_closed(self) -> None:
         self.launch("ACME-7", "success", 2)

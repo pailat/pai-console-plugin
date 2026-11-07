@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -14,6 +15,14 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures/harness"
 
 
 PLUGIN_ROOT = ROOT / "plugins/pai-harness"
+sys.path.insert(0, str(SCRIPTS))
+import deny_baseline  # noqa: E402
+
+
+def write_deny_settings(path: Path, rules: object) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"permissions": {"deny": list(rules)}}))
+    return path
 
 
 def materialize(name: str, dest: Path, drop_skill: str | None = None, hooks_dir: Path | None = None) -> Path:
@@ -48,6 +57,11 @@ class HarnessCase(unittest.TestCase):
             self.env.pop(name, None)
         for name in [k for k in self.env if k.startswith("HERDR_")]:
             self.env.pop(name)  # a launch under test must not open a tab in the developer's own Herdr session
+        self.claude_home = self.tmp / "claude-home"  # the user settings the launcher preflight reads: the deny baseline is present
+        write_deny_settings(self.claude_home / "settings.json", deny_baseline.baseline(False, "implementer"))
+        self.env["CLAUDE_CONFIG_DIR"] = str(self.claude_home)
+        self.xdg = self.tmp / "xdg"  # the user-level policy file (~/.config/pai-harness/policy.toml) lives here; absent means no waiver
+        self.env["XDG_CONFIG_HOME"] = str(self.xdg)
         self.env["HERDR_PLUGIN_CONFIG_DIR"] = str(self.tmp / "wake-config")  # pane tags are cached here, never in the developer's own config
         self.prompt = self.tmp / "prompt.md"
         self.prompt.write_text("Implement ACME-7 for the Acme app.\n")

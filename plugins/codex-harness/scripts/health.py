@@ -3,7 +3,10 @@
 
 Usage: health.sh beat NAME [--state S] | health.sh check [--stale-minutes N] [--now ISO] [--config FILE]
 Check also warns (stderr, exit code unchanged) about harness agent panes (carrying a pai token, or registered) missing name/role/parent (and wake_on_done for one-shot roles).
-Exit codes of check: 0 every entry fresh, 1 at least one stale running entry, 2 empty registry or bad usage.
+xit codes of check: 0 every entry fresh, 1 at least one stale running entry, 2 empty registry or bad usage, 4 the deny baseline is missing
+on this machine (a named FAIL on stderr): bypass agents may run here and the effective Claude Code settings lack the deny rules. The
+check is skipped in the Codex package and when the user-level policy (~/.config/pai-harness/policy.toml) opts out. Take the same check before
+starting any agent with `deny_baseline.py --check`.
 """
 from __future__ import annotations
 
@@ -16,7 +19,10 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import deny_baseline  # noqa: E402
 import harness_lib as lib  # noqa: E402
+
+EXIT_DENY_BASELINE = 4
 
 
 TOKEN_KEYS = ("role", "parent", "name", "issue", "wake_on_done")
@@ -73,18 +79,26 @@ def main(argv: list[str]) -> int:
         fields = {"state": args.state} if args.state else {}
         lib.show(lib.register(state, args.name, **fields))
         return 0
+    baseline_result = None
+    if deny_baseline.required():  # Claude Code machines only; the waiver is the user-level policy, never the project config
+        baseline_result = deny_baseline.report(os.getcwd(), bool(config["pai"]["mcp_url"]), "implementer")
     at = lib.parse_stamp(args.now) if args.now else lib.now()
     found = lib.entries(state)
     report = [{"name": e["name"], "state": e.get("state"), "heartbeat": e.get("heartbeat"),
                "stale": e.get("state") == "running" and lib.is_stale(e, at, args.stale_minutes)} for e in found]
+    deny_state = "skipped" if baseline_result is None else "ok" if baseline_result["ok"] else "FAIL"
+    if deny_state == "FAIL":
+        print(deny_baseline.loud_message(baseline_result), file=sys.stderr)
     if not report:  # nothing registered: report it first, without probing herdr
-        lib.show({"checked_at": lib.stamp(at), "stale_after_minutes": args.stale_minutes, "entries": report, "untagged_agent_panes": []})
-        return lib.EXIT_USAGE
+        lib.show({"checked_at": lib.stamp(at), "stale_after_minutes": args.stale_minutes, "entries": report, "untagged_agent_panes": [], "deny_baseline": deny_state})
+        return EXIT_DENY_BASELINE if deny_state == "FAIL" else lib.EXIT_USAGE
     untagged = untagged_agents({str(e["name"]).lower() for e in found})
     for a in untagged:
         print(f"WARNING untagged-agent-pane: {a['name'] or a['pane_id']} ({a['pane_id']}) is missing pai tokens {','.join(a['missing'])}; its parent is not woken. "
               f"Start agents with scripts/agent-start.sh or run bin/pai-pane-meta {a['pane_id']} name=... role=... parent=... [wake_on_done=1 for a one-shot role]", file=sys.stderr)
-    lib.show({"checked_at": lib.stamp(at), "stale_after_minutes": args.stale_minutes, "entries": report, "untagged_agent_panes": untagged})
+    lib.show({"checked_at": lib.stamp(at), "stale_after_minutes": args.stale_minutes, "entries": report, "untagged_agent_panes": untagged, "deny_baseline": deny_state})
+    if deny_state == "FAIL":
+        return EXIT_DENY_BASELINE
     return 1 if any(r["stale"] for r in report) else 0
 
 
