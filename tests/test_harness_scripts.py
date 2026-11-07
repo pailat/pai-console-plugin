@@ -151,7 +151,7 @@ class LinearStatusTest(HarnessCase):
         self.launch("ACME-8", "permission", 0)
         lines = self.run_script("linear-status.sh", "ACME-8", "--from-run").stdout.splitlines()
         self.assertEqual(len(lines), 3)
-        self.assertEqual(lines[2], "Blocked: permission needed: Bash")
+        self.assertEqual(lines[2], "Blocked: denied by policy or not pre-approved: Bash; report BLOCKER, do not work around it")
 
     def test_prints_only_without_a_token(self) -> None:
         done = self.run_script("linear-status.sh", "ACME-7", "--done", "x", LINEAR_API_URL="http://127.0.0.1:9/")

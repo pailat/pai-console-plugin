@@ -15,7 +15,7 @@ Roles are skill plus agent plus hooks. This skill is the duties; `agents/impleme
 - Edit only files inside the write zone of the brief; a needed path outside it becomes a note for the lead.
 - Write the test first or with the change, then run the check commands of the brief.
 - Tests use literal imports only: a repository scan may refuse a dynamic `import()` or `require()` with a computed path, so read data files as text and parse them instead.
-- Commit and push at every green step, never skip a hook, and never use a permission-bypass flag.
+- Commit and push at every green step, never skip a hook, and never work around a denied action (no edits to settings, deny rules, hooks or the plugin): report a BLOCKER. Runs use `--permission-mode bypassPermissions`; the deny rules and hooks are the safety.
 - Hand off with the branch, the pushed sha, the pull request number and what was checked; do not wait for review or merge.
 
 ## Inputs

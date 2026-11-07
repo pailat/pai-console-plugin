@@ -1,0 +1,23 @@
+{
+  "_comment": "Generic example for Acme. Add to the project settings of every role except the integrator and orchestrator (the roles that merge by design); launch.sh requires these rules for every other role. Replace main, master and release/* with your protected branches.",
+  "permissions": {
+    "deny": [
+      "Bash(gh *pr merge*)",
+      "Bash(git *push * main)",
+      "Bash(git *push * main *)",
+      "Bash(git *push *:main)",
+      "Bash(git *push *:main *)",
+      "Bash(git *push */main)",
+      "Bash(git *push */main *)",
+      "Bash(git *push * master)",
+      "Bash(git *push * master *)",
+      "Bash(git *push *:master)",
+      "Bash(git *push *:master *)",
+      "Bash(git *push */master)",
+      "Bash(git *push */master *)",
+      "Bash(git *push * release/*)",
+      "Bash(git *push *:release/*)",
+      "Bash(git *push *refs/heads/release/*)"
+    ]
+  }
+}

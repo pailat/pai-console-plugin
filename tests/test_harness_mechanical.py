@@ -80,6 +80,27 @@ class ProfileTest(MechanicalCase):
         self.assertEqual((argv[argv.index("--max-turns") + 1], argv[argv.index("--max-budget-usd") + 1]), ("12", "0.25"))
         self.assertFalse([a for a in argv if "skip-permissions" in a or a == "bypassPermissions" or a == "Bash"])
 
+    def test_the_lane_never_bypasses_whatever_the_bypass_setting_and_skips_the_deny_preflight(self) -> None:
+        """The bypass default (and its deny-baseline preflight) belongs to the other roles; the lane stays dontAsk with four scoped tools."""
+        for name, body in (("default", ""), ("bypass-on", "\n[run]\nbypass_permissions = true\n"), ("opt-out", "\n[run]\nbypass_permissions = false\n")):
+            config = self.tmp / f"{name}.toml"
+            config.write_text('[project]\npai_org = "acme"\npai_project = "acme-web"\nlinear_team = "ACME"\n' + body)
+            (self.claude_home / "settings.json").unlink(missing_ok=True)  # no deny rules anywhere: a bypass run would be blocked, the lane is not
+            done = self.lane(issue=f"ACME-{len(name)}", PAI_HARNESS_CONFIG=str(config))
+            self.assertEqual(done.returncode, 0, f"{name}: {done.stdout}{done.stderr}")
+            argv = self.argv()
+            self.assertEqual(argv[argv.index("--permission-mode") + 1], "dontAsk", name)
+            self.assertEqual(argv.count("--permission-mode"), 1, name)
+            self.assertNotIn("bypassPermissions", argv, name)
+            self.assertEqual(argv[argv.index("--tools") + 1], "Read,Edit,Grep,Glob", name)
+
+    def test_a_normal_run_on_the_same_machine_is_still_blocked_without_deny_rules(self) -> None:
+        (self.claude_home / "settings.json").unlink(missing_ok=True)
+        prompt = self.tmp / "p.md"
+        prompt.write_text("x\n")
+        done = self.run_script("launch.sh", "ACME-9", "--prompt-file", str(prompt), "--cwd", str(self.repo), FAKE_CLAUDE_FIXTURE=str(RESULT))
+        self.assertEqual(done.returncode, 3, done.stdout + done.stderr)
+
     def test_the_mcp_config_is_empty_even_when_a_pai_endpoint_is_configured(self) -> None:
         done = self.lane(PAI_HARNESS_CONFIG=str(FIXTURES / "acme-pai.pai-harness.toml"))
         self.assertEqual(done.returncode, 0, done.stderr)
